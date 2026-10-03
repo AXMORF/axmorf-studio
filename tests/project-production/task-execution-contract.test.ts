@@ -10,6 +10,9 @@ import {
   VisualStyleSpecSchema,
   SCENE_MOTION_REQUIREMENT_ID,
   buildSceneTaskInputV7,
+  buildShotPlanSet,
+  buildSceneContinuityContract,
+  buildNotApplicableFidelityReceipt,
   ShotPlanSetSchema,
   SceneSyncAnchorSetSchema,
   validateSceneMotionPlan,
@@ -20,6 +23,9 @@ import {
   StorySpecSchema,
   buildProducerTaskSpec,
   buildSceneOriginalityBaseline,
+  buildScenePriorSource,
+  computeUtf8Checksum,
+  TaskOutputContractSchema,
   deriveGlobalVisualLayerPolicy,
   generateSemanticTiming,
   resolveSceneReadabilityPolicy,
@@ -40,6 +46,7 @@ import {
 import { createScenePackageInput } from "../fixtures/scene/package-input";
 import { createSoundRuntimeFixture } from "../fixtures/scene/sound-runtime";
 import { checkSceneMotionConsumption } from "../../scripts/project-production/application/scene-motion-consumption";
+import { validateSceneArtifactBundle } from "../../scripts/scene-package/domain";
 import {
   buildValidSealedNarrationManifest,
   validNarrationSpec,
@@ -139,6 +146,107 @@ test("Scene contract rejects creative context that no longer matches its task", 
       }),
     /narration cues are stale/u,
   );
+});
+
+test("prior Scene outputs preserve the API scaffold and the 32-output bound", () => {
+  const context = sceneContext(createScenePackageInput().task);
+  const fresh = buildTaskExecutionContract({
+    taskKind: "scene-owner",
+    context,
+  });
+  assert.match(fresh.workflow.join(" "), /no prior implementation was frozen/u);
+  const priorRenderer = 'export default () => <div data-label="prior" />;\n';
+  const source = (helpers: number) =>
+    buildScenePriorSource({
+      storyId: context.scene.taskInput.storyId,
+      meaningId: context.scene.taskInput.meaningId,
+      brief: context.scene.brief,
+      rendererSourceFingerprint: checksum("runtime"),
+      scenePackageFingerprint: checksum("package"),
+      files: [
+        { path: "Renderer.tsx", content: priorRenderer },
+        ...Array.from({ length: helpers }, (_, index) => ({
+          path: `helper-${index}.ts`,
+          content: `export const value = ${index};\n`,
+        })),
+      ]
+        .sort((a, b) => a.path.localeCompare(b.path))
+        .map((file) => ({
+          ...file,
+          role: "source",
+          checksum: computeUtf8Checksum(file.content),
+          sizeBytes: Buffer.byteLength(file.content),
+        })),
+    });
+  const revised = buildTaskExecutionContract({
+    taskKind: "scene-owner",
+    context: {
+      ...context,
+      scene: { ...context.scene, priorSource: source(24) },
+    },
+  });
+  assert.equal(revised.outputs.length, 32);
+  assert.equal(
+    revised.outputs.find(({ path }) => path === "src/Renderer.tsx")?.example,
+    fresh.outputs.find(({ path }) => path === "src/Renderer.tsx")?.example,
+  );
+  assert.notEqual(
+    revised.outputs.find(({ path }) => path === "src/Renderer.tsx")?.example,
+    priorRenderer,
+  );
+  assert.match(
+    revised.workflow.join(" "),
+    /Do not reconstruct or redraw the whole Scene/u,
+  );
+  assert.match(
+    revised.workflow.join(" "),
+    /originalityBaseline as immutable negative evidence/u,
+  );
+  assert.doesNotMatch(
+    revised.workflow.join(" "),
+    /Choose a visual subject|Replace the scaffold/u,
+  );
+  assert.throws(
+    () =>
+      buildTaskExecutionContract({
+        taskKind: "scene-owner",
+        context: {
+          ...context,
+          scene: { ...context.scene, priorSource: source(25) },
+        },
+      }),
+    /Too big/u,
+  );
+});
+
+test("text output contracts are limited to retained license and attribution files", () => {
+  const output = {
+    path: "src/LICENSE",
+    owner: "agent",
+    format: "text",
+    instructions: ["Retain exact license bytes."],
+    derivedFields: [],
+    example: "Apache-2.0\n",
+  };
+  assert.equal(TaskOutputContractSchema.safeParse(output).success, true);
+  assert.equal(
+    TaskOutputContractSchema.safeParse({ ...output, path: "src/LICENSE.txt" })
+      .success,
+    true,
+  );
+  for (const path of [
+    "src/unrelated.txt",
+    "src/LICENSE.json",
+    "src/LICENSE.ts",
+    "src/LICENSE.js",
+    "src/LICENSE.mjs",
+    "src/LICENSE.jsx",
+  ])
+    assert.equal(
+      TaskOutputContractSchema.safeParse({ ...output, path }).success,
+      false,
+      path,
+    );
 });
 
 const writeOutputExamples = async ({
@@ -911,6 +1019,81 @@ test("Scene nonempty resources survive contract, finalization and checker", asyn
       ),
     ).selectedResources,
     fixture.selectedResources,
+  );
+});
+
+test("Frozen seam examples pass shared bundle validation and reject invented handoffs before artifact acceptance", () => {
+  const previous = createScenePackageInput().task;
+  const creative = sceneContext(previous);
+  const handoffs = buildSceneContinuityContract({
+    storyId: previous.storyId,
+    beat: previous.storyBeat,
+    brief: {
+      ...creative.scene.brief,
+      outgoingHandoff: { subject: "A shared proof outline" },
+    },
+    previous: null,
+    next: {
+      beat: { kind: "narrated-scene", meaningId: "next" },
+      brief: { ...creative.scene.brief, meaningId: "next" },
+    },
+  });
+  const taskInput = buildSceneTaskInputV7({
+    ...previous,
+    continuity: {
+      ...previous.continuity,
+      nextMeaningId: "next",
+      nextSummary: "Follow the proof",
+      handoffs,
+    },
+  });
+  const contract = buildTaskExecutionContract({
+    taskKind: "scene-owner",
+    context: sceneContext(taskInput),
+  });
+  const example = (path: string) =>
+    contract.outputs.find((output) => output.path === path)?.example;
+  const selection = example("src/shot-recipe-selection.json") as {
+    selectionFingerprint: string;
+  };
+  const bundle = {
+    task: taskInput,
+    visual: example("src/visual-plan.json"),
+    shots: example("src/shot-plan.json"),
+    anchors: example("src/sync-anchors.json"),
+    sound: example("src/sound-plan.json"),
+    selection,
+    selectedResources: [],
+    fidelityReceipt: buildNotApplicableFidelityReceipt({
+      selectionFingerprint: selection.selectionFingerprint,
+      reason: "empty",
+    }),
+  };
+  assert.doesNotThrow(() => validateSceneArtifactBundle(bundle));
+  const shots = ShotPlanSetSchema.parse(bundle.shots);
+  const motionPlan = shots.motionPlan;
+  assert.ok(motionPlan);
+  assert.throws(
+    () =>
+      validateSceneArtifactBundle({
+        ...bundle,
+        shots: buildShotPlanSet({
+          ...shots,
+          motionPlan: {
+            ...motionPlan,
+            handoff: {
+              ...motionPlan.handoff,
+              outgoing: [
+                {
+                  ...motionPlan.handoff.outgoing[0],
+                  continuityId: "answer-strip-flow",
+                },
+              ],
+            },
+          },
+        }),
+      }),
+    /frozen outgoing identity/u,
   );
 });
 

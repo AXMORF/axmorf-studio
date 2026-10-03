@@ -18,6 +18,7 @@ import {
   RenderSpecSchema,
   ResourceCatalogSchema,
   SceneOriginalityBaselineSchema,
+  SCENE_PRIOR_SOURCE_PATH,
   StoryResourcePoolSchema,
   StorySpecSchema,
   VideoBriefSchema,
@@ -58,6 +59,7 @@ import {
   SCENE_ORIGINALITY_BASELINE_PATH,
   snapshotWorkspaceSceneOriginalityBaseline,
 } from "./scene-originality";
+import { freezeRevisionScenePriorSources } from "./scene-prior-source";
 
 export const PROJECT_REVISION_MATERIALIZATION_PATH =
   "production/project-revision-candidate.json" as const;
@@ -520,6 +522,10 @@ const inspectProjectRevisionAuthoring = async ({
       label: "Project revision Scene authoring",
     });
   }
+  parseAuthoringInput(ProjectRevisionEditableAuthoringSchema, {
+    ...state.context.editable,
+    ...input.patch,
+  });
   const changedSections = PROJECT_REVISION_SECTION_NAMES.filter(
     (section) =>
       input.patch[section] !== undefined &&
@@ -584,12 +590,14 @@ const assertSceneSelectionsAreAllowed = ({
 
 const applyProjectRevisionPatch = async ({
   rootDir,
+  runtimeRootDir,
   input,
   config,
   changedSections,
   originalityBaseline,
 }: {
   readonly rootDir: string;
+  readonly runtimeRootDir: string;
   readonly input: ProjectRevisionInput;
   readonly config: ProducerConfig;
   readonly changedSections: readonly ProjectRevisionSectionName[];
@@ -744,6 +752,14 @@ const applyProjectRevisionPatch = async ({
     globalVisual: { visualIntent: globalVisual.visualIntent },
     publishing: editablePublishing(publishing),
   });
+  // The staging tree is copied from the verified immutable base. Capture it
+  // before replacing authoring or removing a Scene whose narration changed.
+  const priorSources = await freezeRevisionScenePriorSources({
+    rootDir,
+    runtimeRootDir,
+    before: project.editable,
+    after: editable,
+  });
   const values = [
     ["brief.json", brief],
     ["story.json", story],
@@ -754,6 +770,9 @@ const applyProjectRevisionPatch = async ({
     ["production/global-visual-brief.json", globalVisual],
     [SCENE_ORIGINALITY_BASELINE_PATH, originalityBaseline],
     ["production/pending-scene-production-brief.json", pending],
+    ...(priorSources === null
+      ? []
+      : [[SCENE_PRIOR_SOURCE_PATH, priorSources] as const]),
   ] as const;
   for (const [relativePath, value] of values) {
     await writeContainedJson({
@@ -815,6 +834,9 @@ const applyProjectRevisionPatch = async ({
     `src/projects/${storyId}/sound.json`,
     `src/projects/${storyId}/story.json`,
     `src/projects/${storyId}/visual-style.json`,
+    ...(priorSources === null
+      ? []
+      : [`src/projects/${storyId}/${SCENE_PRIOR_SOURCE_PATH}`]),
   ].sort((left, right) => left.localeCompare(right));
   const authoringFiles = await Promise.all(
     authoringLogicalPaths.map(async (logicalPath) => {
@@ -1012,6 +1034,7 @@ export const createProjectRevisionCandidate = async ({
       populate: async (stagingDirectory) => {
         prepared = await applyProjectRevisionPatch({
           rootDir: stagingDirectory,
+          runtimeRootDir: rootDir,
           input: initial.input,
           config,
           changedSections: locked.changedSections,

@@ -1,5 +1,195 @@
 # Iteration Status
 
+## 0.1.16 当前候选发布闭环（2026-10-03，发布前门禁通过，尚未发布）
+
+当前 release worktree 基于 `7352dc9` 与原工作区73项已有修改，原分支、提交与文件 bytes 保持不变。
+当前 runtime/creator 均为 `0.1.16`，283/41文件，content fingerprints 为 `2f528b35…` / `5fc7408f…`。
+最新重新 type/build/发行边界/pack 的两个 tarball 与实际验收候选 bytes 相同，公开 `verify` 退出0。
+
+全新 `axmorf-0.1.16-reviewed-firstuse-20261003-gzhb5fc5/workspace` 由支持的 creator 安装，runtime与12份
+生成指南逐文件核对。零既有 session 的独立 CLI0.160.0 /GPT-6.1 Sol/max Root 只有一条普通业务提示。
+真实 `subagents/4/shared-workspace`、四路 bound overlap累计515914ms、两次全新session补位，正式公开
+record/verify 通过；canonical receipt 已替换为本候选真实生成收据，旧候选收据按原bytes归档。
+
+两次明确限域画面修订只修改同一个 Scene 的轨迹、镜头与标签：每次1dirtyScene/25reuse/0新provider，
+其他五Scene、GlobalVisual、封面、公共素材及旁白bytes不变。独立完整副本的 publishing.description-only
+公开修订全链、自动提升、重复manual promote与final check通过；0新provider/0Agent tasks，原Workspace
+摘要和副本所有包、依赖、指南、配置、既有artifacts均不变；正常Remotion构建cache另记。
+原控制器API/cache误判失败保留，独立补充核验只完成剩余检查。固定模板仍由fixed任务产出，不派Agent。
+
+最后冻结 recorder `280d0000… /cf4c2135…` 通过独立Source-only NO-BLOCKING、112focused和类型/lint/
+格式检查，最新完整 `npm run check`1093/1093，零失败/跳过/取消；测试前后源码哈希相同。
+原始不可用member/只读web/原生stdout包装兼容修复只作用于工程记录器，不更改安装包或制作门禁。
+截断旧试次、工程探针第一次硬关闭API缺失的失败保留，不用后续结果伪装旧试次通过。
+
+实际四文件交付、H.264/AAC、EOF解码、16条字幕、sealed音频/字幕同步和音频指标通过。
+已实际查看抽样画面、两封面与关键原分辨率画面；连续观看、全部动作时序观感、主观听审、实机手机与Hermes
+明确未验证。时长不作为验收条件。详见[当前验收记录](evidence/2026-10-03-v0.1.16-current-candidate.md)。
+
+用户已授权commit/tag/push和支持的npm workflow；尚未触发发布。发布后按明确授权只核对npm版本/
+完整性、全新public-registry安装和doctor，不制作第二条视频，public native首用未验证。
+下方仅保存各历史试次当时的冻结状态与范围，不代表本候选当前事实。
+
+## 0.1.16 历史试次（截至 compact-dispatch 修复前，均不认证当前候选）
+
+诊断枚举/alias 的四文件最小修复经 RED→GREEN、55 focused 与独立只读 NO-BLOCKING 审查；
+最终完整 `npm run check` 1069/1069、两包 build/type/边界、零漏洞审计通过。重新生成 283/41 文件候选，
+runtime `4f3888e8102f3e300aa6e3eb377e8f9d6da9e24b3f301501c0d86931f7fbe64e`，creator
+`5fc7408f755a55501ee5bd0d2342e73ac8f889c88d6d6a4ab72037ea7c2a021b`。支持的 creator 已在
+全新 `axmorf-0.1.16-diagnosticfix-firstuse-20261003-fxjdb9it/workspace` 安装、空快照与 12 生成指南
+逐文件验证；零 session 的独立 CLI 0.160.0/6.1 Sol/max 已开始普通业务任务。本轮正式首用、
+局部修订及安装包 publishing-only fixture 仍待真实结果，不使用旧包收据代替。
+
+最新补充局部修订在 prepare 阶段失败：合法 `prior-scene-source` 漏入诊断 ID 枚举/alias，尚未派发
+创作任务。Root 停止，原四文件与已签初稿 checksum 一致、final check 通过；完整 15 原生 sessions
+和 UI 已冻结。见[诊断输入失败记录](evidence/2026-10-03-v0.1.16-prior-source-diagnostic-failure.md)。
+正在仓库最小修复与实际 planner/prepare/attempt 持久化回归；新运行包必须重新创建候选和全新 Workspace。
+下文 283/41 文件的首稿正式收据仅认证旧候选初稿，不能认证失败修订或后续改包。
+
+用户已明确授权修复后发布最新 npm，并要求更新独立 CLI 后再试。发布使用受控 `axmorf/release-0.1.16`
+worktree，基于 `7352dc9` 及原工作区 73 项已有修改；原分支、文件和提交均保留。Node 24.15.0 下两包
+build/type/发行边界、完整 `npm run check` 1067/1067 和零漏洞审计通过；随后记录器的重复计数边界收紧通过
+61/61 focused、type/lint 与完整原证据 record。最终 tag 将由发布 CI 再跑全量检查。上一冻结 runtime/creator 为
+282/41 文件，包含 24 条合法预制音效与公共指南补强；其完整首用仍失败，后续源码修复须重新构建和验证。
+
+上一独立任务虽然实际完成视频和七个创作任务，Root 却丢掉 prepare shell 句柄，把外层 cell 结束误判为
+shell 终态，随后从磁盘重建命令；正式 recorder 正确拒绝，没有通过收据。另有 worker 外部临时 JSON
+写入违反声明输出范围。仅补强生成指南和公共等待示例回归，没有修改或放宽 CLI、合同、validator、recorder。
+失败和停止的全部原生记录见[进程证据与 CLI 准备记录](evidence/2026-10-02-v0.1.16-cli-and-process-evidence.md)。
+
+独立 CLI 原为 Homebrew 0.150.1。系统目录权限阻止其升级，未改变目录权限；官方 0.160.0 已安装到
+当前用户 prefix，默认 shell 正确解析到新版。新版 model/list 和真实 model-only invocation 均确认
+GPT-6.1 Sol / max。正在新 Workspace、新 cache、新 profile 下用相同最新候选和普通业务提示验收，
+不复用旧 Project、代码、媒体或结果；只有 npm 生成指南提供项目规则。时长已从验收条件移除。
+
+更新 CLI 后的第一轮实际为 GPT-6.1 Sol/max，首轮成片完成、四 native workers 与新 session 补位均有原始记录；
+但自主局部修订改动了共享 VisualStyle，使全部 9 项创作任务失效，并漏掉该 candidate 的新 resolver。
+控制器停止后保存 18 个原始 native sessions，正式 recorder 因非零 run 退出拒绝，整个首用未通过。
+见[更新 CLI 后的修订范围失败记录](evidence/2026-10-02-v0.1.16-cli160-revision-scope-failure.md)。
+仅补强 npm 与仓库指南：每轮 candidate 重验 capability/resolve、实际 CLI/schema、局部 Scene patch，
+inspect 出现无关 dirty tasks 时先收窄再 prepare；不放宽合同或门禁。重建 runtime content 不变，
+creator content 更新为 `8152adea1eb5d3b5080d48e34e41889a3d7186df13db3c2ac9206e77e0c9c4e4`；
+再次 fresh Workspace/profile，四段普通业务初稿提示，实际 6.1/max。初版真实视频及六个创作任务完成；
+局部 candidate 为一 dirty Scene、33 hits、0 新 provider，并已重验 capability/resolve，但缺少上一版
+Scene 源码的 immutable task input，child 无法保留原实现小改。Root 记录 fixed failure，continuation
+退出 1、未晋升，初版保持 current；完整 16 native sessions 和原始 UI 均保留，整个首用仍失败。
+见[原场景输入缺口记录](evidence/2026-10-02-v0.1.16-prior-scene-input-failure.md)。
+recorder 另将两个独立并行返回的 pending/completed wrapper 混为同一进程，先报句柄冲突；精确 batch
+归属、公开等待示例集成与前置未执行异常的诊断修复已通过回归。真实句柄、绑定、动态命令拒绝及单次
+continuation 门禁保留，旧失败记录没有重签。修订现在把 owning Scene 当前 base 的源码、plans 与许可
+冻结为 authoring-owned `scene.priorSource`；未改 Scene 输入保留，晋升后不读取生成输出来重算任务身份。
+独立代码审查、局部失效、连续修订和晋升稳定性回归通过；实际运行仍须 fresh 包验收。
+
+新候选 runtime/creator 为 283/41 文件，content fingerprints 分别为
+`cfe7f2f8c87d7d9bb0c124ce25e24810d1827c74b02e14f467b8777401c27d3f` /
+`5fc7408f755a55501ee5bd0d2342e73ac8f889c88d6d6a4ab72037ea7c2a021b`。
+支持的 first-use creator 已从这两个 tarball 创建空 Workspace 并逐文件核对；零既有 session 的独立
+CLI 0.160.0 已实际使用 GPT-6.1 Sol/max，只有 npm 生成的两份 Skill。初稿真实完成，四场景与两个补位
+任务全部提交，独立 Root 已终态，完整 11 个原生 sessions 与 UI 冻结。严格 recorder 的同步进程归属、
+只读摘要投影和旧进程 overlap 修复均经真实负例回归，独立审查 NO-BLOCKING；全部原证据未改。
+[旧候选初稿收据](evidence/v0.1.16-first-use-priorsource-initial-superseded-2026-10-03.json) 已由公开 record 生成并与候选 verify 通过：peak 4、
+累计四任务绑定重叠 567019 ms、两次新 session 补位。重新 build/pack 内容与已安装候选一致，不重做初稿。
+初稿 1080×1920/30 fps/3302 帧、20 条字幕，EOF、PCM/字幕时间轴通过；−15.9 LUFS、true peak −2.2 dBFS、
+音频 lag 42.667 ms。实际查看 16 个抽样画面、两封面和三个原分辨率画面。最后一段检验笔遮字的明确限域
+修订已用原独立 Root、6.1/max 启动；其结果和复用须另行记录，不混入首次单提示收据。
+
+当前 `verify` 与 `verify-public` 已强制 0.1.16 native/subagents 发布门禁；历史串行收据只能通过
+`verify-historical` 做诊断，返回 `publicationEligible: false`。没有把历史通过记录用于本次发布。
+
+发布授权覆盖 commit/tag/push 与支持的 `npm-publish.yml` 门禁。用户随后明确简化本次发布后范围：
+只核对 npm 版本/包完整性、全新 public-registry 安装与 doctor，不制作第二条视频，不声称 public native
+首用通过。发布前实际 native 并发/补位、局部视觉修订和复用要求保留。下方旧记录保留各历史冻结范围。
+当前尚未发布；完整连续播放、主观听审、实机手机和 Hermes 未验证。
+
+## 预制动效音效扩充与鼠标素材（2026-10-02，本地未提交、未发布）
+
+在原 8 条基础上新增 16 条，当前合计 24 条。鼠标素材包括 down/up、单击、双击、右键与滚轮刻度；其他新增
+键盘、短打字串、开关、拾起/放下、反向掠过、翻卡、通知、警告与成功和弦。均为原创合成的 48 kHz 双声道
+16-bit PCM WAV，已登记共享 seed/manifest/Catalog；模拟设备音不是实物录音。组合鼠标/打字声音的内部动作间隔
+记录在 description 与用法文档，不同视觉间隔可使用独立按下/松开/按键素材。原 8 条 bytes 与 descriptors 回读不变。
+
+12/12 音效与声音 runtime focused checks、全源码 typecheck、修改代码 lint、文档检查、runtime package build
+与发行边界检查通过。24 条包内 WAV 均通过 FFprobe 格式/时长与 FFmpeg EOF/峰值检查；隔离 Workspace 的标准
+npm 脚本完成 bootstrap、重复 bootstrap、24 条 motion-sync 与 6 条 mouse 查询，落盘 bytes 与 seed 一致。
+独立试听串和全量素材包保存在本地 out；没有新视频制作或成片实际听审，没有提交或发布。
+
+## 0.1.16 冻结候选独立首用与限域修订（2026-10-02，未发布）
+
+本轮修复后的 0.1.16 冻结候选通过独立机械首用；完整观感/主观听审未完成。
+分支及远端 HEAD 均为 `axmorf/npm-workspace-open-source` / `7352dc9`，修复尚未提交。
+固定模板按 `scene-template` 来源豁免内容运动消费、保留固定验证；Root 冻结 continuity handoff，
+解决独立 worker 自选 ID 导致汇聚失败。发布 recorder 严格支持真实修订链和原始进程/cell 自排空等待。
+本轮快照完整 `npm run check` 1038/1038、零失败/跳过；两包 build/type/发行边界检查通过，
+修复后的重建 tgz 与安装候选逐字节一致。
+
+冻结两包 258/41 个发行文件；全新目录、新 npm cache、空 Project、fresh native Root，仅普通业务需求。
+258 runtime 文件及 12 生成指南核对一致。实际 `gpt-5.6-sol / max`（独立 CLI 无 6.1），
+默认 subagents/4/shared-workspace，六制作 child、四绑定重叠 297.361 秒、两次新会话补位、唯一 continuation。
+[正式单提示机械收据](evidence/v0.1.16-first-use-frozen-superseded-2026-10-02.json) 和匹配冻结候选的 verify 通过。
+
+首次 42.9 秒；控制器额外精简到 38.6 秒，用户现明确时长不作为条件，旧范围检测不计验收失败，
+不再为时长重做。之后仅改 `verify-the-source`：一 dirty Scene、13 artifact hit、0 新 provider，
+其余正文/固定模板/全局层/旁白/字幕时间轴和两封面不变。三个实际 attempts 的完整原生链审计通过，
+每 attempt 唯一 continuation。当前 1080×1920/30 fps/1158 帧 H.264/AAC 双声道四文件、EOF、final 7/7 通过；
+−16.2 LUFS、true peak −2.3 dBFS、实测旁白 lag 42.667 ms。实际采样正文/字幕可读，4:3 封面箭头交叉部分小字未修。
+完整连续播放、主观听审、实机手机和 Hermes 未验证。
+
+安装候选在隔离副本完成 publishing-only 公共 revision 闭环、0 provider/Agent、自动及手动幂等晋升、
+final 7/7；原 Workspace 当前 owned 文件不变。副本视频重新生成、330 解码帧哈希不同，视觉等价未验证，
+不声称视频像素复用。该补充和后续反馈不混入首次单提示收据。
+
+收尾时下节八条共享音效的并发改动已改变当前发行内容；上述收据/1038 checks 仅认证本轮冻结候选，
+不认证追加后的包或其独立首用，不能用于发布更改后的 package fingerprint。
+详情见[修复后独立首用记录](evidence/2026-10-02-v0.1.16-repaired-first-use.md)。
+没有 push、标签、npm 或社交发布；下方旧失败和串行授权保留为历史。
+
+## 预制动效音效素材库（2026-10-02，本地未提交、未发布）
+
+新增 8 条原创程序合成的短音效：ui-click、soft-pop、snap-lock、whoosh-short、whoosh-sweep、soft-impact、
+confirm-chime 与 sparkle-accent。素材是 48 kHz 双声道 16-bit PCM WAV，采用 Apache-2.0，已加入共享
+Workspace seed 的 asset manifest，包含用途、卡点位置、checksum 与许可证据。维护者离线制作，Scene 仅选择
+已登记素材并声明 sound-plan；bootstrap、production 和 render 不合成音频。用法见
+[Scene 预制动效音效](guides/SCENE_SOUND_EFFECTS.md)。
+
+36/36 素材 Catalog/声音 runtime 相关检查和 14/14 音效/creator 回归通过；全源码 typecheck、修改代码 lint、
+文档链接、runtime package 构建与发行边界检查通过。8 条 WAV 逐条由 FFprobe 确认时长/格式/48 kHz/双声道，
+FFmpeg 解码至 EOF；峰值为 -11.70 至 -7.54 dBFS。编译 runtime 在隔离 Workspace 经标准 npm 脚本完成
+bootstrap、重复 bootstrap 和 Catalog query，8 条素材均可查询，落盘 bytes 与 seed 一致。
+本次没有新视频 production 或实际成片试听；这些验证不构成整片混音审查、首次使用 release gate 或 npm 发布证据。
+
+## 0.1.16 固定模板修正与全新首用复测（2026-10-02，未发布）
+
+基线仍为 `axmorf/npm-workspace-open-source` / `7352dc9`；本次未提交修正让内容运动消费
+仅检查 `scene-owner`，固定 `scene-template` 按任务来源豁免，与名称和首尾位置无关。
+35/35 回归与完整 1010/1010、包构建/类型/发行边界检查通过，审计零漏洞。
+重新打包的 0.1.16 两包通过支持的 first-use create 在新目录安装；257 个 runtime 文件与
+12 个指南前后哈希均匹配。独立 fresh Root 仅收到普通业务提示，实际 `gpt-5.6-sol / max`，
+default `subagents`/4/shared-workspace；四 probe、六制作 child 均真实执行。
+四绑定任务重叠累计 297.758 秒，两次全新会话补位，六个任务全部提交。
+
+原固定模板失败已越过；最终汇聚因相邻 Scene 自选的 continuity ID 不匹配，报
+`Missing continuity handoff: answer-strip-flow`。attempt 终态失败，恢复检查不可恢复，
+没有视频/封面/current Delivery；实际观看、试听、音画/裁切/解码及局部画面 revision 未验证。
+实测总时长 41 秒，也超出本次 30–40 秒上沿。支持的 recorder 因现存 0.1.16 串行例外拒绝
+native children，没有通过收据。前次控制器 stdin 关闭的启动失败和全部原始会话均保留。
+详见[固定模板修正与首用复测](evidence/2026-10-02-v0.1.16-fixed-template-retest.md)。
+整体首用仍失败；未修改新汇聚故障相关程序/validator，未创建标签或触发 npm 发布。
+
+## 0.1.16 全新独立首用失败（2026-10-02，未发布）
+
+实际核对 `axmorf/npm-workspace-open-source` / `7352dc9`，标准重建后源码完整检查为
+1009/1009。两包 0.1.16 候选通过仓库 first-use create 在全新 Workspace 安装；257 个 runtime
+文件及 12 个生成指南前后均与候选一致。独立 native Codex Root 和四个 probe child 实际使用
+`gpt-5.6-sol / max`；仅临时 shared-workspace 往返探测通过，制作四任务重叠及后续补位未验证。
+
+真实 `project:produce:prepare` 在 fixed 静默片头模板失败：motion requirement 被套到模板，
+而模板 frozen context 没有 `visualStyle`，公共 Scene checker 对 undefined 执行 schema parse。
+未创建 ExecutionAttempt 或派发制作任务；没有视频/封面，实际观看、试听、音画/裁切检查及
+局部画面 revision 均未验证。控制器在故障后的重复 prepare 执行前停止运行；正式 recorder
+拒绝失败 run 和非空 intervention，未签发通过收据。完整根因、候选身份、原始证据位置和
+审批/隔离限制见 [首用失败记录](evidence/2026-10-02-v0.1.16-first-use-failure.md)。
+当前包尚不具备本次首用通过证据；未改程序/validator，也未创建标签或触发 npm 发布。
+
 ## 0.1.16 候选内容运动与发布准备（2026-10-01，尚未发布）
 
 图表刻度、字幕孤字换行和最终混音峰值余量已修正；浏览器预检、明确授权的串行 fallback、
@@ -67,7 +257,6 @@ H.264/AAC 视频与两张 PNG 封面、publish.json 均已复验至 EOF；比 25
 详见 [本地 Workspace 验证](evidence/2026-09-30-capability-workspace-smoke.json) 与
 [准入诊断](evidence/2026-09-30-scene-capability-admission.md)。该记录仅证明旧基线的能力专项；用户复核发现首尾深底深字，未通过首尾视觉验收。
 已有 0.1.15 主题修复与能力增量现已统一并重新验证，见顶部当前记录；未发布新包。
-
 
 ## 0.1.15 已发布（2026-09-30，公共首次使用监督未通过）
 

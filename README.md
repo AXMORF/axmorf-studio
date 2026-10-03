@@ -45,8 +45,10 @@ npm run dev
 
 creator 会安装精确依赖、生成 `package-lock.json`，并在原子提升目标目录前运行无 provider 的
 `bootstrap`/`doctor`。`bootstrap` 同时从 runtime package 投影经过清单与 checksum 验证的共享素材；当前包括
-片头 cinematic impact、片尾 8 秒电子 BGM 与可复用 AXMORF 标记，默认首尾 Scene 会在 Project 创建时把所用音频复制为
-Project-local 资产。
+片头 cinematic impact、片尾 8 秒电子 BGM、可复用 AXMORF 标记，以及
+[24 条预制动效音效](docs/guides/SCENE_SOUND_EFFECTS.md)，含鼠标单击/双击、按下/松开与滚轮声。
+默认首尾 Scene 会在 Project 创建时把所用音频复制为
+Project-local 资产；正文 Scene 从 Catalog 选择已制作的音效并按帧安排卡点。
 `npm run dev` 会同时启动 loopback-only Web 控制中心和 Remotion Studio：前者用于配置、诊断、
 进度和 current Delivery，后者用于 Composition 实时预览。
 

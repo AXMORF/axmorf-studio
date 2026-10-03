@@ -125,14 +125,17 @@ npm run project:revise -- --project <storyId> --input <repository-relative-json>
 ```
 
 context 在返回 editable authoring 前同时复验 current `baseRevisionId` 与 exact-four-file
-`baseDeliveryBuildId`。strict patch 只开放 authored sections，并保持 narrated meaningId/order 与 boundary Scenes。
+`baseDeliveryBuildId`。revision 无 `--schema`，validate 只接受 `--input`；先核 installed public `ProjectRevisionInputSchema`。
+strict patch 只开放 authored sections，并保持 narrated meaningId/order 与 boundary Scenes。局部 Scene 排版只改完整
+`patch.scenes` 列表中的目标 Scene brief，不顺手改全局 VisualStyle/GlobalVisual/Story/TTS；没有 Cover-only patch API。
 candidateId 由 canonical input 确定；候选在 `.producer-revisions/<storyId>/<candidateId>/` 隔离 source/public/
 narration/work/attempt/out/delivery。相同完整 input/base bytes 只读 current，stale base、未知文件、symlink、special
 file 或路径逃逸 fail closed。candidate create 和后续 production 在 promotion 前都不修改 live Project/Delivery。
 
 ## 3. 只读 inspect 与显式 prepare
 
-先运行严格只读 inspection：
+每次 live/candidate production（含同一请求的自主 revision）都按 Skill 重验当前宿主 capability，在 inspect 前成功运行
+一次 `npm run project:execution:resolve`；不复用上轮 probe/resolver。然后运行严格只读 inspection：
 
 ```bash
 npm run project:produce:inspect -- --project <storyId>
@@ -146,7 +149,8 @@ inspect 不获取 mutation lock、不调用 provider、不刷新 Catalog、不�
 `production-inputs-ready`，以及 provider/cache/Agent/delivery estimate、baseline、task explanations 和
 nextAction；无法确定的 estimate 显式为 `null`。并发 source drift 返回稳定错误，不自动 retry。
 
-Root 先向用户报告 readiness、cost、reuse 与失效原因，之后才运行。已授权制作中的 create-context/inspect
+Root 先向用户报告 `sourceState`、cost、artifact reuse 与结构化失效原因。局部修订若有无关 dirty tasks，先缩小 raw patch、
+validate/create 新 candidate 并重走 capability/resolve/inspect，再 prepare；全重做不证明局部 reuse。已授权制作中的 create-context/inspect
 汇报都是中间进度消息，汇报后同轮继续工具执行，不以 final 结束或等待新的用户回复。Hermes 使用 assistant text
 搭配下一次 tool call；只有真实 blocker、用户暂停或已派发 native work 的等待可以停下。四文件 fixed 终态才证明完成。
 CLI handoff 仅为诊断提示，不新增状态、审批或 completion authority：

@@ -203,6 +203,10 @@ Scene template audio projection 与 Resource Catalog；相同 bytes 幂等，已
 package 仍拥有发行 authority，Workspace 不能写 package directory；package path、cwd、PID、时间和 npm cache
 不进入 creative identity。
 
+预制动效音效沿同一共享 seed/manifest/Catalog 路径发行；原始合成源码只供维护者离线重建，bootstrap、production
+和 render 不执行合成。Root 在 authoring 时选择素材并收窄 Scene 的 candidateResourceIds，Scene executor 从冻结
+availableResources 声明 sound-plan 的 anchor/frame、时长与音量，顶层 SoundDesignTrack 统一播放。
+
 公开 revision context/validate/create 与手动、continuation 自动 promotion 均把已验证的 runtime policy manifest
 传入共享 Revision 读取；candidate 与 live base 使用同一 policy authority。普通 npm Workspace 不提供开发仓库的
 `src/contracts` 等源码树，不能丢弃 manifest 后回落到开发源码扫描。
@@ -223,6 +227,10 @@ Workspace configuration snapshot 要求根目录恰有一个 `remotion.config.mj
 candidate scope 复用同一 immutable runtime/config 与 content-addressed Artifact Store，但隔离 Project source/public、
 narration、task workspace、attempt、disposable output 和 Delivery。所有 production/task/recovery CLI 都通过受信
 candidate resolver 定位这些 roots，不能把 candidate directory 当成第二个 Workspace root。
+revision builder 在 authoring mutation 前验证并冻结受影响普通 Scene 的当前 base source graph、plans、license/lineage，
+以 `production/scene-prior-source.json` 保存到 authoring-owned source root，并纳入 materialization checksum。
+仅 owning entry 的 fingerprint 参与 Scene TaskRevision；bound context 提供它及精确 helper 输出，不扩展 worker 路径权限。
+未改 entry 不变，promotion 后继续作为冻结输入；禁止从新 materialized output 重算以免循环失效。固定模板豁免。
 GlobalVisual 与 Composition 类型校验读取 candidate source graph，但显式使用 shared Workspace runtime root 的
 TypeScript 配置；candidate 不复制 `tsconfig.json`，不得把隔离源码目录误作编译环境目录。
 末端 current-plan 的诊断 baseline 同样保留两个 root：交付/attempt 从 candidate 读取，媒体 probe 的 npm binary
@@ -253,6 +261,11 @@ Project-local instance。
 冻结到 Project-local source/public roots；既有 Project 不因 package/shared seed 更新而改变。
 
 意图优先 motionPlan v2 与可选 tracked v1 共用 Scene shot-plan/props；自绘代码不强制几何轨迹或组件。技术 task check/commit 单独报告 DOM 已验证、unsupported 或 intent-only，均仍需真实时间序列审查；不把 DOM 依赖当像素/美感证明。执行边界见 [内容动作审阅](guides/CONTENT_MOTION_REVIEW.md)。
+
+Root 可在 Scene brief 的 `outgoingHandoff` 冻结与下一 narrated Scene 共用的 subject；load-inputs 为两侧生成相同的
+`continuity.handoffs` 合同，seam identity 只由 Story 与相邻 meaning IDs 确定。tracked v1 另需 Root-authored
+边界 state，v2 不规定几何。shared Scene bundle validator 在提交与物化前核对 kind、ID、subject 和适用的 pose；
+Coverage 仍复验跨 Scene 衔接。未声明的 seam 使用 motivated cut，fixed template 边界禁止 continuous。
 
 ## 8. Synchronous delivery
 

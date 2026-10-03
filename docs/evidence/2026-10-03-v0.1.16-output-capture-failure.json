@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "version": "0.1.16",
+  "recordedAt": "2026-10-02T22:49:44.150774+00:00",
+  "scope": "Engineering incident summary; not a generated first-use certificate",
+  "publicationEligible": false,
+  "model": "gpt-6.1-sol",
+  "reasoningEffort": "max",
+  "failedRuntimeFingerprint": "sha256:4f3888e8102f3e300aa6e3eb377e8f9d6da9e24b3f301501c0d86931f7fbe64e",
+  "creatorFingerprint": "sha256:5fc7408f755a55501ee5bd0d2342e73ac8f889c88d6d6a4ab72037ea7c2a021b",
+  "trials": [
+    {
+      "trial": "diagnosticfix-code-mode",
+      "status": "first-use-capture-incomplete-no-passing-receipt",
+      "rootSessionId": "01a0fe2b-aa9b-7a83-b44f-2d6bc4e32d9b",
+      "rootExitCode": 0,
+      "recordExitCode": 1,
+      "reason": "Host code-mode output truncation crossed indexed batch envelopes; original item status/value/session_id for indices1..4 is missing. The complete UI preserves shell aggregates and terminal exits, but not the lost original per-item native return objects. Later results cannot reconstruct them.",
+      "originalCallId": "call_XvaoSlPOl9qCwsXgu4EJbUiD",
+      "rootCallLine": 45,
+      "rootResultLine": 52,
+      "truncationMarker": "10448 tokens truncated",
+      "evidence": [
+        {
+          "file": "rollout-2026-10-03T03-51-09-01a0fe2b-aa9b-7a83-b44f-2d6bc4e32d9b.jsonl",
+          "checksum": "sha256:0787451053c68accfa2b4e5eaa7cda9397306188b3da3d7188ec37dbda186dcf"
+        },
+        {
+          "file": "app-server-output.jsonl",
+          "checksum": "sha256:4dff6045d5621be7a58ef41deea4a48a7cab2393f0ca0ce838af15de5d2b4e26"
+        },
+        {
+          "file": "native-rollouts-index.json",
+          "checksum": "sha256:1b9623548611675ff43752f235b2704da948c74646bce1cc728b5c2a02624a60"
+        }
+      ],
+      "narrowerEvidenceScope": "Actual delivery and autonomous revision remain diagnostics only; they cannot certify an incomplete original capture"
+    },
+    {
+      "trial": "directtools-oversized-prepare",
+      "status": "first-use-failed-before-creative-dispatch",
+      "rootSessionId": "01a0fea3-aa11-7022-b438-89e0d6bd0c56",
+      "rootExitCode": 0,
+      "productionChildren": 0,
+      "deliveryExists": false,
+      "originalProcessHandle": 77079,
+      "originalResultTokenCount": 12700,
+      "prepare": {
+        "itemId": "call_6VGOA7zRtUgrdiENPp8qHjXv",
+        "command": "/bin/zsh -lc 'npm run project:produce:prepare -- --project ai-hallucination-draft'",
+        "exitCode": 0,
+        "originalFullOutputCharacters": 50908,
+        "originalFullOutputChecksum": "sha256:521a1ceef29e7419727896c9a758f5c6741f6d9c5ef0d018f99d2e8a6c1a9957",
+        "attemptId": "97e9275b-385a-4b64-a4bf-c42bea7bc334",
+        "revisionId": "revision-3865b129bee1e60b1ea4da72e1226ac8f83259be3198b33993dffc126b159431",
+        "dirtyAgentTasks": 6,
+        "taskExplanationsCharacters": 13887,
+        "dirtyAgentTasksCharacters": 34895
+      },
+      "reason": "Native write_stdin terminal result was truncated at the host output cap even with max_output_tokens=60000; original process had ended. Root followed the generated Skill lost-result hard stop. Complete UI is diagnostic only and was not injected into the Root or used to rebuild dispatch.",
+      "evidence": [
+        {
+          "file": "run.json",
+          "checksum": "sha256:1daf28fef4ab41ee612bbfe365cc34bedde9e2ec479d671ddd8dc7c3c0934aba"
+        },
+        {
+          "file": "app-server-output.jsonl",
+          "checksum": "sha256:1e4d1f973cd6ce17ccb09cb75c006458981f1ace9e29db7319a8c26b52e4b49d"
+        },
+        {
+          "file": "native-rollouts-index.json",
+          "checksum": "sha256:5195b57e368ffaa510d2c098d266611cee3ec13417b63e512284613936075264"
+        }
+      ]
+    }
+  ],
+  "engineeringRepair": {
+    "paths": [
+      "scripts/project-production/application/prepare-production.ts",
+      "scripts/project-production/application/task-dispatch.ts",
+      "scripts/project-production/application/task-worker-prompt.ts"
+    ],
+    "behavior": "Successful prepare omits repeated full explanations and worker lifecycle commands; full plan/immutable inputs remain in the attempt, lifecycle commands remain in successful bind, exact assignment/prompts and Root failure commands remain in dispatch.",
+    "focusedTests": 31,
+    "focusedExitCode": 0,
+    "packageRebuilt": true,
+    "latestRuntimeFingerprint": "sha256:2f528b35e9a6b8dc2960c48592db2924d93a83f21a5d7211b0208c7aa940723b",
+    "freshWorkspaceRequiredAndCreated": true,
+    "latestNativeResult": "pending",
+    "scopeLimit": "Response still grows with task count; a 24KB regression budget is not universal proof against every host output cap"
+  },
+  "preservation": {
+    "originalFailedCapturesUnmodified": true,
+    "failedAttemptsNotRestarted": true,
+    "oldProjectOrMediaReused": false,
+    "inlineFallbackUsed": false,
+    "sourceGuardsCanNeverReconstructMissingOriginalWrappers": true
+  },
+  "publicationTriggered": false
+}

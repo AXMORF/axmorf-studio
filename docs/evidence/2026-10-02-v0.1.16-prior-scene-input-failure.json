@@ -1,0 +1,156 @@
+{
+  "schemaVersion": 1,
+  "scope": "Failed independent CLI0.160 gpt-6.1/max guide-repaired candidate; not release evidence",
+  "recordedAt": "2026-10-02T15:53:06.691364+00:00",
+  "workspace": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-guidefix-firstuse-20261002-vjxycaaq/workspace",
+  "cliVersion": "0.160.0",
+  "model": "gpt-6.1-sol",
+  "reasoningEffort": "max",
+  "execution": "native-subagents/shared-workspace",
+  "rootSessionId": "01a0fd06-6c4d-7eb2-abde-51625e4235fc",
+  "nativeSessionCount": 16,
+  "rootCompletedExitCode": 0,
+  "harnessInterventions": [],
+  "candidateFirstUseStatus": "failed",
+  "packageIdentity": {
+    "createdAt": "2026-10-02T14:30:10.376Z",
+    "workspace": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-guidefix-firstuse-20261002-vjxycaaq/workspace",
+    "packages": {
+      "runtime": {
+        "name": "@axmorf/studio",
+        "version": "0.1.16",
+        "fingerprint": "sha256:131d7f935e564ab79e3f0fca7d938da41589b3baed8fc09227cc14356b3c57a7",
+        "fileCount": 282
+      },
+      "creator": {
+        "name": "create-axmorf-studio",
+        "version": "0.1.16",
+        "fingerprint": "sha256:8152adea1eb5d3b5080d48e34e41889a3d7186df13db3c2ac9206e77e0c9c4e4",
+        "fileCount": 41
+      }
+    },
+    "guideCount": 12,
+    "creation": {
+      "method": "npm-exec-candidate",
+      "runtimeTarballChecksum": "sha256:f2ffbfb5787ae173d7ed59aaf62337903017a8b7acf2dfcc65c320bf776d6ef6",
+      "creatorTarballChecksum": "sha256:f558d67e4e3c86924bd13e7f2b6e738940f2193f15e13e4fe830af2cffa6036f",
+      "installLogChecksum": "sha256:e0d845b1959620c8cdb82bdf734e2aceee1e012e159c313c2ac7599e8000db37"
+    },
+    "freshWorkspaceAccepted": true,
+    "projectsOrPriorOutputsReused": false,
+    "identityPresentationError": "Controller attempted nonexistent fileCount property; successful supported create and immutable snapshot retained without rerun."
+  },
+  "initial": {
+    "attemptId": "79d6b636-4e6d-4937-86e2-65287c97d67c",
+    "revisionId": "revision-4aa1e727612052343bd81e42a819b6a5c32be90ceccf4668c217eefa3fff118b",
+    "deliveryBuildId": "delivery-98e7f15d080105b3dd88c395ad491cbb7fa2e86c37036e8baff046c14c57096c",
+    "dirtyAgentTasks": 6,
+    "actualFourNativeWorkersAndFreshSlotAdmissions": "Observed in complete original trace; no passing whole-run receipt",
+    "fixedContinuationExitCode": 0,
+    "currentDeliveryPreserved": true
+  },
+  "scopedRevision": {
+    "candidateId": "revision-candidate-7c615bfb10fb9c21ee7f22fe998ed8cd251f387110ff030e02c736122d3b4cc3",
+    "attemptId": "5638bbba-534b-4df7-961d-4408a2d70469",
+    "revisionId": "revision-a5145324862fce094b3ff44369bfe2dc4932cf2951084790c5831ecb05a795d7",
+    "affectedScene": "formal-citation",
+    "scope": "Only Scene compositionIntent changes to separate 存在? label from paper border",
+    "preparedDirtyAgentTasks": 1,
+    "preparedReusedArtifacts": 33,
+    "newProviderRequests": 0,
+    "freshResolverAndCapabilityProbe": true,
+    "workerSessionId": "01a0fd35-3c53-7fa1-90ea-dbf4d8693b94",
+    "workerBindExitCode": 0,
+    "priorSceneSourceProvided": false,
+    "boundReadMissingRendererExitCode": 2,
+    "workerWrites": 0,
+    "workerCommit": false,
+    "rootFixedFailureExitCode": 0,
+    "fixedContinuationExitCode": 1,
+    "promotion": false,
+    "rootCause": "Base Project source was frozen for revision, but not exposed as immutable authorized Scene task input. A minimal source-preserving edit was impossible; bound read of absent output correctly failed.",
+    "automaticRepairOrRetry": false
+  },
+  "strictRecorder": {
+    "exitCode": 1,
+    "message": "A completed native process cannot retain a running handle",
+    "receiptCreated": false,
+    "firstRejectionDiagnosis": "Independent pending doctor and completed guide-read wrappers were conflated by the current recorder; separate engineering repair in progress. The later failed revision independently prevents this whole run from passing."
+  },
+  "media": {
+    "schemaVersion": 1,
+    "storyId": "ai-hallucination-explainer",
+    "revisionId": "revision-4aa1e727612052343bd81e42a819b6a5c32be90ceccf4668c217eefa3fff118b",
+    "deliveryBuildId": "delivery-98e7f15d080105b3dd88c395ad491cbb7fa2e86c37036e8baff046c14c57096c",
+    "method": "Pearson correlation of mastered narration and decoded AAC mono PCM; coarse 512, refine 8 then 1 sample; full speech sampled every 101 samples; search +/-8192 samples",
+    "sampleRate": 48000,
+    "narrationStartFrame": 60,
+    "sampledPoints": 44622,
+    "measuredNarrationLagSamples": 2048,
+    "measuredNarrationLagMs": 42.666666666666664,
+    "peakCorrelation": 0.9999402192274154,
+    "captionCueCount": 24,
+    "captionTextMatchesSealedInput": true,
+    "captionFramesMatchCumulativeCeil": true,
+    "maxCaptionQuantizationMs": 32.00000000000358,
+    "decodedAudioSamples": 4994048,
+    "videoDurationSeconds": 104.0,
+    "durationAcceptance": "Not applicable; user removed duration as an acceptance condition",
+    "videoChecksum": "sha256:c23cb929627f4778bcdd6392474a9c4e13f14327bf1e69866b86048c7e02c665",
+    "masterChecksum": "sha256:80888ee266474fff33d90bc53db437fa0e2947869101f667793e10b9c590cc35",
+    "decodedAudioChecksum": "sha256:e3ebad4ee7fbd2c8571c67a0885302cf5a860ee4b6d3f744bf02ade1deb8de2a",
+    "technicalSyncWithin100Ms": true,
+    "continuousPlayback": "unverified",
+    "subjectiveAudioListening": "unverified"
+  },
+  "visualReview": {
+    "actualVideoSamplePositions": [
+      0,
+      208,
+      416,
+      624,
+      832,
+      1040,
+      1248,
+      1456,
+      1663,
+      1871,
+      2079,
+      2287,
+      2495,
+      2703,
+      2911,
+      3119
+    ],
+    "fullResolutionReinspectionFrames": [
+      1248,
+      1663,
+      2079
+    ],
+    "coversReviewed": [
+      "cover-4x3.png",
+      "cover-3x4.png"
+    ],
+    "continuousPlayback": "unverified",
+    "subjectiveAudioListening": "unverified",
+    "physicalPhoneReview": "unverified"
+  },
+  "observedIssues": [
+    "Confirmed frame 1663: formal-citation label 存在? intersects the paper bottom border; scoped revision is required for that label.",
+    "Four content topics are present in actual sampled video captions and diagrams. Sampled state changes include writing/checkmark/question, token attachment and feedback, citation fields and missing/support branches, and real NIST source verification. Actual continuous motion remains unverified.",
+    "No caption masking or critical text crop found in the reviewed sample positions; this does not certify all frames.",
+    "Both actual PNG covers have readable large Chinese titles and the pen does not occlude the title or evidence labels.",
+    "Frame1248 未核验 label touches the feedback curve; text remains readable in the inspected frame, recorded as a minor unmodified layout observation."
+  ],
+  "evidenceChecksums": {
+    "snapshot.json": "sha256:7471086d2edc710e04c6596d0cacd7d447b83cd019bb535a378a7c2238a5596d",
+    "creation/run.json": "sha256:5b52f4d7d23147837415e10572cbc96a9ed72ba207df315dc612e810070581fc",
+    "creation/app-server-output.jsonl": "sha256:b9706a451a118e4f92e39cde761ecd0d29e280bb3fc51e85a626e22fb3fe5a4a",
+    "native-rollouts-index.json": "sha256:9f0de8e9e9c5f7772b3092e048a62512e6fd59e47eeb6697890f6e423aa2454f",
+    "engineering/runtime-exit-proof.json": "sha256:d3ade622e5b674b588e5a36aab6d24eac4ab413503f252821249e3705f99b2bd",
+    "engineering/strict-record-result.json": "sha256:6ce6ea99837026a9033bd68fc0c277f173e6a102bbef1992bea67106015d1d5a",
+    "initial-review/audio-sync-and-captions.json": "sha256:07992293a5fbfb933630c0a25db95305e66c5e3b2ba62a5a5f6f3937fb43e003",
+    "initial-review/visual-observations.json": "sha256:ff1a6dc36a4ca9135249ce2f19d5332559098ab9046f99de84a56f2ebcf9d787"
+  },
+  "retention": "All sixteen original native sessions and the entire original UI stream retained privately. Initial four-file delivery remains current. No filtering, same-attempt program repair, package edits, commit, tag, push or npm publication. A replacement requires newly rebuilt packages, empty Workspace and fresh profile."
+}

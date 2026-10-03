@@ -1,0 +1,513 @@
+{
+  "schemaVersion": 1,
+  "evidenceKind": "diagnostic-failed-first-use-not-release-receipt",
+  "date": "2026-10-02",
+  "overallStatus": "failed",
+  "source": {
+    "branch": "axmorf/npm-workspace-open-source",
+    "baseCommit": "7352dc9f7d89f4c10589f1fdde99974e118da470",
+    "uncommittedSourceFix": true,
+    "sourceFixChecksum": "sha256:79c88c281676d4d2375465b0249139e6b3a32e17e72aa8382d1823771a4ce365"
+  },
+  "candidatePackages": {
+    "runtime": {
+      "name": "@axmorf/studio",
+      "version": "0.1.16",
+      "fingerprint": "sha256:6b54ca54283f45a4ad746af4ae20f4516b9f25d301a1a57c35370466f98421b4",
+      "fileCount": 257,
+      "tarballChecksum": "sha256:0064d5979dd5521640481bbd7fde2fc1266bc9ed0c183dd74d9abb01e2deb2ad"
+    },
+    "creator": {
+      "name": "create-axmorf-studio",
+      "version": "0.1.16",
+      "fingerprint": "sha256:62a5da7100fa0fb231a700214dd81429c34098c7e1ca2e2226ab78289d604b7f",
+      "fileCount": 41,
+      "tarballChecksum": "sha256:266c95c3db0a5775f7a8ae2b050d894d753864c5a8ca16daeb486261d0c48b58"
+    }
+  },
+  "workspace": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-fixed-tty-20261002-tlwuvypi/workspace",
+  "rootSessionId": "01a0f920-cad6-76e0-8c9c-41baa6183c2b",
+  "attemptId": "42fbe46a-9a6f-4a0b-bde1-eb06aedd0358",
+  "revisionId": "revision-114c003189dc079ef0973f4425be00790edc37b05e3ed8b5b62e4e328d768c0c",
+  "actualModel": {
+    "requestedPreferred": "gpt-6.1-sol/max",
+    "preferredInNativeCatalog": false,
+    "actual": "gpt-5.6-sol",
+    "reasoningEffort": "max",
+    "fallbackExplicitlyAuthorizedByUser": true
+  },
+  "installationRecheck": {
+    "runtime": {
+      "fingerprint": "sha256:6b54ca54283f45a4ad746af4ae20f4516b9f25d301a1a57c35370466f98421b4",
+      "unchangedFiles": 257
+    },
+    "guides": {
+      "unchangedFiles": 12,
+      "fingerprint": "sha256:e511b1d8d8dd7d14e7c2de5cba74f0035feef60283643463625455aafe3efa68"
+    },
+    "method": "repository package-content functions and exact snapshot comparison",
+    "status": "passed"
+  },
+  "execution": {
+    "classification": "diagnostic native execution evidence, not a passing release receipt",
+    "timestampDomain": "unaltered native Codex rollout record timestamps; not controller receivedAt",
+    "mode": "subagents",
+    "requestedMaxConcurrency": 4,
+    "effectiveMaxConcurrency": 4,
+    "transport": "shared-workspace",
+    "probeChildren": 4,
+    "productionChildren": 6,
+    "freshTaskSessions": true,
+    "allModels": "gpt-5.6-sol",
+    "allReasoningEfforts": "max",
+    "peakBoundTasks": 4,
+    "fourWayBoundOverlapMs": 297758,
+    "laterAdmissions": [
+      {
+        "admittedSessionId": "01a0f92b-1efe-7290-83f7-7aa720970f2e",
+        "admittedAt": "2026-10-01T20:32:27.937Z",
+        "priorCompletedSessionIds": ["01a0f927-0d70-7640-81cd-7152149dda10"]
+      },
+      {
+        "admittedSessionId": "01a0f92c-87f7-7850-ba26-20fdd973bb24",
+        "admittedAt": "2026-10-01T20:34:00.348Z",
+        "priorCompletedSessionIds": [
+          "01a0f926-bcca-7571-b202-b7882caabcb7",
+          "01a0f927-0d70-7640-81cd-7152149dda10"
+        ]
+      }
+    ],
+    "verifiedFourFileDelivery": false
+  },
+  "nativeTaskIntervals": [
+    {
+      "sessionId": "01a0f926-bcca-7571-b202-b7882caabcb7",
+      "parentSessionId": "01a0f920-cad6-76e0-8c9c-41baa6183c2b",
+      "sessionStartedAt": "2026-10-01T20:27:40.680Z",
+      "sessionCompletedAt": "2026-10-01T20:33:46.861Z",
+      "taskRevision": "task-08d660eea5c86f3802e43eaf4ab74e2d44b38d72ccb25c52160c460136fc2f1e",
+      "taskKind": "scene-owner",
+      "attemptId": "42fbe46a-9a6f-4a0b-bde1-eb06aedd0358",
+      "transport": "shared-workspace",
+      "bindingId": "binding-9c1c330f86578eaed06f20c205b7286cfc3aa6f38766a84f868e03c01d0454c8",
+      "boundAt": "2026-10-01T20:28:01.751Z",
+      "bindCallId": "call_tsKn8pfZKmyWHZrgN1UJt3QL",
+      "committedAt": "2026-10-01T20:33:41.143Z",
+      "commitCallId": "call_XK07DPNa0eT88iCBWssJKlHp",
+      "artifactFingerprint": "sha256:99c94ba6ea6e420c6095a5e0daedac48a030911a8e31d1a2a249601406ca491c"
+    },
+    {
+      "sessionId": "01a0f926-e970-7532-bb07-b8a5ba8acef8",
+      "parentSessionId": "01a0f920-cad6-76e0-8c9c-41baa6183c2b",
+      "sessionStartedAt": "2026-10-01T20:27:52.084Z",
+      "sessionCompletedAt": "2026-10-01T20:35:11.349Z",
+      "taskRevision": "task-2374f3b69498f0cbaf0b7dfa41a7e96eef2c6430873c48319049f1110f26c987",
+      "taskKind": "scene-owner",
+      "attemptId": "42fbe46a-9a6f-4a0b-bde1-eb06aedd0358",
+      "transport": "shared-workspace",
+      "bindingId": "binding-1133b1b1ce8acbed043aed92d3ac8ae60d0b9454b43d6521bf48b06e64e12e8d",
+      "boundAt": "2026-10-01T20:28:36.076Z",
+      "bindCallId": "call_rDkJDIuJLmv2uxJKGUPwDVGL",
+      "committedAt": "2026-10-01T20:35:05.770Z",
+      "commitCallId": "call_vKXVvrOe2GKCjAM4ptqsUxBv",
+      "artifactFingerprint": "sha256:16bacb5bb9ff953643f165be2f98831f6a8007553d636216bd277135afa5e6dc"
+    },
+    {
+      "sessionId": "01a0f927-0d70-7640-81cd-7152149dda10",
+      "parentSessionId": "01a0f920-cad6-76e0-8c9c-41baa6183c2b",
+      "sessionStartedAt": "2026-10-01T20:28:01.296Z",
+      "sessionCompletedAt": "2026-10-01T20:32:15.850Z",
+      "taskRevision": "task-4b512785b888e45343b3ab59d748041b5e995f4bf649fed64bf3712477920e49",
+      "taskKind": "cover-owner",
+      "attemptId": "42fbe46a-9a6f-4a0b-bde1-eb06aedd0358",
+      "transport": "shared-workspace",
+      "bindingId": "binding-9cbdaf1117d49b9c456bd1e357ba1090aed08b04f257e0793f807f87e456a972",
+      "boundAt": "2026-10-01T20:28:26.437Z",
+      "bindCallId": "call_r3ppOqJ1ANoE3wxUXNRaj1Et",
+      "committedAt": "2026-10-01T20:32:10.436Z",
+      "commitCallId": "call_SygL4AilSJdDOqs6LJtJ8K8x",
+      "artifactFingerprint": "sha256:d1310df8dc328c2ac9851f24893f221a4c8783184de59eba5695312dc81c6ac8"
+    },
+    {
+      "sessionId": "01a0f927-32fe-7ae2-863c-22a0bf156381",
+      "parentSessionId": "01a0f920-cad6-76e0-8c9c-41baa6183c2b",
+      "sessionStartedAt": "2026-10-01T20:28:10.914Z",
+      "sessionCompletedAt": "2026-10-01T20:39:10.494Z",
+      "taskRevision": "task-75dbd365454d17976d0eabd6094f88c30da760308ee7e3db434918d34fd72b49",
+      "taskKind": "scene-owner",
+      "attemptId": "42fbe46a-9a6f-4a0b-bde1-eb06aedd0358",
+      "transport": "shared-workspace",
+      "bindingId": "binding-0a2b623490d1a9400aea947e52a1770cf5008f62101c5daa7513e3d68021067f",
+      "boundAt": "2026-10-01T20:28:37.403Z",
+      "bindCallId": "call_kWQiwdusMfc21IjtQJkWAWok",
+      "committedAt": "2026-10-01T20:38:58.703Z",
+      "commitCallId": "call_CFoWdRetZipSM9MR7ZoPeFbm",
+      "artifactFingerprint": "sha256:d634a9ccdd0d3f663f02030b85aad6d973743aeee7cb7cfdbc24dc0070fcac58"
+    },
+    {
+      "sessionId": "01a0f92b-1efe-7290-83f7-7aa720970f2e",
+      "parentSessionId": "01a0f920-cad6-76e0-8c9c-41baa6183c2b",
+      "sessionStartedAt": "2026-10-01T20:32:27.937Z",
+      "sessionCompletedAt": "2026-10-01T20:40:07.169Z",
+      "taskRevision": "task-86c7e6f4716bd847d66d67e482a1bd6d875f85ff8f0fdcd0f789e09f5ec4960a",
+      "taskKind": "scene-owner",
+      "attemptId": "42fbe46a-9a6f-4a0b-bde1-eb06aedd0358",
+      "transport": "shared-workspace",
+      "bindingId": "binding-2ddb12bc49b75906f2c313fb84901e0d471f884b2cb342a11edcc201ac635cdd",
+      "boundAt": "2026-10-01T20:33:00.972Z",
+      "bindCallId": "call_L1uqFsjaazs6TrwPuGkmvyvV",
+      "committedAt": "2026-10-01T20:40:02.019Z",
+      "commitCallId": "call_EuIUA8j4iqjWTiiKX4RCLols",
+      "artifactFingerprint": "sha256:b3e3292fae75cbb6818758622af5a7069832b15ee4feaf7f6ca45abc5412b54b"
+    },
+    {
+      "sessionId": "01a0f92c-87f7-7850-ba26-20fdd973bb24",
+      "parentSessionId": "01a0f920-cad6-76e0-8c9c-41baa6183c2b",
+      "sessionStartedAt": "2026-10-01T20:34:00.348Z",
+      "sessionCompletedAt": "2026-10-01T20:37:49.995Z",
+      "taskRevision": "task-a87ca321e9b69aa513bd79ffbb156f373cb371185d86087bd4674c27501f0914",
+      "taskKind": "global-visual-owner",
+      "attemptId": "42fbe46a-9a6f-4a0b-bde1-eb06aedd0358",
+      "transport": "shared-workspace",
+      "bindingId": "binding-27b98ff190bdc65f5db91bb180ce3dbff2519e3706f04fe2040cf163d47accd3",
+      "boundAt": "2026-10-01T20:34:21.216Z",
+      "bindCallId": "call_dHCUjy3YOCJ3k1kP5IZFheRi",
+      "committedAt": "2026-10-01T20:37:45.068Z",
+      "commitCallId": "call_Y7fRi3cwQFH3MWfvxlBqFQDi",
+      "artifactFingerprint": "sha256:becd9d1f79e790995d199178d72270d0f5c6a08e93a4e01ebe0019e705524320"
+    }
+  ],
+  "nativeSessions": [
+    {
+      "sessionId": "01a0f920-cad6-76e0-8c9c-41baa6183c2b",
+      "parentSessionId": null,
+      "agentPath": null,
+      "role": "root",
+      "model": "gpt-5.6-sol",
+      "reasoningEffort": "max",
+      "checksum": "sha256:0dc050ee46e587dab2752e3f79c00601c3a9d7f5e832855bd3b09bdb17f6a061"
+    },
+    {
+      "sessionId": "01a0f924-2ad3-7902-8ba4-886940c6ce44",
+      "parentSessionId": "01a0f920-cad6-76e0-8c9c-41baa6183c2b",
+      "agentPath": "/root/probe_0",
+      "role": "capability-probe",
+      "model": "gpt-5.6-sol",
+      "reasoningEffort": "max",
+      "checksum": "sha256:c9a43b302173be21f546898f61a9cab56cafd6fcf0d3c8041c212eb388baa95d"
+    },
+    {
+      "sessionId": "01a0f924-3d48-71d2-8d58-de05521e5c2c",
+      "parentSessionId": "01a0f920-cad6-76e0-8c9c-41baa6183c2b",
+      "agentPath": "/root/probe_1",
+      "role": "capability-probe",
+      "model": "gpt-5.6-sol",
+      "reasoningEffort": "max",
+      "checksum": "sha256:73d16ffe24efa56c4e8dd98e520c872e2f1e67e7aa2d1dbce9d39fca390e9f5d"
+    },
+    {
+      "sessionId": "01a0f924-523f-7dc3-a802-f1715c5c0f80",
+      "parentSessionId": "01a0f920-cad6-76e0-8c9c-41baa6183c2b",
+      "agentPath": "/root/probe_2",
+      "role": "capability-probe",
+      "model": "gpt-5.6-sol",
+      "reasoningEffort": "max",
+      "checksum": "sha256:660bd958fdf90234aed0e277fee26e1d249a25dd36f2e4227f4c76c09a557e7d"
+    },
+    {
+      "sessionId": "01a0f924-652d-7401-aeaa-64d672ce3af0",
+      "parentSessionId": "01a0f920-cad6-76e0-8c9c-41baa6183c2b",
+      "agentPath": "/root/probe_3",
+      "role": "capability-probe",
+      "model": "gpt-5.6-sol",
+      "reasoningEffort": "max",
+      "checksum": "sha256:6bb5a6a4359603c7c0cc887a3fd315d4a5156bd38ba635c94091bf5b19ae3516"
+    },
+    {
+      "sessionId": "01a0f926-bcca-7571-b202-b7882caabcb7",
+      "parentSessionId": "01a0f920-cad6-76e0-8c9c-41baa6183c2b",
+      "agentPath": "/root/scene_context_next_token",
+      "role": "production-task",
+      "model": "gpt-5.6-sol",
+      "reasoningEffort": "max",
+      "checksum": "sha256:85ea6c81121e83b23e1c0bc9529b0ef4984719192874611d8708015d140f1c1e"
+    },
+    {
+      "sessionId": "01a0f926-e970-7532-bb07-b8a5ba8acef8",
+      "parentSessionId": "01a0f920-cad6-76e0-8c9c-41baa6183c2b",
+      "agentPath": "/root/scene_fluency_not_fact",
+      "role": "production-task",
+      "model": "gpt-5.6-sol",
+      "reasoningEffort": "max",
+      "checksum": "sha256:d697106efd1b4bbe321ef4391e27bab3ce4eff00aeb70c196359f23c817e9144"
+    },
+    {
+      "sessionId": "01a0f927-0d70-7640-81cd-7152149dda10",
+      "parentSessionId": "01a0f920-cad6-76e0-8c9c-41baa6183c2b",
+      "agentPath": "/root/cover_ai_citations",
+      "role": "production-task",
+      "model": "gpt-5.6-sol",
+      "reasoningEffort": "max",
+      "checksum": "sha256:2b6dde3633e60fb52fe4998fa1a76c0bfb5deec2e1c1a59490fcd66dd4558646"
+    },
+    {
+      "sessionId": "01a0f927-32fe-7ae2-863c-22a0bf156381",
+      "parentSessionId": "01a0f920-cad6-76e0-8c9c-41baa6183c2b",
+      "agentPath": "/root/scene_verify_source",
+      "role": "production-task",
+      "model": "gpt-5.6-sol",
+      "reasoningEffort": "max",
+      "checksum": "sha256:c111f531545ba3bcd9676a2254fc37ff2925831d0f50bd20f1b3ef38098ddb2e"
+    },
+    {
+      "sessionId": "01a0f92b-1efe-7290-83f7-7aa720970f2e",
+      "parentSessionId": "01a0f920-cad6-76e0-8c9c-41baa6183c2b",
+      "agentPath": "/root/scene_citation_missing",
+      "role": "production-task",
+      "model": "gpt-5.6-sol",
+      "reasoningEffort": "max",
+      "checksum": "sha256:6291737509571ab86438e63743536abf6c166e86d9757e46fb405e78efb6cdba"
+    },
+    {
+      "sessionId": "01a0f92c-87f7-7850-ba26-20fdd973bb24",
+      "parentSessionId": "01a0f920-cad6-76e0-8c9c-41baa6183c2b",
+      "agentPath": "/root/global_paper_layers",
+      "role": "production-task",
+      "model": "gpt-5.6-sol",
+      "reasoningEffort": "max",
+      "checksum": "sha256:d1869e1d5a43457e3f109fcc12ef7c4dcf55551c28e6ab06a421facf3fd137d3"
+    }
+  ],
+  "failure": {
+    "stage": "Scene Coverage cross-Scene motion continuity during fixed convergence",
+    "message": "Missing continuity handoff: answer-strip-flow.",
+    "terminalDiagnostic": "project-production-convergence-failed",
+    "mismatches": [
+      {
+        "from": "fluency-is-not-fact",
+        "to": "context-next-token",
+        "outgoing": ["answer-strip-flow"],
+        "incoming": ["answer-ribbon"]
+      },
+      {
+        "from": "citation-can-be-missing",
+        "to": "verify-the-source",
+        "outgoing": ["source-verification-cord"],
+        "incoming": []
+      }
+    ],
+    "recoveryInspectCode": "attempt-recovery-plan-not-recoverable",
+    "reissueExecuted": false,
+    "repeatedContinuationExecuted": false
+  },
+  "filmPath": null,
+  "deliveryFiles": [],
+  "scopedRevision": {
+    "status": "unverified",
+    "executed": false,
+    "reason": "current exact-four delivery absent"
+  },
+  "checks": [
+    {
+      "id": "fixed-template-content-motion-exemption",
+      "status": "passed",
+      "evidence": "35/35 focused and 1010/1010 full; two real fixed template artifacts accepted"
+    },
+    {
+      "id": "fresh-candidate-workspace",
+      "status": "passed",
+      "evidence": "supported first-use create; 257 runtime and 12 guides match before/after; no old Project or output reused"
+    },
+    {
+      "id": "independent-root-and-native-children",
+      "status": "passed",
+      "evidence": "fresh profile; 1 ordinary prompt; 4 probes and 6 fresh production children; all gpt-5.6-sol/max"
+    },
+    {
+      "id": "native-four-way-bound-overlap-and-refill",
+      "status": "passed",
+      "evidence": {
+        "peakBoundTasks": 4,
+        "fourWayBoundOverlapMs": 297758,
+        "laterAdmissions": 2
+      }
+    },
+    {
+      "id": "production-convergence-and-delivery",
+      "status": "failed",
+      "evidence": "Missing continuity handoff: answer-strip-flow; project-production-convergence-failed; all 6 task commits succeeded"
+    },
+    {
+      "id": "automatic-recovery-availability",
+      "status": "failed",
+      "evidence": "attempt-recovery-plan-not-recoverable; no failed Agent task outcome is attributable; no reissue or repeated continuation"
+    },
+    {
+      "id": "requested-duration",
+      "status": "failed",
+      "evidence": "sealed timing 41 s / 1230 frames exceeds 30-40 s upper bound; no truncation or unauthorized narration redo"
+    },
+    {
+      "id": "first-use-release-receipt",
+      "status": "failed",
+      "evidence": "supported recorder exit 1: Inline acceptance requires zero native children (existing 0.1.16 serial release policy); no receipt generated; delivery also failed"
+    },
+    {
+      "id": "video-subtitles-av-sync-cropping-codecs-eof",
+      "status": "unverified",
+      "evidence": "no actual MP4 or covers generated"
+    },
+    {
+      "id": "actual-video-watching-and-audio-listening",
+      "status": "unverified",
+      "evidence": "no video exists; partial narration was not listened to"
+    },
+    {
+      "id": "bounded-visual-revision-and-unaffected-artifact-reuse",
+      "status": "unverified",
+      "evidence": "no current four-file delivery; required revision context cannot be established"
+    },
+    {
+      "id": "partial-narration-pcm-decode-and-audio-metrics",
+      "status": "passed",
+      "evidence": "30.976 s mono 48 kHz s16le; EOF decode 0; mastered -15.8 LUFS / -1.5 dBTP / 1.9 LU; 0 clipped samples; partial only"
+    }
+  ],
+  "firstUseRecorder": {
+    "command": "node --import tsx scripts/release/first-use.ts record snapshot.json run-evidence.json host-receipt.json",
+    "exitCode": 1,
+    "error": "Inline acceptance requires zero native children",
+    "receiptCreated": false
+  },
+  "isolationAndAuthorization": {
+    "rootPolicy": "workspace-write/on-request",
+    "freshProfile": true,
+    "freshRoot": true,
+    "ordinaryBusinessPrompts": 1,
+    "externalSkillsDisabled": true,
+    "noOsReadIsolation": true,
+    "harnessInterventions": [],
+    "approvalResponses": [
+      {
+        "id": 0,
+        "command": "npm run doctor",
+        "decision": "accept"
+      },
+      {
+        "id": 1,
+        "command": "npm run project:produce:prepare -- --project ai-hallucinated-citations",
+        "decision": "accept"
+      },
+      {
+        "id": 2,
+        "command": "exact attempt-bound project:produce:continue",
+        "decision": "accept"
+      }
+    ],
+    "approvalBasis": "existing explicit doctor and local test production authorization; no new persistent policy grants",
+    "autoReviewRejection": false
+  },
+  "engineeringChecks": {
+    "focusedRed": {
+      "tests": 16,
+      "passed": 13,
+      "failed": 3,
+      "reason": "same undefined visualStyle error reproduced by fixed template tasks"
+    },
+    "firstGreenInvocation": {
+      "tests": 35,
+      "passed": 31,
+      "failed": 4,
+      "classification": "controller scheduling fault: package build cleaned declarations while tests read dist",
+      "log": "template-regression-green.log"
+    },
+    "focusedGreenAfterCompletedBuild": {
+      "tests": 35,
+      "passed": 35,
+      "failed": 0,
+      "skipped": 0,
+      "log": "template-regression-green-after-build.log"
+    },
+    "fullSourceCheck": {
+      "tests": 1010,
+      "passed": 1010,
+      "failed": 0,
+      "skipped": 0,
+      "command": "npm run check",
+      "exitCode": 0,
+      "log": "source-check.log"
+    },
+    "packageBuild": "passed",
+    "packagesTypecheck": "passed",
+    "bothPackageBoundaries": "passed",
+    "auditVulnerabilities": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 0,
+      "critical": 0,
+      "total": 0
+    },
+    "existingFailureEvidencePreserved": true,
+    "fixedTemplateExemption": "taskKind scene-template, not boundary position or naming"
+  },
+  "partialAudioMetrics": [
+    {
+      "kind": "narration",
+      "checksum": "sha256:10598c82047fd571698ed026b5f9fa2e6dcd24a3345728e98d7aeb15a3ea78d2",
+      "pcm": {
+        "frames": 1486848,
+        "sampleRate": 48000,
+        "channels": 1,
+        "sampleWidthBytes": 2,
+        "seconds": 30.976,
+        "clippedSamples": 0,
+        "samplePeakDbfs": -3.4763519836332724
+      },
+      "probeExitCode": 0,
+      "decodeToEofExitCode": 0,
+      "loudnessExitCode": 0,
+      "actuallyListened": false,
+      "scope": "partial narration only, not final video audio",
+      "integratedLufs": -19.6,
+      "loudnessRangeLu": 2.2,
+      "truePeakDbtp": -3.5
+    },
+    {
+      "kind": "narration-mastered",
+      "checksum": "sha256:22e69a81c3d4186895c60cbaa8e3d715aa3da58fccc1fb7ff00d5a875ada6c74",
+      "pcm": {
+        "frames": 1486848,
+        "sampleRate": 48000,
+        "channels": 1,
+        "sampleWidthBytes": 2,
+        "seconds": 30.976,
+        "clippedSamples": 0,
+        "samplePeakDbfs": -1.4993182827263862
+      },
+      "probeExitCode": 0,
+      "decodeToEofExitCode": 0,
+      "loudnessExitCode": 0,
+      "actuallyListened": false,
+      "scope": "partial narration only, not final video audio",
+      "integratedLufs": -15.8,
+      "loudnessRangeLu": 1.9,
+      "truePeakDbtp": -1.5
+    }
+  ],
+  "privateEvidence": {
+    "root": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-fixed-tty-20261002-tlwuvypi",
+    "resultChecksum": "sha256:656fa5e1b6911547784ac98f5f9a90819da28f753896e9c2a5b5d8c7498777af",
+    "indexChecksum": "sha256:c0a4a4a71bab8c6bd2cd625cdfbda7ed82b5d137fef12685d340bc97eafd9761",
+    "indexedFileCount": 68,
+    "additionalIndexChecksum": "sha256:4b02384a9623b08024941d7748b2a0ce8dacf1cb36230f137d579ea403d6554c",
+    "additionalIndexedFileCount": 3,
+    "rawProfilesAndCredentialsCommitted": false
+  },
+  "preservedEarlierFailures": {
+    "originalFixedTemplateFailure": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-20261002-h86peq5e",
+    "controllerStdinEofFailure": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-fixed-20261002-_yttccq5/creation/run.json",
+    "eofFailureClassification": "controller setup; no production started; not reused as passing acceptance"
+  },
+  "noTagPushOrNpmPublication": true
+}

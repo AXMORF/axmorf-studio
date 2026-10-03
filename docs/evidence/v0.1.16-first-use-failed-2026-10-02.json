@@ -1,0 +1,526 @@
+{
+  "schemaVersion": 1,
+  "recordType": "failed-first-use-diagnostic",
+  "candidateVersion": "0.1.16",
+  "testedAtLocalDate": "2026-10-02",
+  "timezone": "Asia/Shanghai",
+  "result": "failed",
+  "formalPassingReleaseReceipt": false,
+  "source": {
+    "branch": "axmorf/npm-workspace-open-source",
+    "commit": "7352dc9f7d89f4c10589f1fdde99974e118da470",
+    "tree": "33d52c9f40b9d5d999e818f1309b76de6502862a",
+    "initialWorkingTree": "clean",
+    "sourceCodeModified": false
+  },
+  "candidatePackages": {
+    "runtime": {
+      "name": "@axmorf/studio",
+      "version": "0.1.16",
+      "fingerprint": "sha256:341819f1fd4c4f4de2d17895336c3161454adf4e57c46084f0ed10342e621e0c",
+      "fileCount": 257,
+      "tarballChecksum": "sha256:58e476c73e9f44ec07c49efc4b7e3709f79b0e5908cfb17f45f1f65273555c7b",
+      "path": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-20261002-h86peq5e/tarballs/axmorf-studio-0.1.16.tgz"
+    },
+    "creator": {
+      "name": "create-axmorf-studio",
+      "version": "0.1.16",
+      "fingerprint": "sha256:62a5da7100fa0fb231a700214dd81429c34098c7e1ca2e2226ab78289d604b7f",
+      "fileCount": 41,
+      "tarballChecksum": "sha256:266c95c3db0a5775f7a8ae2b050d894d753864c5a8ca16daeb486261d0c48b58",
+      "path": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-20261002-h86peq5e/tarballs/create-axmorf-studio-0.1.16.tgz"
+    }
+  },
+  "workspace": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-20261002-h86peq5e/workspace",
+  "privateEvidenceRoot": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-20261002-h86peq5e",
+  "storyId": "ai-hallucinations-citations",
+  "sourceVerification": {
+    "sourceCommit": "7352dc9f7d89f4c10589f1fdde99974e118da470",
+    "initialSourceCheck": {
+      "status": "failed",
+      "tests": 1009,
+      "passed": 1000,
+      "failed": 9,
+      "cause": "stale ignored dist package missing resolveMotionTrackState; rebuilt through standard packages:build",
+      "log": "source-check.log"
+    },
+    "afterBuildSourceCheck": {
+      "status": "pass",
+      "tests": 1009,
+      "passed": 1009,
+      "failed": 0,
+      "skipped": 0,
+      "command": "npm run check",
+      "log": "source-check-after-build.log"
+    },
+    "packageTypecheck": "pass",
+    "packageChecks": {
+      "@axmorf/studio": "pass",
+      "create-axmorf-studio": "pass"
+    },
+    "focusedCheck": {
+      "status": "pass",
+      "tests": 34,
+      "log": "focused-check.log"
+    },
+    "tagCreated": false,
+    "npmPublicationTriggered": false
+  },
+  "sourceAuditVulnerabilities": {
+    "info": 0,
+    "low": 0,
+    "moderate": 0,
+    "high": 0,
+    "critical": 0,
+    "total": 0
+  },
+  "installation": {
+    "controller": "scripts/release/first-use.ts create",
+    "result": "first-use-workspace-created",
+    "freshNpmCache": true,
+    "emptyInitialProjectsAttemptsArtifactsAndDeliveries": true,
+    "runtimeDependency": "file:/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-20261002-h86peq5e/tarballs/axmorf-studio-0.1.16.tgz",
+    "integrityAfterRun": {
+      "status": "pass",
+      "unchangedRuntimeFiles": 257,
+      "unchangedGuides": 12
+    }
+  },
+  "nativeHost": {
+    "type": "codex-app-server",
+    "cliVersion": "0.150.1",
+    "freshProfile": true,
+    "forkedRoot": false,
+    "rootSessionId": "01a0f8a2-8275-7672-b4d5-5a6697bc8ef7",
+    "actualModel": "gpt-5.6-sol",
+    "actualReasoningEffort": "max",
+    "gpt61SolOfferedByNativeCatalog": false,
+    "promptCount": 1,
+    "businessPrompt": "制作一条约30到40秒的中文竖屏解释视频，主题是“AI为什么会编造答案和引用”。内容包含：流畅回答不等于事实；模型如何根据上下文生成语言；看似正式的引用可能不存在；如何查找可靠出处并核验引用。让画面通过动作、变化和镜头衔接解释内容，避免静态卡片轮播。构图与动画实现可自由选择，风格克制、手绘、有层次，不用霓虹或随机粒子。配中文旁白、字幕和封面，保证手机可读。使用合法素材及现有可用语音能力，不新增收费服务，不发布到社交平台。",
+    "enabledSkills": "only npm-generated axmorf-video and remotion-best-practices",
+    "instructionSources": "fresh Workspace AGENTS.md",
+    "initialGlobalMemoryAndSessionInheritance": false,
+    "filesystemReadIsolation": "not provided; fresh profile/context only",
+    "sandboxMode": "workspace-write",
+    "approvalPolicy": "on-request",
+    "nativeTurnStatus": "interrupted",
+    "exitCode": 1
+  },
+  "executionResolution": {
+    "status": "ready",
+    "mode": "subagents",
+    "requestedMaxConcurrency": 4,
+    "effectiveMaxConcurrency": 4,
+    "requireExactConcurrency": false,
+    "source": {
+      "mode": "builtin-default",
+      "maxConcurrency": "builtin-default"
+    },
+    "workerTransport": "shared-workspace",
+    "limitedBy": [],
+    "persistence": "current-production-only"
+  },
+  "nativeConcurrency": {
+    "probeChildren": 4,
+    "probeTranscriptHashes": [
+      "sha256:8328f38866902ab9a514959954a02064a736d65ae3eea8221bb8adbbc43d13dc",
+      "sha256:1ec7612f7ffe431cdcec16b2686820c39eb5a0b887fd824b0b5c1896b82e9ccf",
+      "sha256:64d107eb203a673e486de2bb2ecf16667138e3d349946a11198308339cdf0e3b",
+      "sha256:63ebff8778298fb7946d9181d5e1522a6d4773e275505529a52f048860c0bbe5"
+    ],
+    "rootTranscriptHash": "sha256:aa0db83b4abfa90cbfd69b2452e7fdf7b6b950aa149ac23ce61d7a883c781b4b",
+    "peakActiveProbeTurns": 3,
+    "fourWayProbeOverlapObserved": false,
+    "probeExplicitCloseReleaseRecorded": false,
+    "productionChildren": 0,
+    "productionBindCount": 0,
+    "productionCommitCount": 0,
+    "fourWayBoundTaskOverlap": "unverified",
+    "productionSlotReleaseAndLaterAdmission": "unverified",
+    "rawNativeSessionIndex": "native-transcript-index.json"
+  },
+  "approvals": {
+    "doctor": "explicitly authorized by human",
+    "prepareAndReadOnlyInspect": "accepted one command at a time within original authorized production/test scope",
+    "configurationRelaxed": false,
+    "repeatPrepareAfterFixedFailure": "controller canceled request before execution",
+    "harnessInterventions": [
+      {
+        "action": "cancel-native-approval",
+        "requestId": 3,
+        "reason": "Unclassified fixed preparation failure must stop; no automatic repeated preparation under repository fixed-fault rule",
+        "requestExecution": "not-executed"
+      }
+    ],
+    "sandboxPsLimitation": "execvp /bin/ps denied; approved host path unverified"
+  },
+  "failure": {
+    "diagnosticOnly": true,
+    "productionRerun": false,
+    "providerCalls": 0,
+    "mutatedWorkspaceFiles": 0,
+    "taskKind": "scene-template",
+    "fixedTaskRevision": "task-2e69c33ace96e992297389cb550fd8aa081e57ba177ebdcd030f525e7ed275a7",
+    "validSceneTaskInput": true,
+    "storyBeatKind": "silent-scene",
+    "motionRequirementPresent": true,
+    "contextContainsVisualStyle": false,
+    "installedPublicContractError": [
+      {
+        "expected": "object",
+        "code": "invalid_type",
+        "path": [],
+        "message": "Invalid input: expected object, received undefined"
+      }
+    ],
+    "sourcePath": "scripts/project-production/application/scene-task-check.ts",
+    "failingLine": 241,
+    "cause": "Motion-review gate includes silent template-copy Scenes. Template task context deliberately omits visualStyle, but the gate parses it without a narrated-scene guard.",
+    "observedCommand": "npm run project:produce:prepare -- --project ai-hallucinations-citations",
+    "exitCode": 1,
+    "code": "command-failed",
+    "executionAttemptCreated": false,
+    "knownFixedArtifacts": 7,
+    "currentRevision": "revision-019a72fe809ce3f31e4815b87a51749820214cc8e25a66e2683f9c3c5b26cabb",
+    "repairOrProductionRetryPerformed": false
+  },
+  "afterFailureInspection": {
+    "sourceState": "production-inputs-ready",
+    "estimatedCost": {
+      "providerRequests": 0,
+      "providerCacheHits": 5,
+      "agentTasks": 6,
+      "deliveryMedia": [
+        "video",
+        "cover-4x3",
+        "cover-3x4"
+      ]
+    },
+    "artifactReuse": 7,
+    "missingAgentTasks": 6,
+    "missingFixedTemplates": 2,
+    "durationBudget": {
+      "targetTotalSeconds": 38,
+      "boundarySeconds": 10,
+      "leadAndTailSeconds": 0,
+      "availableNarratedSeconds": 28,
+      "budgetState": "narration-budget-available",
+      "actualTotalSeconds": 40,
+      "deltaSeconds": 2,
+      "measurement": "sealed-semantic-timing",
+      "comparison": "longer-than-target",
+      "guidance": [
+        "targetTotalSeconds includes silent opening/ending Scenes and render lead-in/tail; availableNarratedSeconds must cover speech and pauses.",
+        "Before project:create, budget narration text against availableNarratedSeconds using the selected language and voice; text estimates are not measured duration.",
+        "After sealing, actualTotalSeconds follows PCM-derived semantic timing. The target is advisory, with no implicit tolerance, audio truncation or automatic retry.",
+        "If a duration change is needed, report the measured deviation and use an explicitly requested project revision; do not edit live authoring or an active attempt."
+      ]
+    },
+    "inspectionIsNotRestartAuthorization": true
+  },
+  "projectRender": {
+    "compositionId": "AiHallucinationsCitations",
+    "fps": 30,
+    "height": 1920,
+    "leadInFrames": 0,
+    "locale": "zh-CN",
+    "output": {
+      "audioChannels": 2,
+      "audioCodec": "aac",
+      "container": "mp4",
+      "videoCodec": "h264"
+    },
+    "schemaVersion": 1,
+    "tailFrames": 0,
+    "width": 1080
+  },
+  "partialAudio": {
+    "scope": "partial mastered narration WAV only; no final mix or video exists",
+    "audioPath": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-20261002-h86peq5e/workspace/public/projects/ai-hallucinations-citations/narration-mastered/abf5e4ede33a236bebaccd4bbbd978a6b5760a36e560e1ba13973fa30128e7a3/d1192bcf559ac24cbef531266c2af5c2a82a1cc54b7ed543eaa4c36bffd2b928/complete.wav",
+    "checksum": "sha256:87e3295311be997da2a2de47357de5617ddc3008f4bcbb9499feb055fa22f820",
+    "checksumMatches": true,
+    "pcm": {
+      "sampleRate": 48000,
+      "channels": 1,
+      "sampleWidthBytes": 2,
+      "sampleFrameCount": 1439488
+    },
+    "durationSeconds": 29.989333333333335,
+    "samplePeakDbfs": -1.4993,
+    "clippedPcmSamples": 0,
+    "eofDecodeExitCode": 0,
+    "independentLoudness": {
+      "integratedLufs": -15.82,
+      "truePeakDbtp": -1.49,
+      "rangeLu": 1.8
+    },
+    "withinFrozenMasteringPolicy": true,
+    "actuallyListened": false,
+    "priorDiagnosticParserFailure": "JSONDecodeError on trailing FFmpeg log after complete loudnorm JSON; original logs retained, corrected JSON extraction only"
+  },
+  "delivery": {
+    "videoPath": null,
+    "cover4x3Path": null,
+    "cover3x4Path": null,
+    "publishPath": null,
+    "actualVideoWatched": false,
+    "actualAudioListened": false
+  },
+  "revision": {
+    "started": false,
+    "result": "unverified",
+    "reason": "No initial four-file Delivery; stopped on fixed preparation defect",
+    "artifactReuseAfterVisualChange": "unverified"
+  },
+  "formalRecordAttempt": {
+    "command": "node --import tsx scripts/release/first-use.ts record snapshot.json run-evidence.json first-use-receipt.json",
+    "exitCode": 1,
+    "errors": [
+      {
+        "code": "invalid_value",
+        "values": [
+          0
+        ],
+        "path": [
+          "exitCode"
+        ],
+        "message": "Invalid input: expected 0"
+      },
+      {
+        "code": "too_big",
+        "maximum": 0,
+        "inclusive": true,
+        "origin": "array",
+        "path": [
+          "harnessInterventions"
+        ],
+        "message": "Too big: expected array to have <=0 items"
+      }
+    ],
+    "successfulReceiptCreated": false,
+    "separateStaticPolicyMismatch": "0.1.16 current recorder requires Codex inline under earlier exception; current user requests native production. Not reached as this run already failed preconditions; no policy modification or inline substitution."
+  },
+  "checks": {
+    "sourceAfterStandardBuild": {
+      "result": "passed",
+      "testCount": 1009,
+      "failed": 0,
+      "skipped": 0
+    },
+    "candidatePackageTypeAndBoundary": {
+      "result": "passed"
+    },
+    "freshCreatorInstallAndEmptySnapshot": {
+      "result": "passed"
+    },
+    "installedCandidateIdentityBeforeAndAfter": {
+      "result": "passed",
+      "runtimeFiles": 257,
+      "guideFiles": 12
+    },
+    "doctorApprovedHostExecution": {
+      "result": "passed",
+      "checks": 6
+    },
+    "independentNativeRootContext": {
+      "result": "passed",
+      "ordinaryBusinessPromptCount": 1,
+      "nonForked": true,
+      "osFilesystemReadIsolation": false
+    },
+    "nativeChallengeIo": {
+      "result": "passed",
+      "freshChildren": 4,
+      "peakActiveProbeTurns": 3,
+      "scope": "temporary challenge-file roundtrip only"
+    },
+    "sandboxPsProbe": {
+      "result": "failed",
+      "authorizedHostPsProbe": "unverified",
+      "reason": "native default sandbox could not exec /bin/ps"
+    },
+    "fixedTemplatePreparation": {
+      "result": "failed",
+      "owner": "fixed-flow"
+    },
+    "firstUseSuccessReceipt": {
+      "result": "failed",
+      "recorderExitCode": 1,
+      "receiptGenerated": false
+    },
+    "fourWayProductionTaskOverlap": {
+      "result": "unverified",
+      "boundTasks": 0,
+      "fourWayBoundOverlapMs": null
+    },
+    "productionSlotReleaseAndLaterAdmission": {
+      "result": "unverified"
+    },
+    "explicitProbeSlotCloseRelease": {
+      "result": "unverified",
+      "callRecorded": false
+    },
+    "productionContinuationAndFinalFourFileDelivery": {
+      "result": "unverified",
+      "executionAttemptCreated": false,
+      "videoPath": null
+    },
+    "partialNarrationTechnical": {
+      "result": "passed",
+      "scope": "WAV only; not final mix"
+    },
+    "actualVideoWatchingAndAudioListening": {
+      "result": "unverified",
+      "watched": false,
+      "listened": false
+    },
+    "captionsMobileReadabilityCroppingAvSync": {
+      "result": "unverified"
+    },
+    "finalVideoAndCoverDecodeAndFinalMix": {
+      "result": "unverified"
+    },
+    "scopedVisualRevisionArtifactReuseAndPromotion": {
+      "result": "unverified",
+      "revisionStarted": false
+    }
+  },
+  "evidenceBindings": [
+    {
+      "privateRelativePath": "candidate-identity.json",
+      "checksum": "sha256:395826ffc84f2db8a74e386e4c8f317d70575f3fbd6f00c24abfebe8121c53d2"
+    },
+    {
+      "privateRelativePath": "source-state.json",
+      "checksum": "sha256:3f932b0e56f0d33629fe16ace71a2cf1a37f8ff4e30302070c8b214e4f874f77"
+    },
+    {
+      "privateRelativePath": "source-verification.json",
+      "checksum": "sha256:2fd1d337b04eaab8209779c91a6588d1066045bfd20a6cfd6f290cace1caf180"
+    },
+    {
+      "privateRelativePath": "source-check.log",
+      "checksum": "sha256:81bb28a743fd96945495d6db925462df670403fbe7e06274648447cc5f561adb"
+    },
+    {
+      "privateRelativePath": "source-check-after-build.log",
+      "checksum": "sha256:a8caa720c4d1e9eff1207c773d863f33a49b9d03fec09fea6a1f69892b75fbc3"
+    },
+    {
+      "privateRelativePath": "packages-build.log",
+      "checksum": "sha256:12583c31a9a5a16ecd0cc227b2e43b85df56a449e578d040711b314779d47df4"
+    },
+    {
+      "privateRelativePath": "focused-check.log",
+      "checksum": "sha256:04955871d3409f76d098551457e360baa7773495ffe3a8abc43f23679fe16092"
+    },
+    {
+      "privateRelativePath": "source-audit.json",
+      "checksum": "sha256:480178e0a7644e6529fca25042448846755154376029cae39e4014fb1be863ac"
+    },
+    {
+      "privateRelativePath": "snapshot.json",
+      "checksum": "sha256:4fbbdcd09e388d44a23af1652c902371abeb70b2f7832a0a20bd87a0b9b84976"
+    },
+    {
+      "privateRelativePath": "snapshot.json.install.log",
+      "checksum": "sha256:3c41b2ac6c4c0de7bcf8ebce6136f157ee3570c6cc4233f4b32b028b068fff39"
+    },
+    {
+      "privateRelativePath": "business-prompt.txt",
+      "checksum": "sha256:5ad9e8b62a985a853989f9a43333d5eab4b3aab4bfb3b808fe401d0891207144"
+    },
+    {
+      "privateRelativePath": "post-run-package-integrity.json",
+      "checksum": "sha256:09a2b3bf2ac06064a599ca56946f11d6349dffab887bb260809aad28e1f5037f"
+    },
+    {
+      "privateRelativePath": "creation/native-models.json",
+      "checksum": "sha256:535e56839150d000bbc4da3d725ecebb4ab964489224913009539b5009f4dbfd"
+    },
+    {
+      "privateRelativePath": "creation/native-skills-after.json",
+      "checksum": "sha256:41e35d06362579673562531269da6556da268ae38eda0377a646f178b57bf054"
+    },
+    {
+      "privateRelativePath": "creation/native-thread-start.json",
+      "checksum": "sha256:7e73bf344a9c6d6f17fc1df07f79c3884376d09b19bfbc3dbf4d6f8e1fb17034"
+    },
+    {
+      "privateRelativePath": "creation/native-host-ps.json",
+      "checksum": "sha256:7761dc0ee4db180e836439df04ae2896a63e36b9a135bb1cb95f888b499bd7af"
+    },
+    {
+      "privateRelativePath": "creation/run.generated.json",
+      "checksum": "sha256:18dd08c37d88b8148c00f4259ad72c17deb6b2f795383739126b7c452b79ab4f"
+    },
+    {
+      "privateRelativePath": "creation/run.json",
+      "checksum": "sha256:d6252976e99e4b5addd044e32640d34dae8a3336bf5d287a2e43f5abf6e11bf1"
+    },
+    {
+      "privateRelativePath": "creation/app-server-input.jsonl",
+      "checksum": "sha256:b4fd3ac0490f79b92bf6d761d3391e0cdefdefbd122fab16b7698d6fe441ef3d"
+    },
+    {
+      "privateRelativePath": "creation/app-server-output.jsonl",
+      "checksum": "sha256:a79ea48c6edc288225bccd3f8d107c967e98b80cac277934f2526ad0c51e70ef"
+    },
+    {
+      "privateRelativePath": "native-transcript-index.json",
+      "checksum": "sha256:322c7aff3d1bbe8e1756755967f83773e25361993b28acfb8527cca7b36808bf"
+    },
+    {
+      "privateRelativePath": "native-probe-evidence.json",
+      "checksum": "sha256:38af210e9fb5eb57482dfea7b4eb2f2baec8a878bfef8f36025108a90d469097"
+    },
+    {
+      "privateRelativePath": "approval-routing.json",
+      "checksum": "sha256:a49e6e88f6be1f7b51fb1c392d02a1357b4e92bac5a43ab728830fa2d7ee06c4"
+    },
+    {
+      "privateRelativePath": "production-command-evidence.json",
+      "checksum": "sha256:d04d291ba6f57117dbfa4d1da4dad778517d65d4bd1cf794e43f1506dd41b37c"
+    },
+    {
+      "privateRelativePath": "template-context-diagnostic.json",
+      "checksum": "sha256:ba7c238af99a0ddee5751876ab4a718a380b3e6f8055bd37054a68d5072507f6"
+    },
+    {
+      "privateRelativePath": "narration-technical-review.json",
+      "checksum": "sha256:2f72a71cc7532f4b130de04493d8d9d8c806c0322acbd0273947fb5a8ee4cd9c"
+    },
+    {
+      "privateRelativePath": "narration-ffprobe.json",
+      "checksum": "sha256:561361c97b8f197a64ca997f5da1460074cdb26924ce31c868b101191d170abb"
+    },
+    {
+      "privateRelativePath": "narration-eof-confirmed.log",
+      "checksum": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "privateRelativePath": "narration-loudness.log",
+      "checksum": "sha256:2db8bd682eb7c3b6bb5f19e7bee78ac4e8dbc7c003c25df05753534bde89a092"
+    },
+    {
+      "privateRelativePath": "run-evidence.json",
+      "checksum": "sha256:92c71f654688f11802443cdd2becad8e470d03ab1abf70ae4239940bbb2a6ad1"
+    },
+    {
+      "privateRelativePath": "first-use-record.log",
+      "checksum": "sha256:7de37fde7dacb1df5caa5d9308371f48733b9f778020b87e421fdd5b2667d7f8"
+    }
+  ],
+  "containment": {
+    "fixedFaultRule": ".agents/skills/axmorf-video/SKILL.md and references/agent-rework-and-system-hardening.md",
+    "existingProjectAndFailureArtifactsPreserved": true,
+    "installedPackagesAndGeneratedGuidesUnmodified": true,
+    "validatorsUnmodified": true,
+    "oldWorkspaceResultsReused": false,
+    "authenticationCredentialsIncludedInEvidenceOrGit": false,
+    "tagCreated": false,
+    "pushPerformed": false,
+    "npmPublicationTriggered": false,
+    "separateEngineeringFixRequiredBeforeNewCandidateAcceptance": true
+  }
+}

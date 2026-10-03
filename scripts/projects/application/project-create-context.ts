@@ -136,6 +136,7 @@ export const inspectProjectCreateContext = async ({
         soundIntent: "旁白为主。",
         continuityBrief:
           "被困住的光点在下一 Scene 延续；纸张和线条尺度保持一致，橙红路线到下一段才显现。",
+        outgoingHandoff: { subject: "纸张地图中被困住的同一光点和路口" },
         candidateResourceIds: exampleResources,
         allowedSnapshotCards: [],
       },

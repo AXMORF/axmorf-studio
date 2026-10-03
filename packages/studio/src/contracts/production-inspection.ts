@@ -9,6 +9,7 @@ import {
 } from "./primitives";
 import { ProductionRevisionIdSchema } from "./production-revision";
 import { ProducerTaskKindSchema, TaskRevisionSchema } from "./producer-task";
+import { SCENE_PRIOR_SOURCE_INPUT_ID } from "./scene-prior-source";
 
 export const PRODUCTION_INSPECTION_VERSION =
   "production-inspection-v1" as const;
@@ -21,6 +22,7 @@ export const DiagnosticInputIdSchema = z.enum([
   "mastering-policy",
   "narration",
   "originality-baseline",
+  SCENE_PRIOR_SOURCE_INPUT_ID,
   "provider-attempt",
   "publishing",
   "readability",

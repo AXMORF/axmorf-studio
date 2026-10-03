@@ -1,8 +1,17 @@
 import assert from "node:assert/strict";
-import ts from "typescript";
 import { sha256 } from "./package-content";
 import { z } from "zod";
-import { nativeTrace, outputObjects, unwrapHermesToolCall } from "./native-execution";
+import {
+  auditProductionAttempts,
+  authenticateCodexCommands,
+  type CodexUiInput,
+  nativeTrace,
+  outputObjects,
+  ProductionAttemptIdentitySchema,
+  productionCommands,
+  shellCommands,
+  unwrapHermesToolCall,
+} from "./native-execution";
 
 export const SupervisionSchema = z
   .object({
@@ -10,7 +19,7 @@ export const SupervisionSchema = z
     source: z.enum(["codex", "tui"]),
     reportedBeforeCreate: z.literal(true),
     reportedBeforePrepare: z.literal(true),
-    continuationCalls: z.literal(1),
+    continuationCalls: z.number().int().positive(),
     pollingCalls: z.literal(0),
     asyncBatches: z.number().int().nonnegative(),
     completedAsyncBatches: z.number().int().nonnegative(),
@@ -23,8 +32,35 @@ export const SupervisionSchema = z
       })
       .strict()
       .optional(),
+    attempts: z
+      .array(
+        ProductionAttemptIdentitySchema.extend({
+          reportedBeforePrepare: z.literal(true),
+          continuationCalls: z.literal(1),
+        }).strict(),
+      )
+      .min(2)
+      .optional(),
   })
-  .strict();
+  .strict()
+  .superRefine((supervision, context) => {
+    const attempts = supervision.attempts;
+    if (supervision.continuationCalls !== (attempts?.length ?? 1))
+      context.addIssue({
+        code: "custom",
+        message:
+          "Every attempt requires exactly one continuation; grouped totals must match",
+      });
+    if (
+      attempts &&
+      new Set(attempts.map((attempt) => attempt.attemptId)).size !==
+        attempts.length
+    )
+      context.addIssue({
+        code: "custom",
+        message: "Supervision attempt identities must be unique",
+      });
+  });
 
 type Row = Record<string, unknown>;
 const object = (value: unknown): Row =>
@@ -79,57 +115,8 @@ const assertTuiResult = (name: string, actual: unknown, expected: unknown) => {
   assert.deepEqual(actual, expected, "TUI result differs from native DB");
 };
 
-const shellCommands = (name: string, input: Row): string[] => {
-  if (/(?:^|[._])(?:terminal|exec_command)$/u.test(name))
-    return [String(input.command ?? input.cmd ?? "")];
-  if (!/(?:^|[._])exec$/u.test(name)) return [];
-  const commands: string[] = [];
-  const source = ts.createSourceFile(
-    "native-exec.ts",
-    String(input.code ?? ""),
-    ts.ScriptTarget.Latest,
-    true,
-  );
-  const visit = (node: ts.Node) => {
-    if (
-      ts.isCallExpression(node) &&
-      ts.isPropertyAccessExpression(node.expression) &&
-      node.expression.name.text === "exec_command"
-    ) {
-      const argument = node.arguments[0];
-      if (argument && ts.isObjectLiteralExpression(argument)) {
-        for (const property of argument.properties) {
-          if (
-            ts.isPropertyAssignment(property) &&
-            ["cmd", "command"].includes(
-              property.name.getText(source).replace(/["']/gu, ""),
-            ) &&
-            (ts.isStringLiteral(property.initializer) ||
-              ts.isNoSubstitutionTemplateLiteral(property.initializer))
-          )
-            commands.push(property.initializer.text);
-        }
-      }
-    }
-    ts.forEachChild(node, visit);
-  };
-  visit(source);
-  return commands;
-};
 const productionCalls = (commands: string[], action: string) =>
-  commands.reduce(
-    (count, command) =>
-      count +
-      [
-        ...command.matchAll(
-          new RegExp(
-            `(?:^|[;\\n&|])\\s*npm\\s+run\\s+project:${action}(?=\\s|$)`,
-            "gu",
-          ),
-        ),
-      ].length,
-    0,
-  );
+  productionCommands(commands, action).length;
 
 type HermesUiInput = {
   rpc: string;
@@ -370,6 +357,7 @@ export function auditSupervision(input: {
   sessionSource?: string;
   executionMode?: "subagents" | "inline";
   hermesUi?: HermesUiInput;
+  codexUi?: CodexUiInput;
 }) {
   if (input.host === "hermes") {
     assert.equal(
@@ -378,7 +366,13 @@ export function auditSupervision(input: {
       "Supervision acceptance requires the real Hermes TUI async path, not -z",
     );
   }
-  const { records } = nativeTrace(input.host, input.transcript);
+  assert.ok(input.codexUi === undefined || input.host === "codex");
+  const original = nativeTrace(input.host, input.transcript);
+  const trace = input.codexUi
+    ? authenticateCodexCommands(original, input.codexUi).trace
+    : original;
+  const { records } = trace;
+  const grouped = auditProductionAttempts(trace);
   const ui = input.hermesUi
     ? hermesUiTimeline(input.hermesUi, records)
     : undefined;
@@ -455,7 +449,9 @@ export function auditSupervision(input: {
         String(row.type),
       )
     ) {
-      for (const value of outputObjects(row.output ?? row.content))
+      for (const value of input.host === "codex"
+        ? trace.outputs.find((output) => output.index === index)!.objects
+        : outputObjects(row.output ?? row.content))
         results.push({
           index: ui ? ui.results.get(String(row.tool_call_id))! : index,
           value,
@@ -483,6 +479,19 @@ export function auditSupervision(input: {
     messages.some((index) => index > inspect.index && index <= prepare.index),
     "Missing user-visible inspect report before costly prepare",
   );
+  if (grouped)
+    for (const attempt of grouped) {
+      const inspectIndex = ui
+        ? ui.results.get(attempt.inspect.callId)!
+        : attempt.inspect.index;
+      const prepareIndex = ui
+        ? ui.starts.get(attempt.preparation.originCallId)!
+        : trace.calls.get(attempt.preparation.originCallId)!.index;
+      assert.ok(
+        messages.some((index) => index > inspectIndex && index <= prepareIndex),
+        "Every attempt needs its user-visible inspect report before costly prepare",
+      );
+    }
   const continuation = calls.filter(
     (call) => productionCalls(call.commands, "produce:continue") > 0,
   );
@@ -492,15 +501,16 @@ export function auditSupervision(input: {
         count + productionCalls(call.commands, "produce:continue"),
       0,
     ),
-    1,
-    "Production must start its continuation exactly once",
+    grouped?.length ?? 1,
+    "Production must start each attempt continuation exactly once",
   );
   if (input.host === "hermes") {
-    assert.equal(
-      continuation[0]!.arguments.background,
-      true,
-      "Hermes continuation requires a native background process; a longer foreground timeout is insufficient",
-    );
+    for (const call of continuation)
+      assert.equal(
+        call.arguments.background,
+        true,
+        "Hermes continuation requires a native background process; a longer foreground timeout is insufficient",
+      );
   }
   for (const call of calls) {
     if (input.executionMode === "inline") {
@@ -550,11 +560,18 @@ export function auditSupervision(input: {
       result.value.mode === "background" &&
       typeof result.value.delegation_id === "string",
   );
-  const fixed = results.find((result) =>
-    ["project-production-complete", "project-production-current"].includes(
-      String(result.value.status),
-    ),
-  );
+  const lastGroup = grouped?.at(-1);
+  const fixed = lastGroup
+    ? {
+        index: ui
+          ? ui.results.get(String(records[lastGroup.fixedIndex]!.tool_call_id))!
+          : lastGroup.fixedIndex,
+      }
+    : results.find((result) =>
+        ["project-production-complete", "project-production-current"].includes(
+          String(result.value.status),
+        ),
+      );
   assert.ok(fixed, "No verified fixed delivery result");
   // Hermes may yield with a pending update after fixed delivery while native
   // notifications are still queued. Only the last visible report is final;
@@ -594,10 +611,26 @@ export function auditSupervision(input: {
     source: input.host === "hermes" ? "tui" : "codex",
     reportedBeforeCreate: true,
     reportedBeforePrepare: true,
-    continuationCalls: 1,
+    continuationCalls: grouped?.length ?? 1,
     pollingCalls: 0,
     asyncBatches: batches.length,
     completedAsyncBatches: batches.length,
     ...(ui ? { uiEvidence: ui.evidence } : {}),
+    ...(grouped
+      ? {
+          attempts: grouped.map((attempt) => ({
+            ...ProductionAttemptIdentitySchema.parse({
+              attemptId: attempt.attemptId,
+              storyId: attempt.storyId,
+              revisionId: attempt.revisionId,
+              candidateId: attempt.candidateId,
+              base: attempt.base,
+              deliveryBuildId: attempt.deliveryBuildId,
+            }),
+            reportedBeforePrepare: true,
+            continuationCalls: 1,
+          })),
+        }
+      : {}),
   });
 }

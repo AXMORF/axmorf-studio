@@ -13,6 +13,8 @@ import {
   SceneSoundPlanSchema,
   SceneSyncAnchorSetSchema,
   SceneTaskInputSchema,
+  ScenePriorSourceSchema,
+  scenePriorSourceOutputFiles,
   SCENE_MOTION_REQUIREMENT_ID,
   SceneMotionPlanSchema,
   SceneVisualPlanSchema,
@@ -84,7 +86,7 @@ const sourceOutput = ({
   example,
 }: {
   readonly path: string;
-  readonly format: "tsx" | "ts";
+  readonly format: "tsx" | "ts" | "text";
   readonly instructions: readonly string[];
   readonly example: string;
 }) => ({
@@ -137,6 +139,7 @@ const buildSceneContract = (rawContext: unknown) => {
       scene: z
         .object({
           taskInput: SceneTaskInputSchema,
+          priorSource: ScenePriorSourceSchema.optional(),
           availableResources: z.array(SceneSelectedResourceSchema).default([]),
           brief: SceneProductionBriefItemSchema,
           visualStyle: VisualStyleSpecSchema,
@@ -159,6 +162,13 @@ const buildSceneContract = (rawContext: unknown) => {
     .parse(rawContext);
   const { taskInput, brief, visualStyle, narrationCues, availableResources } =
     context.scene;
+  const priorSource = context.scene.priorSource;
+  if (
+    priorSource !== undefined &&
+    (priorSource.storyId !== taskInput.storyId ||
+      priorSource.meaningId !== taskInput.meaningId)
+  )
+    throw new Error("Scene prior source is cross-bound against its task.");
   if (
     JSON.stringify(
       availableResources.map(({ selected }) => selected.resourceId),
@@ -203,15 +213,30 @@ const buildSceneContract = (rawContext: unknown) => {
     throw new Error("Scene narration cues are stale or outside its timing.");
   }
   const shotId = `${taskInput.meaningId}-primary`;
-  const requiresMotion = taskInput.sceneRequirements.some(
-    (rule) => rule.requirementId === SCENE_MOTION_REQUIREMENT_ID,
-  );
+  const handoffs = taskInput.continuity.handoffs;
+  const requiresMotion =
+    taskInput.sceneRequirements.some(
+      (rule) => rule.requirementId === SCENE_MOTION_REQUIREMENT_ID,
+    ) ||
+    handoffs?.incoming != null ||
+    handoffs?.outgoing.kind === "continuous";
   const anchorFrame = narrationCues[0]?.startFrame ?? 0;
   const canMove = durationInFrames > 1 && anchorFrame < durationInFrames - 1;
+  const incoming = handoffs?.incoming ?? null;
+  const outgoing =
+    handoffs?.outgoing.kind === "continuous" ? handoffs.outgoing : null;
   const motionPlan = requiresMotion
     ? SceneMotionPlanSchema.parse({
         schemaVersion: 2,
-        objects: [{ objectId: "subject", meaning: brief.visualIntent }],
+        objects: [
+          { objectId: "subject", meaning: brief.visualIntent },
+          ...(incoming === null
+            ? []
+            : [{ objectId: "incoming-subject", meaning: incoming.subject }]),
+          ...(outgoing === null
+            ? []
+            : [{ objectId: "outgoing-subject", meaning: outgoing.subject }]),
+        ],
         actions: [
           {
             actionId: "explain-subject",
@@ -227,10 +252,26 @@ const buildSceneContract = (rawContext: unknown) => {
           },
         ],
         handoff: {
-          kind: "motivated-cut",
-          reason: brief.continuityBrief,
-          incoming: [],
-          outgoing: [],
+          kind: handoffs?.outgoing.kind ?? "motivated-cut",
+          reason: handoffs?.outgoing.reason ?? brief.continuityBrief,
+          incoming:
+            incoming === null
+              ? []
+              : [
+                  {
+                    continuityId: incoming.continuityId,
+                    objectId: "incoming-subject",
+                  },
+                ],
+          outgoing:
+            outgoing === null
+              ? []
+              : [
+                  {
+                    continuityId: outgoing.continuityId,
+                    objectId: "outgoing-subject",
+                  },
+                ],
         },
       })
     : undefined;
@@ -297,7 +338,9 @@ const buildSceneContract = (rawContext: unknown) => {
     contributions: [],
   });
 
-  return createContract({
+  const originalityInstruction =
+    "Treat originalityBaseline as immutable negative evidence: the complete declared TypeScript source graph must not normalize to another Scene in that baseline.";
+  const contract = createContract({
     taskKind: "scene-owner",
     purpose:
       "Author one meaning-local Scene renderer and its semantic visual, shot, sync, sound, resource, and recipe decisions.",
@@ -310,7 +353,8 @@ const buildSceneContract = (rawContext: unknown) => {
       "Choose a visual subject with a specific role in the idea. Show cause and consequence through staging, scale, movement, occlusion, or a change in spatial relationship; avoid generic shapes, ambient particles, and motion that only illustrates a keyword.",
       "Give each shot one focal subject and a readable silhouette. Vary shot scale or viewpoint only when it clarifies a new fact, and preserve continuity of the subject across shots. Leave the Composition-owned caption area visually quiet.",
       "Align meaningful visual changes to narrationCues and declare sync anchors for events used by shots or sound. Keep the plan, renderer, and visible result consistent; do not add motion only to fill time.",
-      "Treat originalityBaseline as immutable negative evidence: the complete declared TypeScript source graph must not normalize to another Scene in that baseline.",
+      originalityInstruction,
+      "When scene.priorSource is absent, create this Scene from the current brief; no prior implementation was frozen, so do not claim preservation of existing source.",
       "Replace the scaffold Renderer with StoryBeat-specific creative output and write every declared output. The scaffold is an API illustration, never a finished Scene.",
       "Run the deterministic task finalizer to bind identities, canonicalize JSON, and recompute derived fields.",
       "Run the fixed task checker, correct only this workspace, then use the attempt-bound completion operation supplied by the caller.",
@@ -379,6 +423,7 @@ export default Renderer;
           "Describe observable subject positions, actions, and changes in each shot; a theme word or a camera move alone is not a shot action.",
           "New narrated Projects require an intent-first motionPlan v2: meaningful subjects, explanatory actions, narration alignment and continuity. Describe the intended visible change, not mandatory trajectories or components; custom action kinds and frame-driven animation are allowed. Tracked motionPlan v1 remains optional for reusable state interpolation and limited dependency checks.",
           "Each action declares initialState, resultingState, explanatoryPurpose, shotId, objectIds, frameRange, syncAnchorId and readingHoldFrames. Align anchors to sealed narrationCues; make labels readable during holds. A reading hold need not freeze every decorative/object property in custom animation. Continuous transitions declare incoming/outgoing continuityId object handoffs; motivated cuts explain why. No mandatory camera movement or animation quota.",
+          "scene.taskInput.continuity.handoffs freezes the Root-owned incoming/outgoing seam. Match its outgoing kind and exact continuity IDs; bind each handoff to an authored object whose meaning equals the shared subject. Do not invent IDs or omit a promised incoming object. Realize the shared subject visibly; local object IDs and frame-driven implementation remain your choice. Tracked v1 continuous boundaries require frozen trackedState and exact first/last poses; without it use intent v2. Fixed template boundaries use motivated cuts.",
           "Keep shot order identical to visual-plan.json orderedShotIds.",
         ],
         derivedFields: [
@@ -461,6 +506,60 @@ export default Renderer;
       "SceneRendererProps supplies sceneFrame, durationInFrames, fps, viewportWidth, viewportHeight, StoryBeat, plans, and resolved visual resources.",
     ],
     constraints: sharedConstraints,
+  });
+  if (priorSource === undefined) return contract;
+  const additionalOutputs = scenePriorSourceOutputFiles(priorSource)
+    .filter(
+      (file) =>
+        !contract.outputs.some(({ path }) => path === `src/${file.path}`),
+    )
+    .map((file) => {
+      const path = `src/${file.path}`;
+      if (file.role === "source")
+        return sourceOutput({
+          path,
+          format: file.path.endsWith(".tsx") ? "tsx" : "ts",
+          instructions: [
+            "Preserve this prior Scene helper or type declaration and change it only when the current brief delta requires it.",
+          ],
+          example: file.content,
+        });
+      if (file.path.endsWith(".json"))
+        return jsonOutput({
+          path,
+          schema: JsonValueSchema,
+          instructions: [
+            "Copy the exact immutable prior Scene declaration or lineage bytes; retain its license and attribution identity.",
+          ],
+          example: JSON.parse(file.content),
+        });
+      return sourceOutput({
+        path,
+        format: "text",
+        instructions: [
+          "Copy this immutable prior Scene license or attribution file byte-for-byte; its exact checksum is validated.",
+        ],
+        example: file.content,
+      });
+    });
+  return createContract({
+    ...contract,
+    purpose:
+      "Revise one existing meaning-local Scene from its frozen current base source and declarations, preserving every behavior outside the current brief delta.",
+    workflow: [
+      ...contract.workflow.slice(0, 4),
+      "Read scene.priorSource in inputs/context.json: it contains only this owning Scene's frozen current base TS/TSX graph, type declarations, plans, and any local license or lineage. Its brief is the previous authored intent; compare it with scene.brief to identify the requested delta.",
+      "Preserve the prior Renderer and helper graph as the starting implementation. Apply only the current brief delta; keep unaffected subjects, motion, sound, resources, timing relationships, and layout decisions. Do not reconstruct or redraw the whole Scene for a local change.",
+      "Start each semantic JSON draft from its prior declaration. Preserve unaffected decisions, adapt to current immutable timing and allowlists, and let the fixed finalizer recompute fresh task identities and derived fingerprints.",
+      "Write every declared output; prior source in context is read-only input, never an existing mutable src/Renderer.tsx. Preserve local license and lineage files exactly and do not read base snapshot paths, other Scenes, history, or another executor workspace.",
+      originalityInstruction,
+      ...contract.workflow.slice(-2),
+    ],
+    outputs: [...contract.outputs, ...additionalOutputs],
+    constraints: [
+      ...sharedConstraints,
+      "Only the frozen owning Scene graph in scene.priorSource may be used as prior implementation; it grants no broader filesystem access.",
+    ],
   });
 };
 

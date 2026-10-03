@@ -1,7 +1,10 @@
 import { z } from "zod";
 import { DurationBudgetSchema } from "./duration-budget";
 
-import { SceneProductionBriefItemSchema } from "./authoring-briefs";
+import {
+  SceneProductionBriefItemSchema,
+  addSceneHandoffAuthoringIssues,
+} from "./authoring-briefs";
 import { VideoBriefSchema } from "./brief";
 import { DeliveryBuildIdSchema } from "./delivery-build";
 import { createFingerprint } from "./fingerprint";
@@ -148,6 +151,11 @@ export const ProjectRevisionEditableAuthoringSchema = z
   })
   .strict()
   .superRefine((authoring, context) => {
+    addSceneHandoffAuthoringIssues(
+      authoring.scenes,
+      authoring.story.beats,
+      context,
+    );
     if (authoring.brief.storyId !== authoring.story.storyId) {
       context.addIssue({
         code: "custom",

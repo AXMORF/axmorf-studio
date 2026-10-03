@@ -9,7 +9,7 @@ send follow-up repair instructions or change package internals during the run.
 A failed run stays recorded as failed; a later engineering fix requires new
 candidates and a new first-use run.
 
-Except for the explicit 0.1.14, 0.1.15 and 0.1.16 scopes below, from 0.1.9 onward both hosts must exercise the package's default native
+Except for the explicit host/serial scopes below, from 0.1.9 onward both hosts must exercise the package's default native
 `subagents` path with configured maximum concurrency four. The business prompt
 does not name this execution strategy. Select a normal video brief that produces
 more than four dirty creative tasks, so the run exercises releasing a child slot
@@ -29,7 +29,7 @@ The receipt records this as `inlineExecution`; it cannot also carry `nativeExecu
 Codex must still prove capacity four, four bound tasks overlapping, and a later
 admission. Other versions retain their existing native child requirements.
 All installation, fresh profile, one-prompt, actual-model, native TUI/session,
-progress report, single background continuation, no-polling, package/guide
+progress report, one background continuation per attempt, no-polling, package/guide
 integrity, final delivery and complete media decoding checks remain required.
 Original failed runs and their narrower evidence remain preserved; the approved
 scope does not turn earlier failed runs into passing receipts.
@@ -41,24 +41,45 @@ delivery, and full media checks. Hermes runs remain diagnostic and cannot be
 counted as passing release evidence. This scope does not certify Hermes; later
 versions return to the two-host gate.
 
-For **0.1.16 only**, the user authorized Codex-only acceptance on 2026-09-30,
-then explicitly approved **Codex serial acceptance** on 2026-10-01 at 13:08 UTC.
-Both candidate and post-publication receipts must record sequential Root task
-binding/commit and `releaseScope`: version `0.1.16`, host `codex`, authorization
-timestamp, `parallelExecution: "unverified"`, and `hermes: "unverified"`.
-The ordinary business prompt explicitly selects serial production. No native
-children or delegation may be counted; four-way overlap, slot release and later
-admission remain unverified. Independent fresh workspace/profile, one business
-prompt, unchanged package/guides, actual model settings, supervision, unique
-continuation, exact four-file Delivery and complete media checks remain required.
-Prior engineering previews and failed independent runs do not become passing
-first-use receipts. This exception does not change Workspace execution defaults,
-Hermes support or any future-version gate.
+For **0.1.16 only**, Codex-only acceptance remains authorized. The current
+2026-10-02 candidate request explicitly requires actual native children,
+four-way overlap, slot release and later admission. Use the ordinary business
+prompt and default `subagents` path; the recorder applies the unchanged native
+gate. It must not force a native run through the older serial exception.
 
-For this independent 0.1.16 acceptance only, the user also approved the available
-local **gpt-5.6-sol, max** on 2026-10-01 at 16:44 UTC. Record the actual native
-model and reasoning settings; this does not change the main engineering task's
-model or provide evidence for other models.
+The 2026-10-01 at 13:08 UTC serial authorization remains a separately identified
+historical scope. An explicitly selected serial run must still record sequential
+Root binding/commit, zero children and its exact `releaseScope`, with parallel
+execution and Hermes unverified. Inline and native receipts cannot substitute
+for each other or combine evidence. The current request authorizes no inline
+fallback. Independent fresh workspace/profile, one business prompt, unchanged
+package/guides, actual model settings, supervision, unique continuation per attempt, exact
+four-file Delivery and complete media checks remain required for either scope.
+Failed runs stay failed. Product defaults and future-version gates are unchanged.
+Current 0.1.16 `verify` and `verify-public` require native execution and reject
+the historical serial scope; neither publication entry offers an inline fallback.
+Use `verify-historical runtime.tgz creator.tgz combined-receipt.json` only to
+diagnose retained receipts. It selects the exact creation method shared by all hosts,
+runs the same package, execution, supervision, delivery and applicable registry-integrity
+checks, and returns `first-use-historical-receipt-verified` with
+`publicationEligible: false`. This result cannot satisfy the npm publication gate.
+
+The current independent 0.1.16 request prefers **gpt-6.1-sol, max** and permits
+**gpt-5.6-sol, max** only when the preferred model is unavailable. Verify the
+actual CLI model catalog and run settings; the model selected in the desktop
+conversation does not prove availability in a separate CLI profile. The earlier
+2026-10-01 at 16:44 UTC approval for local gpt-5.6-sol remains part of the
+historical scope. Record the actual native model and reasoning settings; this
+does not provide evidence for other models.
+
+For **0.1.16 only**, the maintainer subsequently approved a post-publication
+installation smoke check: verify both npm versions and package integrity, install
+from the public registry in a fresh directory, and run the generated doctor.
+The candidate's actual native concurrency, later admission, and separate scoped
+visual revision and reuse checks remain required. Keep a separate installation
+smoke record and mark public-registry native video production as unverified;
+this scope does not produce a passing `record`/`verify-public` native receipt.
+Other versions and the current native publication verifier remain unchanged.
 
 This gate supplements the automated install/contract tests. It does not claim
 multi-model, multi-OS, interactive approval, revision, or recovery certification.
@@ -76,7 +97,7 @@ capture events and close the completed session, but must not inject follow-up
 prompts, manufacture completion messages, or read a child log to drive the Agent.
 
 The recorder now checks user-visible messages before create and between inspect
-and prepare, a single continuation invocation, no shell sleep/child-list/transcript
+and prepare, one exact continuation invocation per attempt, no shell sleep/child-list/transcript
 polling, long native process waits, and every dispatched async batch notification
 before the final report. A reviewer still checks the meaning of the reports:
 message presence cannot prove that cost, readiness, or boundary duration is correct,
@@ -96,6 +117,38 @@ never synthesize assistant rows in the database transcript to supply missing pro
 These bindings detect mismatched or incomplete captures; they are not cryptographic
 attestation that a maintainer did not fabricate an entire capture.
 Historical receipts retain their original, narrower scope.
+
+Codex code-mode may truncate a long command result while the app-server retains
+its complete native command output. Keep both original captures. The optional
+`uiTranscriptFile` may supplement that result only when the original process
+handle, literal command, cwd, Root thread and turn, unique started/completed item,
+result order, exit code and complete output-delta sequence all agree. Bind the
+supplement to the original result time and index and record the UI checksum.
+Missing or ambiguous linkage is a failed audit; child output or a disk plan cannot
+reconstruct a missing prepare result.
+
+A code-mode call may also drain its own literal command result with
+`while (result.session_id !== undefined)`: every wait must use that same result's
+handle and empty input, and every returned chunk must retain its original order.
+The recorder accepts only the bounded launch/print/wait syntax with verified
+variable use, unshadowed native helpers, unique literal property names and a final
+exit result. Spread arguments, overwritten handles, foreign receivers and helper
+rebinding fail closed. Native cell yields may split this sequence across results;
+they must preserve the same original process identity.
+
+One ordinary business prompt may lead the Root to review a completed delivery and
+create an isolated revision through the public workflow. Keep the entire native
+trace, including every probe and failed tool call. Audit each prepared attempt
+separately: its resolver and inspect report, exact dirty task set, fresh child
+bindings and commits, single continuation, and successful fixed result. A later
+attempt must be linked to the preceding verified current Revision/Delivery by a
+successful public revision creation and promotion; its final tuple must match the
+actual current delivery. The initial fresh production still requires four bound
+tasks overlapping and admission after a slot is released. Later revisions may
+reuse artifacts and need fewer workers. Multiple continuations for one attempt,
+missing later completion, cross-attempt bindings, or extra user prompts remain
+failures. Do not trim an autonomous revision out of the capture to sign only the
+first delivery. This audit does not certify visual quality or scoped artifact reuse.
 
 Codex full-history child captures bind the native role adapter immediately before
 that child's settings event. Current captures identify the developer message with
@@ -231,7 +284,8 @@ existing result cannot be silently overwritten.
 
 ## Verify revision changes separately
 
-A first-use receipt certifies fresh creation and delivery, not the existing-Project revision path.
+A first-use receipt certifies fresh creation and the complete recorded delivery chain.
+It does not certify scoped reuse or all existing-Project revision behavior.
 For changes to candidate compilation, delivery, diagnostics, or promotion, also exercise the installed
 candidate package in a complete isolated copy of a finished Workspace. Use public npm entry points:
 context → validate/create a real publishing-only patch → inspect → prepare → exact continuation →
@@ -280,6 +334,11 @@ After publication, repeat ordinary `npm create ...@latest` installation and the
 same required-host business-prompt test against the public registry. Keep post-release
 evidence separate from the candidate receipt. Do not mark the release as fully
 verified until these published-package runs finish.
+
+For the explicit 0.1.16 installation-smoke scope above, use `create-public`,
+compare the actual public package contents with the certified candidates, and
+run doctor in that new Workspace. Record the smoke result separately without
+starting a second video or claiming public native first-use certification.
 
 Use `create-public` after both `latest` tags identify the intended release. Its strict configuration
 has `host`, `workspace`, `promptFile`, and `expectedVersion`; it accepts no local package paths:

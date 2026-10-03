@@ -27,15 +27,28 @@ const listFiles = async (
 };
 const parseSource = async (path: string) => {
   const source = await readFile(path, "utf8");
-  const result = ts.transpileModule(source, {
-    fileName: path,
-    reportDiagnostics: true,
-    compilerOptions: {
-      jsx: ts.JsxEmit.ReactJSX,
-      target: ts.ScriptTarget.ES2022,
-      module: ts.ModuleKind.ESNext,
-    },
-  });
+  const result = path.endsWith(".d.ts")
+    ? {
+        diagnostics: (
+          ts.createSourceFile(
+            path,
+            source,
+            ts.ScriptTarget.ES2022,
+            true,
+          ) as ts.SourceFile & {
+            readonly parseDiagnostics: readonly ts.Diagnostic[];
+          }
+        ).parseDiagnostics,
+      }
+    : ts.transpileModule(source, {
+        fileName: path,
+        reportDiagnostics: true,
+        compilerOptions: {
+          jsx: ts.JsxEmit.ReactJSX,
+          target: ts.ScriptTarget.ES2022,
+          module: ts.ModuleKind.ESNext,
+        },
+      });
   const errors =
     result.diagnostics?.filter(
       ({ category }) => category === ts.DiagnosticCategory.Error,

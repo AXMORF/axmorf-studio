@@ -66,14 +66,6 @@ export const buildTaskDispatch = ({
         transport: "controller-io",
       }),
     },
-    describeCommand: commandFormatter.describeTask(commandInput),
-    finalizeCommand: commandFormatter.finalizeTask(commandInput),
-    checkCommand: commandFormatter.checkTask(commandInput),
-    commitCommand: commandFormatter.commitTask(commandInput),
-    taskFailureCommand: commandFormatter.failTask({
-      ...commandInput,
-      kind: "task",
-    }),
     fixedFailureCommand: commandFormatter.failTask({
       ...commandInput,
       kind: "fixed",

@@ -71,9 +71,11 @@ prepare 是唯一允许 provider/cache/seal/master/timing、fixed artifact、dir
 的 public production 入口。它先完成所有可只读验证；若 narration 后仍缺 timing-bound authoring，返回
 `project-authoring-required` 和 logical missing inputs，不创建 owner workspace 或假 Revision。
 
-production inputs ready 时保存 `attemptId`、`revisionId`、summary、estimated/actual cost、taskExplanations 和
-`dirtyAgentTasks`。每项包含 `bindingId`、`bindCommands.sharedWorkspace/controllerIo`、describe/finalize/check/
-commit、task/fixed/spawn failure commands。相同 inputs 的 valid artifact 必须显示 `reuse`。prepare 只为 dirty
+production inputs ready 时保存 `attemptId`、`revisionId`、summary、estimated/actual cost、`dirtyAgentTasks` 和
+exact continuation。每项包含完整 task identity、`bindingId`、两种 transport 的 exact bind 与完整 worker prompt、
+Root-only fixed/spawn failure commands。详细 task explanations 保存在 immutable attempt snapshots，并由只读
+inspect/progress 展示；prepare 不重复输出。worker 的 describe/finalize/check/commit/task failure commands 由成功
+bind 返回。相同 inputs 的 valid artifact 必须显示 `reuse`。prepare 只为 dirty
 Agent tasks 建 `.producer-work/<storyId>/<taskRevision>/`，其中 `task.json`、`inputs/context.json` 与
 `inputs/task-contract.json` 是 immutable fixed inputs。TaskExecutionContract 是 attempt-neutral task content，不嵌入
 transport、binding、failure 或 command template。
@@ -85,8 +87,8 @@ worktree。shared-workspace executor 只能进入 bind 返回的 exact relative 
 checkout/filesystem access，只能调用 bound file-read/file-write。`scene-template` 与 narration/convergence/delivery
 fixed tasks 不由 Agent 创作。
 
-每个 executor prompt 必须包含 storyId、revisionId、taskRevision、attemptId、bindingId、transport、必读 Skill/reference、
-bind 与 prepare 返回的 exact commands。Scene child 完整读取 repository-local
+每个 executor prompt 必须包含角色、Workspace root、必读 Skill/reference 和 prepare 返回的 exact attempt-bound
+bind。短 assignment 在绑定时恢复并校验完整身份；仅使用成功 bind 返回的 exact lifecycle commands。Scene child 完整读取 repository-local
 `remotion-best-practices`。
 
 任何 task content read/write 前先运行 exact bind command。bind 以零 task writes 校验 binding、task/active attempt、

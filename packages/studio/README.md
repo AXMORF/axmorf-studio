@@ -35,8 +35,11 @@ commands.
 
 The package also carries a policy-covered Workspace seed for shared media. `axmorf bootstrap` projects only its
 manifested bytes into reserved Workspace paths, generates the Resource Catalog, and refuses conflicting files or symlinks. The
-current seed includes a Mixkit cinematic opening impact excerpt, an eight-second Mixkit “Deep Urban” closing excerpt, and an AXMORF
-mark SVG; selected template audio becomes Project-local during creation. See `THIRD_PARTY_NOTICES.md` for source and license details.
+current seed includes a Mixkit cinematic opening impact excerpt, an eight-second Mixkit “Deep Urban” closing excerpt, an AXMORF
+mark SVG, and 24 original AXMORF motion sound effects, including mouse clicks, press/release and scrolling cues. Scenes select
+prebuilt effects from the Catalog and schedule them by
+event anchor or local frame; they do not synthesize audio during production. Selected template audio becomes Project-local during
+creation. See `THIRD_PARTY_NOTICES.md` for source and license details.
 
 ## Requirements
 

@@ -13,7 +13,13 @@
     "receivedAt": "2026-10-01T13:08:00Z",
     "approvedScope": "0.1.16-only Codex serial candidate and public first-use acceptance; all other checks retained"
   },
-  "codexExecution": "inline",
+  "codexExecution": "subagents",
+  "nativeCandidateAuthorization": {
+    "reply": "优先使用真实原生子 Agent，按仓库首用验收要求验证任务并发及后续任务接纳；记录真实执行证据，不要模拟并行。",
+    "receivedOn": "2026-10-02",
+    "approvedScope": "Historical initial test-only scope; publicationAuthorization now supersedes the tag/npm restriction, while native concurrency and no inline fallback remain required.",
+    "fourWayOverlapSlotReleaseAndLaterAdmissionRequired": true
+  },
   "independentAcceptanceModelAuthorization": {
     "reply": "允许",
     "receivedAt": "2026-10-01T16:44:00Z",
@@ -21,12 +27,149 @@
     "model": "gpt-5.6-sol",
     "reasoningEffort": "max"
   },
-  "parallelExecution": "unverified",
-  "nativeFourWayOverlapSlotReleaseAndLaterAdmission": "unverified",
+  "parallelExecution": "Passed current matching native/subagents receipt: four bound tasks, 515914ms cumulative overlap, two fresh-session refills; older receipts remain historical.",
+  "nativeFourWayOverlapSlotReleaseAndLaterAdmission": "Passed current generated receipt; 8production/12probe children across3attempts; four-way515914ms and2later admissions.",
+  "candidateFirstUseReceipt": "docs/evidence/v0.1.16-first-use.json; generated current V9 public record and exact newly rebuilt candidate verify both exit0",
+  "candidateReview": "Current sampled media, two scoped Scene revisions/reuse and installed publishing.description-only copy fixture passed; continuous playback/listening/physical phone unverified",
+  "currentModelAuthorization": {
+    "reply": "执行时使用可用的 GPT-6.1 Sol、max；若不可用，本次验收允许 GPT-5.6 Sol、max。",
+    "receivedOn": "2026-10-02",
+    "observedModel": "gpt-6.1-sol",
+    "observedReasoningEffort": "max",
+    "reason": "After explicit user-authorized CLI update to 0.160.0, native model/list advertised 6.1/max and a fresh model-only native invocation completed with actual turn settings gpt-6.1-sol/max. Earlier 5.6 captures retain their actual settings."
+  },
   "productDefaultsChanged": false,
   "otherVersionHostGatesChanged": false,
-  "nativeSequentialRootExecutionAndSupervisionRequired": true,
+  "nativeSequentialRootExecutionAndSupervisionRequired": false,
   "independentFreshBusinessOnlyContextRequired": true,
   "visualAndAudioReviewRequired": true,
-  "publication": "not published; candidate verification pending"
+  "durationAcceptance": "User clarified on 2026-10-02 that duration is not an acceptance condition; record media parameters only",
+  "continuousPlayback": "unverified",
+  "subjectiveAudioListening": "unverified",
+  "subsequentSharedSoundEffectsCandidate": {
+    "runtimeFiles": 283,
+    "creatorFiles": 41,
+    "runtimeFingerprint": "sha256:cfe7f2f8c87d7d9bb0c124ce25e24810d1827c74b02e14f467b8777401c27d3f",
+    "creatorFingerprint": "sha256:5fc7408f755a55501ee5bd0d2342e73ac8f889c88d6d6a4ab72037ea7c2a021b",
+    "freshWorkspace": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-priorsource-firstuse-20261002-c6sf850i/workspace",
+    "nativeAcceptance": "Historical initial native receipt passed for this exact cfe7 candidate; later scoped revision failed before dispatch. Archived receipt is not publication evidence for current candidate."
+  },
+  "publication": "authorized, not yet published; all candidate and installed revision gates passed, supported tag CI and public installation smoke pending",
+  "publicationAuthorization": {
+    "reply": "按照你的建议处理，然后发布最新npm。",
+    "receivedOn": "2026-10-02",
+    "approvedScope": "Repair and verify latest matching candidates with fresh independent Codex native first use; commit/tag/push/dispatch the supported npm workflow. The later postPublicationSimplificationAuthorization limits post-release work to public-registry installation smoke. Earlier test-only/no-publication limitation is superseded."
+  },
+  "cliUpdateAuthorization": {
+    "reply": "cli是不是没有更新，帮我更新后再试",
+    "receivedOn": "2026-10-02",
+    "approvedScope": "Update the local Codex CLI and retry model verification and fresh independent first use; preserve original failed/stopped captures."
+  },
+  "cliUpdate": {
+    "installedBefore": "Homebrew /usr/local/bin/codex 0.150.1",
+    "installedNow": "/Users/ai/.local/bin/codex 0.160.0 via official @openai/codex",
+    "defaultShellResolvedVersion": "0.160.0",
+    "homebrewUpdate": "blocked by system directory ownership; no chown/chmod or security change",
+    "modelProbe": "completed, native settings gpt-6.1-sol/max",
+    "firstUseAfterUpdate": "Current fresh independent CLI0.160.0 gpt-6.1-sol/max native first-use receipt passed; all original earlier failed/stopped captures retained"
+  },
+  "revisionGuideRepair": "Per-production fresh capability/resolve, actual public revision CLI/schema, local Scene patch and pre-prepare invalidation scope; no runtime/CLI/contracts/recorder/gate relaxation.",
+  "updatedCliFailedTrial": "docs/evidence/2026-10-02-v0.1.16-cli160-revision-scope-failure.json",
+  "priorSceneInputFailedTrial": "docs/evidence/2026-10-02-v0.1.16-prior-scene-input-failure.json",
+  "priorSceneInputEngineeringRepair": "Implemented and independently reviewed; current matching candidates passed real same-Scene narrow revisions with25artifact reuse/0newprovider, and installed publishing.description-only copy fixture.",
+  "nativeProcessRecorderRepair": "Final280d0000/cf4c2135 sources: independent NO-BLOCKING,112focused,type/lint/format/diff0, full1093/1093; actual entire V9 native/UI capture authenticated and public record0. Failed/truncated old evidence remains unchanged.",
+  "currentPublicationReceiptGate": "verify/verify-public require0.1.16 Codex native/subagents. Historical serial receipts are diagnostic only through verify-historical, which returns publicationEligible:false; release CI uses the current gate.",
+  "postPublicationSimplificationAuthorization": {
+    "question": "本次发布后，是否简化为“核对 npm 版本与包完整性、在全新目录安装并运行 doctor”？发布前的真实制作、并发和局部修订验收仍保留。",
+    "reply": "按建议做安装烟测，省去第二次整片制作",
+    "recordedAt": "2026-10-02T19:09:34.289259+00:00",
+    "approvedScope": "0.1.16 post-publication installation smoke only: both registry versions/integrities, matching package content, a fresh public-registry installation and generated doctor. Candidate actual native overlap/refill, scoped visual revision and reuse remain required.",
+    "publicNativeFirstUseRequired": false,
+    "publicNativeFirstUse": "explicitly waived; unverified",
+    "publicInstallationSmoke": "pending",
+    "otherVersionGatesChanged": false
+  },
+  "localVerification": {
+    "fullCheck": {
+      "tests": 1093,
+      "failed": 0,
+      "skipped": 0,
+      "cancelled": 0,
+      "exitCode": 0,
+      "recorderSources": {
+        "scripts/release/native-execution.ts": "sha256:280d000050ba64d59d1d73754af00a545077070c6b4a9af27ab6e1f9ed2ef3e0",
+        "tests/npm-install-e2e/native-revision-execution.test.ts": "sha256:cf4c2135ab2bd83e24e57ddf6e181e2f02d76bbedd1f6fdc3c97904117290921"
+      },
+      "reference": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-reviewed-firstuse-20261003-gzhb5fc5/engineering/release-source-full-check-final.json",
+      "stdoutChecksum": "sha256:fe5eb8da64d70a8d163514f20314921a3cfb4b116f2e91938e6fb371d2485902"
+    },
+    "packageTypecheckBuildBoundary": {
+      "exitCode": 0
+    },
+    "auditLow": {
+      "exitCode": 0,
+      "vulnerabilities": 0
+    },
+    "sourceUnchangedDuringPack": true,
+    "packageBuildReference": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-reviewed-firstuse-20261003-gzhb5fc5/engineering/build-and-pack.json",
+    "finalRecorderReview": "NO-BLOCKING; 112/112 focused; type/lint/format/diff0; independent positive/reject vectors and full original raw/UI authentication",
+    "finalReleaseSourceReview": "NO-BLOCKING; template suspicion withdrawn after real narrated-only schema/caller verification and existing real global-theme revision1/1",
+    "publishedTagCI": "pending",
+    "prepublicationRepack": {
+      "path": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-reviewed-firstuse-20261003-gzhb5fc5/engineering/prepublication-repack/result.json",
+      "checksum": "sha256:b53bfb2cb9c201f053ad19c9447b9f5f135757785942467080a6c8c7679dee5f"
+    }
+  },
+  "candidateNativeAcceptance": {
+    "status": "fresh-reviewed-native-production-and-scoped-revisions-passed",
+    "historicalInitialReceipt": "docs/evidence/v0.1.16-first-use-priorsource-initial-superseded-2026-10-03.json",
+    "scopedRevision": "two same-Scene revisions passed;1dirtyScene/25reuse/0provider each",
+    "publishingOnlyFixture": "passed installed public chain in complete independent copy",
+    "publicationEligible": true,
+    "failedIntermediateTrials": [
+      {
+        "trial": "diagnosticfix-code-mode",
+        "status": "whole-native-capture-failed",
+        "reason": "Truncated original indexed wrappers; retained full UI cannot replace missing outer results"
+      },
+      {
+        "trial": "directtools",
+        "status": "stopped-before-creative-dispatch",
+        "reason": "Prepare JSON exceeded native output cap; complete exact dispatch result was lost"
+      }
+    ],
+    "controllerStoppedIntermediateTrial": {
+      "trial": "compactdispatch",
+      "status": "cancelled-before-provider-after-unreachable-review-false-positive",
+      "rootExitCode": 1,
+      "productionChildren": 0,
+      "runtimeDefectConfirmed": false,
+      "sourceChangedForThisSuspicion": false,
+      "realFixedTemplateGlobalThemeControl": "1/1 exit0",
+      "newFreshWorkspaceRequired": true
+    },
+    "currentCandidateRecord": "docs/evidence/2026-10-03-v0.1.16-current-candidate.json"
+  },
+  "latestCandidate": {
+    "workspace": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-reviewed-firstuse-20261003-gzhb5fc5/workspace",
+    "runtimeFingerprint": "sha256:2f528b35e9a6b8dc2960c48592db2924d93a83f21a5d7211b0208c7aa940723b",
+    "creatorFingerprint": "sha256:5fc7408f755a55501ee5bd0d2342e73ac8f889c88d6d6a4ab72037ea7c2a021b",
+    "runtimeFiles": 283,
+    "creatorFiles": 41,
+    "installedAndEmptySnapshotVerified": true,
+    "runtimeAndGeneratedGuideFilesVerified": {
+      "runtime": 283,
+      "creator": 41,
+      "guides": 12
+    },
+    "initialNativeProduction": "passed",
+    "scopedVisualRevision": "passed twice, only one Scene redone each",
+    "publishingOnlyFixture": "passed",
+    "model": "gpt-6.1-sol",
+    "reasoningEffort": "max",
+    "recordedAt": "2026-10-03T02:17:02.742528+00:00",
+    "rootThreadId": "01a0fee4-9c49-7c42-8b09-b7f38d3adbe2",
+    "nativeReceiptChecksum": "sha256:98074563e7a9a5e3df81d5754ec34066a01dbc085e20b0488adfbe6a931e9678"
+  },
+  "recordedAt": "2026-10-03T02:17:02.742528+00:00"
 }

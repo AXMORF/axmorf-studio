@@ -1,0 +1,414 @@
+{
+  "schemaVersion": 1,
+  "status": "frozen-candidate-mechanical-first-use-passed-current-package-changed",
+  "scope": "This run repairs and tests one frozen source/package snapshot; later source changes and subjective review remain unverified",
+  "source": {
+    "repository": "/Users/ai/AgentWorkspace/projects/axmorf-studio",
+    "branch": "axmorf/npm-workspace-open-source",
+    "head": "7352dc9f7d89f4c10589f1fdde99974e118da470",
+    "remoteHeadVerifiedSame": true,
+    "repairsUncommitted": true,
+    "candidateSourceSnapshot": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-release-20261002-9j0d88xb/engineering/source-state.json",
+    "closingSourceSnapshot": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-release-20261002-9j0d88xb/engineering/source-state-closing.json"
+  },
+  "packages": [
+    {
+      "name": "@axmorf/studio",
+      "version": "0.1.16",
+      "fingerprint": "sha256:956316f3da5c5d8e23dba315eb64b928dc35706b852ff7d597029f72aa1fb177",
+      "tarball": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-release-20261002-9j0d88xb/tarballs/axmorf-studio-0.1.16.tgz",
+      "tarballChecksum": "sha256:f0deb2b61d55146df4a0ecfc334fa4978b63375b113c598756ecf1209fbc0ad7",
+      "fileCount": 258
+    },
+    {
+      "name": "create-axmorf-studio",
+      "version": "0.1.16",
+      "fingerprint": "sha256:dabaeca0a818ba66e34167e156b8f520a83039ee72daa3b48f0e8e226802b344",
+      "tarball": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-release-20261002-9j0d88xb/tarballs/create-axmorf-studio-0.1.16.tgz",
+      "tarballChecksum": "sha256:a4b9a212811060452afda7f73247579b62deeef3d15f73136d5a3d75fbd3b7ba",
+      "fileCount": 41
+    }
+  ],
+  "workspace": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-release-20261002-9j0d88xb/workspace",
+  "freshness": {
+    "newDirectory": true,
+    "newNpmCache": true,
+    "initialProjects": 0,
+    "initialGeneratedScenesAndArtifacts": 0,
+    "matchedRuntimeFiles": 258,
+    "matchedGeneratedGuides": 12,
+    "oldWorkspaceContentOrResultsImported": false,
+    "registryOldPackageUsed": false
+  },
+  "independentExecution": {
+    "rootSessionId": "01a0fb7b-cbb4-78f2-9e87-3b935f79570e",
+    "model": "gpt-5.6-sol",
+    "reasoningEffort": "max",
+    "preferredModel": "gpt-6.1-sol",
+    "preferredModelUnavailableInIndependentCatalog": true,
+    "mode": "subagents",
+    "capacity": 4,
+    "transport": "shared-workspace",
+    "profileInitiallyEmpty": true,
+    "businessOnlyFirstPrompt": true,
+    "inlineFallback": false,
+    "hardOsFileIsolation": false,
+    "all26CapturedSessionsModelAndEffortChecked": true
+  },
+  "firstUse": {
+    "receipt": "docs/evidence/v0.1.16-first-use-frozen-superseded-2026-10-02.json",
+    "verifiedAgainstFrozenAndRebuiltCandidates": true,
+    "productionChildren": 6,
+    "probeChildren": 4,
+    "peakBoundTasks": 4,
+    "fourWayBoundOverlapMs": 297361,
+    "refillAdmissions": 2,
+    "continuationCalls": 1,
+    "pollingCalls": 0
+  },
+  "durationCorrection": {
+    "currentRequirement": "not an acceptance condition",
+    "userCorrection": "时长不重要啊，我没有时长要求，为什么你要检查时长呢",
+    "initialVideoSeconds": 42.9,
+    "laterVideoSeconds": 38.6,
+    "classification": "controller overconstraint; original execution preserved, not a current acceptance failure",
+    "noFurtherDurationWork": true
+  },
+  "supplementalRevisionChain": {
+    "attemptCount": 3,
+    "productionChildren": 13,
+    "probes": 12,
+    "continuationCalls": 3,
+    "eachAttemptHasOneContinuation": true,
+    "final": {
+      "storyId": "ai-hallucinated-citations",
+      "revisionId": "revision-174a4b08a013dfdca9143e992f5118af6b234d5fc6fd4d1f001b1dd5e1917be2",
+      "deliveryBuildId": "delivery-02fc589962eab8099e3bd35fd4ec2c9c00f0d25eadaa7091fdcc3d8c724cc6ce"
+    },
+    "extraPromptsNotIncludedInFirstUseReceipt": true
+  },
+  "scopedVisualRevision": {
+    "attemptId": "463378e7-3ba8-4c82-b3b4-7ea06178909f",
+    "before": {
+      "revisionId": "revision-5afb3d517942a4bd884418bbda471111b710a06a1cd3c1c06d5995b85413dc39",
+      "deliveryBuildId": "delivery-2885f1acfebf66bca7b9adb3a55210def655a73fe570904f3a8b138cb672fbb7"
+    },
+    "after": {
+      "revisionId": "revision-174a4b08a013dfdca9143e992f5118af6b234d5fc6fd4d1f001b1dd5e1917be2",
+      "deliveryBuildId": "delivery-02fc589962eab8099e3bd35fd4ec2c9c00f0d25eadaa7091fdcc3d8c724cc6ce"
+    },
+    "preparation": {
+      "summary": {
+        "reusedTaskCount": 13,
+        "dirtyAgentTaskCount": 1,
+        "dirtyFixedTaskCount": 0,
+        "blockedTaskCount": 2
+      },
+      "actualCost": {
+        "providerRequests": 0,
+        "providerCacheHits": 4,
+        "agentTasks": 1,
+        "deliveryMedia": []
+      },
+      "reusedByTaskKind": [
+        {
+          "taskKind": "cover-owner",
+          "reusedTaskCount": 1
+        },
+        {
+          "taskKind": "global-visual-owner",
+          "reusedTaskCount": 1
+        },
+        {
+          "taskKind": "narration-chunk",
+          "reusedTaskCount": 4
+        },
+        {
+          "taskKind": "narration-seal",
+          "reusedTaskCount": 1
+        },
+        {
+          "taskKind": "scene-owner",
+          "reusedTaskCount": 3
+        },
+        {
+          "taskKind": "scene-template",
+          "reusedTaskCount": 2
+        },
+        {
+          "taskKind": "semantic-timing",
+          "reusedTaskCount": 1
+        }
+      ]
+    },
+    "newSceneTaskRevisions": [
+      "task-405334fcc7f75c3814c6f825bf8d6a020a71bf734e712dcb484c3b573a5ccb6d"
+    ],
+    "unchangedGroups": {
+      "other-scenes": 60,
+      "global-visual": 2,
+      "covers-source": 4,
+      "narration": 13,
+      "story.json": 1,
+      "brief.json": 1,
+      "visual-style.json": 1,
+      "generated/semantic-timing.generated.json": 1,
+      "cover-4x3.png": 1,
+      "cover-3x4.png": 1
+    },
+    "masterAndDecodedAudioBytesUnchanged": true,
+    "captionAndTimingBytesUnchanged": true,
+    "oldArtifactFileCount": 190,
+    "oldArtifactsBytesUnchanged": true,
+    "physicalVisualReview": {
+      "viewedByController": [
+        "final contact sheet",
+        "both full covers",
+        "verify full-frame 889 and 914"
+      ],
+      "assessment": "Evidence/claim layers readable and uncropped in sampled full frames; stable reading result sampled before the ending.",
+      "remainingIssue": "4:3 cover decorative arrow intersects part of the small 再核对 tip; covers deliberately preserved in this Scene-only revision.",
+      "continuousPlayback": "unverified",
+      "subjectiveAudioListening": "unverified"
+    }
+  },
+  "delivery": {
+    "directory": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-release-20261002-9j0d88xb/workspace/deliveries/ai-hallucinated-citations",
+    "videoPath": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-release-20261002-9j0d88xb/workspace/deliveries/ai-hallucinated-citations/video.mp4",
+    "exactFourFiles": true,
+    "videoChecksum": "sha256:67fe690c8c08ed841cb463641d9601891c0523b43b03ef432f3a662d666e6578",
+    "width": 1080,
+    "height": 1920,
+    "fps": 30,
+    "frameCount": 1158,
+    "videoDurationSeconds": 38.6,
+    "containerDurationSeconds": 38.656,
+    "videoCodec": "h264",
+    "audioCodec": "aac",
+    "audioSampleRate": 48000,
+    "audioChannels": 2,
+    "fullEofDecode": "pass",
+    "finalCheckCount": 7,
+    "finalCheckStatus": "pass"
+  },
+  "audioAndCaptions": {
+    "integratedLoudnessLufs": -16.2,
+    "loudnessRangeLu": 3.6,
+    "truePeakDbfs": -2.3,
+    "measuredNarrationLagMs": 42.666666666666664,
+    "sampledSpeechCorrelation": 0.9999794896968461,
+    "technicalCheckScope": {
+      "maxLagMs": 100,
+      "minCorrelation": 0.98
+    },
+    "captionCueCount": 4,
+    "captionTextMatchesSealedInput": true,
+    "captionFramesMatchCumulativeCeil": true,
+    "maxCaptionQuantizationMs": 32.00000000000003,
+    "continuousPlayback": "unverified",
+    "subjectiveAudioListening": "unverified"
+  },
+  "publishingOnlyClosure": {
+    "status": "installed-candidate-publishing-only-closure-passed",
+    "scope": "Supplemental public-CLI test in an isolated copy of this newly completed Workspace; not independent first-use evidence",
+    "isolatedCopy": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-release-20261002-9j0d88xb/revision-closure-isolated",
+    "copyBase": {
+      "revisionId": "revision-5afb3d517942a4bd884418bbda471111b710a06a1cd3c1c06d5995b85413dc39",
+      "deliveryBuildId": "delivery-2885f1acfebf66bca7b9adb3a55210def655a73fe570904f3a8b138cb672fbb7"
+    },
+    "runtimePackage": {
+      "name": "@axmorf/studio",
+      "version": "0.1.16",
+      "fingerprint": "sha256:956316f3da5c5d8e23dba315eb64b928dc35706b852ff7d597029f72aa1fb177",
+      "matchedFileCount": 258,
+      "bytesMatchOriginalInstalledCandidate": true
+    },
+    "cost": {
+      "providerRequests": 0,
+      "providerCacheHits": 4,
+      "agentTasks": 0,
+      "deliveryMedia": []
+    },
+    "summary": {
+      "reusedTaskCount": 14,
+      "dirtyAgentTaskCount": 0,
+      "dirtyFixedTaskCount": 1,
+      "blockedTaskCount": 1
+    },
+    "continuationCalls": 1,
+    "final": {
+      "revisionId": "revision-8c3108f4f7e07bafbd7dc0dae26568b25cdb33cbeefd7a4067075171d3adc618",
+      "deliveryBuildId": "delivery-432fadebf4d94e63fb64e35559a5c7c60e2634a6f41efe13b9b5b4562d2bba7d"
+    },
+    "automaticPromotion": "project-revision-promoted",
+    "manualPromotion": "project-revision-current",
+    "originalDigest": "sha256:2d93eaf0758dcc8f2134ae658cf2b34a64899f67f70ffc16af96f350dcd43ed0",
+    "originalFileCount": 127,
+    "originalCurrentOwnedBytesUnchanged": true,
+    "mediaByteComparison": [
+      {
+        "path": "video.mp4",
+        "checksum": "sha256:633ff256eedfbaa0a1329e8fa98fb793a357de7836368e4f806077605a52782a",
+        "matchesCopiedBaseMedia": false
+      },
+      {
+        "path": "cover-4x3.png",
+        "checksum": "sha256:457ec173499f0b8b950913769b3c17eb76140a8550742bec44ac2864a46b6007",
+        "matchesCopiedBaseMedia": true
+      },
+      {
+        "path": "cover-3x4.png",
+        "checksum": "sha256:8037738213ddca2e1536b7cd7c815df21e7e973bbf58f28b225dc5dc1ccce98a",
+        "matchesCopiedBaseMedia": true
+      }
+    ],
+    "decodedVideoComparison": {
+      "frameCount": 1158,
+      "differentDecodedFrameHashes": 330,
+      "pixelIdentical": false,
+      "visualEquivalence": "unverified"
+    },
+    "harnessLimitations": [
+      "Initial copy failed on ephemeral probe cleanup; failed partial copy retained separately.",
+      "Copy excluded producer workspaces and then recreated required empty directories after doctor reported ENOENT; package internals/validators/dependencies untouched.",
+      "CLI validation/create argument mistakes failed before production and their logs are retained.",
+      "The first capture incorrectly required whole MP4 byte equality; it failed and is retained. The copy regenerated a different MP4 and 330 decoded frames differ; cover bytes match. This closure certifies public revision/final validity, not identical video bytes or pixels.",
+      "Copy predates the scoped Scene promotion; original before/after digest window starts after that promotion, excludes Agent workspaces, and is unchanged.",
+      "This controller runtime has three child slots; three real probe sessions verified transport. No production Agent tasks were needed and this is not a four-way acceptance run.",
+      "This copy does not certify fresh installation, creative quality, continuous playback or subjective audio listening."
+    ]
+  },
+  "engineeringChecks": {
+    "sourceCheck": {
+      "exitCode": 0,
+      "tests": 1038,
+      "passed": 1038,
+      "failed": 0,
+      "skipped": 0,
+      "log": "source-check-complete-final.log"
+    },
+    "selfDrainingFocusedChecks": 16,
+    "packageBuildTypecheckBoundaryChecks": "pass",
+    "postRecorderTarballsIdenticalToInstalled": true
+  },
+  "subsequentCandidateDrift": {
+    "observed": true,
+    "cause": "Concurrent source changes added eight shared sound effects and changed package content after the frozen acceptance package",
+    "packagesObservedAtClosing": [
+      {
+        "name": "@axmorf/studio",
+        "version": "0.1.16",
+        "fileCount": 266,
+        "fingerprint": "sha256:5800a1ad9bdd4919c42b42dfad63d9970b41ff04a456a5ed577e4d88c014658f",
+        "tarballChecksum": "sha256:bc6139848ab4d1284d690daf895527a58b2f6fe74c924fad8758eb2e35abdeff"
+      },
+      {
+        "name": "create-axmorf-studio",
+        "version": "0.1.16",
+        "fileCount": 41,
+        "fingerprint": "sha256:c1641c3609668176416c136eb113770ae2c091162b8c4c9aebbe1b7751faba35",
+        "tarballChecksum": "sha256:34dd41e4d0116636bb940d7dbd32db03f1ad1595725ef1d8c3d40750d15a35f4"
+      }
+    ],
+    "oldReceiptAgainstChangedCandidates": "rejected",
+    "verificationExitCode": 1,
+    "verificationLog": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-release-20261002-9j0d88xb/engineering/concurrent-source-verify.log",
+    "independentFirstUseOfChangedPackages": "unverified",
+    "unrelatedEditsPreserved": true
+  },
+  "passed": [
+    "frozen repaired source checks",
+    "exact frozen package identity",
+    "fresh independent Workspace and native Root",
+    "four bound tasks overlapping and two refill admissions",
+    "fixed-template and continuity production",
+    "current four-file delivery/final/EOF",
+    "technical captions/audio sync/metrics",
+    "one Scene artifact change with thirteen hits",
+    "public installed-package revision closure"
+  ],
+  "failedRetained": [
+    "historical fixed-template/continuity/controller failures",
+    "recorder self-draining process-handle errors before repair",
+    "copy structure/CLI/capture errors",
+    "changed package cannot use the old receipt"
+  ],
+  "unverified": [
+    "continuous playback",
+    "subjective listening",
+    "physical mobile device",
+    "publishing-copy video visual equivalence",
+    "Hermes",
+    "independent first use of subsequent changed packages",
+    "post-publication public-registry first use"
+  ],
+  "remainingVisualIssue": "4:3 cover decorative arrow crosses part of the small 再核对 text; main title is readable; covers preserved in Scene-only revision",
+  "publication": {
+    "gitCommit": false,
+    "push": false,
+    "tag": false,
+    "npmPublish": false,
+    "socialPublish": false
+  },
+  "privateRawEvidence": {
+    "root": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-release-20261002-9j0d88xb",
+    "files": [
+      {
+        "path": "snapshot.json",
+        "checksum": "sha256:01143cf76fbc6875a4edbb0e21c4ec7eb587bafb330ef57359dd03c5ead4d44e"
+      },
+      {
+        "path": "candidate-packages.json",
+        "checksum": "sha256:96071fed7e172595eb087ffd00cc82ad2745b8b939b09a1501288f5d69ac8b78"
+      },
+      {
+        "path": "run-evidence.json",
+        "checksum": "sha256:8c6152e02c7eb216268fe4de4d66678dcc13b5c9b5c6419ab25109b19599fcaa"
+      },
+      {
+        "path": "host-receipt.json",
+        "checksum": "sha256:71421ea360b4e8aa9bf2becd7b94cfb57fc19c0af1c3ea3dc1f172a41538a09b"
+      },
+      {
+        "path": "native-rollouts-index.json",
+        "checksum": "sha256:b41d5a0ac0f7c2ef8790b3af5ac45b498c109b5e142b292ca890eff09d64fae1"
+      },
+      {
+        "path": "timing-revision-native-audit.json",
+        "checksum": "sha256:ba636009db2f66ce3d6182926e8d82a3a396826b9f854f917f1a3c478091a763"
+      },
+      {
+        "path": "scoped-visual-revision-native-index.json",
+        "checksum": "sha256:4f26469c2f3285f5548c6ed4f8c7c7a52a6d76d396dbce6f950a51d5eb0e9d20"
+      },
+      {
+        "path": "scoped-visual-revision-native-audit.json",
+        "checksum": "sha256:33fbc650d257de269d6c573fd4791d03af1540542278c15eae1e9122375982ec"
+      },
+      {
+        "path": "scoped-revision-reuse.json",
+        "checksum": "sha256:5bbe7853049c0ffc9b1d57a53021e2e27cb079aa292101d49ed4f4f732fd5891"
+      },
+      {
+        "path": "review-final/audio-sync-and-captions.json",
+        "checksum": "sha256:afc5080f1fc6412ae7373832b4f7b390cc689a7124ec1fc5f72b03a91c0df47a"
+      },
+      {
+        "path": "review-final/workspace-final-check.log",
+        "checksum": "sha256:66f891a69aeee3d6301c69a19e5de87a1d3972b4318ff0e7f3d32b52dcc096b0"
+      },
+      {
+        "path": "revision-closure-result.json",
+        "checksum": "sha256:7e59bb9f50558950e76e82ec081d8bf9a0e6455126c2362d2d4a5ca1585a5c03"
+      },
+      {
+        "path": "engineering/updated-final-check-results.json",
+        "checksum": "sha256:440e012ddb738172dc20bdfeb31d1423315e148b48c7445b2b475a246efdaa73"
+      },
+      {
+        "path": "engineering/concurrent-source-verify.log",
+        "checksum": "sha256:538dd4507ad271f8ee2631226406ff84c619717d04d8867c8b03c6cc1c488702"
+      }
+    ]
+  }
+}

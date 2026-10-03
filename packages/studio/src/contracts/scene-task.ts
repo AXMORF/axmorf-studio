@@ -17,6 +17,10 @@ import {
 } from "./authoring-requirements";
 import { ResourceIdSchema } from "./resource-catalog";
 import { StoryBeatSchema } from "./story";
+import {
+  SceneContinuityContractSchema,
+  computeSceneContinuityId,
+} from "./scene-continuity";
 
 const TimingRangeShape = {
   meaningId: MeaningIdSchema,
@@ -71,6 +75,7 @@ const ContinuityBriefSchema = z
     nextMeaningId: MeaningIdSchema.nullable(),
     nextSummary: z.string().trim().min(1).max(1000).nullable(),
     continuityBrief: z.string().trim().min(1).max(1600),
+    handoffs: SceneContinuityContractSchema.optional(),
   })
   .strict()
   .superRefine((continuity, context) => {
@@ -154,6 +159,37 @@ const addSceneTaskIssues = (
   task: z.infer<typeof SceneTaskInputObject>,
   context: z.RefinementCtx,
 ) => {
+  const handoffs = task.continuity.handoffs;
+  if (handoffs !== undefined) {
+    for (const direction of ["incoming", "outgoing"] as const) {
+      const seam =
+        direction === "incoming"
+          ? handoffs.incoming
+          : handoffs.outgoing.kind === "continuous"
+            ? handoffs.outgoing
+            : null;
+      const neighbor =
+        direction === "incoming"
+          ? task.continuity.previousMeaningId
+          : task.continuity.nextMeaningId;
+      if (
+        seam !== null &&
+        (task.storyBeat.kind !== "narrated-scene" ||
+          neighbor === null ||
+          seam.continuityId !==
+            computeSceneContinuityId(
+              task.storyId,
+              direction === "incoming" ? neighbor : task.meaningId,
+              direction === "incoming" ? task.meaningId : neighbor,
+            ))
+      )
+        context.addIssue({
+          code: "custom",
+          message: "Scene handoff identity is cross-bound to its adjacency.",
+          path: ["continuity", "handoffs", direction],
+        });
+    }
+  }
   if (
     task.storyBeat.meaningId !== task.meaningId ||
     task.timingBeat.meaningId !== task.meaningId ||

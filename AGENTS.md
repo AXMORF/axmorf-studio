@@ -112,7 +112,10 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
   TypeScript Scene source graph；重复 create 必须复用自身 baseline。旧 Project 缺失时只能由用户显式运行零 provider、
   持锁的 `npm run project:originality:freeze -- --project <storyId>`，production 不得静默补空 baseline。
 - 现有 Project 禁止原地修改 live authoring。先用只读 `project:revise:context` 取得 exact current Revision 与已复验
-  four-file Delivery，再以 strict raw input 运行 `project:revise:validate`/`project:revise`。候选隔离 source/public/
+  four-file Delivery，再以 strict raw input 运行 `project:revise:validate -- --input <repository-relative-json>` 与
+  `project:revise -- --project <storyId> --input <repository-relative-json>`；revision 无 `--schema`，validate 不接 `--project`。
+  先核 installed public `ProjectRevisionInputSchema` 可用字段；局部 Scene 排版只改完整 `patch.scenes` 的目标 Scene brief，
+  不顺手改全局 VisualStyle/GlobalVisual/Story/TTS，不虚构 Cover-only API。候选隔离 source/public/
   narration/work/attempt/out/delivery；promote 前 current Project/Delivery 始终是 authority。
 - `ttsChunks` 是 Agent 已确定的原子朗读单元。sealed PCM 实测 samples 是绝对时间 authority；frame
   boundary 统一为 `ceilDiv(cumulativeSamples × fps, sampleRate)`。Scene/transition 不吞 spoken frames。
@@ -141,7 +144,8 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
   prompt、estimate 或 DAG node。已安装/已配置、shell 可发现、其他 Agent 可调用都不算当前可用。
   MCP/receipt/candidate path 不进入 child、Revision、Artifact Store、delivery 或 runtime；只有 import 后的
   Project-owned manifest identity 与 bytes fingerprint 能成为 production input。
-- `npm run project:execution:resolve` 在 inspect 前解析一次 Agent 执行策略：用户提示词中的明确字段优先于
+- 每次 live/candidate production（含同一业务请求的自主 revision）重新验证当前宿主 capability，并在 inspect 前成功运行一次
+  `npm run project:execution:resolve`；不得沿用上轮 probe/resolver。执行策略：用户提示词中的明确字段优先于
   `private/execution-preferences.json`，未明确字段继续继承配置，再继承内置 `subagents`/4 默认。override 只作用于当前
   production，除非用户明确要求保存；解析结果不进入 Revision/Task/artifact/delivery identity。`inline` 由
   Root 一次只执行一个 dirty workspace；`subagents` 使用不超过四个且受 runtime capacity 限制的 bounded pool，
@@ -150,7 +154,8 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
   或 exact capacity 无法满足都必须在 prepare 前阻塞，不自动换模式。transport/解析结果不持久化也不进入 content
   identity。
 - `npm run project:produce:inspect -- --project <storyId>` 是严格只读、零 provider call 的诊断入口；Root
-  必须先报告 source readiness、estimated cost、artifact reuse 与结构化失效解释，再运行有成本 preparation。
+  必须先报告 source readiness（`sourceState`）、estimated cost、artifact reuse 与结构化失效解释，再运行有成本 preparation。
+  局部修订若出现无关 dirty tasks，prepare 前缩小 raw patch、validate/create 新 candidate 并重新走本轮入口；全重做不证明局部 reuse。
 - `npm run project:produce:prepare -- --project <storyId>` 是唯一允许调用 provider、准备 fixed artifacts、
   计算 ProductionRevision/content-addressed Task DAG、创建 dirty workspace 与 ExecutionAttempt 的生产入口。
 - candidate 的 inspect/prepare/task/continue/recover/reissue 必须携带 exact `--candidate`，但 candidateId/path 只属于
@@ -227,6 +232,9 @@ TaskSpec、contracts 与 validators 拥有更高 authority，不能扩大 worksp
 显式本地化的 immutable upstream source。不得搜索、比较、模仿或复制历史 Scene、Composition、still、
 contact sheet 或布局。第三方 source/media 分别校验 license/attribution；未确认音频不得进入 artifact。
 
+- 局部修订只以 bound context 的 `scene.priorSource` 中 owning Scene 已复验冻结的 current base 源码图与声明为起点，
+  比较 previous/current brief 并只实现目标 delta；保留其余行为及许可/lineage bytes，derived fields 交给 fresh finalizer。
+  它不授权读取 base snapshot、其他 Scene、历史或其他 executor workspace；缺失时从 current brief 创建，不宣称保留旧源码。
 - Scene、GlobalVisual、Cover 是互相隔离的 task workspace。GlobalVisual 不读 Scene 输出；Cover 只读
   StorySpec、VisualStyleSpec 与 fixed CoverSpec。
 - exact-reference Scene 的 lineage/license/phase/checksum 由机械 validator 检查，不使用主观自评 gate。

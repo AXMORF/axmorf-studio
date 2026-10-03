@@ -4,6 +4,9 @@ import {
   COVER_SPEC_FINGERPRINT,
   FIXED_COVER_SPEC,
   SCENE_ORIGINALITY_INPUT_ID,
+  SCENE_PRIOR_SOURCE_INPUT_ID,
+  ScenePriorSourceSchema,
+  scenePriorSourceOutputFiles,
   SCENE_MOTION_REQUIREMENT_ID,
   buildProducerTaskSpec,
   createFingerprint,
@@ -456,6 +459,16 @@ export const buildAgentTasks = (
     const templateCopy =
       scene.beat.kind === "silent-scene" &&
       scene.beat.preset.implementation.kind === "template-copy";
+    const priorSource =
+      !templateCopy && scene.priorSource !== undefined
+        ? ScenePriorSourceSchema.parse(scene.priorSource)
+        : undefined;
+    if (
+      priorSource !== undefined &&
+      (priorSource.storyId !== inputs.projectId ||
+        priorSource.meaningId !== scene.meaningId)
+    )
+      throw new Error("Prior Scene task source is cross-bound.");
     return buildContextTask({
       taskKind: templateCopy ? "scene-template" : "scene-owner",
       storyId: inputs.projectId,
@@ -469,6 +482,14 @@ export const buildAgentTasks = (
         { id: "resources", fingerprint: r.selectedResourcesFingerprint },
         { id: "runtime", fingerprint: inputs.taskPolicyFingerprints.scene },
         { id: "timing", fingerprint: r.timingFingerprint },
+        ...(priorSource === undefined
+          ? []
+          : [
+              {
+                id: SCENE_PRIOR_SOURCE_INPUT_ID,
+                fingerprint: priorSource.priorSourceFingerprint,
+              },
+            ]),
         ...(templateCopy
           ? []
           : [
@@ -486,10 +507,19 @@ export const buildAgentTasks = (
               },
             ]),
       ],
-      outputs: SCENE_OUTPUTS,
+      outputs: [
+        ...new Set([
+          ...SCENE_OUTPUTS,
+          ...(priorSource === undefined
+            ? []
+            : scenePriorSourceOutputFiles(priorSource).map(
+                ({ path }) => `src/${path}`,
+              )),
+        ]),
+      ],
       validatorPolicyVersion: templateCopy
         ? "scene-template-validator-v3"
-        : "scene-owner-validator-v5",
+        : "scene-owner-validator-v6",
       context: {
         resourcePool: inputs.resourcePool,
         ...(templateCopy
@@ -507,6 +537,7 @@ export const buildAgentTasks = (
             : {
                 visualStyle: inputs.visualStyle,
                 narrationCues: scene.narrationCues,
+                ...(priorSource === undefined ? {} : { priorSource }),
               }),
           taskInput: scene.taskInput,
           ...(scene.taskInput.sceneRequirements.some(

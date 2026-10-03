@@ -23,11 +23,14 @@ import {
   type PublicArtifacts,
 } from "./public-registry";
 import { resolveNpmCliPath } from "../../packages/create-axmorf-studio/src/index.js";
+import type { DeliveryPublish } from "../../packages/studio/src/contracts/delivery-build";
 import {
   auditNativeExecution,
   assertFourWayExecution,
   NativeChildInput,
   NativeExecutionSchema,
+  ProductionAttemptIdentitySchema,
+  nativeTrace,
 } from "./native-execution";
 import { auditSupervision, SupervisionSchema } from "./supervision";
 import {
@@ -146,7 +149,49 @@ export const HostReceiptSchema = z
       })
       .strict(),
   })
-  .strict();
+  .strict()
+  .superRefine((receipt, context) => {
+    const ui = receipt.nativeExecution?.uiEvidence;
+    if (ui && (receipt.host !== "codex" || ui.sessionId !== receipt.sessionId))
+      context.addIssue({
+        code: "custom",
+        message: "Native UI evidence must identify its Codex Root session",
+      });
+    const native = receipt.nativeExecution?.attempts;
+    const supervision = receipt.supervision?.attempts;
+    if (native === undefined && supervision === undefined) return;
+    if (native === undefined || supervision === undefined) {
+      context.addIssue({
+        code: "custom",
+        message:
+          "Grouped execution and supervision must both cover the full attempt chain",
+      });
+      return;
+    }
+    const identities = (attempts: typeof native | typeof supervision) =>
+      attempts.map((attempt) =>
+        ProductionAttemptIdentitySchema.strip().parse(attempt),
+      );
+    if (
+      JSON.stringify(identities(native)) !==
+      JSON.stringify(identities(supervision))
+    )
+      context.addIssue({
+        code: "custom",
+        message: "Native execution and supervision attempt chains differ",
+      });
+    const final = native.at(-1)!;
+    if (
+      native.some((attempt) => attempt.storyId !== receipt.delivery.storyId) ||
+      final.deliveryBuildId !== receipt.delivery.deliveryBuildId ||
+      final.deliveryBuildId !== receipt.finalCheck.deliveryBuildId
+    )
+      context.addIssue({
+        code: "custom",
+        message:
+          "Final four-file delivery must match the last successful attempt",
+      });
+  });
 
 const SnapshotConfig = z
   .object({
@@ -672,6 +717,27 @@ export async function runPublicCli(
   return command(workspace, [bin, ...args], timeout);
 }
 
+export function assertFinalAttemptDelivery(
+  execution: z.infer<typeof NativeExecutionSchema> | undefined,
+  publish: Pick<DeliveryPublish, "storyId" | "revisionId" | "deliveryBuildId">,
+) {
+  const final = execution?.attempts?.at(-1);
+  if (final === undefined) return;
+  assert.deepEqual(
+    {
+      storyId: publish.storyId,
+      revisionId: publish.revisionId,
+      deliveryBuildId: publish.deliveryBuildId,
+    },
+    {
+      storyId: final.storyId,
+      revisionId: final.revisionId,
+      deliveryBuildId: final.deliveryBuildId,
+    },
+    "Final publish Revision/Delivery tuple must match the last successful attempt",
+  );
+}
+
 export async function record(
   snapshotPath: string,
   evidencePath: string,
@@ -758,7 +824,12 @@ export async function record(
     : undefined;
   const needsInline =
     requiresHermesInline(initial.packages.runtime.version, initial.host) ||
-    requiresCodexInline(initial.packages.runtime.version, initial.host);
+    (requiresCodexInline(initial.packages.runtime.version, initial.host) &&
+      nativeTrace(initial.host, transcript).outputs.some(({ objects }) =>
+        objects.some(
+          (value) => value.status === "ready" && value.mode === "inline",
+        ),
+      ));
   if (needsInline) assert.equal(run.model, input.model);
   const inlineExecution = needsInline
     ? auditInlineExecution({
@@ -782,6 +853,14 @@ export async function record(
       input.nativeChildren,
       "This release requires native child execution evidence",
     );
+  const codexUi =
+    !needsInline && initial.host === "codex" && input.uiTranscriptFile
+      ? {
+          rpc: await readFile(input.uiTranscriptFile, "utf8"),
+          sessionId: input.sessionId,
+          workspace,
+        }
+      : undefined;
   const native =
     needsInline || input.nativeChildren === undefined
       ? undefined
@@ -795,6 +874,7 @@ export async function record(
           endedAt: run.endedAt,
           storyId: input.storyId,
           nativeChildren: input.nativeChildren,
+          ...(codexUi ? { codexUi } : {}),
           ...(input.delegationFile === undefined
             ? {}
             : { delegationFile: input.delegationFile }),
@@ -867,6 +947,7 @@ export async function record(
         sessionSource,
         executionMode: needsInline ? "inline" : "subagents",
         ...(hermesUi ? { hermesUi } : {}),
+        ...(codexUi ? { codexUi } : {}),
       })
     : undefined;
   const checkText = await runPublicCli(
@@ -893,6 +974,7 @@ export async function record(
     };
   }
   const publish = await readJson(join(deliveryRoot, "publish.json"));
+  assertFinalAttemptDelivery(native?.execution, publish);
   assert.equal(publish.storyId, input.storyId);
   assert.equal(publish.deliveryBuildId, finalCheck.deliveryBuildId);
   for (const artifact of Object.values(publish.artifacts) as Array<{
@@ -994,11 +1076,14 @@ export async function record(
   return { status: "first-use-host-verified", host: initial.host, outputPath };
 }
 
+type VerificationPurpose = "publication" | "historical-diagnostic";
+
 function verifyCombined(
   value: unknown,
   runtime: PackageContent,
   creator: PackageContent,
   method: "npm-exec-candidate" | "npm-create-public-registry",
+  purpose: VerificationPurpose,
 ) {
   // The maintainer separately approved Codex-only acceptance for 0.1.15 and
   // 0.1.16. Every other release retains the two-host gate.
@@ -1022,9 +1107,25 @@ function verifyCombined(
   assert.equal(creator.name, "create-axmorf-studio");
   assert.equal(runtime.version, creator.version);
   for (const host of receipt.hosts) {
+    if (
+      purpose === "publication" &&
+      runtime.version === "0.1.16" &&
+      host.host === "codex"
+    ) {
+      assert.equal(
+        host.inlineExecution,
+        undefined,
+        "Current 0.1.16 publication requires native subagents execution; historical serial receipts are diagnostic only",
+      );
+      assert.ok(
+        host.nativeExecution?.mode === "subagents",
+        "Current 0.1.16 publication requires native child execution",
+      );
+    }
     const needsInline =
       requiresHermesInline(runtime.version, host.host) ||
-      requiresCodexInline(runtime.version, host.host);
+      (requiresCodexInline(runtime.version, host.host) &&
+        host.inlineExecution !== undefined);
     if (needsInline) {
       assert.ok(
         host.inlineExecution,
@@ -1123,7 +1224,14 @@ function verifyCombined(
       assert.equal(
         new Set(
           execution.childEvidence.flatMap((child) =>
-            child.taskRevision === null ? [] : [child.taskRevision],
+            child.taskRevision === null
+              ? []
+              : [
+                  JSON.stringify([
+                    child.attemptId ?? execution.attemptId,
+                    child.taskRevision,
+                  ]),
+                ],
           ),
         ).size,
         execution.dirtyTaskCount,
@@ -1165,9 +1273,14 @@ function verifyCombined(
     assert.notEqual(receipt.hosts[0]!.sessionId, receipt.hosts[1]!.sessionId);
   return {
     status:
-      method === "npm-exec-candidate"
-        ? "first-use-release-gate-passed"
-        : "first-use-public-registry-passed",
+      purpose === "historical-diagnostic"
+        ? "first-use-historical-receipt-verified"
+        : method === "npm-exec-candidate"
+          ? "first-use-release-gate-passed"
+          : "first-use-public-registry-passed",
+    ...(purpose === "historical-diagnostic"
+      ? { publicationEligible: false as const }
+      : {}),
     version: runtime.version,
     hosts: [...requiredHosts],
     runtimeFingerprint: runtime.fingerprint,
@@ -1180,13 +1293,20 @@ export function verifyReceipt(
   runtime: PackageContent,
   creator: PackageContent,
 ) {
-  return verifyCombined(value, runtime, creator, "npm-exec-candidate");
+  return verifyCombined(
+    value,
+    runtime,
+    creator,
+    "npm-exec-candidate",
+    "publication",
+  );
 }
 
-export async function verifyPublicReceipt(
+async function verifyPublicReceiptForPurpose(
   value: unknown,
   runtimeTarball: string,
   creatorTarball: string,
+  purpose: VerificationPurpose,
 ) {
   const runtime = await packageContent(runtimeTarball);
   const creator = await packageContent(creatorTarball);
@@ -1195,6 +1315,7 @@ export async function verifyPublicReceipt(
     runtime,
     creator,
     "npm-create-public-registry",
+    purpose,
   );
   const hosts = z
     .object({ hosts: z.array(HostReceiptSchema) })
@@ -1225,6 +1346,52 @@ export async function verifyPublicReceipt(
   return result;
 }
 
+export async function verifyPublicReceipt(
+  value: unknown,
+  runtimeTarball: string,
+  creatorTarball: string,
+) {
+  return verifyPublicReceiptForPurpose(
+    value,
+    runtimeTarball,
+    creatorTarball,
+    "publication",
+  );
+}
+
+export async function verifyHistoricalReceipt(
+  value: unknown,
+  runtimeTarball: string,
+  creatorTarball: string,
+) {
+  const { hosts } = z
+    .object({
+      schemaVersion: z.literal(1),
+      hosts: z.array(HostReceiptSchema).min(1),
+    })
+    .strict()
+    .parse(value);
+  const method = hosts[0]!.creation.method;
+  assert.ok(
+    hosts.every((host) => host.creation.method === method),
+    "Historical receipts require the same exact creation method on every host",
+  );
+  if (method === "npm-create-public-registry")
+    return verifyPublicReceiptForPurpose(
+      value,
+      runtimeTarball,
+      creatorTarball,
+      "historical-diagnostic",
+    );
+  return verifyCombined(
+    value,
+    await packageContent(runtimeTarball),
+    await packageContent(creatorTarball),
+    method,
+    "historical-diagnostic",
+  );
+}
+
 const requiresNativeExecution = (version: string) =>
   !/^0\.1\.[0-8](?:$|-)/u.test(version);
 const requiresSupervision = (version: string) =>
@@ -1240,6 +1407,12 @@ async function main(args: string[]) {
     return createPublic(paths[0]!, paths[1]!);
   if (operation === "verify-public" && paths.length === 3)
     return verifyPublicReceipt(await readJson(paths[2]!), paths[0]!, paths[1]!);
+  if (operation === "verify-historical" && paths.length === 3)
+    return verifyHistoricalReceipt(
+      await readJson(paths[2]!),
+      paths[0]!,
+      paths[1]!,
+    );
   if (operation === "record" && paths.length === 3)
     return record(paths[0]!, paths[1]!, paths[2]!);
   if (operation === "verify" && paths.length === 3)
@@ -1249,7 +1422,7 @@ async function main(args: string[]) {
       await packageContent(paths[1]!),
     );
   throw new Error(
-    "Usage: first-use.ts create|create-public config.json snapshot.json | verify-public runtime.tgz creator.tgz combined-receipt.json | record snapshot.json run-evidence.json receipt.json | verify runtime.tgz creator.tgz combined-receipt.json",
+    "Usage: first-use.ts create|create-public config.json snapshot.json | verify-public|verify-historical runtime.tgz creator.tgz combined-receipt.json | record snapshot.json run-evidence.json receipt.json | verify runtime.tgz creator.tgz combined-receipt.json",
   );
 }
 if (

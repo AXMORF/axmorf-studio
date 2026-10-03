@@ -127,6 +127,9 @@ const sha256Hex = (value: string): string => {
   return state.map((word) => word.toString(16).padStart(8, "0")).join("");
 };
 
+export const computeUtf8Checksum = (value: string): Sha256Digest =>
+  Sha256DigestSchema.parse(`sha256:${sha256Hex(value)}`);
+
 export const createFingerprint = ({
   namespace,
   version,

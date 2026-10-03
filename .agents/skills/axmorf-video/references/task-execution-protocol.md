@@ -3,8 +3,10 @@
 An exact attempt-bound bind assigns one task worker. Read AGENTS.md, then run that bind before task input access; do not
 restart the Root production workflow. The Root owns global doctor/preflight, browser preparation, Project create/revise,
 execution resolve, inspect/prepare, providers and continuation. Workers do not run those operations, even on environment errors.
-Use only the granted task capability and declared outputs. Host/fixed errors go to the Root with their structured evidence;
-workers must not automatically retry or initiate recovery. The TaskExecutionContract and validators retain authority. Root may diagnose the reported error and guide the same owner before terminal; this grants no cross-workspace access.
+Use only the granted task capability and declared outputs. Host/fixed errors go to the Root with their structured evidence.
+No intermediate or temporary file writes are allowed outside declared output paths, including for JSON formatting.
+Transform data in memory and write the declared output directly; moving a temporary file back grants no permission.
+Workers must not automatically retry or initiate recovery. The TaskExecutionContract and validators retain authority. Root may diagnose the reported error and guide the same owner before terminal; this grants no cross-workspace access.
 In subagents mode, each different TaskRevision needs a fresh native child/session; do not accept another task through follow-up
 or resume. The original executor may correct its own same-task output before terminal; a finished task cannot reopen.
 
@@ -43,6 +45,13 @@ After binding:
 3. Run the exact bound `describe`, `finalize`, and `check` commands. Finalize performs fixed derived projection and
    then the same task-kind validation; repair only `agent-output` issues and repeat.
 4. Commit through the exact bound command. Use `taskFailureCommand` only for unrecoverable authored output.
+
+For a Scene revision, `scene.priorSource` in the bound context contains only the owning Scene's verified, frozen current
+base source graph and declarations. Compare its previous brief with `scene.brief`, preserve the existing implementation,
+and apply the requested delta. Copy the prior content into declared outputs before editing; an output path is initially
+absent. Retain local license and lineage bytes exactly, and let finalize recompute derived plan fields. This input grants
+no access to base snapshot paths, other Scenes, history, or another workspace. If it is absent, create from the current
+brief and do not claim preservation of existing source.
 
 Finalize computes derived identities and fingerprints. When it returns `failureOwner: agent-output`, use its
 file/field diagnostics to correct the draft and rerun finalize before check; do not hand-compute hashes or read

@@ -180,10 +180,7 @@ test("prepare alone commits fixed tasks, creates dirty owner workspaces, and ope
   assert.equal(result.durationBudget?.measurement, "sealed-semantic-timing");
   assert.equal(result.attemptId, "00000000-0000-4000-8000-000000000001");
   assert.equal(result.dirtyAgentTasks.length, 1);
-  assert.match(
-    result.dirtyAgentTasks[0]?.commitCommand ?? "",
-    /project:task:commit[\s\S]*--assignment 1/u,
-  );
+  assert.equal(Object.hasOwn(result, "taskExplanations"), false);
   assert.match(
     result.dirtyAgentTasks[0]?.bindCommands.sharedWorkspace ?? "",
     /project:task:bind[\s\S]*--transport shared-workspace/u,
@@ -191,18 +188,6 @@ test("prepare alone commits fixed tasks, creates dirty owner workspaces, and ope
   assert.match(
     result.dirtyAgentTasks[0]?.bindCommands.controllerIo ?? "",
     /project:task:bind[\s\S]*--transport controller-io/u,
-  );
-  assert.match(
-    result.dirtyAgentTasks[0]?.describeCommand ?? "",
-    /project:task:describe[\s\S]*--assignment 1/u,
-  );
-  assert.match(
-    result.dirtyAgentTasks[0]?.finalizeCommand ?? "",
-    /project:task:finalize[\s\S]*--assignment 1/u,
-  );
-  assert.match(
-    result.dirtyAgentTasks[0]?.taskFailureCommand ?? "",
-    /project:task:fail[\s\S]*--assignment 1[\s\S]*--kind task/u,
   );
   assert.match(
     result.dirtyAgentTasks[0]?.fixedFailureCommand ?? "",
@@ -334,7 +319,8 @@ test("candidate prepare isolates work and attempts while keeping commands reposi
   );
   for (const command of [
     result.dirtyAgentTasks[0]?.bindCommands.sharedWorkspace,
-    result.dirtyAgentTasks[0]?.commitCommand,
+    result.dirtyAgentTasks[0]?.fixedFailureCommand,
+    result.dirtyAgentTasks[0]?.spawnFailureCommand,
     result.continuationCommand,
   ]) {
     assert.match(command ?? "", /--project story-example/u);

@@ -8,6 +8,20 @@ Use content-appropriate SVG, Canvas or already supported 3D capabilities. Existi
 source/import, asset-rights, safe-area, frame-determinism and technical-delivery checks
 remain in force; this is not permission to add network or unapproved dependencies.
 
+Content-motion consumption checks apply to Agent-authored `scene-owner` tasks.
+Fixed `scene-template` tasks are exempt regardless of their timeline position;
+their copied sources, resources and canonical artifacts retain fixed validation.
+
+Root authoring freezes continuous seams before isolated workers are dispatched.
+An optional Scene brief `outgoingHandoff: { subject, trackedState? }` promises a
+shared subject to the next narrated Scene. Both tasks receive the same deterministic
+seam identity and subject through `continuity.handoffs`; local bundle validation
+rejects missing or invented identities, kind changes and subject drift before
+commit. Tracked v1 requires an authored shared boundary pose; intent v2 leaves
+geometry to the renderer and temporal review. Undeclared seams use motivated cuts,
+and fixed template boundaries cannot promise continuous motion. Cross-Scene
+coverage retains its identity and tracked-pose checks.
+
 Tracked schemaVersion 1 remains supported for optional shared state interpolation.
 `ProducerMotionObject` requires those tracks and is optional. A reading hold can be
 static without a fabricated response to metadata perturbation. The limited server

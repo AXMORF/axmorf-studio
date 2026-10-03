@@ -1,17 +1,27 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
 import test from "node:test";
 
 import {
   NarrationSpecSchema,
+  NARRATION_MASTERING_POLICY,
+  ProductionInspectionSchema,
   ProductionRevisionIdSchema,
   RenderSpecSchema,
   SCENE_ORIGINALITY_INPUT_ID,
+  SCENE_PRIOR_SOURCE_INPUT_ID,
   StorySpecSchema,
   buildSceneTaskInputV7,
+  buildSceneContinuityContract,
   buildSceneOriginalityBaseline,
+  buildScenePriorSource,
+  buildMasteredNarrationManifest,
   buildProducerTaskSpec,
   deriveGlobalVisualLayerPolicy,
+  createFingerprint,
+  computeUtf8Checksum,
   generateSemanticTiming,
   resolveSceneReadabilityPolicy,
   resolveSceneViewport,
@@ -21,9 +31,16 @@ import {
 } from "@axmorf/studio/contracts";
 import {
   buildAgentTasks,
+  buildCurrentProductionPlan,
   buildDownstreamTasks,
   rebindTemplateTaskOutputs,
 } from "../../scripts/project-production/application/build-current-plan";
+import { prepareProjectProduction } from "../../scripts/project-production/application/prepare-production";
+import { createProjectRevisionProductionScope } from "../../scripts/project-production/application/production-scope";
+import { createTaskWorkspace } from "../../scripts/project-production/adapters/task-workspace";
+import { commitTaskArtifact } from "../../scripts/project-production/adapters/artifact-store";
+import { readExecutionAttempt } from "../../scripts/project-production/adapters/attempt-store";
+import { createTemporaryDirectory } from "../package-boundary/support";
 import {
   buildValidSealedNarrationManifest,
   validNarrationSpec,
@@ -254,6 +271,80 @@ test("planner dispatches only template-copy silent Scenes as fixed template task
   ]);
 });
 
+test("A shared seam revision invalidates its two Scene owners and preserves unrelated task identities", () => {
+  const base = inputs();
+  const before = sceneInput({
+    meaningId: "before",
+    kind: "narrated",
+    marker: "a",
+  });
+  const after = sceneInput({
+    meaningId: "after",
+    kind: "narrated",
+    marker: "b",
+  });
+  const unrelated = sceneInput({
+    meaningId: "unrelated",
+    kind: "narrated",
+    marker: "c",
+  });
+  const tasks = (subject: string) => {
+    const scenes = [
+      { ...before, brief: { ...before.brief, outgoingHandoff: { subject } } },
+      after,
+      unrelated,
+    ];
+    const sceneInputs = scenes.map((scene, index) => {
+      const previous = scenes[index - 1];
+      const next = scenes[index + 1];
+      const handoffs = buildSceneContinuityContract({
+        storyId: base.projectId,
+        beat: scene.taskInput.storyBeat,
+        brief: scene.brief,
+        previous: previous
+          ? { beat: previous.taskInput.storyBeat, brief: previous.brief }
+          : null,
+        next: next
+          ? { beat: next.taskInput.storyBeat, brief: next.brief }
+          : null,
+      });
+      return {
+        ...scene,
+        taskInput: buildSceneTaskInputV7({
+          ...scene.taskInput,
+          continuity: {
+            ...scene.taskInput.continuity,
+            previousMeaningId: previous?.meaningId ?? null,
+            previousSummary:
+              previous?.taskInput.storyBeat.narrativePurpose ?? null,
+            nextMeaningId: next?.meaningId ?? null,
+            nextSummary: next?.taskInput.storyBeat.narrativePurpose ?? null,
+            handoffs,
+          },
+        }),
+      };
+    });
+    return buildAgentTasks(
+      { ...base, sceneInputs } as unknown as Parameters<
+        typeof buildAgentTasks
+      >[0],
+      revisionId,
+    );
+  };
+  const original = tasks("The shared outline");
+  const revised = tasks("The shared evidence ribbon");
+  for (let index = 0; index < original.length; index++) {
+    const a = original[index].task;
+    const b = revised[index].task;
+    assert.equal(a.taskKind, b.taskKind);
+    assert.equal(
+      a.taskRevision !== b.taskRevision,
+      a.semanticId === "before" || a.semanticId === "after",
+      `${a.taskKind}/${a.semanticId}`,
+    );
+  }
+});
+
 test("planner freezes capability API guides into the exact Scene context and task identity", () => {
   const base = inputs();
   const catalog = buildResourceCatalog(capabilityDescriptorDeclarations);
@@ -330,7 +421,7 @@ test("originality baseline binds only Agent-owned Scene tasks and template-copy 
     false,
   );
   for (const owner of sceneOwners) {
-    assert.equal(owner.task.validatorPolicyVersion, "scene-owner-validator-v5");
+    assert.equal(owner.task.validatorPolicyVersion, "scene-owner-validator-v6");
     assert.equal(
       owner.task.inputFingerprints.find(
         ({ id }) => id === SCENE_ORIGINALITY_INPUT_ID,
@@ -452,6 +543,293 @@ test("every Agent task binds the exact canonical context bytes it declares", () 
       );
     }
   }
+});
+
+test("a frozen prior Scene graph is a meaning-local task input and survives live replanning", () => {
+  const base = inputs();
+  const files = [
+    {
+      path: "Renderer.tsx",
+      role: "source",
+      content:
+        'import {label} from "./label";\nexport default () => <div>{label}</div>;\n',
+    },
+    {
+      path: "label.ts",
+      role: "source",
+      content: 'export const label = "Prior label";\n',
+    },
+    {
+      path: "types.d.ts",
+      role: "source",
+      content: "export type Label = string;\n",
+    },
+  ]
+    .sort((a, b) => a.path.localeCompare(b.path))
+    .map((file) => ({
+      ...file,
+      checksum: `sha256:${createHash("sha256").update(file.content).digest("hex")}`,
+      sizeBytes: Buffer.byteLength(file.content),
+    }));
+  const identity = {
+    schemaVersion: 1,
+    contractVersion: "scene-prior-source-v1",
+    storyId: base.projectId,
+    meaningId: "body",
+    brief: base.sceneInputs.find((scene) => scene.meaningId === "body")!.brief,
+    rendererSourceFingerprint: sha("a"),
+    scenePackageFingerprint: sha("b"),
+    files,
+  };
+  const priorSource = {
+    ...identity,
+    priorSourceFingerprint: createFingerprint({
+      namespace: "scene-prior-source",
+      version: 1,
+      value: identity,
+    }),
+  };
+  const candidate = {
+    ...base,
+    sceneInputs: base.sceneInputs.map((scene) =>
+      scene.meaningId === "body" ? { ...scene, priorSource } : scene,
+    ),
+  } as Parameters<typeof buildAgentTasks>[0];
+  const original = buildAgentTasks(base, revisionId);
+  const revised = buildAgentTasks(candidate, revisionId);
+  const owner = revised.find(({ task }) => task.semanticId === "body");
+  assert.ok(owner);
+  assert.deepEqual(
+    JSON.parse(owner.contextBytes).scene.priorSource,
+    priorSource,
+  );
+  assert.equal(
+    owner.task.inputFingerprints.find(({ id }) => id === "prior-scene-source")
+      ?.fingerprint,
+    priorSource.priorSourceFingerprint,
+  );
+  assert.ok(owner.task.declaredOutputSet.includes("src/label.ts"));
+  assert.ok(owner.task.declaredOutputSet.includes("src/types.d.ts"));
+  assert.match(
+    owner.taskContractBytes ?? "",
+    /Preserve.*prior|prior.*preserve/iu,
+  );
+  assert.equal(owner.task.declaredReadSet.length, 2);
+  for (let index = 0; index < original.length; index++) {
+    assert.equal(
+      original[index].task.taskRevision !== revised[index].task.taskRevision,
+      original[index].task.semanticId === "body",
+    );
+  }
+  const liveReplan = buildAgentTasks(
+    candidate,
+    ProductionRevisionIdSchema.parse(`revision-${"f".repeat(64)}`),
+  );
+  assert.deepEqual(
+    liveReplan.map(({ task }) => task.taskRevision),
+    revised.map(({ task }) => task.taskRevision),
+  );
+});
+
+test("public prepare persists frozen prior Scene inputs through the real planner and attempt snapshots", async (context) => {
+  const rootDir = await createTemporaryDirectory(
+    context,
+    "prior-source-prepare-",
+  );
+  const scope = createProjectRevisionProductionScope({
+    rootDir,
+    storyId: "story-example",
+    candidateId: `revision-candidate-${"a".repeat(64)}`,
+  });
+  const base = inputs();
+  const sealedNarration = buildValidSealedNarrationManifest();
+  const masteredNarration = buildMasteredNarrationManifest({
+    storyId: base.projectId,
+    sealedNarrationFingerprint: sealedNarration.sealedNarrationFingerprint,
+    sourceAudio: sealedNarration.completeAudio,
+    masteringPolicy: NARRATION_MASTERING_POLICY,
+    outputAudio: {
+      ...sealedNarration.completeAudio,
+      localPath:
+        "public/projects/story-example/narration-mastered/pending/complete.wav",
+    },
+    measurements: {
+      integratedLoudnessLufs: -16,
+      truePeakDbtp: -2,
+      loudnessRangeLu: 5,
+      thresholdLufs: -26,
+    },
+  });
+  const currentInputs = {
+    ...base,
+    narration: NarrationSpecSchema.parse(validNarrationSpec),
+    sealedNarration,
+    masteredNarration,
+    assetManifest: { ...base.assetManifest, assets: [] },
+    workspaceConfigurationFingerprint: null,
+    sceneInputs: base.sceneInputs.filter(
+      (scene) => scene.meaningId !== "intro",
+    ),
+  };
+  // Provider and fixed-media preparation are outside this fixture. Planning,
+  // explanation, workspace creation, and attempt persistence use public code.
+  const narration = {
+    providerAttemptFingerprint: sha("f"),
+    masteringPolicy: masteredNarration.masteringPolicy,
+    sealedNarration,
+  };
+  const before = await buildCurrentProductionPlan({
+    rootDir,
+    projectId: base.projectId,
+    inputs: currentInputs,
+    narration,
+    scope,
+  });
+  for (const seed of before.taskSeeds.values()) {
+    const workspace = await createTaskWorkspace({
+      rootDir,
+      task: seed.task,
+      seedFiles: {
+        "inputs/context.json": seed.contextBytes,
+        "inputs/task-contract.json": seed.taskContractBytes!,
+      },
+    });
+    for (const output of seed.task.declaredOutputSet) {
+      const path = join(workspace, output);
+      await mkdir(dirname(path), { recursive: true });
+      await writeFile(path, "fixture-owned output\n");
+    }
+    await commitTaskArtifact({ rootDir, task: seed.task, workspace });
+  }
+  const body = currentInputs.sceneInputs.find(
+    ({ meaningId }) => meaningId === "body",
+  )!;
+  const content = "export default () => <div>Prior scene</div>;\n";
+  const priorSource = buildScenePriorSource({
+    storyId: base.projectId,
+    meaningId: body.meaningId,
+    brief: body.brief,
+    rendererSourceFingerprint: sha("a"),
+    scenePackageFingerprint: sha("b"),
+    files: [
+      {
+        path: "Renderer.tsx",
+        role: "source",
+        content,
+        checksum: computeUtf8Checksum(content),
+        sizeBytes: Buffer.byteLength(content),
+      },
+    ],
+  });
+  const candidateInputs = {
+    ...currentInputs,
+    sceneInputs: currentInputs.sceneInputs.map((scene) => {
+      if (scene.meaningId !== body.meaningId) return scene;
+      const brief = {
+        ...scene.brief,
+        compositionIntent: "Move the existing label to the right.",
+      };
+      return {
+        ...scene,
+        brief,
+        priorSource,
+        revisionInput: {
+          ...scene.revisionInput,
+          briefFingerprint: createFingerprint({
+            namespace: "revision-scene-brief",
+            version: 1,
+            value: brief,
+          }),
+        },
+      };
+    }),
+  };
+  const ready = ProductionInspectionSchema.parse({
+    schemaVersion: 1,
+    contractVersion: "production-inspection-v1",
+    storyId: base.projectId,
+    sourceState: "production-inputs-ready",
+    currentRevisionId: before.revision.revisionId,
+    baseline: { kind: "none", revisionId: null },
+    estimatedCost: {
+      providerRequests: 0,
+      providerCacheHits: 2,
+      agentTasks: null,
+      deliveryMedia: null,
+    },
+    tasks: [],
+    nextAction: "prepare-production",
+  });
+  const prepared = await prepareProjectProduction(
+    { rootDir, projectId: base.projectId, env: {}, scope },
+    {
+      inspect: async () => ready,
+      prepareNarration: async () => ({
+        ...narration,
+        semanticTiming: currentInputs.timing,
+        masteredNarration,
+        sealedManifestBytes: Buffer.alloc(0),
+        semanticTimingBytes: Buffer.alloc(0),
+        masteredManifestBytes: Buffer.alloc(0),
+        completeAudioBytes: Buffer.alloc(0),
+        masteredAudioBytes: Buffer.alloc(0),
+        chunkAudioBytes: new Map(),
+        actualCost: { providerRequests: 0, providerCacheHits: 2 },
+      }),
+      projectPendingAuthoring: async () => ({}) as never,
+      loadInputs: async () => candidateInputs,
+      prepareFixedTasks: async () => undefined,
+    },
+  );
+  assert.equal(prepared.status, "project-production-prepared");
+  if (prepared.status !== "project-production-prepared")
+    throw new Error("Authoring unexpectedly incomplete.");
+  assert.notEqual(prepared.revisionId, before.revision.revisionId);
+  assert.equal(prepared.actualCost.providerRequests, 0);
+  assert.deepEqual(
+    prepared.dirtyAgentTasks.map(({ subject }) => subject.id),
+    [body.meaningId],
+  );
+  const attempt = await readExecutionAttempt({
+    rootDir: scope.isolatedRoot,
+    storyId: base.projectId,
+    attemptId: prepared.attemptId,
+  });
+  const snapshot = attempt.taskSnapshots.find(
+    ({ subject }) => subject.id === body.meaningId,
+  )!;
+  assert.deepEqual(
+    snapshot.inputFingerprints.find(
+      ({ id }) => id === SCENE_PRIOR_SOURCE_INPUT_ID,
+    ),
+    {
+      id: SCENE_PRIOR_SOURCE_INPUT_ID,
+      fingerprint: priorSource.priorSourceFingerprint,
+    },
+  );
+  for (const seed of before.taskSeeds.values()) {
+    if (seed.task.semanticId === body.meaningId) continue;
+    assert.equal(
+      attempt.taskSnapshots.find(
+        ({ taskRevision }) => taskRevision === seed.task.taskRevision,
+      )?.decision.action,
+      "reuse",
+    );
+  }
+  const owner = prepared.dirtyAgentTasks[0]!;
+  assert.deepEqual(
+    JSON.parse(
+      await readFile(
+        join(rootDir, owner.workspace, "inputs/context.json"),
+        "utf8",
+      ),
+    ).scene.priorSource,
+    priorSource,
+  );
+  assert.match(
+    owner.bindCommands.controllerIo,
+    new RegExp(`--candidate ${scope.candidateId}`, "u"),
+  );
 });
 
 test("GlobalVisual task freezes the derived layer policy under validator v3", () => {

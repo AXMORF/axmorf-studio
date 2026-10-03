@@ -189,7 +189,7 @@ test("release evidence binds both hosts, exact candidates, prompts and complete 
   );
 });
 
-for (const version of ["0.1.15"]) {
+for (const version of ["0.1.15", "0.1.16"]) {
   test(`${version} requires Codex-only acceptance without relaxing native execution`, () => {
     const nextRuntime = { ...runtime, version };
     const nextCreator = { ...creator, version };

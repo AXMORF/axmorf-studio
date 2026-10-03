@@ -18,6 +18,7 @@ import {
   serializeCanonicalJson,
   validateScenePlanBundle,
   validateSceneMotionPlan,
+  validateSceneMotionHandoffs,
   validateSelectedResourceRef,
   SCENE_MOTION_REQUIREMENT_ID,
   type ScenePackage,
@@ -81,6 +82,24 @@ export const validateSceneArtifactBundle = (
       duration: shots.sceneDurationInFrames,
       narrationCues: rawInput.narrationCues,
     });
+  if (
+    !(
+      task.storyBeat.kind === "silent-scene" &&
+      task.storyBeat.preset.implementation.kind === "template-copy"
+    ) &&
+    task.continuity.handoffs !== undefined
+  ) {
+    if (
+      shots.motionPlan === undefined &&
+      (task.continuity.handoffs.incoming !== null ||
+        task.continuity.handoffs.outgoing.kind === "continuous")
+    )
+      throw new Error(
+        "A frozen continuous handoff requires a Scene motion plan.",
+      );
+    if (shots.motionPlan !== undefined)
+      validateSceneMotionHandoffs(shots.motionPlan, task.continuity.handoffs);
+  }
   if (
     selection.taskInputFingerprint !== task.taskInputFingerprint ||
     fidelityReceipt.selectionFingerprint !== selection.selectionFingerprint

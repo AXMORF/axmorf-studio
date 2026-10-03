@@ -5,6 +5,7 @@ import { MeaningIdSchema, Sha256DigestSchema, StoryIdSchema } from "./primitives
 import { ResourceCatalogSchema, ResourceIdSchema } from "./resource-catalog";
 import type { AuthoringRequirements } from "./authoring-requirements";
 import type { StorySpec } from "./story";
+import { SceneOutgoingHandoffSchema } from "./scene-continuity";
 
 const SafeTextSchema = z.string().trim().min(1).max(1600).refine((value) => !/(?:Bearer\s|https?:\/\/|(?:^|\s)\/(?:home|data|tmp)\/|[A-Za-z]:\\|\b(?:token|secret|private[-_ ]?config|provider[-_ ]?endpoint)\b)/iu.test(value), "Authoring text must not contain private or remote diagnostics.");
 const CardIdSchema = z.string().min(1).max(128).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/u);
@@ -31,7 +32,14 @@ export type StoryResourcePool = z.infer<typeof StoryResourcePoolSchema>;
 
 export const SCENE_PRODUCTION_BRIEF_VERSION = "scene-production-brief-v1" as const;
 const SnapshotSelectionSchema = z.object({ sourceId: z.literal("video-shotcraft"), cardIds: z.array(CardIdSchema).min(1).max(128).readonly() }).strict().superRefine((value, context) => sortedUnique(value.cardIds, context, "cardIds")).readonly();
-export const SceneProductionBriefItemSchema = z.object({ meaningId: MeaningIdSchema, visualIntent: SafeTextSchema, compositionIntent: SafeTextSchema, motionIntent: SafeTextSchema, soundIntent: SafeTextSchema, continuityBrief: SafeTextSchema, candidateResourceIds: z.array(ResourceIdSchema).max(128).readonly(), allowedSnapshotCards: z.array(SnapshotSelectionSchema).max(16).readonly() }).strict().superRefine((scene, context) => sortedUnique(scene.candidateResourceIds, context, "candidateResourceIds")).readonly();
+export const SceneProductionBriefItemSchema = z.object({ meaningId: MeaningIdSchema, visualIntent: SafeTextSchema, compositionIntent: SafeTextSchema, motionIntent: SafeTextSchema, soundIntent: SafeTextSchema, continuityBrief: SafeTextSchema, outgoingHandoff: SceneOutgoingHandoffSchema.unwrap().extend({ subject: SafeTextSchema }).readonly().optional(), candidateResourceIds: z.array(ResourceIdSchema).max(128).readonly(), allowedSnapshotCards: z.array(SnapshotSelectionSchema).max(16).readonly() }).strict().superRefine((scene, context) => sortedUnique(scene.candidateResourceIds, context, "candidateResourceIds")).readonly();
+
+export const addSceneHandoffAuthoringIssues = (scenes: readonly z.infer<typeof SceneProductionBriefItemSchema>[], beats: readonly { readonly kind: string; readonly meaningId: string }[], context: z.RefinementCtx) => {
+  scenes.forEach((scene, index) => {
+    if (scene.outgoingHandoff !== undefined && (beats[index]?.kind !== "narrated-scene" || beats[index + 1]?.kind !== "narrated-scene"))
+      context.addIssue({ code: "custom", message: "An outgoing handoff requires a following narrated Scene; fixed template boundaries cannot promise continuity.", path: ["scenes", index, "outgoingHandoff"] });
+  });
+};
 const BriefInput = z.object({ schemaVersion: z.literal(1), contractVersion: z.literal(SCENE_PRODUCTION_BRIEF_VERSION), storyId: StoryIdSchema, requirementsFingerprint: Sha256DigestSchema, semanticTimingFingerprint: Sha256DigestSchema, visualStyleFingerprint: Sha256DigestSchema, resourcePoolFingerprint: Sha256DigestSchema, soundPolicy: z.enum(["allowed", "none"]), reviewPolicy: z.literal("mechanical-only"), scenes: z.array(SceneProductionBriefItemSchema).min(1).max(256).readonly() }).strict().superRefine((brief, context) => { if (new Set(brief.scenes.map(({ meaningId }) => meaningId)).size !== brief.scenes.length) context.addIssue({ code: "custom", message: "Scene brief meaning IDs must be unique.", path: ["scenes"] }); });
 export const SceneProductionBriefInputSchema = BriefInput.readonly();
 export const computeSceneProductionBriefFingerprint = (raw: unknown) => { const value = { ...(raw as Record<string, unknown>) }; delete value.briefFingerprint; return createFingerprint({ namespace: "scene-production-brief", version: 1, value: SceneProductionBriefInputSchema.parse(value) }); };
@@ -42,6 +50,7 @@ export const validateSceneProductionBrief = ({ brief: rawBrief, story, requireme
   if (brief.storyId !== story.storyId || brief.requirementsFingerprint !== requirements.requirementsFingerprint || brief.semanticTimingFingerprint !== Sha256DigestSchema.parse(semanticTimingFingerprint) || brief.visualStyleFingerprint !== Sha256DigestSchema.parse(visualStyleFingerprint) || brief.resourcePoolFingerprint !== pool.poolFingerprint || brief.soundPolicy !== requirements.enhancementSelection.sound) throw new Error("Scene production brief identity is stale.");
   if (brief.scenes.length !== story.beats.length || brief.scenes.some(({ meaningId }, index) => meaningId !== story.beats[index]?.meaningId)) throw new Error("Scene production brief must contain every StoryBeat in order.");
   const poolResources = new Set(pool.allowedResourceIds); const poolSnapshots = new Map(pool.allowedSnapshots.map((snapshot) => [snapshot.sourceId, new Set(snapshot.allowedCardIds)]));
+  brief.scenes.forEach((scene, index) => { if (scene.outgoingHandoff !== undefined && (story.beats[index]?.kind !== "narrated-scene" || story.beats[index + 1]?.kind !== "narrated-scene")) throw new Error("Continuous handoffs require adjacent authored narrated Scenes."); });
   for (const scene of brief.scenes) {
     const beat = story.beats.find(({ meaningId }) => meaningId === scene.meaningId);
     if (beat?.kind === "silent-scene" && (scene.visualIntent !== beat.preset.visualIntent || scene.soundIntent !== beat.preset.soundIntent || JSON.stringify(scene.candidateResourceIds) !== JSON.stringify(beat.preset.resourceIds) || scene.allowedSnapshotCards.length > 0)) throw new Error(`Silent Scene ${scene.meaningId} brief is stale against its preset.`);

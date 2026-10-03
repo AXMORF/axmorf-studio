@@ -123,6 +123,973 @@
         "codec": "mp3",
         "sampleRate": 44100
       }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "asset.axmorf.sfx.ui-click-v1",
+      "kind": "asset",
+      "status": "approved",
+      "title": "AXMORF UI Click / 轻点击",
+      "description": "Dry, short interface tick for a button, node or discrete step. Original offline procedural synthesis, 48 kHz stereo PCM WAV. Align the onset to the visual event; start auditioning at Scene volume 0.2-0.4.",
+      "useCases": [
+        "Button press / 按钮点击",
+        "Discrete step / 分步出现",
+        "Node highlight / 节点点亮"
+      ],
+      "tags": [
+        "axmorf",
+        "click",
+        "interface",
+        "motion-sync",
+        "sound-effect",
+        "tick"
+      ],
+      "authority": {
+        "kind": "repository-file",
+        "repositoryPath": "src/remotion/catalog/assets.manifest.json"
+      },
+      "allowedUse": "runtime-approved",
+      "assetKind": "audio",
+      "mediaRole": "sound-effect",
+      "localPath": "public/assets/axmorf-shared/audio/sound-effects/axmorf-ui-click-v1.wav",
+      "checksum": "sha256:b9a9e6068d823971c7ec79a71b04e1e63173ff7d86a22c88f803ec6a68316264",
+      "license": {
+        "id": "Apache-2.0",
+        "verificationStatus": "verified",
+        "sourceUrl": "https://github.com/AXMORF/axmorf-studio/blob/HEAD/LICENSE",
+        "attributionRequired": false,
+        "attributionText": null,
+        "verifiedAt": "2026-10-02T00:00:00.000Z",
+        "sourceEvidenceFingerprint": "sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "media": {
+        "mimeType": "audio/wav",
+        "sizeBytes": 15404,
+        "durationInSeconds": 0.08,
+        "codec": "pcm_s16le",
+        "sampleRate": 48000
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "asset.axmorf.sfx.soft-pop-v1",
+      "kind": "asset",
+      "status": "approved",
+      "title": "AXMORF Soft Pop / 轻弹出",
+      "description": "Rounded descending pop for a small element appearing or scaling into place. Original offline procedural synthesis, 48 kHz stereo PCM WAV. Align the onset to the visual event; start auditioning at Scene volume 0.2-0.4.",
+      "useCases": [
+        "Element reveal / 元素弹出",
+        "Small scale animation / 轻量缩放"
+      ],
+      "tags": [
+        "axmorf",
+        "motion-sync",
+        "pop",
+        "reveal",
+        "scale",
+        "sound-effect"
+      ],
+      "authority": {
+        "kind": "repository-file",
+        "repositoryPath": "src/remotion/catalog/assets.manifest.json"
+      },
+      "allowedUse": "runtime-approved",
+      "assetKind": "audio",
+      "mediaRole": "sound-effect",
+      "localPath": "public/assets/axmorf-shared/audio/sound-effects/axmorf-soft-pop-v1.wav",
+      "checksum": "sha256:d28f79f84a9cb24b2dcffced6a9e85dd77c6f4c5930f75e20376dcb9c4533270",
+      "license": {
+        "id": "Apache-2.0",
+        "verificationStatus": "verified",
+        "sourceUrl": "https://github.com/AXMORF/axmorf-studio/blob/HEAD/LICENSE",
+        "attributionRequired": false,
+        "attributionText": null,
+        "verifiedAt": "2026-10-02T00:00:00.000Z",
+        "sourceEvidenceFingerprint": "sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "media": {
+        "mimeType": "audio/wav",
+        "sizeBytes": 34604,
+        "durationInSeconds": 0.18,
+        "codec": "pcm_s16le",
+        "sampleRate": 48000
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "asset.axmorf.sfx.snap-lock-v1",
+      "kind": "asset",
+      "status": "approved",
+      "title": "AXMORF Snap Lock / 吸附落位",
+      "description": "Crisp snap with a short resonant tail for an object docking or a connection locking. Original offline procedural synthesis, 48 kHz stereo PCM WAV. Align the onset to the visual event; start auditioning at Scene volume 0.2-0.4.",
+      "useCases": [
+        "Connection complete / 连线完成",
+        "Object docking / 吸附落位"
+      ],
+      "tags": [
+        "axmorf",
+        "connection",
+        "lock",
+        "motion-sync",
+        "snap",
+        "sound-effect"
+      ],
+      "authority": {
+        "kind": "repository-file",
+        "repositoryPath": "src/remotion/catalog/assets.manifest.json"
+      },
+      "allowedUse": "runtime-approved",
+      "assetKind": "audio",
+      "mediaRole": "sound-effect",
+      "localPath": "public/assets/axmorf-shared/audio/sound-effects/axmorf-snap-lock-v1.wav",
+      "checksum": "sha256:d99c0a17377656ccc12aa6be2e66aa5c325bb08325df91cbfa0fe393809edace",
+      "license": {
+        "id": "Apache-2.0",
+        "verificationStatus": "verified",
+        "sourceUrl": "https://github.com/AXMORF/axmorf-studio/blob/HEAD/LICENSE",
+        "attributionRequired": false,
+        "attributionText": null,
+        "verifiedAt": "2026-10-02T00:00:00.000Z",
+        "sourceEvidenceFingerprint": "sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "media": {
+        "mimeType": "audio/wav",
+        "sizeBytes": 23084,
+        "durationInSeconds": 0.12,
+        "codec": "pcm_s16le",
+        "sampleRate": 48000
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "asset.axmorf.sfx.whoosh-short-v1",
+      "kind": "asset",
+      "status": "approved",
+      "title": "AXMORF Short Whoosh / 短掠过",
+      "description": "Compact stereo air sweep for a quick slide or wipe. Original offline procedural synthesis, 48 kHz stereo PCM WAV. Align the 0.14s swell center to the visual event; start auditioning at Scene volume 0.2-0.4.",
+      "useCases": ["Quick slide / 快速滑动", "Short wipe / 短擦除转场"],
+      "tags": [
+        "axmorf",
+        "motion-sync",
+        "slide",
+        "sound-effect",
+        "transition",
+        "whoosh"
+      ],
+      "authority": {
+        "kind": "repository-file",
+        "repositoryPath": "src/remotion/catalog/assets.manifest.json"
+      },
+      "allowedUse": "runtime-approved",
+      "assetKind": "audio",
+      "mediaRole": "sound-effect",
+      "localPath": "public/assets/axmorf-shared/audio/sound-effects/axmorf-whoosh-short-v1.wav",
+      "checksum": "sha256:1a28ed7340a0a8a10d5ccb6d5652905ed1c04136f5d69c190162cc808c01adf7",
+      "license": {
+        "id": "Apache-2.0",
+        "verificationStatus": "verified",
+        "sourceUrl": "https://github.com/AXMORF/axmorf-studio/blob/HEAD/LICENSE",
+        "attributionRequired": false,
+        "attributionText": null,
+        "verifiedAt": "2026-10-02T00:00:00.000Z",
+        "sourceEvidenceFingerprint": "sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "media": {
+        "mimeType": "audio/wav",
+        "sizeBytes": 69164,
+        "durationInSeconds": 0.36,
+        "codec": "pcm_s16le",
+        "sampleRate": 48000
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "asset.axmorf.sfx.whoosh-sweep-v1",
+      "kind": "asset",
+      "status": "approved",
+      "title": "AXMORF Whoosh Sweep / 长扫过",
+      "description": "Broader stereo air sweep for a larger move or full panel transition. Original offline procedural synthesis, 48 kHz stereo PCM WAV. Align the 0.27s swell center to the visual event; start auditioning at Scene volume 0.2-0.4.",
+      "useCases": [
+        "Large object movement / 大幅移动",
+        "Panel transition / 面板切换"
+      ],
+      "tags": [
+        "axmorf",
+        "motion-sync",
+        "movement",
+        "sound-effect",
+        "sweep",
+        "transition",
+        "whoosh"
+      ],
+      "authority": {
+        "kind": "repository-file",
+        "repositoryPath": "src/remotion/catalog/assets.manifest.json"
+      },
+      "allowedUse": "runtime-approved",
+      "assetKind": "audio",
+      "mediaRole": "sound-effect",
+      "localPath": "public/assets/axmorf-shared/audio/sound-effects/axmorf-whoosh-sweep-v1.wav",
+      "checksum": "sha256:c9b5f111f9271ba481a0bc6a6a689853db6f5abb940f30b8c56fe700f3183adc",
+      "license": {
+        "id": "Apache-2.0",
+        "verificationStatus": "verified",
+        "sourceUrl": "https://github.com/AXMORF/axmorf-studio/blob/HEAD/LICENSE",
+        "attributionRequired": false,
+        "attributionText": null,
+        "verifiedAt": "2026-10-02T00:00:00.000Z",
+        "sourceEvidenceFingerprint": "sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "media": {
+        "mimeType": "audio/wav",
+        "sizeBytes": 124844,
+        "durationInSeconds": 0.65,
+        "codec": "pcm_s16le",
+        "sampleRate": 48000
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "asset.axmorf.sfx.soft-impact-v1",
+      "kind": "asset",
+      "status": "approved",
+      "title": "AXMORF Soft Impact / 轻撞击",
+      "description": "Low, rounded impact with a small transient for a weighty landing or emphasized result. Original offline procedural synthesis, 48 kHz stereo PCM WAV. Align the onset to the visual event; start auditioning at Scene volume 0.2-0.4.",
+      "useCases": ["Emphasized result / 结果强调", "Object landing / 物体落地"],
+      "tags": [
+        "axmorf",
+        "emphasis",
+        "impact",
+        "landing",
+        "motion-sync",
+        "sound-effect"
+      ],
+      "authority": {
+        "kind": "repository-file",
+        "repositoryPath": "src/remotion/catalog/assets.manifest.json"
+      },
+      "allowedUse": "runtime-approved",
+      "assetKind": "audio",
+      "mediaRole": "sound-effect",
+      "localPath": "public/assets/axmorf-shared/audio/sound-effects/axmorf-soft-impact-v1.wav",
+      "checksum": "sha256:80e3b80491acd528aa277de58eb4ac5de512a011d94fdafc4239cbee50ceb2ba",
+      "license": {
+        "id": "Apache-2.0",
+        "verificationStatus": "verified",
+        "sourceUrl": "https://github.com/AXMORF/axmorf-studio/blob/HEAD/LICENSE",
+        "attributionRequired": false,
+        "attributionText": null,
+        "verifiedAt": "2026-10-02T00:00:00.000Z",
+        "sourceEvidenceFingerprint": "sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "media": {
+        "mimeType": "audio/wav",
+        "sizeBytes": 61484,
+        "durationInSeconds": 0.32,
+        "codec": "pcm_s16le",
+        "sampleRate": 48000
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "asset.axmorf.sfx.confirm-chime-v1",
+      "kind": "asset",
+      "status": "approved",
+      "title": "AXMORF Confirmation Chime / 完成提示",
+      "description": "Two ascending synthesized tones for a successful connection, completed step or confirmed result. Original offline procedural synthesis, 48 kHz stereo PCM WAV. Align the onset to the visual event; start auditioning at Scene volume 0.2-0.4.",
+      "useCases": [
+        "Confirmed result / 确认结果",
+        "Successful completion / 步骤完成"
+      ],
+      "tags": [
+        "axmorf",
+        "chime",
+        "confirmation",
+        "motion-sync",
+        "sound-effect",
+        "success"
+      ],
+      "authority": {
+        "kind": "repository-file",
+        "repositoryPath": "src/remotion/catalog/assets.manifest.json"
+      },
+      "allowedUse": "runtime-approved",
+      "assetKind": "audio",
+      "mediaRole": "sound-effect",
+      "localPath": "public/assets/axmorf-shared/audio/sound-effects/axmorf-confirm-chime-v1.wav",
+      "checksum": "sha256:c058c2a31e800aa61a89b85b9828ccb8e4ada7cb8b54f739e542f24abd2964a4",
+      "license": {
+        "id": "Apache-2.0",
+        "verificationStatus": "verified",
+        "sourceUrl": "https://github.com/AXMORF/axmorf-studio/blob/HEAD/LICENSE",
+        "attributionRequired": false,
+        "attributionText": null,
+        "verifiedAt": "2026-10-02T00:00:00.000Z",
+        "sourceEvidenceFingerprint": "sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "media": {
+        "mimeType": "audio/wav",
+        "sizeBytes": 96044,
+        "durationInSeconds": 0.5,
+        "codec": "pcm_s16le",
+        "sampleRate": 48000
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "asset.axmorf.sfx.sparkle-accent-v1",
+      "kind": "asset",
+      "status": "approved",
+      "title": "AXMORF Sparkle Accent / 清亮强调",
+      "description": "Light ascending high tones for a small highlight or insight reveal. Original offline procedural synthesis, 48 kHz stereo PCM WAV. Align the onset to the visual event; start auditioning at Scene volume 0.2-0.4.",
+      "useCases": ["Highlight reveal / 高光出现", "Insight reveal / 重点揭示"],
+      "tags": [
+        "accent",
+        "axmorf",
+        "highlight",
+        "motion-sync",
+        "sound-effect",
+        "sparkle"
+      ],
+      "authority": {
+        "kind": "repository-file",
+        "repositoryPath": "src/remotion/catalog/assets.manifest.json"
+      },
+      "allowedUse": "runtime-approved",
+      "assetKind": "audio",
+      "mediaRole": "sound-effect",
+      "localPath": "public/assets/axmorf-shared/audio/sound-effects/axmorf-sparkle-accent-v1.wav",
+      "checksum": "sha256:3fc0c3bd35595698941912b13e6effee174f2a0712a04d8fed3baff6a9df818a",
+      "license": {
+        "id": "Apache-2.0",
+        "verificationStatus": "verified",
+        "sourceUrl": "https://github.com/AXMORF/axmorf-studio/blob/HEAD/LICENSE",
+        "attributionRequired": false,
+        "attributionText": null,
+        "verifiedAt": "2026-10-02T00:00:00.000Z",
+        "sourceEvidenceFingerprint": "sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "media": {
+        "mimeType": "audio/wav",
+        "sizeBytes": 115244,
+        "durationInSeconds": 0.6,
+        "codec": "pcm_s16le",
+        "sampleRate": 48000
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "asset.axmorf.sfx.mouse-down-v1",
+      "kind": "asset",
+      "status": "approved",
+      "title": "AXMORF Mouse Down / 鼠标按下",
+      "description": "Dry simulated mouse microswitch press with a small plastic-body resonance. Original offline procedural synthesis, 48 kHz stereo PCM WAV. Primary sync landmark: onset. Start auditioning at Scene volume 0.2-0.4.",
+      "useCases": ["Pointer press / 光标按下"],
+      "tags": ["axmorf", "motion-sync", "mouse", "press", "sound-effect"],
+      "authority": {
+        "kind": "repository-file",
+        "repositoryPath": "src/remotion/catalog/assets.manifest.json"
+      },
+      "allowedUse": "runtime-approved",
+      "assetKind": "audio",
+      "mediaRole": "sound-effect",
+      "localPath": "public/assets/axmorf-shared/audio/sound-effects/axmorf-mouse-down-v1.wav",
+      "checksum": "sha256:02777066fff41891efd17b1fc5dd5c0eed65f5fa0bb3613d4ba9b497a098030a",
+      "license": {
+        "id": "Apache-2.0",
+        "verificationStatus": "verified",
+        "sourceUrl": "https://github.com/AXMORF/axmorf-studio/blob/HEAD/LICENSE",
+        "attributionRequired": false,
+        "attributionText": null,
+        "verifiedAt": "2026-10-02T00:00:00.000Z",
+        "sourceEvidenceFingerprint": "sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "media": {
+        "mimeType": "audio/wav",
+        "sizeBytes": 16364,
+        "durationInSeconds": 0.085,
+        "codec": "pcm_s16le",
+        "sampleRate": 48000
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "asset.axmorf.sfx.mouse-up-v1",
+      "kind": "asset",
+      "status": "approved",
+      "title": "AXMORF Mouse Up / 鼠标松开",
+      "description": "Lighter, higher simulated mouse microswitch release. Original offline procedural synthesis, 48 kHz stereo PCM WAV. Primary sync landmark: onset. Start auditioning at Scene volume 0.2-0.4.",
+      "useCases": [
+        "Pointer release / 光标松开",
+        "Release-triggered response / 松开时界面响应"
+      ],
+      "tags": ["axmorf", "motion-sync", "mouse", "release", "sound-effect"],
+      "authority": {
+        "kind": "repository-file",
+        "repositoryPath": "src/remotion/catalog/assets.manifest.json"
+      },
+      "allowedUse": "runtime-approved",
+      "assetKind": "audio",
+      "mediaRole": "sound-effect",
+      "localPath": "public/assets/axmorf-shared/audio/sound-effects/axmorf-mouse-up-v1.wav",
+      "checksum": "sha256:3d1e9e2a0b7577d254d69c6ca4f787f73bf02c1ab860ade700c7c24c4343a1a3",
+      "license": {
+        "id": "Apache-2.0",
+        "verificationStatus": "verified",
+        "sourceUrl": "https://github.com/AXMORF/axmorf-studio/blob/HEAD/LICENSE",
+        "attributionRequired": false,
+        "attributionText": null,
+        "verifiedAt": "2026-10-02T00:00:00.000Z",
+        "sourceEvidenceFingerprint": "sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "media": {
+        "mimeType": "audio/wav",
+        "sizeBytes": 14444,
+        "durationInSeconds": 0.075,
+        "codec": "pcm_s16le",
+        "sampleRate": 48000
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "asset.axmorf.sfx.mouse-click-v1",
+      "kind": "asset",
+      "status": "approved",
+      "title": "AXMORF Mouse Click / 鼠标单击",
+      "description": "Simulated mechanical mouse click: press at 0s, release at 0.055s. Align onset to pointer press; use mouse-up separately for release-triggered responses. Original offline procedural synthesis, 48 kHz stereo PCM WAV. Primary sync landmark: onset. Start auditioning at Scene volume 0.2-0.4.",
+      "useCases": ["Complete click gesture / 完整单击手势"],
+      "tags": ["axmorf", "click", "motion-sync", "mouse", "sound-effect"],
+      "authority": {
+        "kind": "repository-file",
+        "repositoryPath": "src/remotion/catalog/assets.manifest.json"
+      },
+      "allowedUse": "runtime-approved",
+      "assetKind": "audio",
+      "mediaRole": "sound-effect",
+      "localPath": "public/assets/axmorf-shared/audio/sound-effects/axmorf-mouse-click-v1.wav",
+      "checksum": "sha256:ba7f3441158399e7fd4f434a0b93a4e545ee211e887637d4a6c9e6097ae9019e",
+      "license": {
+        "id": "Apache-2.0",
+        "verificationStatus": "verified",
+        "sourceUrl": "https://github.com/AXMORF/axmorf-studio/blob/HEAD/LICENSE",
+        "attributionRequired": false,
+        "attributionText": null,
+        "verifiedAt": "2026-10-02T00:00:00.000Z",
+        "sourceEvidenceFingerprint": "sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "media": {
+        "mimeType": "audio/wav",
+        "sizeBytes": 28844,
+        "durationInSeconds": 0.15,
+        "codec": "pcm_s16le",
+        "sampleRate": 48000
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "asset.axmorf.sfx.mouse-double-click-v1",
+      "kind": "asset",
+      "status": "approved",
+      "title": "AXMORF Mouse Double Click / 鼠标双击",
+      "description": "Two simulated mouse clicks with presses at 0s and 0.18s, releases at 0.055s and 0.235s. Align the animation to this fixed gesture timing; use separate clicks for other intervals. Original offline procedural synthesis, 48 kHz stereo PCM WAV. Primary sync landmark: onset. Start auditioning at Scene volume 0.2-0.4.",
+      "useCases": ["Complete double-click gesture / 完整双击手势"],
+      "tags": [
+        "axmorf",
+        "double-click",
+        "motion-sync",
+        "mouse",
+        "sound-effect"
+      ],
+      "authority": {
+        "kind": "repository-file",
+        "repositoryPath": "src/remotion/catalog/assets.manifest.json"
+      },
+      "allowedUse": "runtime-approved",
+      "assetKind": "audio",
+      "mediaRole": "sound-effect",
+      "localPath": "public/assets/axmorf-shared/audio/sound-effects/axmorf-mouse-double-click-v1.wav",
+      "checksum": "sha256:20ef5f0d13cb2a4bb90c5c21abda00595393a04f372aac929c035d063846380e",
+      "license": {
+        "id": "Apache-2.0",
+        "verificationStatus": "verified",
+        "sourceUrl": "https://github.com/AXMORF/axmorf-studio/blob/HEAD/LICENSE",
+        "attributionRequired": false,
+        "attributionText": null,
+        "verifiedAt": "2026-10-02T00:00:00.000Z",
+        "sourceEvidenceFingerprint": "sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "media": {
+        "mimeType": "audio/wav",
+        "sizeBytes": 65324,
+        "durationInSeconds": 0.34,
+        "codec": "pcm_s16le",
+        "sampleRate": 48000
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "asset.axmorf.sfx.mouse-right-click-v1",
+      "kind": "asset",
+      "status": "approved",
+      "title": "AXMORF Mouse Right Click / 鼠标右键",
+      "description": "Lower simulated mechanical mouse click: press at 0s, release at 0.06s. This is a timbral variation, not a recording of a particular device. Original offline procedural synthesis, 48 kHz stereo PCM WAV. Primary sync landmark: onset. Start auditioning at Scene volume 0.2-0.4.",
+      "useCases": ["Context menu gesture / 右键菜单手势"],
+      "tags": ["axmorf", "motion-sync", "mouse", "right-click", "sound-effect"],
+      "authority": {
+        "kind": "repository-file",
+        "repositoryPath": "src/remotion/catalog/assets.manifest.json"
+      },
+      "allowedUse": "runtime-approved",
+      "assetKind": "audio",
+      "mediaRole": "sound-effect",
+      "localPath": "public/assets/axmorf-shared/audio/sound-effects/axmorf-mouse-right-click-v1.wav",
+      "checksum": "sha256:644bcdee5cbfa5342a06ad243f2e927d588c883ce95af4fef6368603b8f639fd",
+      "license": {
+        "id": "Apache-2.0",
+        "verificationStatus": "verified",
+        "sourceUrl": "https://github.com/AXMORF/axmorf-studio/blob/HEAD/LICENSE",
+        "attributionRequired": false,
+        "attributionText": null,
+        "verifiedAt": "2026-10-02T00:00:00.000Z",
+        "sourceEvidenceFingerprint": "sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "media": {
+        "mimeType": "audio/wav",
+        "sizeBytes": 30764,
+        "durationInSeconds": 0.16,
+        "codec": "pcm_s16le",
+        "sampleRate": 48000
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "asset.axmorf.sfx.mouse-wheel-tick-v1",
+      "kind": "asset",
+      "status": "approved",
+      "title": "AXMORF Mouse Wheel Tick / 鼠标滚轮",
+      "description": "Short simulated plastic scroll-wheel detent for one discrete scroll step. Original offline procedural synthesis, 48 kHz stereo PCM WAV. Primary sync landmark: onset. Start auditioning at Scene volume 0.2-0.4.",
+      "useCases": ["Discrete scroll step / 单次滚轮刻度"],
+      "tags": [
+        "axmorf",
+        "motion-sync",
+        "mouse",
+        "scroll",
+        "sound-effect",
+        "wheel"
+      ],
+      "authority": {
+        "kind": "repository-file",
+        "repositoryPath": "src/remotion/catalog/assets.manifest.json"
+      },
+      "allowedUse": "runtime-approved",
+      "assetKind": "audio",
+      "mediaRole": "sound-effect",
+      "localPath": "public/assets/axmorf-shared/audio/sound-effects/axmorf-mouse-wheel-tick-v1.wav",
+      "checksum": "sha256:60cae9ba64e740311c53ed8fc1b8cac135f844b5efc8290203f0f7becd5f6cf2",
+      "license": {
+        "id": "Apache-2.0",
+        "verificationStatus": "verified",
+        "sourceUrl": "https://github.com/AXMORF/axmorf-studio/blob/HEAD/LICENSE",
+        "attributionRequired": false,
+        "attributionText": null,
+        "verifiedAt": "2026-10-02T00:00:00.000Z",
+        "sourceEvidenceFingerprint": "sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "media": {
+        "mimeType": "audio/wav",
+        "sizeBytes": 19244,
+        "durationInSeconds": 0.1,
+        "codec": "pcm_s16le",
+        "sampleRate": 48000
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "asset.axmorf.sfx.keyboard-tap-v1",
+      "kind": "asset",
+      "status": "approved",
+      "title": "AXMORF Keyboard Tap / 单次按键",
+      "description": "Short, rounded simulated keycap tap for one visible keystroke. Original offline procedural synthesis, 48 kHz stereo PCM WAV. Primary sync landmark: onset. Start auditioning at Scene volume 0.2-0.4.",
+      "useCases": ["Single keystroke / 单次按键"],
+      "tags": ["axmorf", "keyboard", "motion-sync", "sound-effect", "tap"],
+      "authority": {
+        "kind": "repository-file",
+        "repositoryPath": "src/remotion/catalog/assets.manifest.json"
+      },
+      "allowedUse": "runtime-approved",
+      "assetKind": "audio",
+      "mediaRole": "sound-effect",
+      "localPath": "public/assets/axmorf-shared/audio/sound-effects/axmorf-keyboard-tap-v1.wav",
+      "checksum": "sha256:517d709aa00f719e8a9a870950f2d2d16607c998b24b366aa25f21b30de68eff",
+      "license": {
+        "id": "Apache-2.0",
+        "verificationStatus": "verified",
+        "sourceUrl": "https://github.com/AXMORF/axmorf-studio/blob/HEAD/LICENSE",
+        "attributionRequired": false,
+        "attributionText": null,
+        "verifiedAt": "2026-10-02T00:00:00.000Z",
+        "sourceEvidenceFingerprint": "sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "media": {
+        "mimeType": "audio/wav",
+        "sizeBytes": 23084,
+        "durationInSeconds": 0.12,
+        "codec": "pcm_s16le",
+        "sampleRate": 48000
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "asset.axmorf.sfx.typing-burst-v1",
+      "kind": "asset",
+      "status": "approved",
+      "title": "AXMORF Typing Burst / 短打字串",
+      "description": "Four simulated key taps starting at 0s, 0.085s, 0.175s and 0.295s. Use individual taps for text animations with different spacing. Original offline procedural synthesis, 48 kHz stereo PCM WAV. Primary sync landmark: onset. Start auditioning at Scene volume 0.2-0.4.",
+      "useCases": ["Four-character typing gesture / 四次打字动作"],
+      "tags": ["axmorf", "keyboard", "motion-sync", "sound-effect", "typing"],
+      "authority": {
+        "kind": "repository-file",
+        "repositoryPath": "src/remotion/catalog/assets.manifest.json"
+      },
+      "allowedUse": "runtime-approved",
+      "assetKind": "audio",
+      "mediaRole": "sound-effect",
+      "localPath": "public/assets/axmorf-shared/audio/sound-effects/axmorf-typing-burst-v1.wav",
+      "checksum": "sha256:ea80117cbfa5b56f607e02d55e35c61ed2236896eefb779c970a13cbebc2695e",
+      "license": {
+        "id": "Apache-2.0",
+        "verificationStatus": "verified",
+        "sourceUrl": "https://github.com/AXMORF/axmorf-studio/blob/HEAD/LICENSE",
+        "attributionRequired": false,
+        "attributionText": null,
+        "verifiedAt": "2026-10-02T00:00:00.000Z",
+        "sourceEvidenceFingerprint": "sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "media": {
+        "mimeType": "audio/wav",
+        "sizeBytes": 105644,
+        "durationInSeconds": 0.55,
+        "codec": "pcm_s16le",
+        "sampleRate": 48000
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "asset.axmorf.sfx.toggle-switch-v1",
+      "kind": "asset",
+      "status": "approved",
+      "title": "AXMORF Toggle Switch / 开关切换",
+      "description": "Compact plastic toggle snap for a single visible state change. Original offline procedural synthesis, 48 kHz stereo PCM WAV. Primary sync landmark: onset. Start auditioning at Scene volume 0.2-0.4.",
+      "useCases": ["Toggle state change / 开关状态变化"],
+      "tags": [
+        "axmorf",
+        "interface",
+        "motion-sync",
+        "sound-effect",
+        "switch",
+        "toggle"
+      ],
+      "authority": {
+        "kind": "repository-file",
+        "repositoryPath": "src/remotion/catalog/assets.manifest.json"
+      },
+      "allowedUse": "runtime-approved",
+      "assetKind": "audio",
+      "mediaRole": "sound-effect",
+      "localPath": "public/assets/axmorf-shared/audio/sound-effects/axmorf-toggle-switch-v1.wav",
+      "checksum": "sha256:11a2d6dd5b0ee2b87ed7b5133ad7f36851c44baecf9068e2263f12ba1b41cccf",
+      "license": {
+        "id": "Apache-2.0",
+        "verificationStatus": "verified",
+        "sourceUrl": "https://github.com/AXMORF/axmorf-studio/blob/HEAD/LICENSE",
+        "attributionRequired": false,
+        "attributionText": null,
+        "verifiedAt": "2026-10-02T00:00:00.000Z",
+        "sourceEvidenceFingerprint": "sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "media": {
+        "mimeType": "audio/wav",
+        "sizeBytes": 28844,
+        "durationInSeconds": 0.15,
+        "codec": "pcm_s16le",
+        "sampleRate": 48000
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "asset.axmorf.sfx.drag-pickup-v1",
+      "kind": "asset",
+      "status": "approved",
+      "title": "AXMORF Drag Pickup / 拖拽拾起",
+      "description": "Small upward pitch gesture for picking up a draggable object. Original offline procedural synthesis, 48 kHz stereo PCM WAV. Primary sync landmark: onset. Start auditioning at Scene volume 0.2-0.4.",
+      "useCases": ["Object pickup / 对象拾起"],
+      "tags": ["axmorf", "drag", "motion-sync", "pickup", "sound-effect"],
+      "authority": {
+        "kind": "repository-file",
+        "repositoryPath": "src/remotion/catalog/assets.manifest.json"
+      },
+      "allowedUse": "runtime-approved",
+      "assetKind": "audio",
+      "mediaRole": "sound-effect",
+      "localPath": "public/assets/axmorf-shared/audio/sound-effects/axmorf-drag-pickup-v1.wav",
+      "checksum": "sha256:55edc034cac49afbe2a93ee9270fc8fa9f008c941baabfe3ed4ecfeff69bcd11",
+      "license": {
+        "id": "Apache-2.0",
+        "verificationStatus": "verified",
+        "sourceUrl": "https://github.com/AXMORF/axmorf-studio/blob/HEAD/LICENSE",
+        "attributionRequired": false,
+        "attributionText": null,
+        "verifiedAt": "2026-10-02T00:00:00.000Z",
+        "sourceEvidenceFingerprint": "sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "media": {
+        "mimeType": "audio/wav",
+        "sizeBytes": 38444,
+        "durationInSeconds": 0.2,
+        "codec": "pcm_s16le",
+        "sampleRate": 48000
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "asset.axmorf.sfx.drop-settle-v1",
+      "kind": "asset",
+      "status": "approved",
+      "title": "AXMORF Drop Settle / 放下回弹",
+      "description": "Soft object landing followed by two quieter settling taps at 0.05s and 0.088s. Original offline procedural synthesis, 48 kHz stereo PCM WAV. Primary sync landmark: onset. Start auditioning at Scene volume 0.2-0.4.",
+      "useCases": ["Object drop / 对象放下", "Small bounce / 轻微回弹"],
+      "tags": [
+        "axmorf",
+        "drop",
+        "landing",
+        "motion-sync",
+        "settle",
+        "sound-effect"
+      ],
+      "authority": {
+        "kind": "repository-file",
+        "repositoryPath": "src/remotion/catalog/assets.manifest.json"
+      },
+      "allowedUse": "runtime-approved",
+      "assetKind": "audio",
+      "mediaRole": "sound-effect",
+      "localPath": "public/assets/axmorf-shared/audio/sound-effects/axmorf-drop-settle-v1.wav",
+      "checksum": "sha256:2221ed7b411b0bde7b89a6d656cd20199ca1be6c6bfe1230e8b598e4729a2f7a",
+      "license": {
+        "id": "Apache-2.0",
+        "verificationStatus": "verified",
+        "sourceUrl": "https://github.com/AXMORF/axmorf-studio/blob/HEAD/LICENSE",
+        "attributionRequired": false,
+        "attributionText": null,
+        "verifiedAt": "2026-10-02T00:00:00.000Z",
+        "sourceEvidenceFingerprint": "sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "media": {
+        "mimeType": "audio/wav",
+        "sizeBytes": 49964,
+        "durationInSeconds": 0.26,
+        "codec": "pcm_s16le",
+        "sampleRate": 48000
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "asset.axmorf.sfx.swish-reverse-v1",
+      "kind": "asset",
+      "status": "approved",
+      "title": "AXMORF Reverse Swish / 反向掠过",
+      "description": "Right-to-left air sweep with a late swell for a retracting panel or reverse transition. Original offline procedural synthesis, 48 kHz stereo PCM WAV. Primary sync landmark: 0.3s swell center. Start auditioning at Scene volume 0.2-0.4.",
+      "useCases": [
+        "Panel retraction / 面板收回",
+        "Reverse transition / 反向转场"
+      ],
+      "tags": [
+        "axmorf",
+        "motion-sync",
+        "reverse",
+        "sound-effect",
+        "transition",
+        "whoosh"
+      ],
+      "authority": {
+        "kind": "repository-file",
+        "repositoryPath": "src/remotion/catalog/assets.manifest.json"
+      },
+      "allowedUse": "runtime-approved",
+      "assetKind": "audio",
+      "mediaRole": "sound-effect",
+      "localPath": "public/assets/axmorf-shared/audio/sound-effects/axmorf-swish-reverse-v1.wav",
+      "checksum": "sha256:865d86b3dfb78e03cffa1ec1dc03bd3f8c506e04e4888a2824818fee21b0c526",
+      "license": {
+        "id": "Apache-2.0",
+        "verificationStatus": "verified",
+        "sourceUrl": "https://github.com/AXMORF/axmorf-studio/blob/HEAD/LICENSE",
+        "attributionRequired": false,
+        "attributionText": null,
+        "verifiedAt": "2026-10-02T00:00:00.000Z",
+        "sourceEvidenceFingerprint": "sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "media": {
+        "mimeType": "audio/wav",
+        "sizeBytes": 80684,
+        "durationInSeconds": 0.42,
+        "codec": "pcm_s16le",
+        "sampleRate": 48000
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "asset.axmorf.sfx.card-flip-v1",
+      "kind": "asset",
+      "status": "approved",
+      "title": "AXMORF Card Flip / 卡片翻面",
+      "description": "Two short synthesized paper-like brush gestures for a card turning to its other face. Original offline procedural synthesis, 48 kHz stereo PCM WAV. Primary sync landmark: 0.12s swell center. Start auditioning at Scene volume 0.2-0.4.",
+      "useCases": ["Card turn / 卡片翻面"],
+      "tags": [
+        "axmorf",
+        "card",
+        "flip",
+        "motion-sync",
+        "paper",
+        "sound-effect"
+      ],
+      "authority": {
+        "kind": "repository-file",
+        "repositoryPath": "src/remotion/catalog/assets.manifest.json"
+      },
+      "allowedUse": "runtime-approved",
+      "assetKind": "audio",
+      "mediaRole": "sound-effect",
+      "localPath": "public/assets/axmorf-shared/audio/sound-effects/axmorf-card-flip-v1.wav",
+      "checksum": "sha256:192d3793a7ba0bd250ec57e94b4e5659bbaf9ccc48c0847d0ee1ad11447feaab",
+      "license": {
+        "id": "Apache-2.0",
+        "verificationStatus": "verified",
+        "sourceUrl": "https://github.com/AXMORF/axmorf-studio/blob/HEAD/LICENSE",
+        "attributionRequired": false,
+        "attributionText": null,
+        "verifiedAt": "2026-10-02T00:00:00.000Z",
+        "sourceEvidenceFingerprint": "sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "media": {
+        "mimeType": "audio/wav",
+        "sizeBytes": 53804,
+        "durationInSeconds": 0.28,
+        "codec": "pcm_s16le",
+        "sampleRate": 48000
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "asset.axmorf.sfx.notification-ping-v1",
+      "kind": "asset",
+      "status": "approved",
+      "title": "AXMORF Notification Ping / 通知轻响",
+      "description": "One clear synthesized bell-like ping with a short upper partial. Original offline procedural synthesis, 48 kHz stereo PCM WAV. Primary sync landmark: onset. Start auditioning at Scene volume 0.2-0.4.",
+      "useCases": ["Notification reveal / 通知出现"],
+      "tags": ["axmorf", "motion-sync", "notification", "ping", "sound-effect"],
+      "authority": {
+        "kind": "repository-file",
+        "repositoryPath": "src/remotion/catalog/assets.manifest.json"
+      },
+      "allowedUse": "runtime-approved",
+      "assetKind": "audio",
+      "mediaRole": "sound-effect",
+      "localPath": "public/assets/axmorf-shared/audio/sound-effects/axmorf-notification-ping-v1.wav",
+      "checksum": "sha256:fda26bf315ac2decb7c1b5fb2ddf4b91640c4032b02a1a662ee9004836c7501b",
+      "license": {
+        "id": "Apache-2.0",
+        "verificationStatus": "verified",
+        "sourceUrl": "https://github.com/AXMORF/axmorf-studio/blob/HEAD/LICENSE",
+        "attributionRequired": false,
+        "attributionText": null,
+        "verifiedAt": "2026-10-02T00:00:00.000Z",
+        "sourceEvidenceFingerprint": "sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "media": {
+        "mimeType": "audio/wav",
+        "sizeBytes": 86444,
+        "durationInSeconds": 0.45,
+        "codec": "pcm_s16le",
+        "sampleRate": 48000
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "asset.axmorf.sfx.warning-blip-v1",
+      "kind": "asset",
+      "status": "approved",
+      "title": "AXMORF Warning Blip / 轻警告",
+      "description": "Two restrained descending tones at 0s and 0.11s for a visible warning or denied action. Original offline procedural synthesis, 48 kHz stereo PCM WAV. Primary sync landmark: onset. Start auditioning at Scene volume 0.2-0.4.",
+      "useCases": ["Denied action / 操作未通过", "Warning state / 警告状态"],
+      "tags": ["alert", "axmorf", "motion-sync", "sound-effect", "warning"],
+      "authority": {
+        "kind": "repository-file",
+        "repositoryPath": "src/remotion/catalog/assets.manifest.json"
+      },
+      "allowedUse": "runtime-approved",
+      "assetKind": "audio",
+      "mediaRole": "sound-effect",
+      "localPath": "public/assets/axmorf-shared/audio/sound-effects/axmorf-warning-blip-v1.wav",
+      "checksum": "sha256:d5569f13f2af72798cd52b4ccd454c4f5ef1b4114c1ec99e0bb24afaf0094f7f",
+      "license": {
+        "id": "Apache-2.0",
+        "verificationStatus": "verified",
+        "sourceUrl": "https://github.com/AXMORF/axmorf-studio/blob/HEAD/LICENSE",
+        "attributionRequired": false,
+        "attributionText": null,
+        "verifiedAt": "2026-10-02T00:00:00.000Z",
+        "sourceEvidenceFingerprint": "sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "media": {
+        "mimeType": "audio/wav",
+        "sizeBytes": 67244,
+        "durationInSeconds": 0.35,
+        "codec": "pcm_s16le",
+        "sampleRate": 48000
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "asset.axmorf.sfx.success-arpeggio-v1",
+      "kind": "asset",
+      "status": "approved",
+      "title": "AXMORF Success Arpeggio / 成功和弦",
+      "description": "Three ascending major tones starting at 0s, 0.065s and 0.13s for a completed result. Original offline procedural synthesis, 48 kHz stereo PCM WAV. Primary sync landmark: onset. Start auditioning at Scene volume 0.2-0.4.",
+      "useCases": ["Completed result / 完成结果"],
+      "tags": [
+        "arpeggio",
+        "axmorf",
+        "completion",
+        "motion-sync",
+        "sound-effect",
+        "success"
+      ],
+      "authority": {
+        "kind": "repository-file",
+        "repositoryPath": "src/remotion/catalog/assets.manifest.json"
+      },
+      "allowedUse": "runtime-approved",
+      "assetKind": "audio",
+      "mediaRole": "sound-effect",
+      "localPath": "public/assets/axmorf-shared/audio/sound-effects/axmorf-success-arpeggio-v1.wav",
+      "checksum": "sha256:09ddb436db61004cdce9c4f7e753970f217eb6c87a1e1d83166e4178b8b7ce21",
+      "license": {
+        "id": "Apache-2.0",
+        "verificationStatus": "verified",
+        "sourceUrl": "https://github.com/AXMORF/axmorf-studio/blob/HEAD/LICENSE",
+        "attributionRequired": false,
+        "attributionText": null,
+        "verifiedAt": "2026-10-02T00:00:00.000Z",
+        "sourceEvidenceFingerprint": "sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "media": {
+        "mimeType": "audio/wav",
+        "sizeBytes": 134444,
+        "durationInSeconds": 0.7,
+        "codec": "pcm_s16le",
+        "sampleRate": 48000
+      }
     }
   ]
 }

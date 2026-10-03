@@ -44,8 +44,21 @@ export const assertTaskWorkspaceInputsCurrent = async (
         "Task declared read binding is missing.",
       );
     const path = join(workspace, logicalPath);
+    if (relative(workspace, path).split(sep).join("/") !== logicalPath)
+      throw new TaskWorkspaceAuthorityError(
+        "Task declared read escapes its workspace.",
+      );
     let metadata;
     try {
+      let parent = workspace;
+      for (const segment of logicalPath.split("/").slice(0, -1)) {
+        parent = join(parent, segment);
+        const parentMetadata = await lstat(parent);
+        if (!parentMetadata.isDirectory() || parentMetadata.isSymbolicLink())
+          throw new TaskWorkspaceAuthorityError(
+            "Task declared read parent must be a real directory.",
+          );
+      }
       metadata = await lstat(path);
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === "ENOENT") {

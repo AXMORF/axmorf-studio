@@ -17,10 +17,22 @@ import test from "node:test";
 
 import {
   AuthoringValidationError,
+  ProjectRevisionInputSchema,
+  ProjectRevisionMaterializationRecordSchema,
+  ScenePriorSourceIndexSchema,
+  SCENE_PRIOR_SOURCE_PATH,
   VISUAL_THEME_PRESETS,
   buildDeliveryPublish,
   buildDeliveryPublishing,
   buildProductionRevision,
+  buildNotApplicableFidelityReceipt,
+  buildSceneSoundPlan,
+  buildSceneSyncAnchors,
+  buildSceneTaskInputV7,
+  buildSceneVisualPlan,
+  buildShotPlanSet,
+  buildShotRecipeSelection,
+  serializeCanonicalJson,
   createDeliveryBuildId,
   type Sha256Digest,
 } from "@axmorf/studio/contracts";
@@ -46,6 +58,9 @@ import { buildRuntimePolicyManifest } from "../../packages/studio/src/runtime/po
 import { snapshotPolicyRoots } from "../../scripts/project-production/adapters/project-input-snapshot";
 import { computeProjectRevisionCandidateId } from "../../packages/studio/src/contracts/project-revision";
 import { createProjectRevisionProductionScope } from "../../scripts/project-production/application/production-scope";
+import { collectRendererSourceGraph } from "../../scripts/renderer-registry/domain";
+import { buildScenePackage } from "../../scripts/scene-package/domain";
+import { createScenePackageInput } from "../fixtures/scene/package-input";
 import {
   prepareProjectCreateFixture,
   validProjectCreateInput,
@@ -279,6 +294,158 @@ const fixture = async (
   return { ...prepared, dependencies, input, publish } as const;
 };
 
+test("candidate authoring freezes verified current Scene bytes before narration cleanup and attests the input", async (context) => {
+  const current = await fixture(context);
+  const old = createScenePackageInput();
+  const storyId = current.input.storyId;
+  const meaningId = "opening";
+  const sceneRoot = `src/projects/${storyId}/scenes/${meaningId}`;
+  const task = buildSceneTaskInputV7({
+    ...old.task,
+    storyId,
+    meaningId,
+    storyBeat: validProjectCreateInput.story.beats[0],
+    timingBeat: { ...old.task.timingBeat, meaningId },
+    allowedDirectories: {
+      sceneRoot,
+      publicAssetRoot: `public/projects/${storyId}/scenes/${meaningId}`,
+    },
+  });
+  const identity = {
+    taskInputFingerprint: task.taskInputFingerprint,
+    meaningId,
+  };
+  const visual = buildSceneVisualPlan({ ...old.visual, ...identity });
+  const shots = buildShotPlanSet({ ...old.shots, ...identity });
+  const anchors = buildSceneSyncAnchors({ ...old.anchors, ...identity });
+  const sound = buildSceneSoundPlan({ ...old.sound, ...identity });
+  const selection = buildShotRecipeSelection({
+    taskInputFingerprint: task.taskInputFingerprint,
+    selections: [],
+  });
+  const fidelityReceipt = buildNotApplicableFidelityReceipt({
+    selectionFingerprint: selection.selectionFingerprint,
+    reason: "empty",
+  });
+  const renderer =
+    'import type {SceneRendererProps} from "@axmorf/studio/remotion";\nconst Renderer = ({viewportWidth}: SceneRendererProps) => <div style={{width: viewportWidth}} data-label="retain-base" />;\nexport default Renderer;\n';
+  await mkdir(join(current.rootDir, sceneRoot, "generated"), {
+    recursive: true,
+  });
+  await writeFile(join(current.rootDir, sceneRoot, "Renderer.tsx"), renderer);
+  const graph = await collectRendererSourceGraph({
+    rootDir: current.rootDir,
+    projectId: storyId,
+    rendererPath: `${sceneRoot}/Renderer.tsx`,
+  });
+  const scenePackage = buildScenePackage({
+    task,
+    visual,
+    shots,
+    anchors,
+    sound,
+    selection,
+    fidelityReceipt,
+    selectedResources: old.selectedResources,
+    rendererBinding: {
+      rendererId: `${storyId}-${meaningId}`,
+      rendererSourceFingerprint: graph.sourceGraphFingerprint,
+    },
+    current: {
+      ...old.current,
+      timingBeat: task.timingBeat,
+      rendererSourceFingerprint: graph.sourceGraphFingerprint,
+    },
+  });
+  const declarations = {
+    "task-input.generated.json": task,
+    "generated/scene-package.generated.json": scenePackage,
+    "visual-plan.json": visual,
+    "shot-plan.json": shots,
+    "sync-anchors.json": anchors,
+    "sound-plan.json": sound,
+    "shot-recipe-selection.json": selection,
+    "generated/reference-fidelity.generated.json": fidelityReceipt,
+    "selected-resources.json": {
+      schemaVersion: 1,
+      selectedResources: old.selectedResources,
+    },
+  };
+  for (const [path, value] of Object.entries(declarations))
+    await writeFile(
+      join(current.rootDir, sceneRoot, path),
+      `${serializeCanonicalJson(value)}\n`,
+    );
+  const created = await createProjectRevisionCandidate({
+    rootDir: current.rootDir,
+    projectId: storyId,
+    input: current.input,
+    env: { RSP_PRODUCER_CONFIG: current.configPath },
+    dependencies: current.dependencies,
+  });
+  const scope = createProjectRevisionProductionScope({
+    rootDir: current.rootDir,
+    storyId,
+    candidateId: created.candidateId,
+  });
+  const logicalPath = `src/projects/${storyId}/${SCENE_PRIOR_SOURCE_PATH}`;
+  const bytes = await readFile(join(scope.isolatedRoot, logicalPath), "utf8");
+  const index = ScenePriorSourceIndexSchema.parse(JSON.parse(bytes));
+  assert.equal(index.scenes.length, 1);
+  assert.equal(
+    index.scenes[0].brief.compositionIntent,
+    validProjectCreateInput.scenes[0].compositionIntent,
+  );
+  assert.equal(
+    index.scenes[0].files.find(({ path }) => path === "Renderer.tsx")?.content,
+    renderer,
+  );
+  assert.equal(
+    index.scenes[0].scenePackageFingerprint,
+    scenePackage.packageFingerprint,
+  );
+  assert.equal(
+    await readFile(join(current.rootDir, sceneRoot, "Renderer.tsx"), "utf8"),
+    renderer,
+  );
+  await assert.rejects(access(join(scope.isolatedRoot, sceneRoot)), /ENOENT/u);
+  await assert.rejects(access(join(current.rootDir, logicalPath)), /ENOENT/u);
+  const materialization = ProjectRevisionMaterializationRecordSchema.parse(
+    JSON.parse(
+      await readFile(
+        join(
+          scope.projectSourceRoot,
+          storyId,
+          "production/project-revision-candidate.json",
+        ),
+        "utf8",
+      ),
+    ),
+  );
+  assert.deepEqual(
+    materialization.authoringFiles.find(
+      (file) => file.logicalPath === logicalPath,
+    ),
+    {
+      logicalPath,
+      checksum: checksum(bytes),
+      sizeBytes: Buffer.byteLength(bytes),
+    },
+  );
+  const repeated = await createProjectRevisionCandidate({
+    rootDir: current.rootDir,
+    projectId: storyId,
+    input: current.input,
+    env: { RSP_PRODUCER_CONFIG: current.configPath },
+    dependencies: current.dependencies,
+  });
+  assert.equal(repeated.candidateId, created.candidateId);
+  assert.equal(
+    await readFile(join(scope.isolatedRoot, logicalPath), "utf8"),
+    bytes,
+  );
+});
+
 test("theme revision preserves immutable boundaries and changes only the isolated candidate", async (context) => {
   const current = await fixture(context, true);
   const projectRoot = join(current.rootDir, "src/projects/story-example");
@@ -486,6 +653,39 @@ test("revision context rejects a Delivery that changes during inspection", async
     /Delivery changed during context inspection/u,
   );
   assert.equal(inspectionCount, 2);
+});
+
+test("revision validation rejects a handoff beyond the last narrated Scene before candidate mutation", async (context) => {
+  const current = await fixture(context, true);
+  const authoringPath = join(
+    current.rootDir,
+    "src/projects",
+    current.input.storyId,
+    "production/pending-scene-production-brief.json",
+  );
+  const before = await readFile(authoringPath, "utf8");
+  const edit = await readProjectRevisionContext({
+    rootDir: current.rootDir,
+    projectId: current.input.storyId,
+    dependencies: current.dependencies,
+  });
+  await assert.rejects(
+    validateProjectRevisionAuthoring({
+      rootDir: current.rootDir,
+      dependencies: current.dependencies,
+      input: {
+        ...current.input,
+        patch: {
+          scenes: edit.editable.scenes.map((scene) => ({
+            ...scene,
+            outgoingHandoff: { subject: "A source ribbon" },
+          })),
+        },
+      },
+    }),
+    /following narrated/u,
+  );
+  assert.equal(await readFile(authoringPath, "utf8"), before);
 });
 
 test("revision validation rejects no-ops and reports caption paths below patch.story", async (context) => {
@@ -755,6 +955,79 @@ test("revision validation rejects a stale Delivery build binding", async (contex
       dependencies: current.dependencies,
     }),
     /base is stale/u,
+  );
+});
+
+test("public Scene revision example validates a local patch against the exact current base", async (context) => {
+  const current = await fixture(context);
+  const revisionContext = await readProjectRevisionContext({
+    rootDir: current.rootDir,
+    projectId: current.input.storyId,
+    dependencies: current.dependencies,
+  });
+  const source = await readFile(
+    join(
+      process.cwd(),
+      "packages/create-axmorf-studio/template/.agents/skills/axmorf-video/references/authoring.md",
+    ),
+    "utf8",
+  );
+  const example = /(\/\/ axmorf-scene-revision-input[\s\S]*?)\n```/u.exec(
+    source,
+  )?.[1];
+  assert.ok(example, "The shipped revision example must be executable");
+  const scene = revisionContext.editable.scenes[0];
+  assert.ok(scene);
+  const revisedCompositionIntent =
+    "Keep the title above the bookshelf with a clear reading margin.";
+  const execute = new Function(
+    "ProjectRevisionInputSchema",
+    "revisionContext",
+    "targetMeaningId",
+    "revisedCompositionIntent",
+    `${example}\nreturn input;`,
+  );
+  const input = ProjectRevisionInputSchema.parse(
+    execute(
+      ProjectRevisionInputSchema,
+      revisionContext,
+      scene.meaningId,
+      revisedCompositionIntent,
+    ),
+  );
+  assert.deepEqual(Object.keys(input.patch), ["scenes"]);
+  assert.deepEqual(input.patch.scenes, [
+    { ...scene, compositionIntent: revisedCompositionIntent },
+  ]);
+  assert.equal(input.baseRevisionId, revisionContext.baseRevisionId);
+  assert.equal(input.baseDeliveryBuildId, revisionContext.baseDeliveryBuildId);
+  const inputPath = "inputs/scene-revision-example.json";
+  await writeFile(
+    join(current.rootDir, inputPath),
+    `${JSON.stringify(input)}\n`,
+  );
+  const validated = await runProjectRevisionValidateCli(
+    ["--input", inputPath],
+    {
+      rootDir: current.rootDir,
+      env: { RSP_PRODUCER_CONFIG: current.configPath },
+      stdout: () => undefined,
+      dependencies: current.dependencies,
+    },
+  );
+  assert.deepEqual(validated.changedSections, ["scenes"]);
+  assert.equal(validated.candidateId, computeProjectRevisionCandidateId(input));
+  assert.throws(() =>
+    parseProjectRevisionValidateArguments([
+      "--project",
+      current.input.storyId,
+      "--input",
+      inputPath,
+    ]),
+  );
+  assert.throws(() => parseProjectRevisionValidateArguments(["--schema"]));
+  assert.throws(() =>
+    ProjectRevisionInputSchema.parse({ ...input, patch: { cover: {} } }),
   );
 });
 

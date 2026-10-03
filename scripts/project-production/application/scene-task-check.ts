@@ -4,6 +4,9 @@ import { dirname, join } from "node:path";
 import {
   SceneOriginalityBaselineSchema,
   SceneTaskInputSchema,
+  ScenePriorSourceSchema,
+  computeUtf8Checksum,
+  scenePriorSourceOutputFiles,
   TaskExecutionContractSchema,
   buildSceneSourceGraph,
   findSceneOriginalityConflicts,
@@ -46,6 +49,7 @@ export const checkSceneTask = async (
   ) as {
     scene?: {
       taskInput?: unknown;
+      priorSource?: unknown;
       availableResources?: unknown;
       narrationCues?: readonly { startFrame: number; endFrame: number }[];
       fps?: number;
@@ -54,6 +58,37 @@ export const checkSceneTask = async (
     originalityBaseline?: unknown;
   };
   const taskInput = SceneTaskInputSchema.parse(context.scene?.taskInput);
+  if (context.scene?.priorSource !== undefined) {
+    const priorSource = ScenePriorSourceSchema.parse(context.scene.priorSource);
+    if (
+      priorSource.storyId !== taskInput.storyId ||
+      priorSource.meaningId !== taskInput.meaningId
+    )
+      throw new Error("Prior Scene output ownership is cross-bound.");
+    for (const file of scenePriorSourceOutputFiles(priorSource).filter(
+      ({ role, path }) =>
+        role !== "source" &&
+        ![
+          "visual-plan.json",
+          "shot-plan.json",
+          "sync-anchors.json",
+          "sound-plan.json",
+          "selected-resources.json",
+          "shot-recipe-selection.json",
+          "generated/reference-fidelity.generated.json",
+        ].includes(path),
+    )) {
+      if (
+        !checked.task.declaredOutputSet.includes(`src/${file.path}`) ||
+        computeUtf8Checksum(
+          await readFile(join(checked.workspace, "src", file.path), "utf8"),
+        ) !== file.checksum
+      )
+        throw new Error(
+          `Prior Scene retained license, lineage or declaration checksum drifted: ${file.path}.`,
+        );
+    }
+  }
   if (
     taskInput.storyId !== checked.task.storyId ||
     taskInput.meaningId !== checked.task.semanticId
@@ -121,9 +156,11 @@ void renderer;
   });
   if (checked.task.taskKind === "scene-owner") {
     if (
-      !["scene-owner-validator-v4", "scene-owner-validator-v5"].includes(
-        checked.task.validatorPolicyVersion,
-      )
+      ![
+        "scene-owner-validator-v4",
+        "scene-owner-validator-v5",
+        "scene-owner-validator-v6",
+      ].includes(checked.task.validatorPolicyVersion)
     ) {
       throw new Error("Scene owner task uses an unsupported validator policy.");
     }
@@ -215,6 +252,7 @@ void renderer;
   });
   let motionReview: ReturnType<typeof checkSceneMotionConsumption> | undefined;
   if (
+    checked.task.taskKind === "scene-owner" &&
     taskInput.sceneRequirements.some(
       ({ requirementId }) => requirementId === SCENE_MOTION_REQUIREMENT_ID,
     )

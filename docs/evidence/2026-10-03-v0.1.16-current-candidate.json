@@ -1,0 +1,743 @@
+{
+  "schemaVersion": 1,
+  "version": "0.1.16",
+  "recordedAt": "2026-10-03T02:17:02.742528+00:00",
+  "scope": "Current-source candidate native first use, scoped revisions, installed publishing.description-only copy fixture and sampled media review; not a public-native or subjective-listening certificate",
+  "source": {
+    "baseCommit": "7352dc9f7d89f4c10589f1fdde99974e118da470",
+    "releaseBranch": "axmorf/release-0.1.16",
+    "originalBranch": "axmorf/npm-workspace-open-source",
+    "originalDirtyFilesPreserved": 73
+  },
+  "packages": [
+    {
+      "name": "@axmorf/studio",
+      "version": "0.1.16",
+      "fingerprint": "sha256:2f528b35e9a6b8dc2960c48592db2924d93a83f21a5d7211b0208c7aa940723b",
+      "fileCount": 283,
+      "tarballChecksum": "sha256:d094a4c4b27fac156e4093497c791913d806c834abd48f95470884643e3d0fb5",
+      "integrity": "sha512-5tTfwTXUrAC57eoGGk/1bd2fkRmg5HiYyE+1Q4snvXocebxmY8otUaq+WiRyNzObAvnwBEKZq2WeEHixFvN+zA==",
+      "sizeBytes": 3410481
+    },
+    {
+      "name": "create-axmorf-studio",
+      "version": "0.1.16",
+      "fingerprint": "sha256:5fc7408f755a55501ee5bd0d2342e73ac8f889c88d6d6a4ab72037ea7c2a021b",
+      "fileCount": 41,
+      "tarballChecksum": "sha256:b1332478f277a63d0273a1ebe9dec1a66d8df22d7e6137fa98bee233cd414795",
+      "integrity": "sha512-g9UVSwkE3BOyEpLQQfujXlhFYZPTTpxKchZoE2wtU8FjTSl3+EAs1/eQGx7rwufphPh2PptDH3NGLjPs6luXFQ==",
+      "sizeBytes": 46405
+    }
+  ],
+  "workspace": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-reviewed-firstuse-20261003-gzhb5fc5/workspace",
+  "model": "gpt-6.1-sol",
+  "reasoningEffort": "max",
+  "codexCliVersion": "0.160.0",
+  "rootSessionId": "01a0fee4-9c49-7c42-8b09-b7f38d3adbe2",
+  "businessUserMessages": 1,
+  "followUpMessages": 0,
+  "receipt": {
+    "path": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-reviewed-firstuse-20261003-gzhb5fc5/host-receipt.json",
+    "checksum": "sha256:98074563e7a9a5e3df81d5754ec34066a01dbc085e20b0488adfbe6a931e9678"
+  },
+  "canonicalReceipt": "docs/evidence/v0.1.16-first-use.json",
+  "nativeExecution": {
+    "mode": "subagents",
+    "workerTransport": "shared-workspace",
+    "requestedMaxConcurrency": 4,
+    "effectiveMaxConcurrency": 4,
+    "peakActiveChildren": 4,
+    "peakBoundTasks": 4,
+    "fourWayBoundOverlapMs": 515914,
+    "refillAdmissions": 2,
+    "productionChildCount": 8,
+    "probeChildCount": 12,
+    "attemptId": "0384ce03-ae17-414d-83d2-8166bf910f5e"
+  },
+  "productionChildren": [
+    {
+      "sessionId": "01a0feef-3930-7023-90fe-393179fbc1a3",
+      "transcriptChecksum": "sha256:66cacc46d2cf1844d01e09d232d6876d63d671001fb2f5eca22ff9d2dd24f1e9",
+      "sessionChecksum": null,
+      "taskRevision": "task-4f6c3b34758c6dfe95e07a3e085488547c4128a90f38adde8ccde3f5e616aece",
+      "attemptId": "0384ce03-ae17-414d-83d2-8166bf910f5e"
+    },
+    {
+      "sessionId": "01a0feef-608c-7fc3-99d7-e3a7d3dae226",
+      "transcriptChecksum": "sha256:fd880eb0af340d6c6804c363083e3fa6c1086223ceb1d8c88e710cedf59ff49f",
+      "sessionChecksum": null,
+      "taskRevision": "task-638eb2edbfb14cfe377bf81c19e091bfd414e4a9ad28918aad8e01d3bc3cb1b7",
+      "attemptId": "0384ce03-ae17-414d-83d2-8166bf910f5e"
+    },
+    {
+      "sessionId": "01a0feef-8785-7832-998b-cba8522b65d0",
+      "transcriptChecksum": "sha256:09c4895f7539bd130c96b48ab9bdf054109f0457132aabbe65a0f52b1c3486ab",
+      "sessionChecksum": null,
+      "taskRevision": "task-63fa0ee32aca6a9743e0fe63bb385e188ddb2872522b2143afc7d7f98630e03b",
+      "attemptId": "0384ce03-ae17-414d-83d2-8166bf910f5e"
+    },
+    {
+      "sessionId": "01a0feef-b5f0-79f1-b751-418802f0499c",
+      "transcriptChecksum": "sha256:df4c1daa75e08a33b61ac7c5b907bd0616b3cb8420a8e9cd3dd295577fc9ccf8",
+      "sessionChecksum": null,
+      "taskRevision": "task-baa01ca4624c5b0a2e7a99006c1e0742b26451e6b18befcd8f74ff5b847b10ec",
+      "attemptId": "0384ce03-ae17-414d-83d2-8166bf910f5e"
+    },
+    {
+      "sessionId": "01a0fef1-ec34-7b72-8230-fc8fd67299eb",
+      "transcriptChecksum": "sha256:e31042f739b98040ad8902e6e854def2880b58c467f357f61174911e62eb2f77",
+      "sessionChecksum": null,
+      "taskRevision": "task-f3c9df2422602e9f4af51525b2a585eb4f0094fabd58de376d3c03070df204ec",
+      "attemptId": "0384ce03-ae17-414d-83d2-8166bf910f5e"
+    },
+    {
+      "sessionId": "01a0fef6-96df-7290-837a-20952bb36d0b",
+      "transcriptChecksum": "sha256:6637c91793b24d4b3802fbe9d787236d70745de5dfe495b212158d610c47466a",
+      "sessionChecksum": null,
+      "taskRevision": "task-cfd93a6e509ab70b2d468f9260c4f3df66b978eb399c50d89219d0f49c0d9db0",
+      "attemptId": "0384ce03-ae17-414d-83d2-8166bf910f5e"
+    },
+    {
+      "sessionId": "01a0ff09-cb54-7ab3-89d6-04777f67bd40",
+      "transcriptChecksum": "sha256:01cc51475066427aebc86df85b8ea42f552d378671be9651fa5ce5adcc79f047",
+      "sessionChecksum": null,
+      "taskRevision": "task-9b3ca43411682b5add665b17ed62855e65731d8ea64bf3aee7da15c6a74797a2",
+      "attemptId": "854af3f4-e7af-4bd6-8ee5-f29ec26907ae"
+    },
+    {
+      "sessionId": "01a0ff22-6063-7e52-af92-9376310dadc1",
+      "transcriptChecksum": "sha256:aec277ad884e0eef9a826962d6177fa65e8fa70784d309977be3f64a1dd381de",
+      "sessionChecksum": null,
+      "taskRevision": "task-0de00a6da075363ba69296a541ee2ecb424b4940f40c358adc1209acac08d134",
+      "attemptId": "bbc1632d-6363-46e0-a18d-1f64312f735b"
+    }
+  ],
+  "scopedRevisions": [
+    {
+      "candidateId": "revision-candidate-6f75bf8e40f83bbfd3d11630fdc256a6693ffe12b650029a608e9f81bb3a8840",
+      "attemptId": "854af3f4-e7af-4bd6-8ee5-f29ec26907ae",
+      "baseTuple": {
+        "revisionId": "revision-f08451d42f71da59782154b8b2e12070b5db2d2025a314f16cea4218141eadc0",
+        "deliveryBuildId": "delivery-c53f08362bd91d681f6a1265c207e6639d40d8c9a4392e5d81de2795b8abe006"
+      },
+      "finalTuple": {
+        "revisionId": "revision-81592c6627e43f5f66858301db7c87506489deaabb6d5fb556d2363540f980a8",
+        "deliveryBuildId": "delivery-1d1a72de6b83e05f90f06fb109f2eed2ea39aac806fdb37c8e0ce259ab2041d4"
+      },
+      "dirtyAgentTasks": [
+        {
+          "taskKind": "scene-owner",
+          "subject": {
+            "id": "context-generates-language",
+            "kind": "meaning"
+          },
+          "taskRevision": "task-9b3ca43411682b5add665b17ed62855e65731d8ea64bf3aee7da15c6a74797a2"
+        }
+      ],
+      "summary": {
+        "blockedTaskCount": 2,
+        "dirtyAgentTaskCount": 1,
+        "dirtyFixedTaskCount": 0,
+        "reusedTaskCount": 25
+      },
+      "actualCost": {
+        "agentTasks": 1,
+        "deliveryMedia": [],
+        "providerCacheHits": 16,
+        "providerRequests": 0
+      },
+      "publicFilesUnchanged": 20,
+      "narrationFilesUnchanged": 49,
+      "coverChecksumsUnchanged": {
+        "cover-3x4.png": {
+          "checksum": "sha256:12f656404cf6f0d564cacc3c9f82e33390c7bbc25eb06713c531ae435b98f9d7",
+          "sizeBytes": 217318
+        },
+        "cover-4x3.png": {
+          "checksum": "sha256:07f96a26004f79e55d01dff8b1f012fa7ce05288f270a19f86cf6dd7c2a7ca9d",
+          "sizeBytes": 215888
+        }
+      },
+      "globalVisualUnchanged": true,
+      "changedBriefFields": [
+        "/briefFingerprint",
+        "/scenes/2/compositionIntent"
+      ],
+      "all25ArtifactManifestsAndExactFileSetsRevalidated": true,
+      "rendererDiffChecksum": "sha256:0b87eeb4808f726787f62370f01596c8c6f1c44ae50ce082b5d353219bcf9059"
+    },
+    {
+      "candidateId": "revision-candidate-c3010a9f7e95e19f022b2da43d628ad9335016c52fff04872f853f98da769543",
+      "attemptId": "bbc1632d-6363-46e0-a18d-1f64312f735b",
+      "baseTuple": {
+        "revisionId": "revision-81592c6627e43f5f66858301db7c87506489deaabb6d5fb556d2363540f980a8",
+        "deliveryBuildId": "delivery-1d1a72de6b83e05f90f06fb109f2eed2ea39aac806fdb37c8e0ce259ab2041d4"
+      },
+      "finalTuple": {
+        "revisionId": "revision-a6afd5521dd04f7fe77b42bd8dbfe047d311901d17b8f6592776c0f6645ddcf5",
+        "deliveryBuildId": "delivery-28e5f13bf4cbea2120417833a776d6cd6a094a80cb477f426782778bb1c4bbf9"
+      },
+      "dirtyAgentTasks": [
+        {
+          "taskKind": "scene-owner",
+          "subject": {
+            "id": "context-generates-language",
+            "kind": "meaning"
+          },
+          "taskRevision": "task-0de00a6da075363ba69296a541ee2ecb424b4940f40c358adc1209acac08d134"
+        }
+      ],
+      "summary": {
+        "blockedTaskCount": 2,
+        "dirtyAgentTaskCount": 1,
+        "dirtyFixedTaskCount": 0,
+        "reusedTaskCount": 25
+      },
+      "actualCost": {
+        "agentTasks": 1,
+        "deliveryMedia": [],
+        "providerCacheHits": 16,
+        "providerRequests": 0
+      },
+      "publicFilesUnchanged": 20,
+      "narrationFilesUnchanged": 49,
+      "coverChecksumsUnchanged": {
+        "cover-3x4.png": {
+          "checksum": "sha256:12f656404cf6f0d564cacc3c9f82e33390c7bbc25eb06713c531ae435b98f9d7",
+          "sizeBytes": 217318
+        },
+        "cover-4x3.png": {
+          "checksum": "sha256:07f96a26004f79e55d01dff8b1f012fa7ce05288f270a19f86cf6dd7c2a7ca9d",
+          "sizeBytes": 215888
+        }
+      },
+      "globalVisualUnchanged": true,
+      "changedBriefFields": [
+        "/briefFingerprint",
+        "/scenes/2/compositionIntent"
+      ],
+      "all25ArtifactManifestsAndExactFileSetsRevalidated": true,
+      "rendererDiffChecksum": "sha256:c73f8b6b050b6b823969386d94d0fbd3a1d5a02dade28e1dc7ffcc1ed105b0db"
+    }
+  ],
+  "scopedReuseEvidence": {
+    "path": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-reviewed-firstuse-20261003-gzhb5fc5/engineering/scoped-revision-reuse.json",
+    "checksum": "sha256:5b7f7a0fe82121460474598645f967680714b3aee8c9e18aa2b0ff5176b32115"
+  },
+  "finalDelivery": {
+    "storyId": "ai-fabricated-answers",
+    "deliveryBuildId": "delivery-28e5f13bf4cbea2120417833a776d6cd6a094a80cb477f426782778bb1c4bbf9",
+    "files": {
+      "video.mp4": {
+        "checksum": "sha256:c1f7d3db552ff248f2e6dde709eabc085b696cc8e92f26048ae6a2ddf580e49c",
+        "sizeBytes": 11949031
+      },
+      "cover-4x3.png": {
+        "checksum": "sha256:07f96a26004f79e55d01dff8b1f012fa7ce05288f270a19f86cf6dd7c2a7ca9d",
+        "sizeBytes": 215888
+      },
+      "cover-3x4.png": {
+        "checksum": "sha256:12f656404cf6f0d564cacc3c9f82e33390c7bbc25eb06713c531ae435b98f9d7",
+        "sizeBytes": 217318
+      },
+      "publish.json": {
+        "checksum": "sha256:63df8a8704b87b7223f861c15fe7b81ed53f1b2434be1d7073deff12ac9c64eb",
+        "sizeBytes": 2609
+      }
+    },
+    "video": {
+      "codec": "h264",
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "width": 1080,
+      "height": 1920,
+      "fps": 30,
+      "frameCount": 3017
+    },
+    "decodedFiles": ["video.mp4", "cover-4x3.png", "cover-3x4.png"]
+  },
+  "media": {
+    "video": {
+      "width": 1080,
+      "height": 1920,
+      "fps": 30,
+      "frameCount": 3017,
+      "codec": "h264",
+      "checksum": "sha256:c1f7d3db552ff248f2e6dde709eabc085b696cc8e92f26048ae6a2ddf580e49c"
+    },
+    "audio": {
+      "codec": "aac",
+      "sampleRate": 48000,
+      "channels": 2,
+      "integratedLoudnessLufs": -15.9,
+      "loudnessRangeLu": 2.4,
+      "truePeakDbfs": -2.2,
+      "narrationLagMs": 42.666666666666664,
+      "correlation": 0.9999783280745196,
+      "captionCues": 16,
+      "captionTextAndFramesVerified": true
+    },
+    "sampledFrameNumbers": [308, 760, 789, 865, 1257, 1258, 1543, 2303],
+    "contactSheetFrameNumbers": [
+      0, 201, 402, 603, 804, 1005, 1206, 1407, 1609, 1810, 2011, 2212, 2413,
+      2614, 2815, 3016
+    ],
+    "actualCoversViewed": 2,
+    "observations": [
+      "Four requested topics are present with readable Chinese captions.",
+      "Paper/ink layers, token movement, evidence reveal and citation unfolding explain the sequence; no neon/random particles in viewed frames.",
+      "Final sampled return loop no longer crosses 前文/词元示意 or clips the viewed moving labels.",
+      "Scene2 final frame1257 and Scene3 first frame1258 retain the same citation region and footnote subject.",
+      "Both actual covers have readable title, layered paper/source imagery and clear negative space."
+    ],
+    "evidence": {
+      "path": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-reviewed-firstuse-20261003-gzhb5fc5/engineering/final-media-review.json",
+      "checksum": "sha256:3574d8434953f539c390a898e4aa8baa234e03b5f08398f1839ec5eb5e5cda63"
+    },
+    "continuousVideoPlayback": "unverified",
+    "subjectiveAudioListening": "unverified",
+    "physicalPhoneReview": "unverified",
+    "allActionTemporalViewing": "unverified",
+    "durationAcceptance": "Not applicable; user removed criterion"
+  },
+  "publishingOnlyFixture": {
+    "status": "passed",
+    "originalFailedControllerRetained": {
+      "failures": [
+        {
+          "at": "2026-10-03T02:09:02.633Z",
+          "step": "promoted-final",
+          "message": "Public final mechanical check did not pass with its persisted report."
+        },
+        {
+          "at": "2026-10-03T02:09:17.209Z",
+          "step": "copy-integrity",
+          "message": "Existing immutable bytes changed or additions escaped final publicly validated fixed artifact roots."
+        }
+      ],
+      "reference": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-reviewed-firstuse-20261003-gzhb5fc5/engineering/publishing-fixture-run-cf272765/receipt.json",
+      "checksum": "sha256:0c9fc048ed62e9adaa0c87121c5849f6cba031069df4baace4111db5ccf1dd58"
+    },
+    "completionScope": "Supplemental completion of original successful public production, not a re-sign of the failed controller receipt",
+    "normalRemotionCacheWritesSeparatelyRecorded": true,
+    "fixtureId": "cf272765-3d64-45c4-ac5b-20e4dc66d2ea",
+    "workspaceCopy": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-publishing-fixture-20261003-gisd9_uc/workspace",
+    "base": {
+      "revisionId": "revision-a6afd5521dd04f7fe77b42bd8dbfe047d311901d17b8f6592776c0f6645ddcf5",
+      "deliveryBuildId": "delivery-28e5f13bf4cbea2120417833a776d6cd6a094a80cb477f426782778bb1c4bbf9"
+    },
+    "candidateId": "revision-candidate-bd89204fb47714d6ab7c39d2a05b84e544d194f7a118f6ed3d78687f3b850282",
+    "attemptId": "075fe6e0-0d9e-474a-8933-a8ebef545040",
+    "actualCost": {
+      "providerRequests": 0,
+      "providerCacheHits": 16,
+      "agentTasks": 0,
+      "deliveryMedia": []
+    },
+    "reuseGate": {
+      "providerRequests": 0,
+      "agentTasks": 0,
+      "taskCount": 28,
+      "reusedTaskCount": 26,
+      "fixedDerivedTasks": [
+        {
+          "taskKind": "delivery-build",
+          "subject": {
+            "kind": "project",
+            "id": "ai-fabricated-answers"
+          },
+          "taskRevision": "task-2f7d8645aef036c504aca282726adb973c961b3f63b035b58d7df8250ddd3127",
+          "baselineTaskRevision": null,
+          "action": "blocked",
+          "artifactState": "missing",
+          "directChanges": [],
+          "dependencyChanges": [],
+          "blockedBy": [
+            {
+              "taskKind": "composition-convergence",
+              "subjectId": "ai-fabricated-answers",
+              "taskRevision": "task-c5267b08ebbb31dc1ac38a26770cf2a0c5f9b6e804278dc02d6553ddf04a526e"
+            }
+          ],
+          "explanationAvailability": "baseline-unavailable"
+        },
+        {
+          "taskKind": "composition-convergence",
+          "subject": {
+            "kind": "project",
+            "id": "ai-fabricated-answers"
+          },
+          "taskRevision": "task-c5267b08ebbb31dc1ac38a26770cf2a0c5f9b6e804278dc02d6553ddf04a526e",
+          "baselineTaskRevision": null,
+          "action": "converge",
+          "artifactState": "missing",
+          "directChanges": [],
+          "dependencyChanges": [],
+          "blockedBy": [],
+          "explanationAvailability": "baseline-unavailable"
+        }
+      ],
+      "taskRevisions": [
+        {
+          "taskKind": "scene-owner",
+          "subject": {
+            "kind": "meaning",
+            "id": "context-generates-language"
+          },
+          "taskRevision": "task-0de00a6da075363ba69296a541ee2ecb424b4940f40c358adc1209acac08d134"
+        },
+        {
+          "taskKind": "narration-chunk",
+          "subject": {
+            "kind": "tts-chunk",
+            "id": "fluency-01"
+          },
+          "taskRevision": "task-12fd1df0161f9cefe1bd8c9f1e50ead117d30c1ebd9d619bbf71f9112c5973b7"
+        },
+        {
+          "taskKind": "narration-seal",
+          "subject": {
+            "kind": "project",
+            "id": "ai-fabricated-answers"
+          },
+          "taskRevision": "task-2aca68f80780e4cb973afdc1a0e5806998228700ba29e9630328877c553ae17e"
+        },
+        {
+          "taskKind": "narration-chunk",
+          "subject": {
+            "kind": "tts-chunk",
+            "id": "context-04"
+          },
+          "taskRevision": "task-2bf1d3700b0c99506b7f04f12be48e14d4bbb0e28b2e337e098840462d467118"
+        },
+        {
+          "taskKind": "scene-template",
+          "subject": {
+            "kind": "meaning",
+            "id": "configured-intro-scene"
+          },
+          "taskRevision": "task-2c89d617033cd98ad93ff6bdb52d2c558906d665bf0e706ec969c7801d71d32b"
+        },
+        {
+          "taskKind": "delivery-build",
+          "subject": {
+            "kind": "project",
+            "id": "ai-fabricated-answers"
+          },
+          "taskRevision": "task-2f7d8645aef036c504aca282726adb973c961b3f63b035b58d7df8250ddd3127"
+        },
+        {
+          "taskKind": "scene-owner",
+          "subject": {
+            "kind": "meaning",
+            "id": "fluency-is-not-fact"
+          },
+          "taskRevision": "task-4f6c3b34758c6dfe95e07a3e085488547c4128a90f38adde8ccde3f5e616aece"
+        },
+        {
+          "taskKind": "global-visual-owner",
+          "subject": {
+            "kind": "project",
+            "id": "ai-fabricated-answers"
+          },
+          "taskRevision": "task-638eb2edbfb14cfe377bf81c19e091bfd414e4a9ad28918aad8e01d3bc3cb1b7"
+        },
+        {
+          "taskKind": "scene-owner",
+          "subject": {
+            "kind": "meaning",
+            "id": "trace-and-verify-source"
+          },
+          "taskRevision": "task-63fa0ee32aca6a9743e0fe63bb385e188ddb2872522b2143afc7d7f98630e03b"
+        },
+        {
+          "taskKind": "narration-chunk",
+          "subject": {
+            "kind": "tts-chunk",
+            "id": "fluency-02"
+          },
+          "taskRevision": "task-6563832359468ca955b59caf410bf13c16f9f2908282138a5ba8da7700b4d5a8"
+        },
+        {
+          "taskKind": "scene-template",
+          "subject": {
+            "kind": "meaning",
+            "id": "configured-outro-scene"
+          },
+          "taskRevision": "task-6627e89de20bb72d653db7991c302cb3637f7a26b4da9dcca22e928704c97dc8"
+        },
+        {
+          "taskKind": "narration-chunk",
+          "subject": {
+            "kind": "tts-chunk",
+            "id": "verify-01"
+          },
+          "taskRevision": "task-682727fb3d44e4a807961e9b3e1990e2626a5e1e5e1b5fb83382168c399d4d4f"
+        },
+        {
+          "taskKind": "narration-chunk",
+          "subject": {
+            "kind": "tts-chunk",
+            "id": "context-03"
+          },
+          "taskRevision": "task-6f185e039143f94dda02e9e7d85f16cb4e95a3487fc2657a9b3ece2d087a7f07"
+        },
+        {
+          "taskKind": "narration-chunk",
+          "subject": {
+            "kind": "tts-chunk",
+            "id": "context-02"
+          },
+          "taskRevision": "task-7b4bed19054fe1954437a8918e06479dcd0d3966ff06c969964a181f09565dd4"
+        },
+        {
+          "taskKind": "narration-chunk",
+          "subject": {
+            "kind": "tts-chunk",
+            "id": "verify-04"
+          },
+          "taskRevision": "task-7e6224cba4600806a26615b6b50f8eba33fb5037b9bd6918a389bb7d10e11b31"
+        },
+        {
+          "taskKind": "narration-chunk",
+          "subject": {
+            "kind": "tts-chunk",
+            "id": "reference-03"
+          },
+          "taskRevision": "task-8b8ee25a8d52d5d5e4fd1d9a67aa716ad9ccc2a64560b3e76f9ec1c27fbebb5c"
+        },
+        {
+          "taskKind": "narration-chunk",
+          "subject": {
+            "kind": "tts-chunk",
+            "id": "context-01"
+          },
+          "taskRevision": "task-92fad74391121a8ab85c8b4dde5e383157259f5ad29b02a9a73e0007ba9eeb9c"
+        },
+        {
+          "taskKind": "narration-chunk",
+          "subject": {
+            "kind": "tts-chunk",
+            "id": "fluency-03"
+          },
+          "taskRevision": "task-ad0a24eb6a9766b7b783ac7d10eda3c18df5b277cac046fec56a13d96677296a"
+        },
+        {
+          "taskKind": "narration-chunk",
+          "subject": {
+            "kind": "tts-chunk",
+            "id": "verify-02"
+          },
+          "taskRevision": "task-b0d791b045e6f3755f67ff06c67aa876ee915c697cee591943553e6d3f465d2d"
+        },
+        {
+          "taskKind": "scene-owner",
+          "subject": {
+            "kind": "meaning",
+            "id": "formal-reference-can-be-empty"
+          },
+          "taskRevision": "task-baa01ca4624c5b0a2e7a99006c1e0742b26451e6b18befcd8f74ff5b847b10ec"
+        },
+        {
+          "taskKind": "composition-convergence",
+          "subject": {
+            "kind": "project",
+            "id": "ai-fabricated-answers"
+          },
+          "taskRevision": "task-c5267b08ebbb31dc1ac38a26770cf2a0c5f9b6e804278dc02d6553ddf04a526e"
+        },
+        {
+          "taskKind": "cover-owner",
+          "subject": {
+            "kind": "project",
+            "id": "ai-fabricated-answers"
+          },
+          "taskRevision": "task-cfd93a6e509ab70b2d468f9260c4f3df66b978eb399c50d89219d0f49c0d9db0"
+        },
+        {
+          "taskKind": "narration-chunk",
+          "subject": {
+            "kind": "tts-chunk",
+            "id": "reference-02"
+          },
+          "taskRevision": "task-d1b2e30fbd07c5cee1af0587ccc5e1db6450b013fb73ef8527ef0293c445d0bd"
+        },
+        {
+          "taskKind": "narration-chunk",
+          "subject": {
+            "kind": "tts-chunk",
+            "id": "reference-01"
+          },
+          "taskRevision": "task-d3598be74503002de0066629d07c47f47f37a53a3714d52cbd75273df94c62ef"
+        },
+        {
+          "taskKind": "narration-chunk",
+          "subject": {
+            "kind": "tts-chunk",
+            "id": "verify-03"
+          },
+          "taskRevision": "task-df4b652e44a362813bcd1ed51349fe7612afe5473384704da0539e73c3085f9d"
+        },
+        {
+          "taskKind": "semantic-timing",
+          "subject": {
+            "kind": "project",
+            "id": "ai-fabricated-answers"
+          },
+          "taskRevision": "task-ed4184286d3009cf40b1b6c8400d89e0271522549684624335c7ffb08cc6b761"
+        },
+        {
+          "taskKind": "narration-chunk",
+          "subject": {
+            "kind": "tts-chunk",
+            "id": "verify-06"
+          },
+          "taskRevision": "task-fc35327e19423fa5851e96447e999a6a9a07980d11edd4b97f8449924077ae27"
+        },
+        {
+          "taskKind": "narration-chunk",
+          "subject": {
+            "kind": "tts-chunk",
+            "id": "verify-05"
+          },
+          "taskRevision": "task-ff5feef4e3e13af02b50a3996ea0e022b16fae752a41b2b136f6e7759cfc3e5e"
+        }
+      ]
+    },
+    "finalTuple": {
+      "revisionId": "revision-c251edab152217b4bc22b1939afe9a779e410a86f47adb00948de49813225c67",
+      "deliveryBuildId": "delivery-c06bcb3a4078a531c136fe316547347486b92982f0cf85da3b58a67083f925c2"
+    },
+    "manualPromote": {
+      "status": "project-revision-current",
+      "storyId": "ai-fabricated-answers",
+      "candidateId": "revision-candidate-bd89204fb47714d6ab7c39d2a05b84e544d194f7a118f6ed3d78687f3b850282",
+      "revisionId": "revision-c251edab152217b4bc22b1939afe9a779e410a86f47adb00948de49813225c67",
+      "deliveryBuildId": "delivery-c06bcb3a4078a531c136fe316547347486b92982f0cf85da3b58a67083f925c2"
+    },
+    "originalIntegrity": {
+      "beforeDigest": "sha256:2a6af3ce8691f575fb7f035728dbefb71f769ae025d399b11572747f594de13b",
+      "afterDigest": "sha256:2a6af3ce8691f575fb7f035728dbefb71f769ae025d399b11572747f594de13b",
+      "unchanged": true
+    },
+    "copyIntegrity": {
+      "beforeDigest": "sha256:2a6af3ce8691f575fb7f035728dbefb71f769ae025d399b11572747f594de13b",
+      "afterDigest": "sha256:ecf6078dd56ca1be4f0919ef6f44a098572227c0e9398d79f59fc67a041ce9a4",
+      "immutableBeforeDigest": "sha256:d9c90ed8649ad319637dc504c1e4398ee232ba2836518f63456afd693540a952",
+      "immutableAfterDigest": "sha256:bd6c6b65147c5669c3d23b3ba82d7575188edbb1ebe562254b3b0b34da5fc288",
+      "existingImmutableUnchanged": true,
+      "verifiedFixedRoots": [
+        ".producer-artifacts/ai-fabricated-answers/composition-convergence/task-c5267b08ebbb31dc1ac38a26770cf2a0c5f9b6e804278dc02d6553ddf04a526e",
+        ".producer-artifacts/ai-fabricated-answers/delivery-build/task-0ed5fc86f0411066c60515c490a4a16c65e63ae27e8f89d02b4337b2d5b551a1"
+      ],
+      "allowedNewFixedArtifactEntries": [
+        {
+          "path": ".producer-artifacts/ai-fabricated-answers/composition-convergence/task-c5267b08ebbb31dc1ac38a26770cf2a0c5f9b6e804278dc02d6553ddf04a526e",
+          "mode": 493,
+          "type": "directory"
+        },
+        {
+          "path": ".producer-artifacts/ai-fabricated-answers/composition-convergence/task-c5267b08ebbb31dc1ac38a26770cf2a0c5f9b6e804278dc02d6553ddf04a526e/artifact-attestation.json",
+          "mode": 420,
+          "type": "file",
+          "sizeBytes": 2079,
+          "checksum": "sha256:c23336eaaae8d994db52665d652584d7090d346f97ad838c86167e05ef0a19b5"
+        },
+        {
+          "path": ".producer-artifacts/ai-fabricated-answers/composition-convergence/task-c5267b08ebbb31dc1ac38a26770cf2a0c5f9b6e804278dc02d6553ddf04a526e/files",
+          "mode": 493,
+          "type": "directory"
+        },
+        {
+          "path": ".producer-artifacts/ai-fabricated-answers/composition-convergence/task-c5267b08ebbb31dc1ac38a26770cf2a0c5f9b6e804278dc02d6553ddf04a526e/files/project",
+          "mode": 493,
+          "type": "directory"
+        },
+        {
+          "path": ".producer-artifacts/ai-fabricated-answers/composition-convergence/task-c5267b08ebbb31dc1ac38a26770cf2a0c5f9b6e804278dc02d6553ddf04a526e/files/project/convergence.json",
+          "mode": 420,
+          "type": "file",
+          "sizeBytes": 1788,
+          "checksum": "sha256:fa48221d09b97c9400190584147ba0e965023bd7bc73d8a71ab3cbabd91317d1"
+        },
+        {
+          "path": ".producer-artifacts/ai-fabricated-answers/delivery-build/task-0ed5fc86f0411066c60515c490a4a16c65e63ae27e8f89d02b4337b2d5b551a1",
+          "mode": 493,
+          "type": "directory"
+        },
+        {
+          "path": ".producer-artifacts/ai-fabricated-answers/delivery-build/task-0ed5fc86f0411066c60515c490a4a16c65e63ae27e8f89d02b4337b2d5b551a1/artifact-attestation.json",
+          "mode": 420,
+          "type": "file",
+          "sizeBytes": 947,
+          "checksum": "sha256:ce1b6f78d706912ee4e088b4b20e6059287e59b068508a744d1c3bcfd21edcce"
+        },
+        {
+          "path": ".producer-artifacts/ai-fabricated-answers/delivery-build/task-0ed5fc86f0411066c60515c490a4a16c65e63ae27e8f89d02b4337b2d5b551a1/files",
+          "mode": 493,
+          "type": "directory"
+        },
+        {
+          "path": ".producer-artifacts/ai-fabricated-answers/delivery-build/task-0ed5fc86f0411066c60515c490a4a16c65e63ae27e8f89d02b4337b2d5b551a1/files/project",
+          "mode": 493,
+          "type": "directory"
+        },
+        {
+          "path": ".producer-artifacts/ai-fabricated-answers/delivery-build/task-0ed5fc86f0411066c60515c490a4a16c65e63ae27e8f89d02b4337b2d5b551a1/files/project/publish.json",
+          "mode": 420,
+          "type": "file",
+          "sizeBytes": 2409,
+          "checksum": "sha256:ef06ab601ae5978d464479ee1f2259e6c4d94cbd83ca93ed1bd0e224d979ba46"
+        }
+      ],
+      "unexpectedNewEntries": [],
+      "immutableUnchanged": true
+    },
+    "evidence": {
+      "path": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-reviewed-firstuse-20261003-gzhb5fc5/engineering/publishing-fixture-followup-cf272765/receipt.json",
+      "checksum": "sha256:2167edc5154489a39a9a8a6d8d07d0120bf0c7bd6ddab3af75088f497c0a5147"
+    },
+    "noOsReadIsolation": true,
+    "providerConclusionSource": "Public inspect/prepare, no independent network audit"
+  },
+  "localVerification": {
+    "fullCheckTests": 1093,
+    "failed": 0,
+    "skipped": 0,
+    "cancelled": 0,
+    "exitCode": 0,
+    "recorderSources": {
+      "scripts/release/native-execution.ts": "sha256:280d000050ba64d59d1d73754af00a545077070c6b4a9af27ab6e1f9ed2ef3e0",
+      "tests/npm-install-e2e/native-revision-execution.test.ts": "sha256:cf4c2135ab2bd83e24e57ddf6e181e2f02d76bbedd1f6fdc3c97904117290921"
+    },
+    "sourceHashUnchangedDuringCheck": true,
+    "fullCheckEvidence": {
+      "path": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-reviewed-firstuse-20261003-gzhb5fc5/engineering/release-source-full-check-final.json",
+      "checksum": "sha256:9c8468adfe377c5bc1c322dc1ebb3f8bb3b7f992b63e9b68e2f7c51030d51085"
+    },
+    "sourceOnlyRecorderReview": "NO-BLOCKING; 112/112 focused; type/lint/format/diff0; independent positive/reject vectors and full original raw/UI authentication",
+    "packageRebuildAndReceiptVerify": {
+      "path": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-reviewed-firstuse-20261003-gzhb5fc5/engineering/prepublication-repack/result.json",
+      "checksum": "sha256:b53bfb2cb9c201f053ad19c9447b9f5f135757785942467080a6c8c7679dee5f"
+    },
+    "tarballBytesMatchCertifiedCandidates": [true, true]
+  },
+  "incidents": {
+    "originalFailuresRetained": true,
+    "missingToolMember": "Initial pure tools.exec_command member unavailable before any primitive; exact original TypeError/source position and complete zero-command UI bound before acceptance",
+    "readOnlyWebDiagnostic": "Literal public web search/open accepted only with complete native UI completion and zero shell authority",
+    "directStdoutEnvelope": "Original native Chunk/Wall time/Process exited/Output wrapper bound to exact UI command/cwd/turn/process/stdout and terminal code",
+    "packageOrWorkspaceBytesChangedForRecorderFix": false,
+    "audioAuditHelper": "External diagnostic corrected 20 timing segments versus16 caption cues; runtime/validators unchanged",
+    "engineeringCapabilityProbe": "First engineering probe reported missing hard close API and was retained as failed. Fresh native interrupt plus four later admissions proves execution capacity release; hard session closure unavailable; no inline"
+  },
+  "publication": {
+    "status": "authorized-not-yet-published",
+    "supportedWorkflow": ".github/workflows/npm-publish.yml",
+    "postPublicationScope": "fresh-public-registry-installation-and-doctor-only",
+    "postPublicationAuthorization": "按建议做安装烟测，省去第二次整片制作",
+    "publicNativeVideoFirstUse": "unverified-explicitly-waived",
+    "publicInstallationSmoke": "pending",
+    "hermes": "unverified-explicitly-waived"
+  }
+}

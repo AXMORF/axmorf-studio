@@ -41,6 +41,7 @@ const resolveSourceFile = async (
   rootDir: string,
   importerPath: string,
   specifier: string,
+  sourceRoot: (path: string) => string = () => rootDir,
 ): Promise<string> => {
   const base = posix.normalize(posix.join(dirname(importerPath), specifier));
   for (const candidate of [
@@ -51,9 +52,11 @@ const resolveSourceFile = async (
     `${base}/index.tsx`,
   ]) {
     try {
-      const candidateStat = await lstat(`${rootDir}/${candidate}`);
+      const candidateStat = await lstat(
+        `${sourceRoot(candidate)}/${candidate}`,
+      );
       if (candidateStat.isDirectory()) continue;
-      await readExternalRegularFile(rootDir, candidate);
+      await readExternalRegularFile(sourceRoot(candidate), candidate);
       return candidate;
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
@@ -109,16 +112,20 @@ const assertVisualOnlySource = (
 
 export const collectRendererSourceGraph = async ({
   rootDir,
+  runtimeRootDir = rootDir,
   projectId: rawProjectId,
   rendererPath,
 }: {
   readonly rootDir: string;
+  readonly runtimeRootDir?: string;
   readonly projectId: unknown;
   readonly rendererPath: string;
 }): Promise<RendererSourceGraph> => {
   const projectId = StoryIdSchema.parse(rawProjectId);
   const projectRoot = `src/projects/${projectId}`;
   const expectedPrefix = `${projectRoot}/scenes/`;
+  const sourceRoot = (path: string) =>
+    path.startsWith(`${projectRoot}/`) ? rootDir : runtimeRootDir;
   if (
     !rendererPath.startsWith(expectedPrefix) ||
     !/^src\/projects\/[a-z0-9-]+\/scenes\/[a-z0-9-]+\/Renderer\.tsx$/u.test(
@@ -134,7 +141,10 @@ export const collectRendererSourceGraph = async ({
   while (pending.length > 0) {
     const sourcePath = pending.pop();
     if (sourcePath === undefined || files.has(sourcePath)) continue;
-    const bytes = await readExternalRegularFile(rootDir, sourcePath);
+    const bytes = await readExternalRegularFile(
+      sourceRoot(sourcePath),
+      sourcePath,
+    );
     const source = bytes.toString("utf8");
     const sourceFile = ts.createSourceFile(
       sourcePath,
@@ -216,6 +226,7 @@ export const collectRendererSourceGraph = async ({
         rootDir,
         sourcePath,
         specifier,
+        sourceRoot,
       );
       if (
         !dependencyPath.startsWith(`${projectRoot}/`) &&

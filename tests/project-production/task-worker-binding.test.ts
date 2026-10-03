@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import {
   mkdtemp,
   readFile,
+  rename,
   readdir,
   rm,
   symlink,
@@ -47,8 +48,7 @@ const digest = (bytes: string) =>
 const sha = (character: string) =>
   `sha256:${character.repeat(64)}` as Sha256Digest;
 
-const fixture = async (rootDir: string) => {
-  const contextBytes = "{}\n";
+const fixture = async (rootDir: string, contextBytes = "{}\n") => {
   const contract = TaskExecutionContractSchema.parse({
     schemaVersion: 1,
     contractVersion: "agent-task-execution-contract-v1",
@@ -183,6 +183,23 @@ test("task bind is zero-write, attempt-bound, and exposes transport-specific aut
   });
   assert.equal(shared.status, "task-worker-bound");
   assert.equal(shared.workspace.directFilesystemAccess, true);
+  for (const [key, script] of [
+    ["describe", "describe"],
+    ["finalize", "finalize"],
+    ["check", "check"],
+    ["commit", "commit"],
+    ["taskFailure", "fail"],
+  ] as const) {
+    assert.match(
+      shared.commands[key],
+      new RegExp(`project:task:${script} `, "u"),
+    );
+    assert.ok(
+      shared.commands[key].includes(`--attempt ${current.attempt.attemptId}`),
+    );
+    assert.ok(shared.commands[key].includes(`--binding ${current.bindingId}`));
+  }
+  assert.match(shared.commands.taskFailure, /--kind task/u);
   assert.match(shared.commands.finalize, /project:task:finalize/u);
   assert.match(shared.commands.finalize, /--binding binding-/u);
   assert.deepEqual(
@@ -289,6 +306,24 @@ test("CLI short bind preserves assignment commands and rejects unsafe forms", as
     stdout: () => undefined,
   })) as Awaited<ReturnType<typeof bindTaskWorker>>;
   assert.equal(bound.status, "task-worker-bound");
+  for (const [key, script] of [
+    ["describe", "describe"],
+    ["finalize", "finalize"],
+    ["check", "check"],
+    ["commit", "commit"],
+    ["taskFailure", "fail"],
+  ] as const) {
+    assert.match(
+      bound.commands[key],
+      new RegExp(`project:task:${script} `, "u"),
+    );
+    assert.match(bound.commands[key], /--assignment 1/u);
+    assert.ok(
+      bound.commands[key].includes(`--attempt ${current.attempt.attemptId}`),
+    );
+    assert.doesNotMatch(bound.commands[key], /--task|--binding/u);
+  }
+  assert.match(bound.commands.taskFailure, /--kind task/u);
   assert.match(bound.commands.finalize, /--assignment 1/u);
   assert.doesNotMatch(bound.commands.finalize, /--task|--binding/u);
   assert.deepEqual(
@@ -498,5 +533,62 @@ test("task binding rejects a candidate id routed to another candidate workspace"
       candidateId: candidateB.candidateId,
     }),
     /candidate routing is cross-bound/u,
+  );
+});
+
+test("controller binding reads immutable prior Scene source through context and rejects input parent symlinks", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "axmorf-prior-source-bind-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const prior = {
+    scene: {
+      priorSource: {
+        files: [
+          { path: "Renderer.tsx", content: "Prior owning Renderer bytes" },
+        ],
+      },
+    },
+  };
+  const current = await fixture(rootDir, `${JSON.stringify(prior)}\n`);
+  const input = {
+    rootDir,
+    taskRevision: current.task.taskRevision,
+    attemptId: current.attempt.attemptId,
+    bindingId: current.bindingId,
+  };
+  const bound = await bindTaskWorker({ ...input, transport: "controller-io" });
+  assert.equal(bound.workspace.directFilesystemAccess, false);
+  const read = await readTaskWorkerFile({
+    ...input,
+    logicalPath: "inputs/context.json",
+  });
+  assert.deepEqual(
+    JSON.parse(Buffer.from(read.contentBase64, "base64").toString("utf8")),
+    prior,
+  );
+  await assert.rejects(
+    readTaskWorkerFile({
+      ...input,
+      logicalPath: "definition/base/source/scenes/other/Renderer.tsx",
+    }),
+    /only declared task files/u,
+  );
+  await writeFile(
+    join(current.workspace, "inputs/context.json"),
+    "immutable drift",
+  );
+  await assert.rejects(
+    bindTaskWorker({ ...input, transport: "controller-io" }),
+    /checksum drifted/u,
+  );
+  await writeFile(
+    join(current.workspace, "inputs/context.json"),
+    current.contextBytes,
+  );
+  const outside = join(rootDir, "displaced-inputs");
+  await rename(join(current.workspace, "inputs"), outside);
+  await symlink(outside, join(current.workspace, "inputs"), "dir");
+  await assert.rejects(
+    bindTaskWorker({ ...input, transport: "controller-io" }),
+    /parent must be a real directory/u,
   );
 });

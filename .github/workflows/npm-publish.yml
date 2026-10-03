@@ -95,7 +95,7 @@ jobs:
             echo "creator_integrity=$creator_integrity"
           } >>"$GITHUB_OUTPUT"
 
-      - name: Verify first-use evidence against release candidates
+      - name: Verify current native first-use evidence against release candidates
         shell: bash
         env:
           RUNTIME_TARBALL: ${{ steps.pack.outputs.runtime_tarball }}
@@ -105,6 +105,7 @@ jobs:
           set -euo pipefail
           version="$(node -p 'require("./package.json").version')"
           receipt="docs/evidence/v${version}-first-use.json"
+          # verify enforces the current publication gate; historical serial diagnostics cannot authorize 0.1.16.
           node --import tsx scripts/release/first-use.ts verify "$RUNTIME_TARBALL" "$CREATOR_TARBALL" "$receipt"
           cp "$receipt" "$RELEASE_ROOT/first-use.json"
 

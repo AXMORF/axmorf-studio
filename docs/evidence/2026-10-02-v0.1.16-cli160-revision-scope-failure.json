@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "scope": "Failed independent native CLI0.160.0 candidate trial, preserved before guide repair; not publication evidence",
+  "workspace": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-cli160-firstuse-20261002-7zzow2vz/workspace",
+  "cliVersion": "0.160.0",
+  "model": "gpt-6.1-sol",
+  "reasoningEffort": "max",
+  "execution": "native-subagents/shared-workspace",
+  "nativeSessionCount": 18,
+  "initialDirtyCreativeTasks": 9,
+  "initialProductionCompleted": true,
+  "currentCandidateFirstUseStatus": "failed",
+  "controllerStop": {
+    "schemaVersion": 1,
+    "scope": "Diagnostic summary bound to the complete original native UI stream; not passing receipt or reconstructed dispatch input",
+    "recordedAt": "2026-10-02T14:08:08.558702+00:00",
+    "nativeUiChecksum": "sha256:c91c3df5731be2dc2aea878801fed714354df3f613c838f4a3fbfdb2ffaf7919",
+    "rootSessionId": "01a0fca7-3948-70c3-bd07-1c2d2cd28399",
+    "exitCode": 1,
+    "candidatePreparation": {
+      "itemId": "exec-57468a1d-a03e-491e-91fc-1f1deceafe61",
+      "attemptId": "2d3831d3-2237-4217-8d60-e74a59020988",
+      "dirtyAgentTaskCount": 9,
+      "summary": {
+        "reusedTaskCount": 33,
+        "dirtyAgentTaskCount": 9,
+        "dirtyFixedTaskCount": 0,
+        "blockedTaskCount": 2
+      },
+      "actualCost": {
+        "providerRequests": 0,
+        "providerCacheHits": 29,
+        "agentTasks": 9,
+        "deliveryMedia": []
+      }
+    },
+    "completedResolutionsBetweenFirstFixedAndCandidatePrepare": 0,
+    "initialDeliveryPreserved": true,
+    "controllerStopReason": "Independent Root broadened two local visual fixes into global VisualStyle typography/spacing change, invalidating all nine visual tasks; additionally omitted this candidate production execution resolve before inspect/prepare. Stop failed trial, preserve evidence, repair shipped guide and create a fresh Workspace.",
+    "formalRecordResult": "Failed on captured exitCode=1; no receipt created"
+  },
+  "packageIdentity": {
+    "packages": {
+      "runtime": {
+        "name": "@axmorf/studio",
+        "version": "0.1.16",
+        "fingerprint": "sha256:131d7f935e564ab79e3f0fca7d938da41589b3baed8fc09227cc14356b3c57a7"
+      },
+      "creator": {
+        "name": "create-axmorf-studio",
+        "version": "0.1.16",
+        "fingerprint": "sha256:9020994f1b9bdb8c7822662fa60959e91e288075b3b0fbd5988f031d3cec0cc2"
+      }
+    },
+    "guideCount": 12,
+    "node": "v24.15.0",
+    "candidateCreation": null,
+    "rootSessionId": "01a0fca7-3948-70c3-bd07-1c2d2cd28399",
+    "actualModel": "gpt-6.1-sol",
+    "actualEffort": "max",
+    "cliVersion": "0.160.0",
+    "independentModelProbe": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-publish-retake-20261002-00qbjxp0/engineering/cli-6.1-max-proof.json"
+  },
+  "initialMediaDiagnostics": {
+    "schemaVersion": 1,
+    "storyId": "ai-citations-explained",
+    "revisionId": "revision-beced86a527e0646467189b3df61456484af6f32e13cf57b1e76ff69efc4b16c",
+    "deliveryBuildId": "delivery-a5e638146f6eb9fb36fa128d50333574bb0bb2f05117c02c512168645cadf40d",
+    "method": "Pearson correlation of mastered narration and decoded AAC mono PCM; coarse 512, refine 8 then 1 sample; full speech sampled every 101 samples; search +/-8192 samples",
+    "sampleRate": 48000,
+    "narrationStartFrame": 60,
+    "sampledPoints": 46533,
+    "measuredNarrationLagSamples": 2048,
+    "measuredNarrationLagMs": 42.666666666666664,
+    "peakCorrelation": 0.9999783182561492,
+    "captionCueCount": 29,
+    "captionTextMatchesSealedInput": true,
+    "captionFramesMatchCumulativeCeil": true,
+    "maxCaptionQuantizationMs": 29.33333333332655,
+    "decodedAudioSamples": 5186560,
+    "videoDurationSeconds": 108.0,
+    "durationAcceptance": "Not applicable; user removed duration as an acceptance condition",
+    "videoChecksum": "sha256:1814dcaa6f5b908fc560795d15d770596fd8914f92e52919f2e296c08587ef92",
+    "masterChecksum": "sha256:32ac1a39602856670c8bf09cba8962538a648e8dffb01ac42dfd69d3540e09f1",
+    "decodedAudioChecksum": "sha256:b175fdcfa6f703345fea78d292c7c9262b9f9fb644a557c424fd2686d8de4859",
+    "technicalSyncWithin100Ms": true,
+    "continuousPlayback": "unverified",
+    "subjectiveAudioListening": "unverified"
+  },
+  "strictRecorder": {
+    "exitCode": 1,
+    "message": "Captured run exitCode=1 was rejected; no passing receipt created"
+  },
+  "nativeRuntimeExitProofChecksum": "sha256:bbbc9dcbe2761268be781d55b255dc00a9b0c4d37e1d79f27c59bd13e3105644",
+  "visualReview": {
+    "actualSampledFrames": 18,
+    "coversViewed": 2,
+    "continuousPlayback": "unverified",
+    "subjectiveAudioListening": "unverified",
+    "physicalPhoneReview": "unverified"
+  },
+  "retention": "Complete original Root and all17children, native stdout/input/events and first delivery remain local and untouched. No publication/tag/push occurred. No old Project/creative code/acceptance evidence will be used in the replacement fresh trial."
+}

@@ -1,0 +1,459 @@
+{
+  "schemaVersion": 1,
+  "hosts": [
+    {
+      "schemaVersion": 1,
+      "host": "codex",
+      "model": "gpt-6.1-sol",
+      "sessionId": "01a0fee4-9c49-7c42-8b09-b7f38d3adbe2",
+      "environment": {
+        "platform": "darwin",
+        "arch": "x64",
+        "node": "v24.15.0"
+      },
+      "startedAt": "2026-10-02T23:13:10.212713Z",
+      "endedAt": "2026-10-03T00:38:57.031551Z",
+      "packages": {
+        "runtime": {
+          "name": "@axmorf/studio",
+          "version": "0.1.16",
+          "fingerprint": "sha256:2f528b35e9a6b8dc2960c48592db2924d93a83f21a5d7211b0208c7aa940723b",
+          "fileCount": 283
+        },
+        "creator": {
+          "name": "create-axmorf-studio",
+          "version": "0.1.16",
+          "fingerprint": "sha256:5fc7408f755a55501ee5bd0d2342e73ac8f889c88d6d6a4ab72037ea7c2a021b",
+          "fileCount": 41
+        }
+      },
+      "prompt": "制作一条中文竖屏解释视频，主题是“AI为什么会编造答案和引用”。内容用四段连续解释：流畅回答不等于事实；模型如何根据上下文生成语言；看似正式的引用可能不存在；如何查找可靠出处并核验引用。时长由内容需要决定。让画面通过动作、变化和镜头衔接解释内容，避免静态卡片轮播。构图与动画实现可自由选择，风格克制、手绘、有层次，不用霓虹或随机粒子。配中文旁白、字幕和封面，保证手机可读，装饰不要压住文字。使用合法素材及现有可用语音能力，不新增收费服务，不发布到社交平台。这一轮先交付可供我审阅的初稿，画面修改我会另行反馈。\n",
+      "promptChecksum": "sha256:2057b2703c09b0f96f2b30ab9a8a1c553af8db5461fb99c76d26c4220ca90e95",
+      "transcriptChecksum": "sha256:c1086455b489f61132862ddd615958d3e8c5d518215ec5282aec900636838156",
+      "runChecksum": "sha256:4d92e60110a17db516853b6197f1f8f21c9b3b432f89faa2ba2dd309664a4760",
+      "snapshotChecksum": "sha256:8b4b795fd3e7778afda76e55e76eb01655c424c61fc8b48bfb328ca770003bf7",
+      "creation": {
+        "method": "npm-exec-candidate",
+        "runtimeTarballChecksum": "sha256:d094a4c4b27fac156e4093497c791913d806c834abd48f95470884643e3d0fb5",
+        "creatorTarballChecksum": "sha256:b1332478f277a63d0273a1ebe9dec1a66d8df22d7e6137fa98bee233cd414795",
+        "installLogChecksum": "sha256:3e21450bf56d11e8b52d1f872d2fc5dce0f8a91900be48af68441e5c25dce408"
+      },
+      "sessionChecksum": null,
+      "transcriptAudit": {
+        "businessUserMessages": 1,
+        "toolCalls": 186,
+        "followUpMessages": 0,
+        "nativeCompletionMessages": 0
+      },
+      "unchangedPackageFiles": 283,
+      "nativeExecution": {
+        "mode": "subagents",
+        "workerTransport": "shared-workspace",
+        "modeSource": "builtin-default",
+        "concurrencySource": "builtin-default",
+        "requestedMaxConcurrency": 4,
+        "effectiveMaxConcurrency": 4,
+        "peakActiveChildren": 4,
+        "peakBoundTasks": 4,
+        "fourWayBoundOverlapMs": 515914,
+        "dirtyTaskCount": 8,
+        "productionChildCount": 8,
+        "probeChildCount": 12,
+        "refillAdmissions": 2,
+        "attemptId": "0384ce03-ae17-414d-83d2-8166bf910f5e",
+        "childEvidence": [
+          {
+            "sessionId": "01a0fee8-1931-7913-989e-7fc8783a78dc",
+            "transcriptChecksum": "sha256:6b92a0fbc3fe6c6d7e1c151a233cb5f9eef1c4f30d2beb15eae101855d21c6fa",
+            "sessionChecksum": null,
+            "taskRevision": null,
+            "attemptId": "0384ce03-ae17-414d-83d2-8166bf910f5e"
+          },
+          {
+            "sessionId": "01a0fee8-3897-7010-bf48-87db1ade7782",
+            "transcriptChecksum": "sha256:845b0f77898c8c53c2fbf1c4493daeffef18a38f5700d7837dc2b2c80b703841",
+            "sessionChecksum": null,
+            "taskRevision": null,
+            "attemptId": "0384ce03-ae17-414d-83d2-8166bf910f5e"
+          },
+          {
+            "sessionId": "01a0fee8-5638-72c1-a043-ec0de0013fd7",
+            "transcriptChecksum": "sha256:cf3a9b68c1646da7762993b4ae2c9c50582b2dd935bb2470e6e915cd08e98489",
+            "sessionChecksum": null,
+            "taskRevision": null,
+            "attemptId": "0384ce03-ae17-414d-83d2-8166bf910f5e"
+          },
+          {
+            "sessionId": "01a0fee8-7432-79f3-9bc5-6776fff91b70",
+            "transcriptChecksum": "sha256:f72572cc6ed692207a72546baed6ecdcf873fa1e3fe3d8a60ffe26c65319abcd",
+            "sessionChecksum": null,
+            "taskRevision": null,
+            "attemptId": "0384ce03-ae17-414d-83d2-8166bf910f5e"
+          },
+          {
+            "sessionId": "01a0feef-3930-7023-90fe-393179fbc1a3",
+            "transcriptChecksum": "sha256:66cacc46d2cf1844d01e09d232d6876d63d671001fb2f5eca22ff9d2dd24f1e9",
+            "sessionChecksum": null,
+            "taskRevision": "task-4f6c3b34758c6dfe95e07a3e085488547c4128a90f38adde8ccde3f5e616aece",
+            "attemptId": "0384ce03-ae17-414d-83d2-8166bf910f5e"
+          },
+          {
+            "sessionId": "01a0feef-608c-7fc3-99d7-e3a7d3dae226",
+            "transcriptChecksum": "sha256:fd880eb0af340d6c6804c363083e3fa6c1086223ceb1d8c88e710cedf59ff49f",
+            "sessionChecksum": null,
+            "taskRevision": "task-638eb2edbfb14cfe377bf81c19e091bfd414e4a9ad28918aad8e01d3bc3cb1b7",
+            "attemptId": "0384ce03-ae17-414d-83d2-8166bf910f5e"
+          },
+          {
+            "sessionId": "01a0feef-8785-7832-998b-cba8522b65d0",
+            "transcriptChecksum": "sha256:09c4895f7539bd130c96b48ab9bdf054109f0457132aabbe65a0f52b1c3486ab",
+            "sessionChecksum": null,
+            "taskRevision": "task-63fa0ee32aca6a9743e0fe63bb385e188ddb2872522b2143afc7d7f98630e03b",
+            "attemptId": "0384ce03-ae17-414d-83d2-8166bf910f5e"
+          },
+          {
+            "sessionId": "01a0feef-b5f0-79f1-b751-418802f0499c",
+            "transcriptChecksum": "sha256:df4c1daa75e08a33b61ac7c5b907bd0616b3cb8420a8e9cd3dd295577fc9ccf8",
+            "sessionChecksum": null,
+            "taskRevision": "task-baa01ca4624c5b0a2e7a99006c1e0742b26451e6b18befcd8f74ff5b847b10ec",
+            "attemptId": "0384ce03-ae17-414d-83d2-8166bf910f5e"
+          },
+          {
+            "sessionId": "01a0fef1-ec34-7b72-8230-fc8fd67299eb",
+            "transcriptChecksum": "sha256:e31042f739b98040ad8902e6e854def2880b58c467f357f61174911e62eb2f77",
+            "sessionChecksum": null,
+            "taskRevision": "task-f3c9df2422602e9f4af51525b2a585eb4f0094fabd58de376d3c03070df204ec",
+            "attemptId": "0384ce03-ae17-414d-83d2-8166bf910f5e"
+          },
+          {
+            "sessionId": "01a0fef6-96df-7290-837a-20952bb36d0b",
+            "transcriptChecksum": "sha256:6637c91793b24d4b3802fbe9d787236d70745de5dfe495b212158d610c47466a",
+            "sessionChecksum": null,
+            "taskRevision": "task-cfd93a6e509ab70b2d468f9260c4f3df66b978eb399c50d89219d0f49c0d9db0",
+            "attemptId": "0384ce03-ae17-414d-83d2-8166bf910f5e"
+          },
+          {
+            "sessionId": "01a0ff06-bc56-7a43-b452-47923585d5df",
+            "transcriptChecksum": "sha256:77c032f477391b2441e96213dc3753353624a22e1567ce7e33883998ce8f9fb9",
+            "sessionChecksum": null,
+            "taskRevision": null,
+            "attemptId": "854af3f4-e7af-4bd6-8ee5-f29ec26907ae"
+          },
+          {
+            "sessionId": "01a0ff06-e05f-71a0-8401-78f8a7ceb85e",
+            "transcriptChecksum": "sha256:15209a255ba2453700c9f6d848a95e4705dc8bfc95ddc2c932ccb1c7e6fbb878",
+            "sessionChecksum": null,
+            "taskRevision": null,
+            "attemptId": "854af3f4-e7af-4bd6-8ee5-f29ec26907ae"
+          },
+          {
+            "sessionId": "01a0ff07-01fd-7323-a2ef-fb633fee77a3",
+            "transcriptChecksum": "sha256:648b2ede143e7a87c9e1e8d5f66b23568431ec9209d72d8bab663bd2bf8821dc",
+            "sessionChecksum": null,
+            "taskRevision": null,
+            "attemptId": "854af3f4-e7af-4bd6-8ee5-f29ec26907ae"
+          },
+          {
+            "sessionId": "01a0ff07-2609-7972-8aa3-e41eb7946779",
+            "transcriptChecksum": "sha256:1a8a19b4d5eda0bc3e6a3026240746a061807701c62d125e31f2a97e498637fc",
+            "sessionChecksum": null,
+            "taskRevision": null,
+            "attemptId": "854af3f4-e7af-4bd6-8ee5-f29ec26907ae"
+          },
+          {
+            "sessionId": "01a0ff09-cb54-7ab3-89d6-04777f67bd40",
+            "transcriptChecksum": "sha256:01cc51475066427aebc86df85b8ea42f552d378671be9651fa5ce5adcc79f047",
+            "sessionChecksum": null,
+            "taskRevision": "task-9b3ca43411682b5add665b17ed62855e65731d8ea64bf3aee7da15c6a74797a2",
+            "attemptId": "854af3f4-e7af-4bd6-8ee5-f29ec26907ae"
+          },
+          {
+            "sessionId": "01a0ff1f-89f7-7043-aba1-7033ccfea760",
+            "transcriptChecksum": "sha256:5565a5e1a5f9d42fbac9bc3a10804cadb0b4de3b19db4828f84533f29e09af32",
+            "sessionChecksum": null,
+            "taskRevision": null,
+            "attemptId": "bbc1632d-6363-46e0-a18d-1f64312f735b"
+          },
+          {
+            "sessionId": "01a0ff1f-b5b5-7191-a5b4-0f795f662e0e",
+            "transcriptChecksum": "sha256:cc43be0aff83ef1819ba4c3d53ba884cec80e31f3c744e11fa0cb76305f7b4dc",
+            "sessionChecksum": null,
+            "taskRevision": null,
+            "attemptId": "bbc1632d-6363-46e0-a18d-1f64312f735b"
+          },
+          {
+            "sessionId": "01a0ff1f-e2a6-7800-9ba0-32a3ad254d5c",
+            "transcriptChecksum": "sha256:8eb0649ed81397160c31b10cfa324e2c92372017c0ec56e5e83d81d2822b416d",
+            "sessionChecksum": null,
+            "taskRevision": null,
+            "attemptId": "bbc1632d-6363-46e0-a18d-1f64312f735b"
+          },
+          {
+            "sessionId": "01a0ff20-0f87-7121-a4e0-eae5aa0c1ca6",
+            "transcriptChecksum": "sha256:50234cecfeaa3c3098674a9d915ebbcb3b9c861888a5c68cf5ebd6c862469034",
+            "sessionChecksum": null,
+            "taskRevision": null,
+            "attemptId": "bbc1632d-6363-46e0-a18d-1f64312f735b"
+          },
+          {
+            "sessionId": "01a0ff22-6063-7e52-af92-9376310dadc1",
+            "transcriptChecksum": "sha256:aec277ad884e0eef9a826962d6177fa65e8fa70784d309977be3f64a1dd381de",
+            "sessionChecksum": null,
+            "taskRevision": "task-0de00a6da075363ba69296a541ee2ecb424b4940f40c358adc1209acac08d134",
+            "attemptId": "bbc1632d-6363-46e0-a18d-1f64312f735b"
+          }
+        ],
+        "delegationChecksum": null,
+        "notificationFormatterChecksum": null,
+        "attempts": [
+          {
+            "attemptId": "0384ce03-ae17-414d-83d2-8166bf910f5e",
+            "storyId": "ai-fabricated-answers",
+            "revisionId": "revision-f08451d42f71da59782154b8b2e12070b5db2d2025a314f16cea4218141eadc0",
+            "candidateId": null,
+            "base": null,
+            "deliveryBuildId": "delivery-c53f08362bd91d681f6a1265c207e6639d40d8c9a4392e5d81de2795b8abe006",
+            "workerTransport": "shared-workspace",
+            "modeSource": "builtin-default",
+            "concurrencySource": "builtin-default",
+            "requestedMaxConcurrency": 4,
+            "effectiveMaxConcurrency": 4,
+            "peakActiveChildren": 4,
+            "peakBoundTasks": 4,
+            "fourWayBoundOverlapMs": 515914,
+            "refillAdmissions": 2,
+            "dirtyTaskCount": 6,
+            "productionChildCount": 6,
+            "probeChildCount": 4,
+            "dirtyTaskRevisions": [
+              "task-4f6c3b34758c6dfe95e07a3e085488547c4128a90f38adde8ccde3f5e616aece",
+              "task-638eb2edbfb14cfe377bf81c19e091bfd414e4a9ad28918aad8e01d3bc3cb1b7",
+              "task-63fa0ee32aca6a9743e0fe63bb385e188ddb2872522b2143afc7d7f98630e03b",
+              "task-baa01ca4624c5b0a2e7a99006c1e0742b26451e6b18befcd8f74ff5b847b10ec",
+              "task-cfd93a6e509ab70b2d468f9260c4f3df66b978eb399c50d89219d0f49c0d9db0",
+              "task-f3c9df2422602e9f4af51525b2a585eb4f0094fabd58de376d3c03070df204ec"
+            ],
+            "childSessionIds": [
+              "01a0fee8-1931-7913-989e-7fc8783a78dc",
+              "01a0fee8-3897-7010-bf48-87db1ade7782",
+              "01a0fee8-5638-72c1-a043-ec0de0013fd7",
+              "01a0fee8-7432-79f3-9bc5-6776fff91b70",
+              "01a0feef-3930-7023-90fe-393179fbc1a3",
+              "01a0feef-608c-7fc3-99d7-e3a7d3dae226",
+              "01a0feef-8785-7832-998b-cba8522b65d0",
+              "01a0feef-b5f0-79f1-b751-418802f0499c",
+              "01a0fef1-ec34-7b72-8230-fc8fd67299eb",
+              "01a0fef6-96df-7290-837a-20952bb36d0b"
+            ]
+          },
+          {
+            "attemptId": "854af3f4-e7af-4bd6-8ee5-f29ec26907ae",
+            "storyId": "ai-fabricated-answers",
+            "revisionId": "revision-81592c6627e43f5f66858301db7c87506489deaabb6d5fb556d2363540f980a8",
+            "candidateId": "revision-candidate-6f75bf8e40f83bbfd3d11630fdc256a6693ffe12b650029a608e9f81bb3a8840",
+            "base": {
+              "revisionId": "revision-f08451d42f71da59782154b8b2e12070b5db2d2025a314f16cea4218141eadc0",
+              "deliveryBuildId": "delivery-c53f08362bd91d681f6a1265c207e6639d40d8c9a4392e5d81de2795b8abe006"
+            },
+            "deliveryBuildId": "delivery-1d1a72de6b83e05f90f06fb109f2eed2ea39aac806fdb37c8e0ce259ab2041d4",
+            "workerTransport": "shared-workspace",
+            "modeSource": "builtin-default",
+            "concurrencySource": "builtin-default",
+            "requestedMaxConcurrency": 4,
+            "effectiveMaxConcurrency": 4,
+            "peakActiveChildren": 2,
+            "peakBoundTasks": 1,
+            "fourWayBoundOverlapMs": 0,
+            "refillAdmissions": 0,
+            "dirtyTaskCount": 1,
+            "productionChildCount": 1,
+            "probeChildCount": 4,
+            "dirtyTaskRevisions": [
+              "task-9b3ca43411682b5add665b17ed62855e65731d8ea64bf3aee7da15c6a74797a2"
+            ],
+            "childSessionIds": [
+              "01a0ff06-bc56-7a43-b452-47923585d5df",
+              "01a0ff06-e05f-71a0-8401-78f8a7ceb85e",
+              "01a0ff07-01fd-7323-a2ef-fb633fee77a3",
+              "01a0ff07-2609-7972-8aa3-e41eb7946779",
+              "01a0ff09-cb54-7ab3-89d6-04777f67bd40"
+            ]
+          },
+          {
+            "attemptId": "bbc1632d-6363-46e0-a18d-1f64312f735b",
+            "storyId": "ai-fabricated-answers",
+            "revisionId": "revision-a6afd5521dd04f7fe77b42bd8dbfe047d311901d17b8f6592776c0f6645ddcf5",
+            "candidateId": "revision-candidate-c3010a9f7e95e19f022b2da43d628ad9335016c52fff04872f853f98da769543",
+            "base": {
+              "revisionId": "revision-81592c6627e43f5f66858301db7c87506489deaabb6d5fb556d2363540f980a8",
+              "deliveryBuildId": "delivery-1d1a72de6b83e05f90f06fb109f2eed2ea39aac806fdb37c8e0ce259ab2041d4"
+            },
+            "deliveryBuildId": "delivery-28e5f13bf4cbea2120417833a776d6cd6a094a80cb477f426782778bb1c4bbf9",
+            "workerTransport": "shared-workspace",
+            "modeSource": "builtin-default",
+            "concurrencySource": "builtin-default",
+            "requestedMaxConcurrency": 4,
+            "effectiveMaxConcurrency": 4,
+            "peakActiveChildren": 2,
+            "peakBoundTasks": 1,
+            "fourWayBoundOverlapMs": 0,
+            "refillAdmissions": 0,
+            "dirtyTaskCount": 1,
+            "productionChildCount": 1,
+            "probeChildCount": 4,
+            "dirtyTaskRevisions": [
+              "task-0de00a6da075363ba69296a541ee2ecb424b4940f40c358adc1209acac08d134"
+            ],
+            "childSessionIds": [
+              "01a0ff1f-89f7-7043-aba1-7033ccfea760",
+              "01a0ff1f-b5b5-7191-a5b4-0f795f662e0e",
+              "01a0ff1f-e2a6-7800-9ba0-32a3ad254d5c",
+              "01a0ff20-0f87-7121-a4e0-eae5aa0c1ca6",
+              "01a0ff22-6063-7e52-af92-9376310dadc1"
+            ]
+          }
+        ]
+      },
+      "supervision": {
+        "schemaVersion": 1,
+        "source": "codex",
+        "reportedBeforeCreate": true,
+        "reportedBeforePrepare": true,
+        "continuationCalls": 3,
+        "pollingCalls": 0,
+        "asyncBatches": 0,
+        "completedAsyncBatches": 0,
+        "attempts": [
+          {
+            "attemptId": "0384ce03-ae17-414d-83d2-8166bf910f5e",
+            "storyId": "ai-fabricated-answers",
+            "revisionId": "revision-f08451d42f71da59782154b8b2e12070b5db2d2025a314f16cea4218141eadc0",
+            "candidateId": null,
+            "base": null,
+            "deliveryBuildId": "delivery-c53f08362bd91d681f6a1265c207e6639d40d8c9a4392e5d81de2795b8abe006",
+            "reportedBeforePrepare": true,
+            "continuationCalls": 1
+          },
+          {
+            "attemptId": "854af3f4-e7af-4bd6-8ee5-f29ec26907ae",
+            "storyId": "ai-fabricated-answers",
+            "revisionId": "revision-81592c6627e43f5f66858301db7c87506489deaabb6d5fb556d2363540f980a8",
+            "candidateId": "revision-candidate-6f75bf8e40f83bbfd3d11630fdc256a6693ffe12b650029a608e9f81bb3a8840",
+            "base": {
+              "revisionId": "revision-f08451d42f71da59782154b8b2e12070b5db2d2025a314f16cea4218141eadc0",
+              "deliveryBuildId": "delivery-c53f08362bd91d681f6a1265c207e6639d40d8c9a4392e5d81de2795b8abe006"
+            },
+            "deliveryBuildId": "delivery-1d1a72de6b83e05f90f06fb109f2eed2ea39aac806fdb37c8e0ce259ab2041d4",
+            "reportedBeforePrepare": true,
+            "continuationCalls": 1
+          },
+          {
+            "attemptId": "bbc1632d-6363-46e0-a18d-1f64312f735b",
+            "storyId": "ai-fabricated-answers",
+            "revisionId": "revision-a6afd5521dd04f7fe77b42bd8dbfe047d311901d17b8f6592776c0f6645ddcf5",
+            "candidateId": "revision-candidate-c3010a9f7e95e19f022b2da43d628ad9335016c52fff04872f853f98da769543",
+            "base": {
+              "revisionId": "revision-81592c6627e43f5f66858301db7c87506489deaabb6d5fb556d2363540f980a8",
+              "deliveryBuildId": "delivery-1d1a72de6b83e05f90f06fb109f2eed2ea39aac806fdb37c8e0ce259ab2041d4"
+            },
+            "deliveryBuildId": "delivery-28e5f13bf4cbea2120417833a776d6cd6a094a80cb477f426782778bb1c4bbf9",
+            "reportedBeforePrepare": true,
+            "continuationCalls": 1
+          }
+        ]
+      },
+      "unchangedGuideFiles": 12,
+      "finalCheck": {
+        "status": "project-final-check",
+        "storyId": "ai-fabricated-answers",
+        "aggregateStatus": "pass",
+        "deliveryBuildId": "delivery-28e5f13bf4cbea2120417833a776d6cd6a094a80cb477f426782778bb1c4bbf9",
+        "checks": [
+          {
+            "checkId": "artifacts",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "delivery",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "revision",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "artifact-set",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "delivery-build",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "audio-channels",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "snapshot",
+            "status": "pass",
+            "code": null,
+            "message": null
+          }
+        ],
+        "schemaVersion": 1,
+        "level": "final",
+        "scope": "current-production",
+        "revisionId": "revision-a6afd5521dd04f7fe77b42bd8dbfe047d311901d17b8f6592776c0f6645ddcf5",
+        "artifactSetFingerprint": "sha256:1aeac899af08a499240c98da6aa0bc12963bfc6dfcc17fd8d8335068451990f9"
+      },
+      "delivery": {
+        "storyId": "ai-fabricated-answers",
+        "deliveryBuildId": "delivery-28e5f13bf4cbea2120417833a776d6cd6a094a80cb477f426782778bb1c4bbf9",
+        "files": {
+          "video.mp4": {
+            "checksum": "sha256:c1f7d3db552ff248f2e6dde709eabc085b696cc8e92f26048ae6a2ddf580e49c",
+            "sizeBytes": 11949031
+          },
+          "cover-4x3.png": {
+            "checksum": "sha256:07f96a26004f79e55d01dff8b1f012fa7ce05288f270a19f86cf6dd7c2a7ca9d",
+            "sizeBytes": 215888
+          },
+          "cover-3x4.png": {
+            "checksum": "sha256:12f656404cf6f0d564cacc3c9f82e33390c7bbc25eb06713c531ae435b98f9d7",
+            "sizeBytes": 217318
+          },
+          "publish.json": {
+            "checksum": "sha256:63df8a8704b87b7223f861c15fe7b81ed53f1b2434be1d7073deff12ac9c64eb",
+            "sizeBytes": 2609
+          }
+        },
+        "video": {
+          "codec": "h264",
+          "audioCodec": "aac",
+          "audioChannels": 2,
+          "width": 1080,
+          "height": 1920,
+          "fps": 30,
+          "frameCount": 3017
+        },
+        "decodedFiles": [
+          "video.mp4",
+          "cover-4x3.png",
+          "cover-3x4.png"
+        ]
+      }
+    }
+  ]
+}

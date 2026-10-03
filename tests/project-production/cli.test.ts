@@ -372,7 +372,6 @@ test("inspect and prepare each emit one stable structured JSON document", async 
       agentTasks: 1,
       deliveryMedia: [],
     },
-    taskExplanations: [taskExplanation],
     dirtyAgentTasks: [
       {
         taskKind: "scene-owner",
@@ -389,11 +388,6 @@ test("inspect and prepare each emit one stable structured JSON document", async 
           sharedWorkspace: "npm run project:task:bind -- shared-workspace",
           controllerIo: "npm run project:task:bind -- controller-io",
         },
-        describeCommand: "npm run project:task:describe -- bound",
-        finalizeCommand: "npm run project:task:finalize -- bound",
-        checkCommand: "npm run project:task:check -- bound",
-        commitCommand: "npm run project:task:commit -- bound",
-        taskFailureCommand: "npm run project:task:fail -- bound --kind task",
         fixedFailureCommand: "npm run project:task:fail -- bound --kind fixed",
         spawnFailureCommand: "npm run project:task:fail -- bound --kind host",
       },

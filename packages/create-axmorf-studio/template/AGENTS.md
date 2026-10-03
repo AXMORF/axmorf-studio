@@ -32,7 +32,11 @@ Explicit user dimensions/orientation, fps and locale go in create input `render.
 Omit unspecified fields to inherit settings. Convert orientation to concrete dimensions; do not change saved
 defaults for one Project. Compare the returned frozen `render` with the request before provider preparation.
 
-Run `npm run project:produce:inspect` before any costly preparation. Only
+For each live or candidate production, including an autonomous revision within the same request, repeat current capability
+verification and one successful `project:execution:resolve` before inspect; never reuse the previous production's probe or resolver.
+Run `npm run project:produce:inspect` and report `sourceState`, estimated cost, artifact reuse and structured invalidations
+before any costly preparation. For local corrections, unrelated dirty tasks require a narrower raw patch and a new validated
+candidate before prepare; a complete visual rebuild is not local reuse success. Only
 `npm run project:produce:prepare` may call configured providers. An Agent task
 must run prepare's exact attempt-bound bind command before reading or writing
 task content. Only `task-worker-bound` grants access to immutable `task.json`,
@@ -59,8 +63,17 @@ the validator.
 
 Never edit a current Project in place. For an existing Project, obtain the
 exact current Revision and verified four-file Delivery with
-`project:revise:context`, validate strict raw input, and create an isolated
-candidate with `project:revise`. Carry its candidate ID through production.
+`project:revise:context -- --project <storyId>`, validate strict raw input with
+`project:revise:validate -- --input <repository-relative-json>`, then create an isolated
+candidate with `project:revise -- --project <storyId> --input <repository-relative-json>`.
+Revision commands have no `--schema`; validate accepts no `--project`. Read the installed public revision schema as shown in
+[authoring](.agents/skills/axmorf-video/references/authoring.md#existing-project-revision); use only supported fields.
+For a local Scene layout fix, change only that Scene's authoring in the full `patch.scenes` list; preserve unrelated Scenes,
+VisualStyle, GlobalVisual, Story and TTS. Do not invent a Cover-only patch API. Carry the candidate ID through production.
+The bound `scene.priorSource`, when present, is only the owning Scene's verified, frozen current base graph and declarations.
+Compare its previous brief with the current brief and apply the delta while preserving unaffected behavior and exact license/lineage
+bytes. It grants no access to base snapshot paths, other Scenes, history or another workspace. Without it, create from the current
+brief and do not claim preservation of existing source.
 Candidate promotion changes the current Project and Delivery only after its own
 exact four files pass validation; it replaces only source/public/narration/delivery
 as one transaction, and any promotion failure must roll all four back.
@@ -101,5 +114,7 @@ the user explicitly requests that action. Project deletion must use
 
 短 `--assignment` 只路由 exact project/attempt 的 immutable dirty task 序号；CLI 还原 full task/binding 后继续原验证，不能混入手写长身份。
 Root 优先整段转发 prepare/reissue 的 `workerPrompts`；进程工具返回 session/cell handle 时完整保留并等待，不能只取 output 或提前结束 Root。
+每个命令都保留完整工具结果与 shell 终态退出码；外层 code cell 结束不表示 shell 已结束。inspect/prepare 同样适用。
+prepare 原始结果或句柄遗失时报告阻塞，禁止从磁盘、日志或 child 消息重建派发及 continuation 命令。
 
 New Projects freeze `visualStyle.theme`: dark (default), light, or validated opaque hex roles background/primaryText/secondaryText/accent. Composition paints that background. Themed GlobalVisualBaseLayer must return null; Scene and boundary colors use the same theme. Legacy immutable boundaries are never silently migrated; incompatible theme revisions fail before mutation.

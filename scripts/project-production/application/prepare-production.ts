@@ -438,7 +438,6 @@ export const prepareProjectProduction = async (
         agentTasks: dirty.length,
         deliveryMedia: [],
       },
-      taskExplanations: current.plan.tasks,
       dirtyAgentTasks: dirty.map(({ task: taskSpec, ...task }) => ({
         ...task,
         ...buildTaskDispatch({

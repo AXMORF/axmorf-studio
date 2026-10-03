@@ -6,8 +6,7 @@ create-context/inspect 汇报后同轮继续工具。Hermes 用 assistant text �
 
 ## 1. Create or revise Project inputs
 
-Pass one strict repository-relative input. Omit `sceneTemplates` to inherit ProducerConfig;
-user silence must never become `null`:
+strict input 用仓库相对路径；省略 `sceneTemplates` 继承 ProducerConfig；user silence must never become `null`：
 
 ```bash
 npm run project:create -- --project <storyId> --input <repository-relative-json>
@@ -19,8 +18,8 @@ Create 原子保留 silent/narrated 语义并冻结 Scene baseline。legacy 缺�
 npm run project:originality:freeze -- --project <storyId>
 ```
 
-不伪造空 baseline。`ttsChunk` 超过 72 `caption-display-unit-v1` half-units 时按
-`authoring-validation-failed`/`caption-display-budget-exceeded` 缩短或语义拆分。修订见 revision reference。
+不伪造 baseline。Root 预定 `outgoingHandoff.subject`；v1 给 `trackedState`。child 对照
+`continuity.handoffs`；fixed template 不连续。字幕与修订按 Skill。
 
 ## 2. Load the optional external-asset MCP slot
 
@@ -35,18 +34,15 @@ If the MCP is absent, omit this entire stage without error, placeholder task, pr
 executors never receive it. Receipts/candidates stay at the adapter; only Project-owned manifest IDs and
 fingerprints proceed.
 
-## 3. Resolve execution once
+## 3. Resolve each production once
 
-只解析 prompt 的 explicit execution fields；其余按 settings、内置 `subagents`/4 继承。除非明确要求，不保存。
-先按 [host capability probe](execution-capabilities.md) 使用 helper 生成完整路径与派发提示，验证读写与容量、释放所有探测槽位，再传入下列 host flags。
+每次 live/candidate production（含同请求自主 revision）重验 [host probe](execution-capabilities.md)：helper 给完整路径/prompt，验证 I/O/容量并释放槽位；不沿用上轮。inspect 前成功 resolve 一次。explicit prompt → settings → `subagents`/4；未要求不保存。
 
 ```bash
 npm run project:execution:resolve -- [--mode inline|subagents] [--max-concurrency <n>] [--require-exact-concurrency] [--runtime-max-concurrency <n>] [--worker-transport shared-workspace|controller-io]
 ```
 
-Inline 只需当前 shell-capable Agent。subagents 要求 runtime capacity 与 verified `shared-workspace`/
-`controller-io`；capacity unknown 阻塞，transport 缺失/zero capacity/exact mismatch 阻塞，ceiling 4。transport 不持久化，解析诊断不
-进入 content identity。
+Inline 只需当前 shell-capable Agent；subagents 须已知 runtime capacity 与 verified `shared-workspace`/`controller-io`。unknown/missing transport/zero capacity/exact mismatch 在 prepare 前阻塞；ceiling 4。transport 不持久化，解析诊断不入 content identity。
 
 ## 4. Inspect read-only, then prepare explicitly
 
@@ -54,20 +50,18 @@ Inline 只需当前 shell-capable Agent。subagents 要求 runtime capacity 与 
 npm run project:produce:inspect -- --project <storyId>
 ```
 
-Inspect 返回后先报告 readiness、cost/reuse 与 invalidation，再 prepare；前置计划不算结果报告，二者不得合并调用：
+Inspect 后报告 `sourceState`、cost/reuse、结构化 invalidation；前置计划不算报告，二者不合并。局部修订若无关 tasks dirty，先缩小 patch、validate/create 新 candidate，重走第 3 步；全重做不算局部 reuse：
 
 ```bash
 npm run project:produce:prepare -- --project <storyId>
 ```
 
-Prepare: ProductionRevision, Task DAG and `dirtyAgentTasks`. Reuse artifacts; execute dirty Agent tasks only,
-never `scene-template`. Attempt IDs never enter TaskRevision; diagnostics own no content identity.
+Prepare 返回 ProductionRevision、Task DAG、`dirtyAgentTasks`；复用 artifacts，只执行 dirty Agent tasks，never `scene-template`。Attempt IDs never enter TaskRevision；diagnostics 无 content identity。
 
 ## 5. Execute dirty Agent tasks
 
-每个 TaskRevision 只归属一个 executor。`inputs/task-contract.json` 是 immutable、attempt-neutral 的 exact output
-contract，不包含 host command。prepare 的 `workerPrompts` 已含完整角色、路径与绑定命令，Root 按 transport 整段转发。
-短 ordinal 由 exact attempt 的 immutable dirty task snapshots 解析，仍走原完整 binding gate；旧 full task/binding CLI 保留，禁止混用。
+每 TaskRevision 只归属一个 executor。`inputs/task-contract.json` 是 immutable、attempt-neutral exact output contract，无 host command。Root 按 transport 整段转发 prepare `workerPrompts` 的完整角色/路径/bind。
+短 ordinal 从 exact attempt immutable dirty task snapshots 解析，完整 binding gate 不变；保留旧 full task/binding CLI，禁止混用。
 
 先运行 prepare 的 exact attempt-bound bind；这是 zero-write gate，`task-worker-bound` 前禁止 task read/write。
 之后只使用返回的 capability 与 commands：
@@ -108,7 +102,7 @@ Claim 一次，拒绝重复。Root 阻塞等原进程/通知，普通超时只�
 Converge: read-only replan, attested materialization, checksum/EOF-decode for `video.mp4`, `cover-4x3.png`, `cover-3x4.png`, `publish.json`.
 Valid matching delivery returns `project-production-current` without rewrite.
 
-Fixed success 后汇报路径并结束；需独立复验用 `npm run project:check -- --project <storyId> --level final`。revision context 只用于用户要求的修改。Candidate promotion 按 revision reference。
+Fixed success 后汇报路径并结束；需独立复验用 `npm run project:check -- --project <storyId> --level final`。revision context 只用于已授权范围内修改。Candidate promotion 按 revision reference。
 
 terminal failed attempt immutable。按 [recovery](agent-rework-and-system-hardening.md) 诊断，视频创作错误每个请求最多恢复一次；旧 workers 全退出后报告 read-only、zero-provider inspection，ready 才 same Revision reissue：
 
@@ -117,7 +111,7 @@ npm run project:attempt:recover-inspect -- --project <storyId> --attempt <failed
 npm run project:attempt:reissue -- --project <storyId> --attempt <failedAttemptId>
 ```
 
-Reissue 不要求 current delivery；复用 valid artifacts/drafts，返回 fresh bindings/continuation，并拒绝 active、stale 或 fixed-flow recovery。新 attempt 使用 fresh workers；旧 attempt 不重开。系统/外部故障只诊断报告。
+Reissue 无需 current delivery；复用 valid artifacts/drafts，返回 fresh bindings/continuation，派 fresh workers；拒绝 active/stale/fixed-flow recovery，不重开旧 attempt。系统/外部故障只诊断报告。
 
 Run `npm run compositions` and `npm run check` with host permissions first. Sandbox failures cannot prove VoxCPM
 unavailable or justify weakening Chromium sandbox.

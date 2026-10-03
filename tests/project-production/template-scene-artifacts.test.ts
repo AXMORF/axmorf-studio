@@ -22,6 +22,7 @@ import {
   StorySpecSchema,
   SceneTemplateInstanceSchema,
   ProducerConfigSchema,
+  SCENE_MOTION_REQUIREMENT,
 } from "@axmorf/studio/contracts";
 import { buildResourceCatalog } from "../../scripts/catalog/domain";
 import { inspectArtifact } from "../../scripts/project-production/adapters/artifact-store";
@@ -47,6 +48,12 @@ const sha = (character: string) => `sha256:${character.repeat(64)}` as const;
 const digest = (value: string | Uint8Array) =>
   `sha256:${createHash("sha256").update(value).digest("hex")}` as const;
 const canonical = (value: unknown) => `${serializeCanonicalJson(value)}\n`;
+const motionRequirement = {
+  requirementId: SCENE_MOTION_REQUIREMENT.requirementId,
+  category: SCENE_MOTION_REQUIREMENT.category,
+  statement: SCENE_MOTION_REQUIREMENT.statement,
+  severity: SCENE_MOTION_REQUIREMENT.severity,
+};
 
 test("template readers exclude live-only Scene projections after materialization", async (context) => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-template-live-view-"));
@@ -107,7 +114,7 @@ test("template readers exclude live-only Scene projections after materialization
   );
 });
 
-test("fixed template preparation derives and commits the complete canonical Scene bundle", async (context) => {
+test("fixed template preparation skips Agent motion checks and commits the complete canonical Scene bundle", async (context) => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-template-fixed-artifact-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));
   await writeFile(
@@ -116,7 +123,7 @@ test("fixed template preparation derives and commits the complete canonical Scen
   );
 
   const storyId = "template-fixed-proof";
-  const meaningId = "configured-intro-scene";
+  const meaningId = "fixed-template-instance";
   const durationInFrames = 30;
   const sceneBody = `
 export const SceneBody = () => <div />;
@@ -244,7 +251,7 @@ export default Renderer;
       selfAuthoredVisualsAllowed: true,
       unlistedThirdPartyResources: "deny",
     },
-    additionalRequirements: [],
+    additionalRequirements: [SCENE_MOTION_REQUIREMENT],
     readability: { edgeInsetPx: 90 },
   });
   const catalog = buildResourceCatalog([]);
@@ -278,7 +285,7 @@ export default Renderer;
       sceneRoot: `src/projects/${storyId}/scenes/${meaningId}`,
       publicAssetRoot: `public/projects/${storyId}/scenes/${meaningId}`,
     },
-    sceneRequirements: [],
+    sceneRequirements: [motionRequirement],
     sceneViewport: resolveSceneViewport(
       resolveSceneReadabilityPolicy({
         width: render.width,
@@ -307,6 +314,7 @@ export default Renderer;
         allowedSnapshotCards: [],
       },
       taskInput,
+      fps: render.fps,
     },
   });
   const task = buildProducerTaskSpec({
@@ -452,7 +460,7 @@ for (const meaningId of ["configured-intro-scene", "configured-outro-scene"]) {
         selfAuthoredVisualsAllowed: true,
         unlistedThirdPartyResources: "deny",
       },
-      additionalRequirements: [],
+      additionalRequirements: [SCENE_MOTION_REQUIREMENT],
       readability: { edgeInsetPx: 90 },
     });
     const catalog = await readGeneratedResourceCatalog(rootDir);
@@ -486,7 +494,7 @@ for (const meaningId of ["configured-intro-scene", "configured-outro-scene"]) {
         sceneRoot: `src/projects/${storyId}/scenes/${meaningId}`,
         publicAssetRoot: `public/projects/${storyId}/scenes/${meaningId}`,
       },
-      sceneRequirements: [],
+      sceneRequirements: [motionRequirement],
       sceneViewport: resolveSceneViewport(
         resolveSceneReadabilityPolicy({
           width: render.width,
@@ -515,6 +523,7 @@ for (const meaningId of ["configured-intro-scene", "configured-outro-scene"]) {
           allowedSnapshotCards: [],
         },
         taskInput,
+        fps: render.fps,
       },
     });
     const task = buildProducerTaskSpec({

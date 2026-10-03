@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 1,
+  "scope": "Failed independent first-use incident, not a passing release receipt",
+  "recordedAt": "2026-10-02T12:49:51.390988+00:00",
+  "workspace": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-publish-20261002-02tl646t/workspace",
+  "nativeRoot": "01a0fc6c-29e7-7103-a807-4492e97f9434",
+  "actualModel": "gpt-5.6-sol",
+  "reasoningEffort": "max",
+  "cliVersion": "0.150.1",
+  "packages": {
+    "runtime": {
+      "name": "@axmorf/studio",
+      "version": "0.1.16",
+      "fingerprint": "sha256:131d7f935e564ab79e3f0fca7d938da41589b3baed8fc09227cc14356b3c57a7"
+    },
+    "creator": {
+      "name": "create-axmorf-studio",
+      "version": "0.1.16",
+      "fingerprint": "sha256:c1641c3609668176416c136eb113770ae2c091162b8c4c9aebbe1b7751faba35"
+    }
+  },
+  "strictRecorder": {
+    "command": [
+      "node",
+      "--import",
+      "tsx",
+      "scripts/release/first-use.ts",
+      "record",
+      "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-publish-20261002-02tl646t/snapshot.json",
+      "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-publish-20261002-02tl646t/run-evidence.json",
+      "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-publish-20261002-02tl646t/host-receipt.json"
+    ],
+    "exitCode": 1,
+    "log": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-publish-20261002-02tl646t/engineering/strict-record-failure.log",
+    "passingHostReceiptWritten": false,
+    "nativeRunProcessExitCode": 0,
+    "scope": "Native delivery completed; strict independent first-use audit failed. No replacement or reconstructed evidence."
+  },
+  "rawEvidence": {
+    "index": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-publish-20261002-02tl646t/native-rollouts-index.json",
+    "indexSha256": "4eeff7a04e88cc782f55f640cf5418364b3fd778f924dcda2ff9d19cd9804c84",
+    "completeRpc": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-publish-20261002-02tl646t/creation/app-server-output.jsonl",
+    "rpcSha256": "edc7b02ed79229bc313e3e9187985b478a4800660b0f77e33d46fc3c23111aef",
+    "allNativeSessions": 13
+  },
+  "delivery": {
+    "exists": true,
+    "storyId": "ai-hallucination-citations-zh",
+    "revisionId": "revision-d6b0c60024b6c119935c5a413099088f1a9347cbe4461bb732283e68ae7dfdbc",
+    "deliveryBuildId": "delivery-2611305cec1e8ee87c1e89b88059094c5e3db77951250b20deaf9a8ebc3b0682",
+    "scope": "Native fixed production completed; this does not repair first-use evidence"
+  },
+  "diagnosticNativeConcurrency": {
+    "productionChildCount": 7,
+    "peakBoundTasks": 4,
+    "fourWayBoundOverlapMs": 540034
+  },
+  "failureCause": {
+    "originalNativePrepareItem": "exec-df6403f1-f043-435e-a406-fa7632b865b5",
+    "originalShellProcess": "50495",
+    "completeUiOutputBytes": 54456,
+    "completeUiOutputDeltaCount": 8,
+    "outerCellCompletedAt": "2026-10-02T11:51:43.667Z",
+    "nativeShellCompletedAt": "2026-10-02T11:52:02.465Z",
+    "discardedFields": [
+      "session_id",
+      "exit_code"
+    ],
+    "originalRootBehavior": "Printed only r.output; waited outer cell 23, then reconstructed dispatch from attempt files.",
+    "uiSupplementAllowed": false,
+    "secondaryViolation": "One Scene worker formatted JSON via undeclared /private/tmp file and mv; current contract forbids it even if final artifact validator passed."
+  },
+  "engineeringRepair": "Public top-level guide and execution reference require complete tool results, original shell terminal wait and retained prepare commands; worker guides forbid undeclared temporary writes. CLI and recorder/validator code unchanged. Public executable wait-example regression added.",
+  "verification": {
+    "focused": {
+      "tests": 11,
+      "pass": 11,
+      "fail": 0
+    },
+    "fullNode24": {
+      "tests": 1043,
+      "pass": 1043,
+      "fail": 0,
+      "skipped": 0
+    },
+    "packagesBuildTypecheckAndBoundary": "passed",
+    "dependencyAuditVulnerabilities": 0
+  },
+  "stoppedRetake": {
+    "root": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-publish-retake-20261002-00qbjxp0",
+    "sessionId": "01a0fc98-30c2-7d33-a040-149c2ce71156",
+    "reason": "Human instructed CLI update/retry before provider preparation",
+    "passingClaim": false,
+    "allOriginalCaptureRetained": true
+  },
+  "cliUpdate": {
+    "old": "0.150.1",
+    "new": "0.160.0",
+    "defaultCli": "/Users/ai/.local/bin/codex",
+    "systemPermissionsChanged": false,
+    "actualModelProof": {
+      "sessionId": "01a0fca3-979a-7b22-a78f-9b7c76c67ff9",
+      "threadModel": "gpt-6.1-sol",
+      "threadEffort": "max",
+      "actualNativeTurnSettings": [
+        {
+          "model": "gpt-6.1-sol",
+          "effort": "max"
+        }
+      ],
+      "actualResponse": [
+        "模型调用成功"
+      ],
+      "passed": true,
+      "nativeStreamSha256": "54ca7837a19e5edfaaa1e59c36f8bb35f3173de5728fa7dd21ff641e45766580"
+    }
+  },
+  "nextFreshWorkspace": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-cli160-firstuse-20261002-7zzow2vz/workspace",
+  "durationAcceptance": "No duration gate; user explicitly removed it",
+  "publicationAtRecording": "Not published; authorized, awaiting matching passing candidate receipt"
+}

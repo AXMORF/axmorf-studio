@@ -17,7 +17,7 @@ export const TaskOutputOwnerSchema = z.enum([
   "agent-draft-fixed-finalize",
 ]);
 
-const TaskOutputFormatSchema = z.enum(["json", "tsx", "ts"]);
+const TaskOutputFormatSchema = z.enum(["json", "tsx", "ts", "text"]);
 const NonEmptyInstructionSchema = z.string().trim().min(1).max(1200);
 
 export const TaskOutputContractSchema = z
@@ -36,7 +36,21 @@ export const TaskOutputContractSchema = z
   .strict()
   .superRefine((output, context) => {
     const extension = output.path.split(".").at(-1);
-    if (extension !== output.format) {
+    if (
+      output.format === "text" &&
+      (!/(?:^|\/)(?:LICENSE|COPYING|NOTICE|ATTRIBUTION|THIRD_PARTY_NOTICES)(?:[._-].*)?$/iu.test(
+        output.path,
+      ) ||
+        /\.(?:json|[cm]?[jt]sx?)$/iu.test(output.path))
+    ) {
+      context.addIssue({
+        code: "custom",
+        message:
+          "Text task outputs are limited to retained license or attribution files.",
+        path: ["format"],
+      });
+    }
+    if (output.format !== "text" && extension !== output.format) {
       context.addIssue({
         code: "custom",
         message: "Task output format must match its logical path extension.",

@@ -1,7 +1,10 @@
 import { z } from "zod";
 
 import { AuthoringRequirementSchema } from "./authoring-requirements";
-import { SceneProductionBriefItemSchema } from "./authoring-briefs";
+import {
+  SceneProductionBriefItemSchema,
+  addSceneHandoffAuthoringIssues,
+} from "./authoring-briefs";
 import { VideoBriefSchema } from "./brief";
 import { createFingerprint } from "./fingerprint";
 import { MeaningIdSchema, StoryIdSchema, TtsChunkIdSchema } from "./primitives";
@@ -297,6 +300,7 @@ const ProjectCreateInputObject = z.object({
 
 export const ProjectCreateInputSchema = ProjectCreateInputObject.strict()
   .superRefine((input, context) => {
+    addSceneHandoffAuthoringIssues(input.scenes, input.story.beats, context);
     if (
       input.brief.storyId !== input.storyId ||
       input.story.storyId !== input.storyId

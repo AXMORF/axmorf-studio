@@ -1,0 +1,233 @@
+{
+  "schemaVersion": 1,
+  "hosts": [
+    {
+      "schemaVersion": 1,
+      "host": "codex",
+      "model": "gpt-5.6-sol",
+      "sessionId": "01a0fb7b-cbb4-78f2-9e87-3b935f79570e",
+      "environment": {
+        "platform": "darwin",
+        "arch": "x64",
+        "node": "v22.22.3"
+      },
+      "startedAt": "2026-10-02T07:19:49.400253Z",
+      "endedAt": "2026-10-02T07:53:20.117581Z",
+      "packages": {
+        "runtime": {
+          "name": "@axmorf/studio",
+          "version": "0.1.16",
+          "fingerprint": "sha256:956316f3da5c5d8e23dba315eb64b928dc35706b852ff7d597029f72aa1fb177",
+          "fileCount": 258
+        },
+        "creator": {
+          "name": "create-axmorf-studio",
+          "version": "0.1.16",
+          "fingerprint": "sha256:dabaeca0a818ba66e34167e156b8f520a83039ee72daa3b48f0e8e226802b344",
+          "fileCount": 41
+        }
+      },
+      "prompt": "制作一条约30到40秒的中文竖屏解释视频，主题是“AI为什么会编造答案和引用”。内容包含：流畅回答不等于事实；模型如何根据上下文生成语言；看似正式的引用可能不存在；如何查找可靠出处并核验引用。让画面通过动作、变化和镜头衔接解释内容，避免静态卡片轮播。构图与动画实现可自由选择，风格克制、手绘、有层次，不用霓虹或随机粒子。配中文旁白、字幕和封面，保证手机可读。使用合法素材及现有可用语音能力，不新增收费服务，不发布到社交平台。",
+      "promptChecksum": "sha256:5ad9e8b62a985a853989f9a43333d5eab4b3aab4bfb3b808fe401d0891207144",
+      "transcriptChecksum": "sha256:f08c1bce4641004a1b3279d3f3c084b77d30484a9a1fc0063952ea2b220519df",
+      "runChecksum": "sha256:182dd2cc3a745eceff693319ca735e61d3a7f70d2c6ff0cfe3af02898842fb07",
+      "snapshotChecksum": "sha256:01143cf76fbc6875a4edbb0e21c4ec7eb587bafb330ef57359dd03c5ead4d44e",
+      "creation": {
+        "method": "npm-exec-candidate",
+        "runtimeTarballChecksum": "sha256:f0deb2b61d55146df4a0ecfc334fa4978b63375b113c598756ecf1209fbc0ad7",
+        "creatorTarballChecksum": "sha256:a4b9a212811060452afda7f73247579b62deeef3d15f73136d5a3d75fbd3b7ba",
+        "installLogChecksum": "sha256:667496f23c03da8805d244fee2e1216f68757ce38788875fe7c804d0e334bd32"
+      },
+      "sessionChecksum": null,
+      "transcriptAudit": {
+        "businessUserMessages": 1,
+        "toolCalls": 73,
+        "followUpMessages": 0,
+        "nativeCompletionMessages": 0
+      },
+      "unchangedPackageFiles": 258,
+      "nativeExecution": {
+        "mode": "subagents",
+        "workerTransport": "shared-workspace",
+        "modeSource": "builtin-default",
+        "concurrencySource": "builtin-default",
+        "requestedMaxConcurrency": 4,
+        "effectiveMaxConcurrency": 4,
+        "peakActiveChildren": 4,
+        "peakBoundTasks": 4,
+        "fourWayBoundOverlapMs": 297361,
+        "dirtyTaskCount": 6,
+        "productionChildCount": 6,
+        "probeChildCount": 4,
+        "refillAdmissions": 2,
+        "attemptId": "b143f614-0597-437e-825f-8409ab34939d",
+        "childEvidence": [
+          {
+            "sessionId": "01a0fb7f-a9a8-7423-92e9-84e3a73e3c56",
+            "transcriptChecksum": "sha256:cdc753a88633578261ff6c367f5dd155a685ee2e053f149cbdbd310fbbbb4f22",
+            "sessionChecksum": null,
+            "taskRevision": null
+          },
+          {
+            "sessionId": "01a0fb7f-bf3b-7a01-be48-a3d81ac8bc8c",
+            "transcriptChecksum": "sha256:28496b935baa4a10370f14850dd3a22dde8dbe325963435b7a2fbb1ac66d6057",
+            "sessionChecksum": null,
+            "taskRevision": null
+          },
+          {
+            "sessionId": "01a0fb7f-d392-70f2-88fa-32be91e431a3",
+            "transcriptChecksum": "sha256:b3d8404a45e924329fb6675e79829ecaf7db22a8e4daf4d380c3b5cf2058c9f2",
+            "sessionChecksum": null,
+            "taskRevision": null
+          },
+          {
+            "sessionId": "01a0fb7f-e76f-7573-95a6-ff89c5ec9e27",
+            "transcriptChecksum": "sha256:b80c59495d292481db40b5de0554e3f3e0b5ba491a9712a8deff9c13df675eb4",
+            "sessionChecksum": null,
+            "taskRevision": null
+          },
+          {
+            "sessionId": "01a0fb83-04be-7901-83a7-17975dd7355b",
+            "transcriptChecksum": "sha256:9c50cfe55eaada0e5f8f2b41e8e8545ed7a626077ec8007f9f2b2321a021dfe0",
+            "sessionChecksum": null,
+            "taskRevision": "task-24e98ff0fa6b6f881e3f5bcff2e1fdea89879af3db7d26e43c547ff304588a80"
+          },
+          {
+            "sessionId": "01a0fb83-2ab8-74b3-8157-3884273ba7fe",
+            "transcriptChecksum": "sha256:0439e594c266a3ae8e4b5be89564ee595e8b31e7b207d9957a46cc964db52c2a",
+            "sessionChecksum": null,
+            "taskRevision": "task-7c784be0f518a91aae999ea2487dbebbbe3beecee7aeed081269e4e677d55f23"
+          },
+          {
+            "sessionId": "01a0fb83-5856-7851-8d0b-8ac59baad75a",
+            "transcriptChecksum": "sha256:2d6a72e0c7944fd91a73db0913b3d582b070b64da52fe66fe51df1ddd5005000",
+            "sessionChecksum": null,
+            "taskRevision": "task-7ebda1b4067343538755844f88c507c4201ca57b946459484795f442e6b67072"
+          },
+          {
+            "sessionId": "01a0fb83-7fab-7433-a071-34d1bef8d6ff",
+            "transcriptChecksum": "sha256:0c97bfa98c9b6d751e4e9d3fdeed79c2330923f8247212a7c4e7be46a30186ef",
+            "sessionChecksum": null,
+            "taskRevision": "task-9e2b44bd961449fb94d3cce63c55349130239743b031268d5c375e9afbcd7da2"
+          },
+          {
+            "sessionId": "01a0fb87-0d9d-7861-b6fd-11f9f6b634e5",
+            "transcriptChecksum": "sha256:895c39d944c8c85931df4bb3ab65ee5eaa95528c00516d3b3ad4930456af0633",
+            "sessionChecksum": null,
+            "taskRevision": "task-c62baa41700fa008e703920537ce89fa6b4806fd7b0d62034b09f3839190ce0b"
+          },
+          {
+            "sessionId": "01a0fb89-3c07-76f1-b947-3dbf7ff28851",
+            "transcriptChecksum": "sha256:b956d15a6c5c88423239ebcfb027887dec320d6ca5629a89c6df6e7c98259ce5",
+            "sessionChecksum": null,
+            "taskRevision": "task-ff331a8223f6260b3a209e1a75fc2a0c9ce6eb4e2e7a9d9fb6e6de4eba5f9bcc"
+          }
+        ],
+        "delegationChecksum": null,
+        "notificationFormatterChecksum": null
+      },
+      "supervision": {
+        "schemaVersion": 1,
+        "source": "codex",
+        "reportedBeforeCreate": true,
+        "reportedBeforePrepare": true,
+        "continuationCalls": 1,
+        "pollingCalls": 0,
+        "asyncBatches": 0,
+        "completedAsyncBatches": 0
+      },
+      "unchangedGuideFiles": 12,
+      "finalCheck": {
+        "status": "project-final-check",
+        "storyId": "ai-hallucinated-citations",
+        "aggregateStatus": "pass",
+        "deliveryBuildId": "delivery-6dbf4b0c3972d9e68602418f46e3bb1ae0011c48d4a3a1646992935c21925a00",
+        "checks": [
+          {
+            "checkId": "artifacts",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "delivery",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "revision",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "artifact-set",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "delivery-build",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "audio-channels",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "snapshot",
+            "status": "pass",
+            "code": null,
+            "message": null
+          }
+        ],
+        "schemaVersion": 1,
+        "level": "final",
+        "scope": "current-production",
+        "revisionId": "revision-5a4f102ec8e05922ee3c9c85c470bd8b96f3a3f3e0b5f216731f998b71a09cd1",
+        "artifactSetFingerprint": "sha256:87853c937aaf82a49d0d2ef0c8641088b8a3b59767fee8afbf64e8e3ba7de302"
+      },
+      "delivery": {
+        "storyId": "ai-hallucinated-citations",
+        "deliveryBuildId": "delivery-6dbf4b0c3972d9e68602418f46e3bb1ae0011c48d4a3a1646992935c21925a00",
+        "files": {
+          "video.mp4": {
+            "checksum": "sha256:93bc70dda28056797e1fde0f1fa5f9f81c0627c086f52a7d216d30a600bcc457",
+            "sizeBytes": 5189576
+          },
+          "cover-4x3.png": {
+            "checksum": "sha256:fbc0fb57550faee883ba67539c5d00c5232b41dc699b710a01f2e1fd1701d325",
+            "sizeBytes": 255897
+          },
+          "cover-3x4.png": {
+            "checksum": "sha256:b9132eca233ff74cba049652b685dd1b21e1e1ba080f6372a2f94cd1d04ce8e9",
+            "sizeBytes": 268035
+          },
+          "publish.json": {
+            "checksum": "sha256:1a6ecfbae5978a466d95e3113379456d3b5153f18bc96bbab801592c39b9ca61",
+            "sizeBytes": 2473
+          }
+        },
+        "video": {
+          "codec": "h264",
+          "audioCodec": "aac",
+          "audioChannels": 2,
+          "width": 1080,
+          "height": 1920,
+          "fps": 30,
+          "frameCount": 1287
+        },
+        "decodedFiles": [
+          "video.mp4",
+          "cover-4x3.png",
+          "cover-3x4.png"
+        ]
+      }
+    }
+  ]
+}

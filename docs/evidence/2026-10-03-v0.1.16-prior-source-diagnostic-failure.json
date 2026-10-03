@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-10-02T19:44:12.907696+00:00",
+  "scope": "Supplemental scoped visual revision failed; initial production receipt does not certify this revision",
+  "rootSessionId": "01a0fd87-08cf-7f93-a83c-bcc05d70b927",
+  "turnId": "01a0fe06-f436-78e0-a4a0-3e5c90a09ff3",
+  "model": "gpt-6.1-sol",
+  "reasoningEffort": "max",
+  "rootTurnExitCode": 0,
+  "revisionProduction": "failed-before-worker-dispatch",
+  "error": {
+    "code": "command-failed",
+    "message": "Task input ID is not diagnostic-safe: prior-scene-source",
+    "processId": "42554",
+    "exitCode": 1
+  },
+  "candidateId": "revision-candidate-9a214ec1c84a01f6b69492dd1766c0c7a078b91747ad62d6baefdcc53c360c05",
+  "initialReceipt": {
+    "path": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-priorsource-firstuse-20261002-c6sf850i/host-receipt.json",
+    "checksum": "sha256:73af6d3be67ee4ed52f044657a1428523275e26842c5d283bcfb8b66298b1982",
+    "validScope": "Initial production only"
+  },
+  "packages": {
+    "runtime": {
+      "name": "@axmorf/studio",
+      "version": "0.1.16",
+      "fingerprint": "sha256:cfe7f2f8c87d7d9bb0c124ce25e24810d1827c74b02e14f467b8777401c27d3f",
+      "fileCount": 283
+    },
+    "creator": {
+      "name": "create-axmorf-studio",
+      "version": "0.1.16",
+      "fingerprint": "sha256:5fc7408f755a55501ee5bd0d2342e73ac8f889c88d6d6a4ab72037ea7c2a021b",
+      "fileCount": 41
+    }
+  },
+  "nativeCapture": {
+    "sessionCount": 15,
+    "freshSupplementalProbeChildren": 4,
+    "initialPrefixesUnchanged": true,
+    "indexPath": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-priorsource-firstuse-20261002-c6sf850i/revision-native-index.json",
+    "indexChecksum": "sha256:bab336249497b45f849847e3761d39a48f6c7ea37958756b5f8748453fb52bd3"
+  },
+  "originalDelivery": {
+    "storyId": "ai-fabricated-answers-zh",
+    "deliveryBuildId": "delivery-cd6ef09de1df191dc7fcea4a7288aa6b7fa3675a69d199222ee1a0e64e0f87f9",
+    "files": {
+      "video.mp4": "sha256:0e90f211f5c3b0fbadf7a048e71ca231be5e86df836c7bb0329cfe1862042ecb",
+      "cover-4x3.png": "sha256:dfac03ac823e2a2b3c218bcbc60fab9d2e14af8df77f664654aa8a4ff3a6bfe6",
+      "cover-3x4.png": "sha256:ab80cd28566e7b22bff731c14f49e74bddc533d096d8031f0e8a853700a6e24c",
+      "publish.json": "sha256:077e22f7e3b18968071ac38f24967f97cd5f67c767ec13153d12320c25d2754e"
+    },
+    "unchangedAgainstSignedInitialReceipt": true,
+    "nativeFinalCheckExitCode": 0
+  },
+  "installedPackagePatched": false,
+  "failedPrepareRetried": false,
+  "candidatePromoted": false,
+  "publicationOccurred": false,
+  "postPublicationScope": "User-approved fresh public registry installation and doctor only; public native video first-use remains unverified.",
+  "fullPrivateLedger": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-priorsource-firstuse-20261002-c6sf850i/engineering/native-revision-diagnostic-id-failure.json",
+  "fullPrivateLedgerChecksum": "sha256:4bb1a6fbaf1ff6c2a2adc5867f22a9d3d19ea8ce4d1715177caca5b8fe97cce3",
+  "supersededInitialCombinedReceipt": "docs/evidence/v0.1.16-first-use-priorsource-initial-superseded-2026-10-03.json",
+  "supersededReceiptChecksum": "sha256:c08d4ec7997a0df59ea215e3bbebb25759625ede83b3c534959e15f2592b5f13"
+}

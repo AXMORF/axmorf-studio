@@ -7,14 +7,23 @@ and this worker section, run that exact bind, then proceed only after `task-work
 `inputs/context.json`, and `inputs/task-contract.json` through the granted transport. The TaskExecutionContract and validators
 control purpose, signatures, ownership and outputs; this guide grants no additional file access.
 
-Write only declared Agent-owned outputs; use exact bound describe/finalize/check/commit commands. A Scene worker also reads
+Write only declared Agent-owned outputs; use exact bound describe/finalize/check/commit commands.
+No intermediate or temporary file writes are allowed outside those declared paths, including for JSON formatting.
+Transform data in memory and write the declared output directly; moving a temporary file back does not grant permission.
+For Scene work, read
 `.agents/skills/remotion-best-practices/SKILL.md` and its relevant references before implementation. Correct only your own
 `agent-output` issues before terminal. On a host/fixed fault, stop and return the structured error to the Root for its exact
 failure command. Never reopen or automatically retry a terminal failed attempt.
 For Scene tasks, consume `scene.brief`, `scene.visualStyle`, and Scene-local `scene.narrationCues` in the bound context.
-Design a visible opening, meaning-driven change, and result aligned with narration. The Renderer in the task contract is
+When `scene.priorSource` exists, it is this owning Scene's verified, frozen current base graph and declarations. Compare
+its previous brief with `scene.brief`, copy its content into the declared outputs, and apply only the requested delta while
+preserving unaffected source, layout, motion, sound and resources. Output paths are initially absent. Retain license and
+lineage bytes exactly; finalize recomputes fresh derived fields. Never redraw the whole Scene for a local correction or
+read base snapshot paths, other Scenes, history, or another executor workspace. If absent, create from the current brief
+and do not claim preservation of existing source.
+For a new Scene without prior source, design a visible opening, meaning-driven change, and result aligned with narration. The Renderer in the task contract is
 an API scaffold and must be replaced; its unchanged source fails the Scene checker.
-Stage one clear focal subject per shot, keep it recognizable across changes in scale or viewpoint, and make the final state
+For new authoring, stage one clear focal subject per shot, keep it recognizable across changes in scale or viewpoint, and make the final state
 show the Beat's consequence. Leave visual breathing room for Composition-owned captions.
 
 Finalize computes derived identities and fingerprints. For `failureOwner: agent-output`, correct its reported
@@ -41,16 +50,23 @@ Before the first command, briefly tell the user the plan. Report inherited bound
    Create or revise strict authoring input without calling providers.
    Project create freezes the Scene originality baseline. A legacy Project
    requires explicit `project:originality:freeze`; never infer an empty baseline.
-   For an existing Project, run `project:revise:context`,
-   `project:revise:validate`, then `project:revise`. Bind the exact current
+   For an existing Project, follow [revision authoring](authoring.md#existing-project-revision):
+   `npm run project:revise:context -- --project <storyId>`,
+   `npm run project:revise:validate -- --input <repository-relative-json>`, then
+   `npm run project:revise -- --project <storyId> --input <repository-relative-json>`. Bind the exact current
    Revision and verified Delivery; keep live authoring unchanged and carry the
    returned `--candidate` through every production, task, and recovery command.
-4. The built-in default is `subagents` with maximum four; explicit user choices override saved settings and defaults.
-   Read [native child verification](execution-capabilities.md), probe this host, then run `project:execution:resolve` with
+4. Repeat this step for every live or candidate production, including an autonomous revision in the same request;
+   do not reuse a previous production's probe or resolver result. The built-in default is `subagents` with maximum four;
+   explicit user choices override saved settings and defaults. Read [native child verification](execution-capabilities.md),
+   verify current capabilities, release probe slots, then run `project:execution:resolve` successfully once with
    verified capacity and transport before inspect. Explicit inline needs no child probe. Never persist transport or silently change mode.
 5. Run `npm run project:produce:inspect -- --project <storyId>` and report its
-   structured readiness, cost, reuse, and invalidation result in an intermediate progress message after the command returns.
-   A plan stated before inspection does not report its result. Continue in the same turn after that message by invoking prepare; do not combine inspect and prepare in one tool call.
+   `sourceState`, estimated cost, artifact reuse, and structured invalidation result in an intermediate progress message after the command returns.
+   A plan stated before inspection does not report its result. For a local correction, examine `tasks[].directChanges`,
+   `dependencyChanges`, and artifact state against the intended patch. If unrelated tasks are dirty, narrow the raw patch and
+   validate/create a new candidate before prepare, then return to step 4. A complete visual rebuild is not local reuse success.
+   Continue in the same turn after that message; do not combine inspect and prepare in one tool call.
 6. Read [host execution and recovery](host-execution-and-recovery.md); establish a terminal handle that can survive the host tool deadline.
    Run `npm run project:produce:prepare -- --project <storyId>` only after the
    inspection is understood and cost is authorized.
@@ -77,7 +93,7 @@ Before the first command, briefly tell the user the plan. Report inherited bound
     same-Revision `npm run project:attempt:reissue -- --project <storyId> --attempt <failedAttemptId>` only if ready; no current Delivery is
     required. Use fresh workers and bindings. Unknown, fixed-system and external faults stop with diagnosis; no automatic program-source repair.
 
-After `project-production-complete` or `project-production-current`, the exact four files are technically verified. Generate the low-cost `project:scene:review --motion` previews described below, inspect actions/boundaries against intent and readability, then report paths and actual review scope once. Retain needs-temporal-review when perception is unavailable; never claim automatic visual approval. If a separate recheck is needed, use exactly `npm run project:check -- --project <storyId> --level final`; do not omit `--level`. `project:revise:context` starts a user-requested revision and is not a delivery inspection command.
+After `project-production-complete` or `project-production-current`, the exact four files are technically verified. Generate the low-cost `project:scene:review --motion` previews described below, inspect actions/boundaries against intent and readability, then report paths and actual review scope once. Retain needs-temporal-review when perception is unavailable; never claim automatic visual approval. If a separate recheck is needed, use exactly `npm run project:check -- --project <storyId> --level final`; do not omit `--level`. `project:revise:context` starts a revision within the authorized brief and is not a delivery inspection command.
 
 Timing comes from sealed PCM samples. Scenes do not own captions or narration.
 Agent-owned Scene TS/TSX graphs must be unique against the frozen baseline and

@@ -14,7 +14,7 @@ exact attempt-bound worker 走 [task protocol](references/task-execution-protoco
 先按 context API guides 选语义能力或说明自绘。
 
 新建先用 `npm run project:create:context -- --project <storyId>`；按 `fieldExamples` 写附加要求对象，按 `durationBudget` 预算旁白并报告实测偏差。
-尺寸/横竖屏、fps、locale 明确要求写入 `render.width/height/fps/locale`，其余继承配置；创建后核对 `render`，不改长期设置。
+尺寸/横竖屏、fps、locale 要求写入 `render.width/height/fps/locale`，其余继承；创建后核对 `render`，不改长期设置。
 
 读 [policy](policy.json)、[workflow](references/direct-production-workflow.md)、
 [Producer config](references/producer-config.md). 报告首尾 Scene 的继承、选择或禁用。
@@ -34,13 +34,13 @@ Inspect 前仅看 current Agent's actually callable tools。同一 MCP 暴露 `g
 
 ## Resolve Agent execution
 
-按 [host probe](references/execution-capabilities.md) 验证 I/O 并释放槽位，inspect 前执行 `project:execution:resolve`：prompt → settings → `subagents`/4。override 仅本次，除非要求保存。
-inline 串行无需 child；subagents 要求 bounded runtime-native children、本次 verified `shared-workspace`/`controller-io`。原生槽位决定容量，单个 probe 不代表容量 1；上限 4。capacity 未知/为 0、unverified transport 或 exact mismatch 在 prepare 前阻塞。transport 不持久化、不进入 identity。
+每次 live/candidate production（含同一请求自主 revision）重验 [host probe](references/execution-capabilities.md)、释放槽位，再于 inspect 前成功执行一次 `project:execution:resolve`；不沿用上轮 probe/resolver。prompt → settings → `subagents`/4；override 仅本次，除非要求保存。
+inline 串行无需 child；subagents 要 bounded native children、本次 verified `shared-workspace`/`controller-io`。容量取原生槽位，上限 4；单 probe 不代表容量 1。未知/0、transport 未验或 exact mismatch 在 prepare 前阻塞。transport 不持久化、不入 identity。
 仅用户明确批准制作前串行 fallback 才用 `--allow-inline-fallback`，报告真实 inline 与原能力缺口；精确并发仍阻塞，已派发 attempt 不切换，发布并行验收不豁免。
 
 ## Inspect before cost
 
-Run read-only `project:produce:inspect`；返回后转述 `agentHandoff` 的 readiness、cost/reuse 与失效原因，再 prepare；CLI 输出不算报告，未知保持未知。
+只读 `project:produce:inspect` 后报告 `agentHandoff` 的 `sourceState`、cost/reuse、结构化失效；CLI 输出不算报告，未知保持未知。局部修订若无关任务 dirty，prepare 前缩小 patch、validate/create 新 candidate；全重做不证明局部 reuse。
 
 ## Prepare content-addressed tasks
 
@@ -48,23 +48,15 @@ Run read-only `project:produce:inspect`；返回后转述 `agentHandoff` 的 rea
 
 ## Execute dirty Agent tasks
 
-按已解析模式与 [Scene](references/scene-agent-orchestration.md)、
-[GlobalVisual](references/global-visual-agent-orchestration.md), or [Cover](references/cover-agent-orchestration.md)
-prompt; 优先完整转发 prepare 的对应 `workerPrompts`，不手抄 task/binding hash；never Agent-author `scene-template`. 按 [task protocol](references/task-execution-protocol.md) 在任何 task
-read/write 前运行 exact attempt-bound bind；只有 `task-worker-bound` 才能通过返回的 transport 访问三个 immutable
-inputs 与 declared outputs，并运行 bound commands。TaskExecutionContract attempt-neutral；the validated ArtifactAttestation
-与 task-terminal events 才是 durable authority。
+按已解析模式执行 [Scene](references/scene-agent-orchestration.md)、[GlobalVisual](references/global-visual-agent-orchestration.md) 或 [Cover](references/cover-agent-orchestration.md)；整段转发 prepare `workerPrompts`，不手抄 hash；never Agent-author `scene-template`。任何 task read/write 前按 [task protocol](references/task-execution-protocol.md) exact attempt-bound bind；仅 `task-worker-bound` 授予返回 transport 的三个 immutable inputs、declared outputs 与 bound commands。TaskExecutionContract attempt-neutral；validated ArtifactAttestation/task-terminal events 才是 durable authority。
 
 Prepare 前确认宿主进程可跨工具超时存活；按 host probe 保留原句柄。Hermes continuation 用原生 background/notify；Codex 不丢 session/cell ID，也不把 wait-any 的部分完成当整批完成。
 
-Inline Root executes exactly one workspace at a time. Subagent mode admits at most `effectiveMaxConcurrency`
-runtime-native children；原生 wait-any 即时补位，原生批量返回或整批完成通知后发下一批；不轮询 child 或信任 chat。真实 spawn/
-transport failure 由 Root 运行 `spawnFailureCommand`；immutable/controller fault 用 `fixedFailureCommand`；两者都不
-授予 task content access 或切换模式。全部 dirty task 执行/admit 后立即 continue。
+Inline Root 一次只执行一个 workspace。Subagents 不超过 `effectiveMaxConcurrency`；wait-any 补位，原生批量返回或整批完成通知后再发；不轮询 child、不信任 chat。Root 用 `spawnFailureCommand` 记录真实 spawn/transport failure，`fixedFailureCommand` 记录 immutable/controller fault；二者不授予 content access 或切换模式。全部 dirty task 执行/admit 后立即 continue.
 
 ## Hand off to fixed continuation
 
-Root starts the exact `continuationCommand` once per attempt. 用原进程阻塞等待或完成通知做低 token 监督；普通超时只继续等待，不查日志、不推理进度。Code claims once and watches immutable events.
+Root starts the exact `continuationCommand` once per attempt. 原进程阻塞等待/完成通知低 token 监督；普通超时只续等，不查日志/推理进度。fixed claim 一次，监听 immutable events。
 Task failure exits nonzero without converge; all-success converges exactly once; deadline 从 attempt 创建起一小时。
 错误通知才唤醒 Root 诊断并指导原 executor；不接管 workspace、不 direct converge、不重启当前 continuation。修复与恢复按下方 hardening。
 

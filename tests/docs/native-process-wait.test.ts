@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-async function runExample(exitCode: number) {
+async function runExample(sourcePath: string, exitCode: number) {
   const source = await readFile(
-    ".agents/skills/axmorf-video/references/execution-capabilities.md",
+    sourcePath,
     "utf8",
   );
   const code =
@@ -62,7 +62,11 @@ async function runExample(exitCode: number) {
   );
 }
 
-test("shipped Codex wait example survives empty and repeated yielded windows", () =>
-  runExample(0));
-test("shipped Codex wait example reports process failure without retry", () =>
-  runExample(2));
+for (const prefix of ["", "packages/create-axmorf-studio/template/"]) {
+  const sourcePath = `${prefix}.agents/skills/axmorf-video/references/execution-capabilities.md`;
+  const bundle = prefix ? "npm Workspace" : "repository";
+  test(`${bundle} wait example survives empty and repeated yielded windows`, () =>
+    runExample(sourcePath, 0));
+  test(`${bundle} wait example reports process failure without retry`, () =>
+    runExample(sourcePath, 2));
+}

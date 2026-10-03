@@ -37,7 +37,8 @@ caption budget and licensing are still checked by create. Do not read package in
   with `visualStyle` and `continuityBrief`. For longer narration, plan distinct framing or visible state changes at semantic
   turns, then hold the result briefly; camera drift alone does not add information. Keep text and chart labels readable after
   camera scaling, use theme roles for every foreground, and reserve the caption region. A generic diagram or decorative movement is not a substitute for that sequence.
-- New narrated Projects freeze `scene-content-motion-v1`: author object tracks, explanatory actions, narration anchors, stable reading holds and handoffs. Consume `shots.motionPlan`; bind each action object to one rendered `data-motion-object` ID (automatic in ProducerMotionObject). The checker executes props-driven renderers and perturbs plan fields, comparing actual object DOM at action/hold frames while ignoring metadata attributes. Ignored plans or rendered unstable holds fail. Public API/local helpers are supported; browser-only effects/hooks remain unsupported by this probe. DOM dependency is not pixel visibility or semantic/aesthetic approval. Explain deliberate holds/cuts; no camera quota or fixed metaphor.
+- Before create, Root selects continuous seams: add `outgoingHandoff: { "subject": "the same subject and meaning across the boundary" }` to the preceding narrated Scene brief. Both isolated tasks receive the same immutable `scene.taskInput.continuity.handoffs` ID, subject and outgoing kind. Leave the field absent for a motivated cut; fixed template boundaries cannot promise continuous motion. Tracked v1 continuous seams also need a complete Root-authored `trackedState` boundary pose. Intent v2 leaves geometry and implementation free. Do not invent handoff IDs in workers or coordinate by reading another workspace.
+- New narrated Projects freeze `scene-content-motion-v1`: use intent-first motionPlan v2 for subjects, explanatory actions, sealed narration anchors and reading holds. Custom frame-driven SVG, Canvas and supported 3D are allowed. Tracked v1 and `ProducerMotionObject` are optional; their limited DOM dependency probe checks declared tracks without proving visibility or aesthetics. Intent-only and unsupported results require actual temporal review. Match frozen handoffs, explain deliberate holds/cuts and inspect real action/boundary previews; no camera quota or fixed metaphor. Fixed `scene-template` tasks retain canonical validation and are exempt from Agent content-motion checks.
 - `ttsChunks` contains objects with `chunkId` and `ttsText`, not strings. Keep each within 72 caption display half-units; shorten or
   split by natural meaning when needed. Audio sample measurements determine actual duration.
 - The duration brief includes inherited intro/outro Scenes. Report their selection before create; do not silently disable them to
@@ -55,9 +56,65 @@ caption budget and licensing are still checked by create. Do not read package in
 - Evaluate the returned capabilities and authoring guides before self-authored geometry. Match semantic camera, chart, typography, media and motion needs to public APIs; include chosen IDs in the Story pool and each Scene candidateResourceIds. Empty selections are valid when no API fits, with a concrete reason in the visual intent. Query Catalog before selecting media; never invent resource IDs.
 - Narration provider, voice and publishing defaults come from settings. Context deliberately omits connections and credentials.
 - Source assets must have Workspace ownership and validated manifests. Do not download random files to bypass asset admission.
+- For motion sound effects, query `npm run catalog:query -- --kind asset --tag motion-sync`. The bundled AXMORF effects are prebuilt audio, not a generation task. Put selected IDs in both resources.allowedResourceIds and the Scene candidateResourceIds; describe their visible action in soundIntent. At execution, select only availableResources and follow the descriptor's onset or swell-center timing hint in sound-plan.json. SoundDesignTrack owns playback; do not also mount the same audio in the Renderer.
 
 Once the input is complete, execute its returned `nextCommand`. A successful `project-created` response is authoring only.
 For existing authoring, use `project:revise:context`, `project:revise:validate`, and `project:revise`; never overwrite the live Project.
+
+## Existing Project revision
+
+First obtain the exact current base, without editing live authoring:
+
+```bash
+npm run project:revise:context -- --project <storyId>
+```
+
+Revision has no `--schema` flag. Read the installed public input schema, not package internals:
+
+```bash
+node --input-type=module -e 'import {ProjectRevisionInputSchema} from "@axmorf/studio/contracts"; console.log(JSON.stringify(ProjectRevisionInputSchema.toJSONSchema({io:"input"}), null, 2));'
+```
+
+Only `brief`, `story`, `visualStyle`, `scenes`, `globalVisual`, and `publishing` are patch sections.
+For a local Scene layout correction, take `revisionContext` from the successful context result, select an existing
+`targetMeaningId`, and describe the observed correction in `revisedCompositionIntent`. Preserve the full Scene list and
+all other Scene fields:
+
+```javascript
+import { ProjectRevisionInputSchema } from "@axmorf/studio/contracts";
+// axmorf-scene-revision-input
+const input = ProjectRevisionInputSchema.parse({
+  schemaVersion: 1,
+  contractVersion: "project-revision-input-v1",
+  storyId: revisionContext.storyId,
+  baseRevisionId: revisionContext.baseRevisionId,
+  baseDeliveryBuildId: revisionContext.baseDeliveryBuildId,
+  patch: {
+    scenes: revisionContext.editable.scenes.map((scene) =>
+      scene.meaningId === targetMeaningId
+        ? { ...scene, compositionIntent: revisedCompositionIntent }
+        : scene
+    ),
+  },
+});
+```
+
+Write only `input` to a Workspace-relative JSON file, not the context response or `revision-feedback.json`.
+Keep VisualStyle, GlobalVisual, Story/TTS and unaffected Scenes unchanged for a local correction.
+Changing shared VisualStyle for one Scene invalidates unrelated visual tasks. There is no `patch.cover` or Cover-only
+revision API; if the installed schema cannot express a scoped correction, report that limitation instead of inventing a field.
+
+```bash
+npm run project:revise:validate -- --input <repository-relative-json>
+npm run project:revise -- --project <storyId> --input <repository-relative-json>
+```
+
+Validation accepts only `--input`, never `--project`. After candidate creation, carry its exact `--candidate` on
+inspect/prepare/task/continuation/recovery commands and return to Root workflow step 4: fresh current capability verification,
+one successful execution resolve, inspect, user-visible readiness/cost/reuse/structured invalidation report, then prepare.
+This applies to autonomous corrections within the same request; no earlier production's probe or resolver result carries over.
+If inspect shows unrelated dirty tasks, narrow the raw patch, validate/create a new candidate and repeat that entry before prepare.
+A complete visual rebuild does not prove local reuse.
 
 Validation errors are normal Agent-owned editing work: fix the draft or exact declared task output and rerun the same check.
 An already-authorized video request includes ordinary visual implementation choices; do not ask the user to approve changing a

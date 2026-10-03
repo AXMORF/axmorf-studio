@@ -41,13 +41,17 @@ Create and revision validation may return structured `authoring-validation-faile
 For `caption-display-budget-exceeded`, shorten or semantically split the authored `ttsChunk`
 to stay within 72 `caption-display-unit-v1` half-units; never weaken the validator.
 
-To modify an existing Project, first run `npm run project:revise:context`,
-validate a strict raw input with `npm run project:revise:validate`, then create
-an isolated candidate with `npm run project:revise`. Bind the input to the exact current Revision and verified four-file Delivery.
+To modify an existing Project, follow [revision authoring](references/authoring.md#existing-project-revision):
+`project:revise:context` with `--project`, raw `project:revise:validate` with only `--input`, then
+`project:revise` with `--project` and `--input`.
+Revision commands have no `--schema`; read the installed public contract before choosing patch fields.
+Bind the input to the exact current Revision and verified four-file Delivery.
 Never edit live authoring in place; use the returned candidate flag throughout production.
 Candidates use only Project-owned media frozen in their base context; do not import new assets.
 
-Before inspect, read [native child verification](references/execution-capabilities.md), use its helper-generated complete probe prompts, and release every completed probe slot for the default
+For each live or candidate production, including an autonomous revision within the same request, repeat current capability
+verification and one successful `project:execution:resolve` before inspect. Never reuse an earlier production's probe or resolver result.
+Read [native child verification](references/execution-capabilities.md), use its helper-generated complete probe prompts, and release every completed probe slot for the default
 `subagents` mode (maximum four). Unknown runtime capacity blocks; verify a native probe batch up to the requested maximum. One I/O probe cannot establish maximum capacity one. Resolve once with verified host flags on `npm run project:execution:resolve`. Only explicit user choices
 may override settings; do not claim an Agent-selected mode came from the user. A blocked
 subagents configuration is a blocker, not permission to switch to inline.
@@ -57,9 +61,18 @@ still blocks. Do not switch dispatched attempts or waive parallel release valida
 For Hermes TUI probe batches, wait for native completion notifications; `delegate_task` with `{"action":"list"}` is forbidden status polling, including a single post-dispatch check.
 
 Before cost, run read-only `npm run project:produce:inspect` and report source
-readiness, estimate, artifact reuse, and invalidation in a user-visible message. Follow the returned `agentHandoff`: send its summary before the next production command. Tool output alone is not this report. Only then run
+readiness (`sourceState`), estimate, artifact reuse, and structured invalidation in a user-visible message. Follow the returned `agentHandoff`: send its summary before the next production command. Tool output alone is not this report.
+For a local correction, compare inspect's dirty tasks with the intended scope; if unrelated tasks are dirty, narrow the raw patch
+and validate/create a new candidate before prepare, then repeat capability verification/resolve/inspect.
+A complete visual rebuild does not prove local artifact reuse. Only then run
 `npm run project:produce:prepare`, which may call configured providers and
 returns content-addressed dirty tasks plus exact terminal commands. Use its `durationBudget` to report measured total duration and deviation; sealed audio remains authoritative.
+
+For inspect, prepare, and every later command, emit the complete native tool result, including its original process handle
+and eventual exit code. In code mode use `text(result)`, never just `text(result.output)`, and drain the original shell handle
+as shown in the execution reference. A completed outer code cell does not prove that its shell command exited.
+Dispatch only after the original prepare has exited successfully and its complete structured result is retained;
+if that result is lost, report the blocker instead of rebuilding assignments or continuation commands from files.
 
 Execute only dirty Agent tasks. Forward the selected complete `workerPrompts` string from prepare/reissue without reconstructing task hashes. Each executor first runs prepare's exact
 attempt-bound bind command and continues only after `task-worker-bound`. Only

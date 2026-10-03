@@ -8,6 +8,11 @@ does not relicense third-party software installed alongside this package.
 The AXMORF mark bundled under `dist/assets/workspace-seed/` is an
 AXMORF-authored work distributed under this package's Apache-2.0 license.
 
+The 24 `axmorf-*-v1.wav` motion sound effects are original procedural
+syntheses distributed under the same Apache-2.0 license. Their reproducible
+source is `scripts/sound-effects/generate.ts` in the source repository. No
+third-party recordings or samples are used in these effects.
+
 The bundled opening sound is an excerpt of “Movie Trailer Epic Impact” from
 Mixkit. The bundled closing music is an excerpt of “Deep Urban” by Eugenio
 Mininni from Mixkit. They retain their respective Mixkit Sound Effects Free

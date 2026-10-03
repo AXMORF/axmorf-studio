@@ -16,9 +16,39 @@ const allowedFiles = new Set([
   "THIRD_PARTY_NOTICES.md",
 ]);
 const releaseDocuments = ["README.md", "LICENSE", "THIRD_PARTY_NOTICES.md"];
+const motionSoundEffectNames = [
+  "ui-click",
+  "soft-pop",
+  "snap-lock",
+  "whoosh-short",
+  "whoosh-sweep",
+  "soft-impact",
+  "confirm-chime",
+  "sparkle-accent",
+  "mouse-down",
+  "mouse-up",
+  "mouse-click",
+  "mouse-double-click",
+  "mouse-right-click",
+  "mouse-wheel-tick",
+  "keyboard-tap",
+  "typing-burst",
+  "toggle-switch",
+  "drag-pickup",
+  "drop-settle",
+  "swish-reverse",
+  "card-flip",
+  "notification-ping",
+  "warning-blip",
+  "success-arpeggio",
+];
 const sharedResourcePaths = [
   "dist/assets/workspace-seed/public/assets/axmorf-shared/audio/music/mixkit-deep-urban-623-outro-8s.mp3",
   "dist/assets/workspace-seed/public/assets/axmorf-shared/audio/sound-effects/mixkit-movie-trailer-epic-impact-2908-intro-2s.wav",
+  ...motionSoundEffectNames.map(
+    (name) =>
+      `dist/assets/workspace-seed/public/assets/axmorf-shared/audio/sound-effects/axmorf-${name}-v1.wav`,
+  ),
   "dist/assets/workspace-seed/public/assets/axmorf-shared/brand/axmorf-mark.svg",
   "dist/assets/workspace-seed/src/remotion/catalog/assets.manifest.json",
   "dist/assets/workspace-seed/src/remotion/catalog/scene-template-audio.defaults.json",
@@ -97,6 +127,7 @@ assert.deepEqual(
     "asset.axmorf-mark",
     "asset.mixkit.movie-trailer-epic-impact-2908-intro-2s",
     "asset.mixkit.deep-urban-623-outro-8s",
+    ...motionSoundEffectNames.map((name) => `asset.axmorf.sfx.${name}-v1`),
   ],
 );
 const packagedIntroAudio = sharedManifest.assets.find(

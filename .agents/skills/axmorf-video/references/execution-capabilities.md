@@ -64,16 +64,22 @@ code mode, this pattern keeps the original shell process alive through repeated 
 
 ```javascript
 // axmorf-original-process-wait
-let result = await tools.exec_command({cmd: "<exact returned command>", yield_time_ms: 1000});
+let result = await tools.exec_command({cmd: "<exact returned command>", workdir: "<absolute Workspace root>", max_output_tokens: 60000, yield_time_ms: 1000});
 text(result);
 while (result.session_id !== undefined) {
-  result = await tools.write_stdin({session_id: result.session_id, chars: "", yield_time_ms: 60000});
+  result = await tools.write_stdin({session_id: result.session_id, chars: "", max_output_tokens: 60000, yield_time_ms: 60000});
   text(result);
 }
 if (result.exit_code !== 0) throw new Error("Command failed; inspect the structured result above.");
 ```
 
-If code mode itself yields a cell ID, wait on that same cell until completion. Never start the command again.
+If code mode itself yields a cell ID, wait on that same cell until completion. Cell completion only ends the outer code;
+the original shell may still be running. Require its actual terminal result with exit code before consuming command output.
+Use the example for inspect and prepare as well as continuation and task commands; never emit only `result.output`.
+Put the complete returned command and absolute Workspace root literally in `cmd`/`workdir`; do not use variables or `load(...).continuationCommand`.
+Give the outer code call enough output budget for the full prepare result too; retain the original UI capture if truncation remains.
+If the original handle or complete prepare result was discarded, report the blocker; do not reconstruct dispatch or
+continuation from attempt files, logs, child messages, or hand-written flags. Never start the command again.
 Root and probe/production workers use this rule. A wait-any child result covers only the children reported complete:
 keep the other native handles pending, refill free slots, and wait again. A CLI Root must not send its final answer
 while probe/production children or the original continuation process remain pending; ending that Root can cancel them.

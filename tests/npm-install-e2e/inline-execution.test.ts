@@ -1,8 +1,21 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import test, { type TestContext } from "node:test";
 import { readFileSync } from "node:fs";
-import { verifyReceipt } from "../../scripts/release/first-use";
-import type { PackageContent } from "../../scripts/release/package-content";
+import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
+import {
+  verifyHistoricalReceipt,
+  verifyPublicReceipt,
+  verifyReceipt,
+} from "../../scripts/release/first-use";
+import {
+  packageContent,
+  sha256,
+  type PackageContent,
+} from "../../scripts/release/package-content";
 import {
   auditInlineExecution,
   requiresHermesInline,
@@ -336,29 +349,219 @@ test("0.1.16 Codex serial scope binds native settings and marks parallel/Hermes 
   assert.throws(() => auditCodex(codexTranscript(overlap)), /overlap/u);
 });
 
-test("0.1.16 serial receipt requires exact scoped evidence and preserves delivery/future gates", () => {
+test("0.1.16 native receipts retain four-way overlap and later admission gates", () => {
   const make = () => {
     const f = combined();
     f.value.hosts.splice(1);
-    const host = f.value.hosts[0]!;
-    delete host.nativeExecution;
     f.runtime.version = f.creator.version = "0.1.16";
-    host.packages.runtime.version = host.packages.creator.version = "0.1.16";
-    host.model = "gpt-6.1-sol";
-    const start = Date.parse(host.startedAt);
-    host.inlineExecution = {
-      ...auditCodex(),
-      tasks: auditCodex().tasks.map((task) => ({
-        ...task,
-        boundAt: task.boundAt + start,
-        committedAt: task.committedAt + start,
-      })),
-    };
+    f.value.hosts[0].packages.runtime.version =
+      f.value.hosts[0].packages.creator.version = "0.1.16";
     return f;
   };
   const check = (f: ReturnType<typeof make>) =>
     verifyReceipt(f.value, f.runtime, f.creator);
   assert.equal(check(make()).status, "first-use-release-gate-passed");
+  for (const mutate of [
+    (f: ReturnType<typeof make>) => {
+      f.value.hosts[0].nativeExecution.fourWayBoundOverlapMs = 0;
+    },
+    (f: ReturnType<typeof make>) => {
+      f.value.hosts[0].nativeExecution.peakBoundTasks = 3;
+    },
+    (f: ReturnType<typeof make>) => {
+      f.value.hosts[0].nativeExecution.refillAdmissions = 0;
+    },
+    (f: ReturnType<typeof make>) => {
+      delete f.value.hosts[0].nativeExecution;
+    },
+  ]) {
+    const f = make();
+    mutate(f);
+    assert.throws(() => check(f));
+  }
+});
+
+const codexSerialCombined = () => {
+  const f = combined();
+  f.value.hosts.splice(1);
+  const host = f.value.hosts[0]!;
+  delete host.nativeExecution;
+  f.runtime.version = f.creator.version = "0.1.16";
+  host.packages.runtime.version = host.packages.creator.version = "0.1.16";
+  host.model = "gpt-6.1-sol";
+  const start = Date.parse(host.startedAt);
+  host.inlineExecution = {
+    ...auditCodex(),
+    tasks: auditCodex().tasks.map((task) => ({
+      ...task,
+      boundAt: task.boundAt + start,
+      committedAt: task.committedAt + start,
+    })),
+  };
+  return f;
+};
+
+const packReceiptCandidates = async (
+  context: TestContext,
+  f: ReturnType<typeof codexSerialCombined>,
+) => {
+  const root = await mkdtemp(join(tmpdir(), "axmorf-release-purpose-"));
+  context.after(() => rm(root, { recursive: true, force: true }));
+  const paths = {
+    runtime: join(root, "runtime.tgz"),
+    creator: join(root, "creator.tgz"),
+  };
+  for (const role of ["runtime", "creator"] as const) {
+    const directory = join(root, role);
+    await mkdir(join(directory, "package"), { recursive: true });
+    await writeFile(
+      join(directory, "package/package.json"),
+      JSON.stringify({ name: f[role].name, version: f[role].version }),
+    );
+    execFileSync("tar", ["-czf", paths[role], "-C", directory, "package"]);
+    f[role] = await packageContent(paths[role]);
+    const { files, ...summary } = f[role];
+    for (const host of f.value.hosts) {
+      host.packages[role] = { ...summary, fileCount: files.length };
+      if (role === "runtime") host.unchangedPackageFiles = files.length;
+      host.creation[`${role}TarballChecksum`] = sha256(
+        await readFile(paths[role]),
+      );
+    }
+  }
+  return paths;
+};
+
+const publicReceiptCreation = async (
+  paths: Awaited<ReturnType<typeof packReceiptCandidates>>,
+  f: ReturnType<typeof codexSerialCombined>,
+) => {
+  const packages = Object.fromEntries(
+    await Promise.all(
+      (["runtime", "creator"] as const).map(async (role) => {
+        const { name, version } = f[role];
+        const bytes = await readFile(paths[role]);
+        return [
+          role,
+          {
+            name,
+            version,
+            tarball: `https://registry.npmjs.org/${name}/-/${name.slice(name.lastIndexOf("/") + 1)}-${version}.tgz`,
+            integrity: `sha512-${createHash("sha512").update(bytes).digest("base64")}`,
+          },
+        ];
+      }),
+    ),
+  );
+  return {
+    ...f.value.hosts[0]!.creation,
+    method: "npm-create-public-registry",
+    registry: "https://registry.npmjs.org",
+    command: [
+      "npm",
+      "create",
+      "--yes",
+      "axmorf-studio@latest",
+      "fresh",
+      "--",
+      "--yes",
+    ],
+    packages,
+    workspaceLockChecksum: sha256("workspace-lock"),
+    creatorLockChecksum: sha256("creator-lock"),
+  };
+};
+
+test("current 0.1.16 candidate publication rejects historical serial authorization", () => {
+  const f = codexSerialCombined();
+  assert.throws(
+    () => verifyReceipt(f.value, f.runtime, f.creator),
+    /Current 0\.1\.16 publication requires native/u,
+  );
+});
+
+test("current 0.1.16 public and CLI publication reject historical serial authorization", async (context) => {
+  const f = codexSerialCombined();
+  const paths = await packReceiptCandidates(context, f);
+  const receiptPath = join(dirname(paths.runtime), "receipt.json");
+  const candidateCreation = f.value.hosts[0]!.creation;
+  f.value.hosts[0]!.creation = await publicReceiptCreation(paths, f);
+  await assert.rejects(
+    () => verifyPublicReceipt(f.value, paths.runtime, paths.creator),
+    /Current 0\.1\.16 publication requires native/u,
+  );
+  for (const [operation, creation] of [
+    ["verify", candidateCreation],
+    ["verify-public", f.value.hosts[0]!.creation],
+  ]) {
+    f.value.hosts[0]!.creation = creation;
+    await writeFile(receiptPath, JSON.stringify(f.value));
+    assert.throws(
+      () =>
+        execFileSync(
+          process.execPath,
+          [
+            "--import",
+            "tsx",
+            "scripts/release/first-use.ts",
+            operation,
+            paths.runtime,
+            paths.creator,
+            receiptPath,
+          ],
+          { stdio: "pipe" },
+        ),
+      /Current 0\.1\.16 publication requires native/u,
+    );
+    assert.throws(
+      () =>
+        execFileSync(
+          process.execPath,
+          [
+            "--import",
+            "tsx",
+            "scripts/release/first-use.ts",
+            operation,
+            paths.runtime,
+            paths.creator,
+            receiptPath,
+            "--allow-inline",
+          ],
+          { stdio: "pipe" },
+        ),
+      /Usage:/u,
+    );
+  }
+});
+
+test("historical serial diagnostics preserve exact scope, package and delivery checks without publication permission", async (context) => {
+  const base = codexSerialCombined();
+  const paths = await packReceiptCandidates(context, base);
+  const make = () => structuredClone(base);
+  const check = (f: ReturnType<typeof make>) =>
+    verifyHistoricalReceipt(f.value, paths.runtime, paths.creator);
+  const result = await check(make());
+  assert.equal(result.status, "first-use-historical-receipt-verified");
+  assert.equal(result.publicationEligible, false);
+  const receiptPath = join(dirname(paths.runtime), "receipt.json");
+  await writeFile(receiptPath, JSON.stringify(base.value));
+  const diagnostic = JSON.parse(
+    execFileSync(
+      process.execPath,
+      [
+        "--import",
+        "tsx",
+        "scripts/release/first-use.ts",
+        "verify-historical",
+        paths.runtime,
+        paths.creator,
+        receiptPath,
+      ],
+      { encoding: "utf8" },
+    ),
+  );
+  assert.equal(diagnostic.status, "first-use-historical-receipt-verified");
+  assert.equal(diagnostic.publicationEligible, false);
   for (const mutate of [
     (f: ReturnType<typeof make>) => {
       delete f.value.hosts[0].inlineExecution;
@@ -382,16 +585,113 @@ test("0.1.16 serial receipt requires exact scoped evidence and preserves deliver
         f.value.hosts[0].inlineExecution.tasks[0].boundAt;
     },
     (f: ReturnType<typeof make>) => {
-      f.runtime.version = f.creator.version = "0.1.17";
-      f.value.hosts[0].packages.runtime.version =
-        f.value.hosts[0].packages.creator.version = "0.1.17";
-      const hermes = structuredClone(f.value.hosts[0]);
-      hermes.host = "hermes";
-      f.value.hosts.push(hermes);
+      f.value.hosts[0].packages.runtime.fingerprint = sha256("other package");
     },
   ]) {
     const f = make();
     mutate(f);
-    assert.throws(() => check(f));
+    await assert.rejects(() => check(f));
+  }
+});
+
+test("historical public diagnostics retain registry integrity and the diagnostic CLI cannot publish", async (context) => {
+  const base = codexSerialCombined();
+  const paths = await packReceiptCandidates(context, base);
+  base.value.hosts[0]!.creation = await publicReceiptCreation(paths, base);
+  const check = (f = base) =>
+    verifyHistoricalReceipt(f.value, paths.runtime, paths.creator);
+  assert.equal((await check()).publicationEligible, false);
+  const receiptPath = join(dirname(paths.runtime), "receipt.json");
+  await writeFile(receiptPath, JSON.stringify(base.value));
+  const result = JSON.parse(
+    execFileSync(
+      process.execPath,
+      [
+        "--import",
+        "tsx",
+        "scripts/release/first-use.ts",
+        "verify-historical",
+        paths.runtime,
+        paths.creator,
+        receiptPath,
+      ],
+      { encoding: "utf8" },
+    ),
+  );
+  assert.equal(result.status, "first-use-historical-receipt-verified");
+  assert.equal(result.publicationEligible, false);
+  for (const mutate of [
+    (f: typeof base) => {
+      f.value.hosts[0].creation.packages.runtime.integrity = `sha512-${createHash("sha512").update("other package").digest("base64")}`;
+    },
+    (f: typeof base) => {
+      f.value.hosts[0].creation.runtimeTarballChecksum =
+        sha256("other tarball");
+    },
+    (f: typeof base) => {
+      f.value.hosts[0].creation.packages.runtime.tarball =
+        "https://example.com/package.tgz";
+    },
+  ]) {
+    const f = structuredClone(base);
+    mutate(f);
+    await assert.rejects(() => check(f));
+  }
+});
+
+test("historical diagnostics reject mixed creation methods and cannot extend the serial exception to future versions", async (context) => {
+  const mixed = combined();
+  const paths = await packReceiptCandidates(context, mixed);
+  mixed.value.hosts[1]!.creation = await publicReceiptCreation(paths, mixed);
+  await assert.rejects(
+    () => verifyHistoricalReceipt(mixed.value, paths.runtime, paths.creator),
+    /same exact creation method/u,
+  );
+
+  const future = codexSerialCombined();
+  future.runtime.version = future.creator.version = "0.1.17";
+  const hermes = structuredClone(future.value.hosts[0]);
+  hermes.host = "hermes";
+  hermes.sessionId = "future-hermes";
+  hermes.sessionChecksum = future.value.hosts[0].runChecksum;
+  future.value.hosts.push(hermes);
+  const futurePaths = await packReceiptCandidates(context, future);
+  await assert.rejects(
+    () =>
+      verifyHistoricalReceipt(
+        future.value,
+        futurePaths.runtime,
+        futurePaths.creator,
+      ),
+    /Inline exception does not apply/u,
+  );
+});
+
+test("current 0.1.16 public native verification retains four-way and later-admission requirements", async (context) => {
+  const f = combined();
+  f.value.hosts.splice(1);
+  f.runtime.version = f.creator.version = "0.1.16";
+  const paths = await packReceiptCandidates(context, f);
+  f.value.hosts[0]!.creation = await publicReceiptCreation(paths, f);
+  assert.equal(
+    (await verifyPublicReceipt(f.value, paths.runtime, paths.creator)).status,
+    "first-use-public-registry-passed",
+  );
+  for (const mutate of [
+    (changed: typeof f) => {
+      changed.value.hosts[0].nativeExecution.fourWayBoundOverlapMs = 0;
+    },
+    (changed: typeof f) => {
+      changed.value.hosts[0].nativeExecution.peakBoundTasks = 3;
+    },
+    (changed: typeof f) => {
+      changed.value.hosts[0].nativeExecution.refillAdmissions = 0;
+    },
+  ]) {
+    const changed = structuredClone(f);
+    mutate(changed);
+    await assert.rejects(() =>
+      verifyPublicReceipt(changed.value, paths.runtime, paths.creator),
+    );
   }
 });

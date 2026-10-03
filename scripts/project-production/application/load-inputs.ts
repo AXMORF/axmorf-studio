@@ -20,6 +20,7 @@ import {
   VisualStyleSpecSchema,
   ResourceCatalogSchema,
   buildSceneTaskInputV7,
+  buildSceneContinuityContract,
   resolveSceneViewport,
   resolveSceneAvailableResources,
   computeRenderSpecFingerprint,
@@ -33,6 +34,7 @@ import {
 } from "@axmorf/studio/contracts";
 import { generateProjectResourceCatalog } from "../../catalog/generate";
 import { loadScopedProjectCatalogAuthorityDescriptors } from "../../catalog/project-files";
+import { readScenePriorSourceIndex } from "../../projects/application/scene-prior-source";
 import {
   readRegularJson,
   snapshotPolicyRoots,
@@ -67,6 +69,13 @@ export const loadProjectProductionInputs = async ({
     throw new Error("Production input scope is cross-bound.");
   }
   const projectRoot = join(scope.projectSourceRoot, projectId);
+  const priorSourceIndex = await readScenePriorSourceIndex({
+    rootDir: scope.isolatedRoot,
+    storyId: projectId,
+  });
+  const priorSourceByMeaning = new Map(
+    priorSourceIndex?.scenes.map((scene) => [scene.meaningId, scene] as const),
+  );
   const read = (path: string, label: string) =>
     readRegularJson(join(projectRoot, path), label);
   const [
@@ -123,6 +132,22 @@ export const loadProjectProductionInputs = async ({
   ]);
   const brief = VideoBriefSchema.parse(briefFile.raw);
   const story = StorySpecSchema.parse(storyFile.raw);
+  if (
+    priorSourceIndex?.scenes.some(
+      ({ meaningId }) =>
+        !story.beats.some(
+          (beat) =>
+            beat.meaningId === meaningId &&
+            !(
+              beat.kind === "silent-scene" &&
+              beat.preset.implementation.kind === "template-copy"
+            ),
+        ),
+    )
+  )
+    throw new Error(
+      "Scene prior source index contains an unknown or fixed template Scene.",
+    );
   const narration = NarrationSpecSchema.parse(narrationFile.raw);
   const render = RenderSpecSchema.parse(renderFile.raw);
   const sound = ProjectSoundPlanSchema.parse(soundFile.raw);
@@ -269,6 +294,25 @@ export const loadProjectProductionInputs = async ({
         nextMeaningId: nextBeat?.meaningId ?? null,
         nextSummary: nextBeat?.narrativePurpose ?? null,
         continuityBrief: authoredBrief.continuityBrief,
+        handoffs: buildSceneContinuityContract({
+          storyId: projectId,
+          beat,
+          brief: authoredBrief,
+          previous:
+            previousBeat === null
+              ? null
+              : {
+                  beat: previousBeat,
+                  brief: sceneBriefById.get(previousBeat.meaningId)!,
+                },
+          next:
+            nextBeat === null
+              ? null
+              : {
+                  beat: nextBeat,
+                  brief: sceneBriefById.get(nextBeat.meaningId)!,
+                },
+        }),
       },
       allowedDirectories: {
         sceneRoot: `src/projects/${projectId}/scenes/${beat.meaningId}`,
@@ -319,6 +363,9 @@ export const loadProjectProductionInputs = async ({
         catalog,
         taskInput.allowedResourceIds,
       ),
+      ...(priorSourceByMeaning.has(beat.meaningId)
+        ? { priorSource: priorSourceByMeaning.get(beat.meaningId)! }
+        : {}),
       revisionInput: {
         meaningId: beat.meaningId,
         beatFingerprint: fingerprint("revision-story-beat", beat),

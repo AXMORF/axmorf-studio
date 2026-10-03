@@ -1,5 +1,6 @@
 import {
   DiagnosticInputIdSchema,
+  SCENE_PRIOR_SOURCE_INPUT_ID,
   TaskDecisionExplanationListSchema,
   type DiagnosticInputId,
   type DiagnosticSubject,
@@ -35,6 +36,7 @@ const diagnosticInputAliases: Readonly<Record<string, DiagnosticInputId>> = {
   "mastering-policy": "mastering-policy",
   narration: "narration",
   "originality-baseline": "originality-baseline",
+  [SCENE_PRIOR_SOURCE_INPUT_ID]: SCENE_PRIOR_SOURCE_INPUT_ID,
   "provider-attempt": "provider-attempt",
   publishing: "publishing",
   readability: "readability",

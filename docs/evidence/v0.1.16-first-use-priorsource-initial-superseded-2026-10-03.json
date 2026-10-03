@@ -1,0 +1,238 @@
+{
+  "schemaVersion": 1,
+  "hosts": [
+    {
+      "schemaVersion": 1,
+      "host": "codex",
+      "model": "gpt-6.1-sol",
+      "sessionId": "01a0fd87-08cf-7f93-a83c-bcc05d70b927",
+      "environment": {
+        "platform": "darwin",
+        "arch": "x64",
+        "node": "v24.15.0"
+      },
+      "startedAt": "2026-10-02T16:51:20.396116Z",
+      "endedAt": "2026-10-02T17:38:34.915567Z",
+      "packages": {
+        "runtime": {
+          "name": "@axmorf/studio",
+          "version": "0.1.16",
+          "fingerprint": "sha256:cfe7f2f8c87d7d9bb0c124ce25e24810d1827c74b02e14f467b8777401c27d3f",
+          "fileCount": 283
+        },
+        "creator": {
+          "name": "create-axmorf-studio",
+          "version": "0.1.16",
+          "fingerprint": "sha256:5fc7408f755a55501ee5bd0d2342e73ac8f889c88d6d6a4ab72037ea7c2a021b",
+          "fileCount": 41
+        }
+      },
+      "prompt": "制作一条中文竖屏解释视频，主题是“AI为什么会编造答案和引用”。内容用四段连续解释：流畅回答不等于事实；模型如何根据上下文生成语言；看似正式的引用可能不存在；如何查找可靠出处并核验引用。时长由内容需要决定。让画面通过动作、变化和镜头衔接解释内容，避免静态卡片轮播。构图与动画实现可自由选择，风格克制、手绘、有层次，不用霓虹或随机粒子。配中文旁白、字幕和封面，保证手机可读，装饰不要压住文字。使用合法素材及现有可用语音能力，不新增收费服务，不发布到社交平台。这一轮先交付可供我审阅的初稿，画面修改我会另行反馈。\n",
+      "promptChecksum": "sha256:2057b2703c09b0f96f2b30ab9a8a1c553af8db5461fb99c76d26c4220ca90e95",
+      "transcriptChecksum": "sha256:9dbff76388345a584f669a34c499871e2d735a540f56e8379dc55aa84fa53ea3",
+      "runChecksum": "sha256:767a70fd789c518c5b3b879587b0ee59b27fd3d0dc48dc935fdb60f6a24bb8ad",
+      "snapshotChecksum": "sha256:04b9070576d9b8212f90959df4c5309a714f3b87e6528ba22e0bcdf84b6c1ebc",
+      "creation": {
+        "method": "npm-exec-candidate",
+        "runtimeTarballChecksum": "sha256:58d1ab02c407c17c519ff85e280320b11026895d57eb7cd4c172707497ed5ed0",
+        "creatorTarballChecksum": "sha256:b1332478f277a63d0273a1ebe9dec1a66d8df22d7e6137fa98bee233cd414795",
+        "installLogChecksum": "sha256:9ee7ba90d7068039cfba6be9d212d42fc7a3ae90f35aedce4003a59a76e12560"
+      },
+      "sessionChecksum": null,
+      "transcriptAudit": {
+        "businessUserMessages": 1,
+        "toolCalls": 72,
+        "followUpMessages": 0,
+        "nativeCompletionMessages": 0
+      },
+      "unchangedPackageFiles": 283,
+      "nativeExecution": {
+        "mode": "subagents",
+        "workerTransport": "shared-workspace",
+        "modeSource": "builtin-default",
+        "concurrencySource": "builtin-default",
+        "requestedMaxConcurrency": 4,
+        "effectiveMaxConcurrency": 4,
+        "peakActiveChildren": 4,
+        "peakBoundTasks": 4,
+        "fourWayBoundOverlapMs": 567019,
+        "dirtyTaskCount": 6,
+        "productionChildCount": 6,
+        "probeChildCount": 4,
+        "refillAdmissions": 2,
+        "attemptId": "12983cef-5d26-4789-aaf5-6df0a2bec6c4",
+        "childEvidence": [
+          {
+            "sessionId": "01a0fd88-aec4-78f0-9261-1863292a6742",
+            "transcriptChecksum": "sha256:b94312d56c3f2214c2010b0ec449b814a4ad4258fe5479029673dee290dab9d1",
+            "sessionChecksum": null,
+            "taskRevision": null
+          },
+          {
+            "sessionId": "01a0fd88-d1b0-7a23-a522-e49008989005",
+            "transcriptChecksum": "sha256:c5f2b8942a679c5950b6635955a90b224e8fe68f2fa6ad4aac1e80fbab0bf1ea",
+            "sessionChecksum": null,
+            "taskRevision": null
+          },
+          {
+            "sessionId": "01a0fd88-f148-7110-9731-0542ee33c78f",
+            "transcriptChecksum": "sha256:0e7ccf862cd42c54aa4d13d115653e9b19ae2d6d93c75a6c03c45de4c351a754",
+            "sessionChecksum": null,
+            "taskRevision": null
+          },
+          {
+            "sessionId": "01a0fd89-10e8-7050-825c-32ce1d37cd6b",
+            "transcriptChecksum": "sha256:afd50c0c60d9b443ee192c9c4c046dae86f1022a27c9f4c5d7aabb33a3b26068",
+            "sessionChecksum": null,
+            "taskRevision": null
+          },
+          {
+            "sessionId": "01a0fd96-7c73-70d0-ae1c-7aefe3d9d990",
+            "transcriptChecksum": "sha256:19e4472c88b0b51a1dae222c35f4ce4995aea74e0ef8e88c504ddc76d21f7d1a",
+            "sessionChecksum": null,
+            "taskRevision": "task-2e51df6bf8a4f16bc38120b2a57a550b4332cbf62df664709735d44eeff35186"
+          },
+          {
+            "sessionId": "01a0fd96-ba84-7691-a8c2-791696a1c9e0",
+            "transcriptChecksum": "sha256:690169e48d51048c6338640387cec1881b1e9eb32ae271183aac0fdd435e7d1f",
+            "sessionChecksum": null,
+            "taskRevision": "task-56e00e1becd14d15b9a717ab62b8d5b1726e283103cb6c43390e6b0a32d48eb7"
+          },
+          {
+            "sessionId": "01a0fd96-fb47-7bd3-93e9-59f97066b438",
+            "transcriptChecksum": "sha256:0c92e6a6a4b921c5328d5ac104d1b06c305edfe10502cba604b24269e9896b56",
+            "sessionChecksum": null,
+            "taskRevision": "task-76f6dda17254dad05401a8ba286f44a59e78716b5b4e516ef17e914a644daa09"
+          },
+          {
+            "sessionId": "01a0fd97-3af5-72c2-b0cd-56934d301427",
+            "transcriptChecksum": "sha256:49905f6d3e5e9bae570b0209c26094895c43cb5512b3b5fa0eab6aec88a05557",
+            "sessionChecksum": null,
+            "taskRevision": "task-e47101bd2f5d26b05f7a379189b9abd772cfcedebafc52f35d4218f5f9a3bcda"
+          },
+          {
+            "sessionId": "01a0fd9e-7808-7011-8121-d6a592b2f558",
+            "transcriptChecksum": "sha256:89b35e33df0df18cad8dcc484c06952fb1562a8eb9ff48f22e7751ee19d450a0",
+            "sessionChecksum": null,
+            "taskRevision": "task-469446be492e6e7cad0cfc7add6c1f255f7ebbb526cefe4f4c28df1a7db61613"
+          },
+          {
+            "sessionId": "01a0fda1-61d8-7a81-b672-762a783427d1",
+            "transcriptChecksum": "sha256:e94381b3ddd51dd0f774eea238bd5ea9a523eeb14703705ca98063c7c2699de2",
+            "sessionChecksum": null,
+            "taskRevision": "task-63314d65efce5ddcbe9ebb26c8abcaf8acba75a8f45976fd95f4dcb246bb63eb"
+          }
+        ],
+        "delegationChecksum": null,
+        "notificationFormatterChecksum": null,
+        "uiEvidence": {
+          "checksum": "sha256:9d0cac1c68be42afaa035cf269a4012b78b977daba9be8aedf96751b47a7db11",
+          "sessionId": "01a0fd87-08cf-7f93-a83c-bcc05d70b927",
+          "commandResults": 3
+        }
+      },
+      "supervision": {
+        "schemaVersion": 1,
+        "source": "codex",
+        "reportedBeforeCreate": true,
+        "reportedBeforePrepare": true,
+        "continuationCalls": 1,
+        "pollingCalls": 0,
+        "asyncBatches": 0,
+        "completedAsyncBatches": 0
+      },
+      "unchangedGuideFiles": 12,
+      "finalCheck": {
+        "status": "project-final-check",
+        "storyId": "ai-fabricated-answers-zh",
+        "aggregateStatus": "pass",
+        "deliveryBuildId": "delivery-cd6ef09de1df191dc7fcea4a7288aa6b7fa3675a69d199222ee1a0e64e0f87f9",
+        "checks": [
+          {
+            "checkId": "artifacts",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "delivery",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "revision",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "artifact-set",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "delivery-build",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "audio-channels",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "snapshot",
+            "status": "pass",
+            "code": null,
+            "message": null
+          }
+        ],
+        "schemaVersion": 1,
+        "level": "final",
+        "scope": "current-production",
+        "revisionId": "revision-cb41fbbdd04494594f0dfb176b08041f4f51dfa24d62cf00b107b228ba9c3963",
+        "artifactSetFingerprint": "sha256:aac44d0c40d60b6f2d305b6f2c34f2634a7eaddee4712dd9ebac9cfb8bf38c34"
+      },
+      "delivery": {
+        "storyId": "ai-fabricated-answers-zh",
+        "deliveryBuildId": "delivery-cd6ef09de1df191dc7fcea4a7288aa6b7fa3675a69d199222ee1a0e64e0f87f9",
+        "files": {
+          "video.mp4": {
+            "checksum": "sha256:0e90f211f5c3b0fbadf7a048e71ca231be5e86df836c7bb0329cfe1862042ecb",
+            "sizeBytes": 13840423
+          },
+          "cover-4x3.png": {
+            "checksum": "sha256:dfac03ac823e2a2b3c218bcbc60fab9d2e14af8df77f664654aa8a4ff3a6bfe6",
+            "sizeBytes": 196377
+          },
+          "cover-3x4.png": {
+            "checksum": "sha256:ab80cd28566e7b22bff731c14f49e74bddc533d096d8031f0e8a853700a6e24c",
+            "sizeBytes": 209780
+          },
+          "publish.json": {
+            "checksum": "sha256:077e22f7e3b18968071ac38f24967f97cd5f67c767ec13153d12320c25d2754e",
+            "sizeBytes": 2998
+          }
+        },
+        "video": {
+          "codec": "h264",
+          "audioCodec": "aac",
+          "audioChannels": 2,
+          "width": 1080,
+          "height": 1920,
+          "fps": 30,
+          "frameCount": 3302
+        },
+        "decodedFiles": [
+          "video.mp4",
+          "cover-4x3.png",
+          "cover-3x4.png"
+        ]
+      }
+    }
+  ]
+}

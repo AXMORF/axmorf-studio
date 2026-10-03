@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  DiagnosticInputIdSchema,
+  SCENE_PRIOR_SOURCE_INPUT_ID,
   buildProducerTaskSpec,
   type ProducerTaskSpec,
 } from "@axmorf/studio/contracts";
@@ -213,4 +215,72 @@ test("originality baseline changes remain a structured diagnostic input", () => 
   assert.deepEqual(decisions[0]?.directChanges, [
     { kind: "input", id: "originality-baseline" },
   ]);
+});
+
+test("prior Scene source changes remain diagnostic inputs and unknown IDs fail closed", () => {
+  const previous = build({
+    taskKind: "scene-owner",
+    semanticId: "scene-a",
+    input: SCENE_PRIOR_SOURCE_INPUT_ID,
+    value: "1",
+  });
+  const current = build({
+    taskKind: "scene-owner",
+    semanticId: "scene-a",
+    input: SCENE_PRIOR_SOURCE_INPUT_ID,
+    value: "2",
+  });
+  const subjects = new Map(
+    [previous, current].map((task) => [
+      task.taskRevision,
+      { kind: "meaning" as const, id: task.semanticId! },
+    ]),
+  );
+  const baseline = buildTaskDiagnosticSnapshots({
+    nodes: [{ task: previous, dependencyTaskRevisions: [] }],
+    subjects,
+    decisions: [],
+  });
+  const decisions = explainTaskDecisions({
+    storyId: "story-example",
+    nodes: [{ task: current, dependencyTaskRevisions: [] }],
+    subjects,
+    inspections: new Map([
+      [
+        current.taskRevision,
+        { artifactState: "missing" as const, attestation: null },
+      ],
+    ]),
+    baselineSnapshots: baseline,
+  });
+  assert.deepEqual(decisions[0]?.directChanges, [
+    { kind: "input", id: SCENE_PRIOR_SOURCE_INPUT_ID },
+  ]);
+  for (const id of [
+    "unknown-scene-source",
+    "/home/user/private/token",
+    "prior-scene-source:/private/source.tsx",
+  ]) {
+    const unknown = build({
+      taskKind: "scene-owner",
+      semanticId: "scene-a",
+      input: id,
+      value: "3",
+    });
+    assert.throws(
+      () =>
+        buildTaskDiagnosticSnapshots({
+          nodes: [{ task: unknown, dependencyTaskRevisions: [] }],
+          subjects: new Map([
+            [
+              unknown.taskRevision,
+              { kind: "meaning", id: unknown.semanticId! },
+            ],
+          ]),
+          decisions: [],
+        }),
+      /Task input ID is not diagnostic-safe/u,
+    );
+    assert.equal(DiagnosticInputIdSchema.safeParse(id).success, false);
+  }
 });

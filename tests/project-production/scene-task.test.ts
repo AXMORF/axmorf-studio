@@ -7,9 +7,13 @@ import test from "node:test";
 
 import {
   SCENE_ORIGINALITY_INPUT_ID,
+  SCENE_MOTION_REQUIREMENT,
   buildProducerTaskSpec,
+  buildSceneTaskInputV7,
   buildSceneOriginalityBaseline,
   buildSceneSourceGraph,
+  buildScenePriorSource,
+  type ScenePriorSource,
 } from "@axmorf/studio/contracts";
 import { checkSceneTask } from "../../scripts/project-production/application/scene-task-check";
 import { createTaskWorkspace } from "../../scripts/project-production/adapters/task-workspace";
@@ -51,20 +55,40 @@ const createSceneWorkspace = async ({
   semanticId = "meaning-one",
   sourceFiles = { "src/Renderer.tsx": rendererSource },
   originalityEntries = [],
+  requireMotion = false,
+  priorSource,
 }: {
   readonly rootDir: string;
   readonly semanticId?: string;
   readonly sourceFiles?: Readonly<Record<string, string>>;
   readonly originalityEntries?: readonly unknown[];
+  readonly requireMotion?: boolean;
+  readonly priorSource?: ScenePriorSource;
 }) => {
   const fixture = createScenePackageInput();
+  const sceneTaskInput = requireMotion
+    ? buildSceneTaskInputV7({
+        ...fixture.task,
+        sceneRequirements: [
+          {
+            requirementId: SCENE_MOTION_REQUIREMENT.requirementId,
+            category: SCENE_MOTION_REQUIREMENT.category,
+            statement: SCENE_MOTION_REQUIREMENT.statement,
+            severity: SCENE_MOTION_REQUIREMENT.severity,
+          },
+        ],
+      })
+    : fixture.task;
   const originalityBaseline = buildSceneOriginalityBaseline({
     subjectStoryId: fixture.task.storyId,
     entries: originalityEntries,
   });
   const context = `${JSON.stringify({
     originalityBaseline,
-    scene: { taskInput: fixture.task },
+    scene: {
+      taskInput: sceneTaskInput,
+      ...(priorSource === undefined ? {} : { priorSource }),
+    },
   })}\n`;
   const task = buildProducerTaskSpec({
     taskKind: "scene-owner",
@@ -148,6 +172,17 @@ test("Scene task accepts the complete Renderer and plan bundle, then rejects mal
   await assert.rejects(
     checkSceneTask({ rootDir, taskRevision: task.taskRevision }),
     /JSON|Unexpected|property name/iu,
+  );
+});
+
+test("Agent-authored Scene tasks still require their declared motion plan", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-scene-required-motion-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const { task } = await createSceneWorkspace({ rootDir, requireMotion: true });
+
+  await assert.rejects(
+    checkSceneTask({ rootDir, taskRevision: task.taskRevision }),
+    /requires a structured shot-plan motionPlan/u,
   );
 });
 
@@ -338,5 +373,94 @@ test("Scene task rejects a Renderer that narrows the shared StoryBeat contract",
   await assert.rejects(
     checkSceneTask({ rootDir, taskRevision: task.taskRevision }),
     /Scene task compile failed \(TS2322,/u,
+  );
+});
+
+test("Scene task retains d.ts syntax checks and compiles type-only local imports", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "axmorf-scene-declaration-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const source = `import type {SceneRendererProps} from "@axmorf/studio/remotion";
+import type {Viewport} from "./types";
+const Renderer = ({viewportWidth, viewportHeight}: SceneRendererProps) => {
+  const size: Viewport = {width: viewportWidth, height: viewportHeight};
+  return <div style={{width: size.width, height: size.height}} />;
+};
+export default Renderer;
+`;
+  const current = await createSceneWorkspace({
+    rootDir,
+    sourceFiles: {
+      "src/Renderer.tsx": source,
+      "src/types.d.ts":
+        "export interface Viewport { width: number; height: number; }\n",
+    },
+  });
+  assert.equal(
+    (await checkSceneTask({ rootDir, taskRevision: current.task.taskRevision }))
+      .status,
+    "task-workspace-valid",
+  );
+  await writeFile(
+    join(current.workspace, "src/types.d.ts"),
+    "export interface Viewport { width: ; }\n",
+  );
+  await assert.rejects(
+    checkSceneTask({ rootDir, taskRevision: current.task.taskRevision }),
+    /syntax errors/u,
+  );
+  await writeFile(
+    join(current.workspace, "src/types.d.ts"),
+    'export type Forbidden = "https://example.com";\n',
+  );
+  await assert.rejects(
+    checkSceneTask({ rootDir, taskRevision: current.task.taskRevision }),
+    /network access/u,
+  );
+});
+
+test("Scene task validates retained prior license bytes without requiring Renderer rewrites", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "axmorf-prior-scene-license-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const fixture = createScenePackageInput();
+  const license = "Apache-2.0\nRetain upstream attribution.\n";
+  const priorSource = buildScenePriorSource({
+    storyId: fixture.task.storyId,
+    meaningId: fixture.task.meaningId,
+    brief: {
+      meaningId: fixture.task.meaningId,
+      visualIntent: "Keep the prior subject.",
+      compositionIntent: "Prior location.",
+      motionIntent: "Preserve prior motion.",
+      soundIntent: "Narration only.",
+      continuityBrief: "Prior continuity.",
+      candidateResourceIds: [],
+      allowedSnapshotCards: [],
+    },
+    rendererSourceFingerprint:
+      fixture.rendererBinding.rendererSourceFingerprint,
+    scenePackageFingerprint: `sha256:${"a".repeat(64)}`,
+    files: [
+      { path: "LICENSE", role: "license", content: license },
+      { path: "Renderer.tsx", role: "source", content: rendererSource },
+    ].map((file) => ({
+      ...file,
+      checksum: checksum(file.content),
+      sizeBytes: Buffer.byteLength(file.content),
+    })),
+  });
+  const current = await createSceneWorkspace({
+    rootDir,
+    priorSource,
+    sourceFiles: { "src/Renderer.tsx": rendererSource, "src/LICENSE": license },
+  });
+  assert.equal(
+    (await checkSceneTask({ rootDir, taskRevision: current.task.taskRevision }))
+      .status,
+    "task-workspace-valid",
+  );
+  await writeFile(join(current.workspace, "src/LICENSE"), "Changed license\n");
+  await assert.rejects(
+    checkSceneTask({ rootDir, taskRevision: current.task.taskRevision }),
+    /retained license.*checksum drifted/u,
   );
 });
