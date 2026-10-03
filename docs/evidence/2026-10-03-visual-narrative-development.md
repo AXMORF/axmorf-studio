@@ -11,7 +11,7 @@ resolve to the same checkout. Its starting branch was `axmorf/npm-workspace-open
 clean HEAD `c3431f6638847a2664931c134ae5d61dc9652cd3`. Engineering uses the isolated
 `/tmp/axmorf-visual-narrative-quality` worktree and `axmorf/visual-narrative-quality` branch.
 The original checkout remains clean at that HEAD. Production Workspace and existing works
-were not modified. No push, npm publication, social publication or data deletion occurred.
+were not modified. No push, npm publication, social publication or deletion of user data occurred.
 
 Both public npm packages already have latest 0.1.16. Its existing motionPlan v2, optional
 tracked DOM consumption checks, custom SVG/Canvas/supported 3D, frozen subject handoffs,
@@ -57,8 +57,8 @@ Projects, so that host Project gate does not prove sample production.
 
 Independent review then identified preview static URLs and role filtering differing from the
 final runtime. Both were corrected. The final preview regression suite passed **7/7**, including
-executing the generated entry under a nonempty browser static base. Final package/type/lint
-rechecks and local r2 packaging are recorded separately in the local checkpoint.
+executing the generated entry under a nonempty browser static base. Final package builds, package/root typechecks, lint, package boundaries and documentation links all passed.
+Local r2 packaging and fresh creator installation completed; its six doctor checks passed.
 
 Earlier scope checks passed: contracts 168/168; create/revision/promotion 60/60; pipeline 39/39;
 check/Registry 32/32; runtime/contract 31/31. They overlap and are not added to the full count.
