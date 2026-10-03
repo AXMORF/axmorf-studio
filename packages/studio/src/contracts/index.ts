@@ -49,6 +49,8 @@ export * from "./scene-originality";
 export * from "./scene-task";
 export * from "./scene-prior-source";
 export * from "./scene-continuity";
+export * from "./scene-continuity-visual";
+export * from "./scene-continuity-visual-readability";
 export * from "./scene-template";
 export * from "./shot-recipe";
 export * from "./sealed-narration";

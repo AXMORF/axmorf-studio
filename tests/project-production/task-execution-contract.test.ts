@@ -1097,6 +1097,62 @@ test("Frozen seam examples pass shared bundle validation and reject invented han
   );
 });
 
+test("A frozen common drawing reaches Scene identity and its executable authoring contract", () => {
+  const previous = createScenePackageInput().task;
+  const creative = sceneContext(previous);
+  const build = (radius: number) => {
+    const handoffs = buildSceneContinuityContract({
+      storyId: previous.storyId,
+      beat: previous.storyBeat,
+      brief: {
+        ...creative.scene.brief,
+        outgoingHandoff: {
+          subject: "The persistent query",
+          visual: {
+            schemaVersion: 1,
+            viewBox: [0, 0, 1000, 600],
+            elements: [
+              { tag: "circle", attributes: { cx: 500, cy: 300, r: radius } },
+            ],
+          },
+        },
+      },
+      previous: null,
+      next: {
+        beat: { kind: "narrated-scene", meaningId: "next" },
+        brief: { ...creative.scene.brief, meaningId: "next" },
+      },
+    });
+    return buildSceneTaskInputV7({
+      ...previous,
+      continuity: {
+        ...previous.continuity,
+        nextMeaningId: "next",
+        nextSummary: "Continue the query",
+        handoffs,
+      },
+    });
+  };
+  const first = build(50);
+  assert.notEqual(first.taskInputFingerprint, build(60).taskInputFingerprint);
+  assert.equal(first.taskInputFingerprint, build(50).taskInputFingerprint);
+  const contract = buildTaskExecutionContract({
+    taskKind: "scene-owner",
+    context: sceneContext(first),
+  });
+  const renderer = contract.outputs.find(
+    ({ path }) => path === "src/Renderer.tsx",
+  );
+  assert.ok(renderer);
+  assert.match(renderer.instructions.join("\n"), /SceneContinuityVisual/u);
+  assert.match(contract.workflow.join("\n"), /incoming first frame/u);
+  const legacy = buildTaskExecutionContract({
+    taskKind: "scene-owner",
+    context: creative,
+  });
+  assert.doesNotMatch(legacy.workflow.join("\n"), /shared declarative SVG/u);
+});
+
 test("New worker examples describe intent without prescribing tracks or components; legacy examples stay compatible", () => {
   const previous = createScenePackageInput().task;
   const taskInput = buildSceneTaskInputV7({

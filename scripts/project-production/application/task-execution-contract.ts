@@ -215,6 +215,9 @@ const buildSceneContract = (rawContext: unknown) => {
   }
   const shotId = `${taskInput.meaningId}-primary`;
   const handoffs = taskInput.continuity.handoffs;
+  const hasVisualHandoff = [handoffs?.incoming, handoffs?.outgoing].some(
+    (handoff) => handoff?.kind === "continuous" && handoff.visual !== undefined,
+  );
   const requiresMotion =
     taskInput.sceneRequirements.some(
       (rule) => rule.requirementId === SCENE_MOTION_REQUIREMENT_ID,
@@ -355,6 +358,11 @@ const buildSceneContract = (rawContext: unknown) => {
       "Choose a visual subject with a specific role in the idea. Show cause and consequence through staging, scale, movement, occlusion, or a change in spatial relationship; avoid generic shapes, ambient particles, and motion that only illustrates a keyword.",
       "Give each shot one focal subject and a readable silhouette. Vary shot scale or viewpoint only when it clarifies a new fact, and preserve continuity of the subject across shots. Leave the Composition-owned caption area visually quiet.",
       "Align meaningful changes to narrationCues in narrated Scenes; in visual Scenes author event anchors from the cause, consequence and reading rhythm. Declare anchors used by shots or sound. The optional resolveSceneActionTiming public helper consumes action ranges, anchors and result holds; Renderer continuity contains the frozen seam. Keep plan, code and visible result consistent.",
+      ...(hasVisualHandoff
+        ? [
+            "The frozen continuous handoff includes visual: a shared declarative SVG drawing, not a template or a second Scene's source. Use this exact drawing for the incoming first frame or outgoing last frame. Bring your own subject into that state through causal movement, then preserve it at the seam; the next Scene begins there and evolves it. Keep unrelated labels or overlays from changing its visible state at the seam. Review the approach and departure, not only the endpoint.",
+          ]
+        : []),
       originalityInstruction,
       "When scene.priorSource is absent, create this Scene from the current brief; no prior implementation was frozen, so do not claim preservation of existing source.",
       "Replace the scaffold Renderer with StoryBeat-specific creative output and write every declared output. The scaffold is an API illustration, never a finished Scene.",
@@ -373,6 +381,11 @@ const buildSceneContract = (rawContext: unknown) => {
             : "The runtime supplies the verified shot-plan.json. Realize its intent with authored frame-driven animation or optional selected capabilities. Tracked geometry is optional; a plan does not certify visible, semantic or aesthetic quality.",
           "Do not import or call useVideoConfig; the supplied SceneRendererProps own timing and viewport dimensions.",
           "Show a readable subject, a visible meaning-driven change, and its result at narration-aligned or authored visual event frames. resolveSceneActionTiming({shots, syncAnchors, actionId, sceneFrame}) is an optional public helper returning anticipation/change/reading-hold progress; it leaves geometry and easing to you. Use the optional continuity prop to consume frozen incoming/outgoing seams.",
+          ...(hasVisualHandoff
+            ? [
+                "Import SceneContinuityVisual from @axmorf/studio/remotion and pass continuity.incoming or continuity.outgoing. It draws the exact frozen visual in viewport coordinates with stable SVG IDs. At the matching first/last frame render it as a direct viewport child with no shifted, scaled or hidden ancestor. The checker compares actual painted DOM and perturbs the frozen drawing to detect ignored input; self-reported markers do not prove consumption. During the Scene, continue to animate freely with frame-driven geometry. Do not swap it in for only one frame: animate toward and away from this same visible state. Browser-only effects and occlusion still require actual boundary review.",
+              ]
+            : []),
           "Keep the root transparent and do not own captions, narration, or GlobalVisual decoration.",
           "For themed Projects, use visualStyle.theme semantic roles for readable text and accents; Composition draws theme.background and Scene must not replace it with a full-frame surface.",
           "Keep visible text at the task viewport minimum font size with clear contrast against its actual background; pure layout and graphic containers do not need a font size.",

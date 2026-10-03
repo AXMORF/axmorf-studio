@@ -33,6 +33,29 @@ it does not mechanically guarantee matching pixels. Intent v2 leaves the impleme
 Tracked v1 can bind an exact boundary pose. Neither creates extra transition frames or trims
 speech. Review both sides of the actual boundary.
 
+For a subject that must preserve its visible pose and appearance, Root can freeze
+`outgoingHandoff.visual` before dispatch. It is a free declarative SVG drawing tree
+(`viewBox` and safe SVG elements/attributes), copied unchanged into both immutable task
+contexts. It contains no executable expression, external media or preset layout. The
+public `SceneContinuityVisual({handoff})` component renders that same drawing and stable
+SVG identities in each Scene's viewport. Each Scene should move into or away from the
+common state; do not replace the drawing for a single boundary frame or hide a jump with
+a crossfade. Only the shared subject needs this representation. Other SVG, Canvas, 3D
+and within-Scene composition remain authored choices.
+
+For these explicit visual handoffs, task checks compare the actual first/last rendered
+SVG subtree with the frozen drawing, check neutral viewport ancestors, and perturb the
+input to detect a copied or ignored drawing. Contradictory supported DOM output blocks
+commit. Semantic-only legacy seams make no such proof claim. Unsupported browser effects
+are explicitly unverified: this bounded SSR check does not prove occlusion, CSS paint,
+the behavior of other objects, semantic or aesthetic quality. Final boundary playback
+remains necessary.
+
+The same viewport font minimum also applies to text inside the frozen SVG data. Its
+effective size includes `viewBox` meet scaling, inherited text sizes and cumulative 2D
+transforms. Shapes without text remain unrestricted by the font check. This preserves
+the existing readability boundary; it is not an aesthetic score.
+
 `resolveSceneActionTiming({shots, syncAnchors, actionId, sceneFrame})` is an optional public
 runtime helper. It resolves anticipation, change and reading hold from the authored action
 and event anchor. End frames are exclusive; the last changing frame reaches the result. It

@@ -28,6 +28,8 @@ validators 判断一次生产是否真正完成。
 `durationInFrames` 驱动对象状态、短文案与音效，不调用 TTS。后者通过 create context 的 `visualFirst`
 示例选择，保留相同的正式生产与四文件交付流程。Scene worker 可用绑定返回的 `commands.preview`
 在提交前实际渲染和定向修正；最终的跨 Scene 衔接、音乐混音和完整审片仍需交付后 review。
+需要同一主体跨 Scene 保持外观时，可冻结自由 SVG handoff，由两侧消费同一绘制状态；
+Scene 内的因果动作、其他 SVG/Canvas/3D 仍自由创作。实际消费检查不代替连续播放审阅。
 这些改进尚未发布到 npm，当前公开版本仍为 0.1.16。
 
 ## 把这段提示词交给你的 Agent

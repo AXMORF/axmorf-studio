@@ -16,6 +16,7 @@ import {
   SCENE_MOTION_REQUIREMENT_ID,
   SceneVisualPlanSchema,
   VisualStyleSpecSchema,
+  validateSceneContinuityVisualReadability,
 } from "@axmorf/studio/contracts";
 import { validateSceneArtifactBundle } from "../../scene-package/domain";
 import { parseSceneSelectedResourcesFile } from "../../scene-package/generate";
@@ -23,6 +24,7 @@ import { validateRendererReadabilitySourceGraph } from "./readability-source-val
 import { validateSceneCapabilityUsage } from "./scene-capability-usage";
 import { compileTypeScriptImportGraph } from "./typescript-compile";
 import { checkSceneMotionConsumption } from "./scene-motion-consumption";
+import { checkSceneHandoffConsumption } from "./scene-handoff-consumption";
 
 const readJson = async (path: string) =>
   JSON.parse(await readFile(path, "utf8")) as unknown;
@@ -58,6 +60,16 @@ export const checkSceneTask = async (
     originalityBaseline?: unknown;
   };
   const taskInput = SceneTaskInputSchema.parse(context.scene?.taskInput);
+  for (const handoff of [
+    taskInput.continuity.handoffs?.incoming,
+    taskInput.continuity.handoffs?.outgoing,
+  ]) {
+    if (handoff?.kind === "continuous" && handoff.visual !== undefined)
+      validateSceneContinuityVisualReadability({
+        visual: handoff.visual,
+        sceneViewport: taskInput.sceneViewport,
+      });
+  }
   if (context.scene?.priorSource !== undefined) {
     const priorSource = ScenePriorSourceSchema.parse(context.scene.priorSource);
     if (
@@ -254,18 +266,26 @@ void renderer;
     selectedResources,
   });
   let motionReview: ReturnType<typeof checkSceneMotionConsumption> | undefined;
+  let handoffReview: ReturnType<typeof checkSceneHandoffConsumption>;
+  const requiresMotion = taskInput.sceneRequirements.some(
+    ({ requirementId }) => requirementId === SCENE_MOTION_REQUIREMENT_ID,
+  );
+  const hasVisualHandoff = [
+    taskInput.continuity.handoffs?.incoming,
+    taskInput.continuity.handoffs?.outgoing,
+  ].some(
+    (handoff) => handoff?.kind === "continuous" && handoff.visual !== undefined,
+  );
   if (
     checked.task.taskKind === "scene-owner" &&
-    taskInput.sceneRequirements.some(
-      ({ requirementId }) => requirementId === SCENE_MOTION_REQUIREMENT_ID,
-    )
+    (requiresMotion || hasVisualHandoff)
   ) {
     const fps = context.scene?.fps;
     if (fps === undefined || !Number.isFinite(fps) || fps <= 0)
       throw new Error(
         "Motion consumption requires the frozen Scene frame rate.",
       );
-    motionReview = checkSceneMotionConsumption({
+    const probeInput = {
       rootDir: input.runtimeRootDir ?? input.rootDir,
       sources: sourceFiles,
       props: {
@@ -301,10 +321,13 @@ void renderer;
               : [],
         ),
       },
-    });
+    };
+    if (requiresMotion) motionReview = checkSceneMotionConsumption(probeInput);
+    handoffReview = checkSceneHandoffConsumption(probeInput);
   }
   return {
     ...checked,
     ...(motionReview === undefined ? {} : { motionReview }),
+    ...(handoffReview === undefined ? {} : { handoffReview }),
   };
 };

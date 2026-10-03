@@ -1,13 +1,18 @@
 # Iteration Status
 
-## 视觉叙事开发分支（2026-10-03，未发布、工程检查点通过、正式样片未开始）
+## 视觉叙事开发分支（2026-10-03，未发布、正式样片已产出、衔接修订中）
 
 在已发布 0.1.16 的当前源码上开发 `visual-scene` 无旁白正文：authored frames 时序、明确 null 旁白、
 零 provider preparation、same-mode 隔离 revision 与既有四文件验证。新增绑定 Scene 的提交前低成本
 真实预览，以及可选 action timing helper 和 Renderer continuity props。新 task contract v2 使 Agent
 artifacts 一次失效，不改写 current Delivery；旧 narrated Story/create/PCM 指纹回归保持一致。
-这不认证审美达标、全片连续观看或听审。完整 check 1138/1138 通过；独立审查后两处 preview 修复由 7/7 回归与最终 type/lint/package build 复验。
-旧版/最终 r2 候选均已通过 creator 安装与 doctor。两个主题正式对比样片、无旁白成片、时序审阅仍待执行。
+已提交版本完整 check 1143/1143 通过，真实 production 还暴露并修复 EOF decoder 和无旁白
+ScenePackage anchor 两处 fixed-flow 缺陷。正式四文件已产出：同输入/同旁白的 Attention 旧新两片、
+50秒零 TTS 站点候选，以及带旁白站点旧版。均通过 public final check；前三片已取得真实 Library ID。
+真实相邻帧仍发现 Q 形状与站点 UI 姿态跳变。正在以可选 frozen SVG visual 和独立实际 DOM 消费检查
+修订，构建后的 focused 49/49 通过。包含实际 SVG 消费与有效字号检查的全量 check 1176/1176
+通过，typecheck/lint/build/host checks 退出0；正式修复版和带旁白站点新版本配对待生成。
+这不认证审美达标、全片连续观看或听审；截图、计划声明与技术完成不能替代感知验收。
 见[工程检查点](evidence/2026-10-03-visual-narrative-development.md)。
 见[视觉叙事工作流](guides/VISUAL_NARRATIVE_QUALITY.md)。当前 npm latest 仍是下述已发布 0.1.16。
 

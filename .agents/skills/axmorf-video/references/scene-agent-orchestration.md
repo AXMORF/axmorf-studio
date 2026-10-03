@@ -14,6 +14,8 @@ task-input.generated.json 由 fixed materialization 投影；Renderer 限 SceneV
 
 scene.priorSource 冻结源码/声明；比新旧 brief 只改 delta，其余保留；outputs 需新建。许可/lineage 原样、派生字段交 finalizer。不读 base snapshot；缺失从 brief 创建。
 
+共享SVG依合同同绘、连续接近/离开并审阅。
+
 sound-plan.json 限预制 sound-effect，按 description 卡点；完整音效须在 Scene 内，Renderer 不重复播放。禁止合成/下载音频。
 
 motionPlan v2 写目的/旁白或 visual authored event 时机；unsupported 须时序审查。

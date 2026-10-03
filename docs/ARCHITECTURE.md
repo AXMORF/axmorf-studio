@@ -4,6 +4,10 @@
 SemanticTiming，旁白 source/两份 manifest 明确为 null，不创建 provider/narration tasks。Composition
 省略 NarrationAudioTrack，保留顶层 caption ownership；空 captions 回收字幕预留区。GlobalVisual 和
 BGM 使用完整正文窗口。Scene 可通过公开 action timing helper 消费计划，并接收冻结 continuity。
+可选 `outgoingHandoff.visual` 是自由 SVG 数据，与相邻任务共享同一 immutable seam；公开
+`SceneContinuityVisual` 只绘制该主体。声明进入 Scene input fingerprint，语义 handoff ID 保持原定义。
+有 visual 时独立检查首/末帧的实际 DOM、输入消费与 viewport 字号；没有 visual 的旧任务不改变。
+这些检查不证明浏览器遮挡、Canvas/3D paint、完整运动或审美质量，仍须实际边界审阅。
 绑定的 task preview 是独立诊断适配器：校验与快照 owning source 后实际渲染，不进入 artifact/delivery
 identity，也不扩展 worker 文件权限。详见[视觉叙事](guides/VISUAL_NARRATIVE_QUALITY.md)。
 

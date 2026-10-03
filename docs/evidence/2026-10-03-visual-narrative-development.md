@@ -4,6 +4,27 @@ This is an engineering checkpoint, not completed video-quality acceptance or a r
 The user requested a checkpoint after a host disconnect notification. Subsequent real command
 execution succeeded; no running production render was interrupted.
 
+## Continued source and sample verification
+
+The committed r4 source later passed 1143/1143 full checks and produced an Attention
+same-input/same-narration pair plus a 50-second truly visual-only portfolio through the
+formal production chain. A narrated public-0.1.16 portfolio baseline also completed.
+All four deliveries passed the public final check. Boundary frames still showed a query
+shape change and portfolio layout jump; these samples do not establish quality parity.
+
+The follow-on optional common SVG declaration is shared by both frozen task contexts.
+It preserves free subject geometry rather than prescribing a layout. Actual first/last
+DOM and perturbation checks detect ignored drawings; effective-font validation covers
+viewport meet scaling, inherited sizes and cumulative 2D matrices. Semantic-only old
+seams are unchanged. The normal runtime build resolved six integration failures caused
+by the older dist missing the new helper. Full `npm run check` then passed 1176/1176,
+zero failures or skips, with typecheck, lint, build and host checks exiting 0.
+
+Formal corrected revisions, the narrated portfolio candidate pair, new repeat rendering
+and continuous viewing/listening remain pending at this source checkpoint. Frame
+observations and technical passes are not full motion or listening approval. The earlier
+sections below preserve the previous checkpoint's state rather than current completion.
+
 ## Source and existing capabilities
 
 The source aliases `/Users/ai/projects/axmorf-studio` and `/Users/ai/Projects/axmorf-studio`

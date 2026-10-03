@@ -13,6 +13,7 @@ import {
   buildSceneOriginalityBaseline,
   buildSceneSourceGraph,
   buildScenePriorSource,
+  computeSceneContinuityId,
   type ScenePriorSource,
 } from "@axmorf/studio/contracts";
 import { checkSceneTask } from "../../scripts/project-production/application/scene-task-check";
@@ -57,6 +58,7 @@ const createSceneWorkspace = async ({
   originalityEntries = [],
   requireMotion = false,
   priorSource,
+  handoffFontSize,
 }: {
   readonly rootDir: string;
   readonly semanticId?: string;
@@ -64,9 +66,10 @@ const createSceneWorkspace = async ({
   readonly originalityEntries?: readonly unknown[];
   readonly requireMotion?: boolean;
   readonly priorSource?: ScenePriorSource;
+  readonly handoffFontSize?: number;
 }) => {
   const fixture = createScenePackageInput();
-  const sceneTaskInput = requireMotion
+  const baseTaskInput = requireMotion
     ? buildSceneTaskInputV7({
         ...fixture.task,
         sceneRequirements: [
@@ -79,6 +82,47 @@ const createSceneWorkspace = async ({
         ],
       })
     : fixture.task;
+  const sceneTaskInput =
+    handoffFontSize === undefined
+      ? baseTaskInput
+      : buildSceneTaskInputV7({
+          ...baseTaskInput,
+          continuity: {
+            ...baseTaskInput.continuity,
+            nextMeaningId: "next",
+            nextSummary: "Keep the query visible",
+            handoffs: {
+              contractVersion: "scene-continuity-v1",
+              incoming: null,
+              outgoing: {
+                kind: "continuous",
+                continuityId: computeSceneContinuityId(
+                  baseTaskInput.storyId,
+                  baseTaskInput.meaningId,
+                  "next",
+                ),
+                subject: "Query",
+                reason: "Continue the query",
+                visual: {
+                  schemaVersion: 1,
+                  viewBox: [
+                    0,
+                    0,
+                    baseTaskInput.sceneViewport.width,
+                    baseTaskInput.sceneViewport.height,
+                  ],
+                  elements: [
+                    {
+                      tag: "text",
+                      attributes: { fontSize: handoffFontSize },
+                      children: ["Q"],
+                    },
+                  ],
+                },
+              },
+            },
+          },
+        });
   const originalityBaseline = buildSceneOriginalityBaseline({
     subjectStoryId: fixture.task.storyId,
     entries: originalityEntries,
@@ -314,6 +358,16 @@ export const SceneBody = () => <p style={{fontSize: 1}}>Unreadable helper copy</
   await assert.rejects(
     checkSceneTask({ rootDir, taskRevision: task.taskRevision }),
     /below the frozen/u,
+  );
+});
+
+test("Scene task applies its frozen font minimum to common SVG data outside the source graph", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "axmorf-handoff-readability-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const { task } = await createSceneWorkspace({ rootDir, handoffFontSize: 1 });
+  await assert.rejects(
+    checkSceneTask({ rootDir, taskRevision: task.taskRevision }),
+    /Continuity visual text size 1px.*readability-font-minimum/u,
   );
 });
 
