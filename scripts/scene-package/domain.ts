@@ -80,7 +80,10 @@ export const validateSceneArtifactBundle = (
       shots: shots.shots,
       anchors: anchors.anchors,
       duration: shots.sceneDurationInFrames,
-      narrationCues: rawInput.narrationCues,
+      narrationCues:
+        task.storyBeat.kind === "narrated-scene"
+          ? rawInput.narrationCues
+          : undefined,
     });
   if (
     !(
