@@ -739,5 +739,6 @@
     "publicNativeVideoFirstUse": "unverified-explicitly-waived",
     "publicInstallationSmoke": "pending",
     "hermes": "unverified-explicitly-waived"
-  }
+  },
+  "npmPublicationSecurityCorrection": "docs/evidence/2026-10-03-v0.1.16-npm-audit.json"
 }

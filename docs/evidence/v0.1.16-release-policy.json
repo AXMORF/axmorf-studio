@@ -54,7 +54,7 @@
     "freshWorkspace": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-priorsource-firstuse-20261002-c6sf850i/workspace",
     "nativeAcceptance": "Historical initial native receipt passed for this exact cfe7 candidate; later scoped revision failed before dispatch. Archived receipt is not publication evidence for current candidate."
   },
-  "publication": "authorized, not yet published; all candidate and installed revision gates passed, supported tag CI and public installation smoke pending",
+  "publication": "first tag CI blocked by development dependency safety audit before pack/publish; minimal lint fix fully checked and byte-identical candidates; corrected tag CI and public installation smoke pending",
   "publicationAuthorization": {
     "reply": "按照你的建议处理，然后发布最新npm。",
     "receivedOn": "2026-10-02",
@@ -108,16 +108,31 @@
     },
     "auditLow": {
       "exitCode": 0,
-      "vulnerabilities": 0
+      "vulnerabilities": 0,
+      "reference": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-reviewed-firstuse-20261003-gzhb5fc5/engineering/security-toolchain-verification/audit-current.stdout.log"
     },
     "sourceUnchangedDuringPack": true,
     "packageBuildReference": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-reviewed-firstuse-20261003-gzhb5fc5/engineering/build-and-pack.json",
     "finalRecorderReview": "NO-BLOCKING; 112/112 focused; type/lint/format/diff0; independent positive/reject vectors and full original raw/UI authentication",
     "finalReleaseSourceReview": "NO-BLOCKING; template suspicion withdrawn after real narrated-only schema/caller verification and existing real global-theme revision1/1",
-    "publishedTagCI": "pending",
+    "publishedTagCI": {
+      "firstRun": "https://github.com/AXMORF/axmorf-studio/actions/runs/37089444654",
+      "firstRunConclusion": "failure before npm publish",
+      "correctedRun": "pending"
+    },
     "prepublicationRepack": {
       "path": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-reviewed-firstuse-20261003-gzhb5fc5/engineering/prepublication-repack/result.json",
       "checksum": "sha256:b53bfb2cb9c201f053ad19c9447b9f5f135757785942467080a6c8c7679dee5f"
+    },
+    "securityToolchainFullCheck": {
+      "tests": 1093,
+      "pass": 1093,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0,
+      "exitCode": 0,
+      "reference": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-reviewed-firstuse-20261003-gzhb5fc5/engineering/security-toolchain-verification/result.json",
+      "stdoutChecksum": "sha256:bdc75c36b82479ad488afb277363852e3580f40b3af576923ab3af9a7280f54a"
     }
   },
   "candidateNativeAcceptance": {
@@ -171,5 +186,6 @@
     "rootThreadId": "01a0fee4-9c49-7c42-8b09-b7f38d3adbe2",
     "nativeReceiptChecksum": "sha256:98074563e7a9a5e3df81d5754ec34066a01dbc085e20b0488adfbe6a931e9678"
   },
-  "recordedAt": "2026-10-03T02:17:02.742528+00:00"
+  "recordedAt": "2026-10-03T02:40:33.820188+00:00",
+  "npmAuditCorrection": "docs/evidence/2026-10-03-v0.1.16-npm-audit.json"
 }

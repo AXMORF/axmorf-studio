@@ -1,6 +1,6 @@
 # Iteration Status
 
-## 0.1.16 当前候选发布闭环（2026-10-03，发布前门禁通过，尚未发布）
+## 0.1.16 当前候选发布闭环（2026-10-03，首用通过，发布审计修复待重发）
 
 当前 release worktree 基于 `7352dc9` 与原工作区73项已有修改，原分支、提交与文件 bytes 保持不变。
 当前 runtime/creator 均为 `0.1.16`，283/41文件，content fingerprints 为 `2f528b35…` / `5fc7408f…`。
@@ -26,7 +26,10 @@ record/verify 通过；canonical receipt 已替换为本候选真实生成收据
 已实际查看抽样画面、两封面与关键原分辨率画面；连续观看、全部动作时序观感、主观听审、实机手机与Hermes
 明确未验证。时长不作为验收条件。详见[当前验收记录](evidence/2026-10-03-v0.1.16-current-candidate.md)。
 
-用户已授权commit/tag/push和支持的npm workflow；尚未触发发布。发布后按明确授权只核对npm版本/
+用户已授权commit/tag/push和支持的npm workflow。第一次tag CI在开发用braces审计失败，未发布npm包；
+最小lint依赖override与lock修复后，npm ci、零漏洞审计、完整1093检查和两个候选tarball逐byte核对通过。
+原失败CI与提交保留，见[发布安全修复](evidence/2026-10-03-v0.1.16-npm-audit.md)；修复tag CI待执行。
+发布后按明确授权只核对npm版本/
 完整性、全新public-registry安装和doctor，不制作第二条视频，public native首用未验证。
 下方仅保存各历史试次当时的冻结状态与范围，不代表本候选当前事实。
 

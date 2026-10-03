@@ -20,7 +20,9 @@ type PackageManifest = Readonly<{
   sideEffects?: readonly string[];
   dependencies?: Readonly<Record<string, string>>;
   peerDependencies?: Readonly<Record<string, string>>;
-  overrides?: Readonly<Record<string, string>>;
+  overrides?: Readonly<
+    Record<string, string | Readonly<Record<string, string>>>
+  >;
   bundleDependencies?: unknown;
   bundledDependencies?: unknown;
 }>;
@@ -39,6 +41,9 @@ test("the private repository root owns exactly the two public npm packages", asy
   assert.equal(manifest.private, true);
   assert.equal(manifest.license, "Apache-2.0");
   assert.deepEqual(manifest.overrides, {
+    "@remotion/eslint-config-flat": {
+      "typescript-eslint": "8.48.0",
+    },
     "fast-uri": "3.1.8",
     "brace-expansion@1": "1.1.21",
     "brace-expansion@2": "2.1.7",

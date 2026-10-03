@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-10-03T02:40:33.820188+00:00",
+  "status": "corrected-and-reverified-before-publication",
+  "version": "0.1.16",
+  "failedWorkflow": {
+    "id": 37089444654,
+    "url": "https://github.com/AXMORF/axmorf-studio/actions/runs/37089444654",
+    "commit": "9aa0124d0285af18fce9d4107b5caa05eac6b945",
+    "tag": "v0.1.16",
+    "conclusion": "failure",
+    "failureStage": "npm audit --audit-level=low after repository/package gates",
+    "tests": {
+      "tests": 1093,
+      "passed": 1092,
+      "failed": 0,
+      "skipped": 1,
+      "skippedReason": "Darwin sandbox EPERM regression is macOS-only; Ubuntu runner"
+    },
+    "packagesPublished": false,
+    "packAndPublish": "skipped",
+    "privateRawLog": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-reviewed-firstuse-20261003-gzhb5fc5/engineering/publish-ci-failed.log",
+    "rawLogChecksum": "sha256:bf4fbc88163c8d7c107b271c23aa6893c84e027eceb55f99cbb7c8f5b5513714"
+  },
+  "cause": {
+    "advisory": "https://github.com/advisories/GHSA-vfj7-8cjw-p6xm",
+    "affected": "braces <=3.0.3",
+    "installed": "3.0.3",
+    "patchedVersion": null,
+    "severity": "high",
+    "chain": [
+      "@remotion/eslint-config-flat@4.0.489",
+      "typescript-eslint@8.21.0",
+      "@typescript-eslint/typescript-estree@8.21.0",
+      "fast-glob@3.3.3",
+      "micromatch@4.0.8",
+      "braces@3.0.3"
+    ]
+  },
+  "correction": {
+    "scope": "repository-only development lint dependencies and lockfile",
+    "override": {
+      "@remotion/eslint-config-flat": {
+        "typescript-eslint": "8.48.0"
+      }
+    },
+    "primarySource": "https://github.com/typescript-eslint/typescript-eslint/releases/tag/v8.48.0",
+    "removed": ["fast-glob", "micromatch", "braces"],
+    "remotionVersionUnchanged": "4.0.489",
+    "runtimeAndCreatorVersionsUnchanged": "0.1.16",
+    "publishedFilesAndCandidatesUnchanged": true,
+    "productionOrNativeAcceptanceRerun": false,
+    "validatorsAndAuditLevelChanged": false
+  },
+  "verification": {
+    "cleanInstall": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-reviewed-firstuse-20261003-gzhb5fc5/engineering/security-toolchain-gates/clean-install.json",
+    "auditsAfterInstallAndCleanInstall": 0,
+    "currentAudit": {
+      "exitCode": 0,
+      "vulnerabilities": 0,
+      "reference": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-reviewed-firstuse-20261003-gzhb5fc5/engineering/security-toolchain-verification/audit-current.stdout.log"
+    },
+    "fullCheck": {
+      "tests": 1093,
+      "pass": 1093,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0,
+      "exitCode": 0,
+      "reference": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-reviewed-firstuse-20261003-gzhb5fc5/engineering/security-toolchain-verification/result.json",
+      "stdoutChecksum": "sha256:bdc75c36b82479ad488afb277363852e3580f40b3af576923ab3af9a7280f54a"
+    },
+    "packageTypeBuildBoundaryAndFirstUseVerify": "passed",
+    "bothTarballsByteIdentical": true,
+    "runtimeChecksum": "sha256:d094a4c4b27fac156e4093497c791913d806c834abd48f95470884643e3d0fb5",
+    "creatorChecksum": "sha256:b1332478f277a63d0273a1ebe9dec1a66d8df22d7e6137fa98bee233cd414795",
+    "privateEvidence": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-reviewed-firstuse-20261003-gzhb5fc5/engineering/security-toolchain-verification/result.json",
+    "evidenceChecksum": "sha256:15c5393acec8056ee2c8ece598a8c385681411e122beeb45a648f43623bda0b7"
+  },
+  "externalHelper": {
+    "initialStatus": "failed",
+    "reason": "Scope match included nested ignore/brace-expansion/minimatch/semver inside lint package paths, falsely claiming version incoherence after actual successful install/audit.",
+    "initialEvidence": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-reviewed-firstuse-20261003-gzhb5fc5/engineering/security-toolchain-gates/result.json",
+    "correction": "Exact package-root match; actual eleven typescript-eslint versions independently npm-ls verified at8.48.0.",
+    "replayedProductProduction": false
+  },
+  "retry": {
+    "status": "ready; npm remains unpublished; corrected tag CI and installation smoke pending",
+    "failedCommitAndCIRecordsPreserved": true,
+    "postPublicationScope": "fresh public-registry install + generated doctor only; second business video waived"
+  }
+}
