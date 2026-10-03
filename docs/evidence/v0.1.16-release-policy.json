@@ -54,7 +54,7 @@
     "freshWorkspace": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-priorsource-firstuse-20261002-c6sf850i/workspace",
     "nativeAcceptance": "Historical initial native receipt passed for this exact cfe7 candidate; later scoped revision failed before dispatch. Archived receipt is not publication evidence for current candidate."
   },
-  "publication": "first tag CI blocked by development dependency safety audit before pack/publish; minimal lint fix fully checked and byte-identical candidates; corrected tag CI and public installation smoke pending",
+  "publication": "both0.1.16latest publicly available; exact certified candidate bytes, supported immutable tag CI and fresh public installation/doctor smoke passed",
   "publicationAuthorization": {
     "reply": "按照你的建议处理，然后发布最新npm。",
     "receivedOn": "2026-10-02",
@@ -86,7 +86,7 @@
     "approvedScope": "0.1.16 post-publication installation smoke only: both registry versions/integrities, matching package content, a fresh public-registry installation and generated doctor. Candidate actual native overlap/refill, scoped visual revision and reuse remain required.",
     "publicNativeFirstUseRequired": false,
     "publicNativeFirstUse": "explicitly waived; unverified",
-    "publicInstallationSmoke": "pending",
+    "publicInstallationSmoke": "passed; both0.1.16latest, exact candidates, fresh installation, six doctor checks and post-doctor identity/empty revalidation",
     "otherVersionGatesChanged": false
   },
   "localVerification": {
@@ -116,9 +116,18 @@
     "finalRecorderReview": "NO-BLOCKING; 112/112 focused; type/lint/format/diff0; independent positive/reject vectors and full original raw/UI authentication",
     "finalReleaseSourceReview": "NO-BLOCKING; template suspicion withdrawn after real narrated-only schema/caller verification and existing real global-theme revision1/1",
     "publishedTagCI": {
-      "firstRun": "https://github.com/AXMORF/axmorf-studio/actions/runs/37089444654",
-      "firstRunConclusion": "failure before npm publish",
-      "correctedRun": "pending"
+      "id": 37091588253,
+      "url": "https://github.com/AXMORF/axmorf-studio/actions/runs/37091588253",
+      "conclusion": "success",
+      "privateRawLog": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-reviewed-firstuse-20261003-gzhb5fc5/engineering/publication-final-ci.log",
+      "rawLogChecksum": "sha256:f71adabd2a60f5c9f60b6bc94472340506a03ef35c34fda546c1fa7cfc7df98a",
+      "tests": {
+        "total": 1093,
+        "passed": 1092,
+        "failed": 0,
+        "skipped": 1,
+        "reason": "Darwin-only sandbox EPERM regression; local macOS1093/1093"
+      }
     },
     "prepublicationRepack": {
       "path": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-reviewed-firstuse-20261003-gzhb5fc5/engineering/prepublication-repack/result.json",
@@ -186,6 +195,9 @@
     "rootThreadId": "01a0fee4-9c49-7c42-8b09-b7f38d3adbe2",
     "nativeReceiptChecksum": "sha256:98074563e7a9a5e3df81d5754ec34066a01dbc085e20b0488adfbe6a931e9678"
   },
-  "recordedAt": "2026-10-03T02:40:33.820188+00:00",
-  "npmAuditCorrection": "docs/evidence/2026-10-03-v0.1.16-npm-audit.json"
+  "recordedAt": "2026-10-03T03:14:34.030550+00:00",
+  "npmAuditCorrection": "docs/evidence/2026-10-03-v0.1.16-npm-audit.json",
+  "publishedSourceCommit": "3f913b2d7359da72df3e756007c5b890337ae603",
+  "publishedTag": "v0.1.16",
+  "publicInstallationRecord": "docs/evidence/2026-10-03-v0.1.16-public-installation-smoke.json"
 }

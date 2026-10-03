@@ -1,0 +1,145 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-10-03T03:14:34.030550+00:00",
+  "status": "both-npm-0.1.16-published-and-fresh-installation-smoke-passed",
+  "version": "0.1.16",
+  "sourceCommit": "3f913b2d7359da72df3e756007c5b890337ae603",
+  "tag": {
+    "name": "v0.1.16",
+    "object": "2f9c9e4beb202bd44a427e57aecbe8d486f655e2",
+    "failedTagArchive": "v0.1.16-before-audit-fix",
+    "failedTagObject": "398976dac0771c8b535e4b0f5e71940fb57aa4b1"
+  },
+  "workflow": {
+    "id": 37091588253,
+    "url": "https://github.com/AXMORF/axmorf-studio/actions/runs/37091588253",
+    "conclusion": "success",
+    "privateRawLog": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-reviewed-firstuse-20261003-gzhb5fc5/engineering/publication-final-ci.log",
+    "rawLogChecksum": "sha256:f71adabd2a60f5c9f60b6bc94472340506a03ef35c34fda546c1fa7cfc7df98a",
+    "tests": {
+      "total": 1093,
+      "passed": 1092,
+      "failed": 0,
+      "skipped": 1,
+      "reason": "Darwin-only sandbox EPERM regression; local macOS1093/1093"
+    }
+  },
+  "packages": {
+    "runtime": {
+      "name": "@axmorf/studio",
+      "version": "0.1.16",
+      "fingerprint": "sha256:2f528b35e9a6b8dc2960c48592db2924d93a83f21a5d7211b0208c7aa940723b",
+      "fileCount": 283
+    },
+    "creator": {
+      "name": "create-axmorf-studio",
+      "version": "0.1.16",
+      "fingerprint": "sha256:5fc7408f755a55501ee5bd0d2342e73ac8f889c88d6d6a4ab72037ea7c2a021b",
+      "fileCount": 41
+    }
+  },
+  "publicCreation": {
+    "method": "npm-create-public-registry",
+    "registry": "https://registry.npmjs.org",
+    "command": [
+      "npm",
+      "create",
+      "--yes",
+      "axmorf-studio@latest",
+      "workspace",
+      "--",
+      "--yes"
+    ],
+    "packages": {
+      "runtime": {
+        "name": "@axmorf/studio",
+        "version": "0.1.16",
+        "tarball": "https://registry.npmjs.org/@axmorf/studio/-/studio-0.1.16.tgz",
+        "integrity": "sha512-5tTfwTXUrAC57eoGGk/1bd2fkRmg5HiYyE+1Q4snvXocebxmY8otUaq+WiRyNzObAvnwBEKZq2WeEHixFvN+zA=="
+      },
+      "creator": {
+        "name": "create-axmorf-studio",
+        "version": "0.1.16",
+        "tarball": "https://registry.npmjs.org/create-axmorf-studio/-/create-axmorf-studio-0.1.16.tgz",
+        "integrity": "sha512-g9UVSwkE3BOyEpLQQfujXlhFYZPTTpxKchZoE2wtU8FjTSl3+EAs1/eQGx7rwufphPh2PptDH3NGLjPs6luXFQ=="
+      }
+    },
+    "runtimeTarballChecksum": "sha256:d094a4c4b27fac156e4093497c791913d806c834abd48f95470884643e3d0fb5",
+    "creatorTarballChecksum": "sha256:b1332478f277a63d0273a1ebe9dec1a66d8df22d7e6137fa98bee233cd414795",
+    "installLogChecksum": "sha256:c9b2405984cd966693b82ac476644fd9cd6e050a5fb4579b7f0a0b759aa137d2",
+    "workspaceLockChecksum": "sha256:06856fe326d8f769b63d019e83059d43f7df6a78981f5b947fd074e57452e996",
+    "creatorLockChecksum": "sha256:6acfedeb2915a8482db5a6f57308696df7a5646c88bd901e5cb50b87e9a11f0d"
+  },
+  "exactCandidateTarballBytesMatched": true,
+  "workspace": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-public-cli160-20261002-_2zfrcj6/workspace",
+  "scope": "0.1.16 explicit user waiver: fresh public registry install, exact versions/integrity/content, generated doctor; no second whole-video production",
+  "authorization": "按建议做安装烟测，省去第二次整片制作",
+  "doctor": {
+    "status": "workspace-ready",
+    "workspaceVersion": 1,
+    "checks": {
+      "layout": "pass",
+      "runtimeResources": "pass",
+      "remotionCli": "pass",
+      "browserRender": "pass",
+      "producerConfig": "pass",
+      "resourceCatalog": "pass"
+    }
+  },
+  "postDoctorIdentity": {
+    "status": "post-doctor-identity-and-empty-workspace-passed",
+    "recordedAt": "2026-10-03T03:11:03.773Z",
+    "runtimeFiles": 283,
+    "creatorFiles": 41,
+    "guides": 12,
+    "unchangedInstalledRuntimeAndGuides": true,
+    "publicTarballsAndLocksReverified": true,
+    "projectCount": 0,
+    "productionAttempts": 0,
+    "secondWholeVideoProduced": false,
+    "emptyWorkspaceCheck": "Unchanged public assertEmptyWorkspace; permits generated registry, scaffold .gitkeep and doctor .processes diagnostics."
+  },
+  "privateEvidence": {
+    "smoke": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-public-cli160-20261002-_2zfrcj6/public-installation-smoke.json",
+    "smokeChecksum": "sha256:a58f5f67b823788946830505649e0c41a2d35846cb588692fafdfdc85ef70c80",
+    "snapshot": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-public-cli160-20261002-_2zfrcj6/snapshot.json",
+    "snapshotChecksum": "sha256:4fcfa45743b94f5745e5c5e497dd4e949d75cf3d976451c8f035986d8483ee92"
+  },
+  "priorWorkflowResults": [
+    {
+      "id": 37089444654,
+      "url": "https://github.com/AXMORF/axmorf-studio/actions/runs/37089444654",
+      "result": "failed security audit before publish; fixed and reverified"
+    },
+    {
+      "id": 37090731285,
+      "url": "https://github.com/AXMORF/axmorf-studio/actions/runs/37090731285",
+      "result": "runtime publish accepted, but registry asynchronous processing exceeded five-minute visibility deadline; creator not submitted",
+      "runtimeLaterVisible": "2026-10-03T02:55:04Z",
+      "subsequentAction": "same immutable tag workflow validated existing exact runtime and submitted creator once",
+      "runtimeRepublished": false
+    }
+  ],
+  "publicNativeVideoFirstUse": "unverified-explicitly-waived",
+  "nativeHostReceiptMinted": false,
+  "secondWholeVideoProduced": false,
+  "initialPostDoctorDiagnostic": {
+    "status": "read-only helper assertion failed",
+    "reason": "Incorrect literal empty-directory assumption rejected legal scaffold .gitkeep and doctor .processes; initial failed tool output retained in parent transcript",
+    "correction": "Used unchanged exported assertEmptyWorkspace; reverified tarballs/locks/runtime/guides; no installation, package, validator, or doctor changes"
+  },
+  "originalCheckout": {
+    "head": "7352dc9f7d89f4c10589f1fdde99974e118da470",
+    "branch": "axmorf/npm-workspace-open-source",
+    "filesPreserved": 73
+  },
+  "mediaAndNativeCandidateEvidence": "docs/evidence/2026-10-03-v0.1.16-current-candidate.json",
+  "unverified": [
+    "continuous video playback",
+    "all action timing perception",
+    "subjective audio listening",
+    "physical phone",
+    "Hermes",
+    "public native video first use"
+  ]
+}

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "recordedAt": "2026-10-03T02:40:33.820188+00:00",
-  "status": "corrected-and-reverified-before-publication",
+  "status": "corrected-reverified-and-release-completed",
   "version": "0.1.16",
   "failedWorkflow": {
     "id": 37089444654,
@@ -54,7 +54,20 @@
   },
   "verification": {
     "cleanInstall": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-reviewed-firstuse-20261003-gzhb5fc5/engineering/security-toolchain-gates/clean-install.json",
-    "auditsAfterInstallAndCleanInstall": 0,
+    "auditsAfterInstallAndCleanInstall": [
+      {
+        "stage": "after-install",
+        "exitCode": 0,
+        "vulnerabilities": 0,
+        "reference": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-reviewed-firstuse-20261003-gzhb5fc5/engineering/security-toolchain-gates/audit-before-ci.stdout.log"
+      },
+      {
+        "stage": "after-npm-ci",
+        "exitCode": 0,
+        "vulnerabilities": 0,
+        "reference": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-reviewed-firstuse-20261003-gzhb5fc5/engineering/security-toolchain-gates/audit-after-ci.stdout.log"
+      }
+    ],
     "currentAudit": {
       "exitCode": 0,
       "vulnerabilities": 0,
@@ -85,8 +98,17 @@
     "replayedProductProduction": false
   },
   "retry": {
-    "status": "ready; npm remains unpublished; corrected tag CI and installation smoke pending",
+    "status": "completed; same immutable final tag CI passed; both public0.1.16latest and installation/doctor smoke passed",
+    "publicRecord": "docs/evidence/2026-10-03-v0.1.16-public-installation-smoke.json",
     "failedCommitAndCIRecordsPreserved": true,
-    "postPublicationScope": "fresh public-registry install + generated doctor only; second business video waived"
+    "asynchronousRegistryProcessing": {
+      "id": 37090731285,
+      "url": "https://github.com/AXMORF/axmorf-studio/actions/runs/37090731285",
+      "result": "runtime publish accepted, but registry asynchronous processing exceeded five-minute visibility deadline; creator not submitted",
+      "runtimeLaterVisible": "2026-10-03T02:55:04Z",
+      "subsequentAction": "same immutable tag workflow validated existing exact runtime and submitted creator once",
+      "runtimeRepublished": false
+    },
+    "visibilityDeadlineChanged": false
   }
 }

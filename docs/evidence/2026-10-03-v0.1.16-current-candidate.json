@@ -732,13 +732,23 @@
     "engineeringCapabilityProbe": "First engineering probe reported missing hard close API and was retained as failed. Fresh native interrupt plus four later admissions proves execution capacity release; hard session closure unavailable; no inline"
   },
   "publication": {
-    "status": "authorized-not-yet-published",
+    "status": "both0.1.16latest-published-and-authorized-installation-smoke-passed",
     "supportedWorkflow": ".github/workflows/npm-publish.yml",
     "postPublicationScope": "fresh-public-registry-installation-and-doctor-only",
     "postPublicationAuthorization": "按建议做安装烟测，省去第二次整片制作",
     "publicNativeVideoFirstUse": "unverified-explicitly-waived",
-    "publicInstallationSmoke": "pending",
-    "hermes": "unverified-explicitly-waived"
+    "publicInstallationSmoke": "passed; six doctor checks, exact packages/guides/locks and zero Projects after doctor",
+    "hermes": "unverified-explicitly-waived",
+    "sourceCommit": "3f913b2d7359da72df3e756007c5b890337ae603",
+    "workflow": "https://github.com/AXMORF/axmorf-studio/actions/runs/37091588253"
   },
-  "npmPublicationSecurityCorrection": "docs/evidence/2026-10-03-v0.1.16-npm-audit.json"
+  "npmPublicationSecurityCorrection": "docs/evidence/2026-10-03-v0.1.16-npm-audit.json",
+  "npmPublicationRecord": {
+    "smoke": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-public-cli160-20261002-_2zfrcj6/public-installation-smoke.json",
+    "smokeChecksum": "sha256:a58f5f67b823788946830505649e0c41a2d35846cb588692fafdfdc85ef70c80",
+    "snapshot": "/Users/ai/AgentWorkspace/acceptance/axmorf-0.1.16-public-cli160-20261002-_2zfrcj6/snapshot.json",
+    "snapshotChecksum": "sha256:4fcfa45743b94f5745e5c5e497dd4e949d75cf3d976451c8f035986d8483ee92"
+  },
+  "publicInstallationRecord": "docs/evidence/2026-10-03-v0.1.16-public-installation-smoke.json",
+  "npmPublicationStatus": "passed-publication-and-authorized-installation-smoke"
 }

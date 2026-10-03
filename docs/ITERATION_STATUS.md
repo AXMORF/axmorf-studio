@@ -1,6 +1,6 @@
 # Iteration Status
 
-## 0.1.16 当前候选发布闭环（2026-10-03，首用通过，发布审计修复待重发）
+## 0.1.16 当前发布闭环（2026-10-03，两包发布与公共安装烟测通过）
 
 当前 release worktree 基于 `7352dc9` 与原工作区73项已有修改，原分支、提交与文件 bytes 保持不变。
 当前 runtime/creator 均为 `0.1.16`，283/41文件，content fingerprints 为 `2f528b35…` / `5fc7408f…`。
@@ -26,11 +26,13 @@ record/verify 通过；canonical receipt 已替换为本候选真实生成收据
 已实际查看抽样画面、两封面与关键原分辨率画面；连续观看、全部动作时序观感、主观听审、实机手机与Hermes
 明确未验证。时长不作为验收条件。详见[当前验收记录](evidence/2026-10-03-v0.1.16-current-candidate.md)。
 
-用户已授权commit/tag/push和支持的npm workflow。第一次tag CI在开发用braces审计失败，未发布npm包；
-最小lint依赖override与lock修复后，npm ci、零漏洞审计、完整1093检查和两个候选tarball逐byte核对通过。
-原失败CI与提交保留，见[发布安全修复](evidence/2026-10-03-v0.1.16-npm-audit.md)；修复tag CI待执行。
-发布后按明确授权只核对npm版本/
-完整性、全新public-registry安装和doctor，不制作第二条视频，public native首用未验证。
+两包0.1.16已公开为latest，发布源3f913b2/v0.1.16，最终支持CI通过；全新公共registry安装、
+283/41包文件及12生成指南、下载/锁/候选tarball逐byte核对、六项doctor和后续身份/空Workspace复验通过。
+第一次CI安全审计失败经最小开发依赖修复后复验；第二次runtime上传已被npm接受但异步处理超过五分钟，
+原失败保留。实际公开后沿同一不可变标签流程复验runtime、首次提交creator，未重复上传runtime。
+初始尚未发布的失败标签原对象另存v0.1.16-before-audit-fix；开始发布后标签始终保持3f913b2。
+按明确授权未进行第二次整片制作，public native首用未验证。详见[公共发布记录](evidence/2026-10-03-v0.1.16-public-installation-smoke.md)
+及[安全修复](evidence/2026-10-03-v0.1.16-npm-audit.md)。
 下方仅保存各历史试次当时的冻结状态与范围，不代表本候选当前事实。
 
 ## 0.1.16 历史试次（截至 compact-dispatch 修复前，均不认证当前候选）
