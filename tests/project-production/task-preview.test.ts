@@ -318,9 +318,11 @@ export default Renderer;\n`;
 const renderRunner = ({
   beforeInspection,
   incorrectFrameCount = false,
+  decodeFailure = false,
 }: {
   beforeInspection?: () => Promise<void>;
   incorrectFrameCount?: boolean;
+  decodeFailure?: boolean;
 } = {}) => {
   const calls: { args: readonly string[] }[] = [];
   const runProcess: ProcessRunner = async (_command, args) => {
@@ -332,9 +334,16 @@ const renderRunner = ({
       );
       await beforeInspection?.();
     }
+    // The bundled FFmpeg null muxer defaults to wrapped_avframe, whose encoder
+    // is absent. Model that real boundary instead of accepting any decode args.
+    const decoderUnavailable =
+      args.includes("ffmpeg") &&
+      (!args.includes("rawvideo") || !args.includes("pcm_s16le"));
+    const failedDecode =
+      args.includes("ffmpeg") && (decodeFailure || decoderUnavailable);
     return {
-      status: 0,
-      stderr: "",
+      status: failedDecode ? 1 : 0,
+      stderr: failedDecode ? "EOF decode failed" : "",
       stdout: args.includes("ffprobe")
         ? JSON.stringify({
             streams: [
@@ -500,6 +509,34 @@ test("bound preview finalizes and checks first, snapshots exact outputs, retains
   );
   assert.equal(manifest.sourceFingerprint, output.sourceFingerprint);
   assert.equal(manifest.attemptId, current.attempt.attemptId);
+  await assert.rejects(
+    readdir(join(current.rootDir, ".producer-artifacts")),
+    /ENOENT/u,
+  );
+});
+
+test("preview decode failure rejects success and removes diagnostics without changing outputs or committing artifacts", async (context) => {
+  const current = await fixture();
+  context.after(() => rm(current.rootDir, { recursive: true, force: true }));
+  const before = await readSceneTaskPreviewSnapshot(current);
+  await assert.rejects(
+    preview(current, renderRunner({ decodeFailure: true })),
+    /did not decode completely to EOF/u,
+  );
+  const after = await readSceneTaskPreviewSnapshot(current);
+  assert.equal(after.sourceFingerprint, before.sourceFingerprint);
+  assert.deepEqual(
+    await readdir(
+      join(
+        current.rootDir,
+        "out",
+        current.task.storyId,
+        "task-preview",
+        current.task.taskRevision,
+      ),
+    ),
+    [],
+  );
   await assert.rejects(
     readdir(join(current.rootDir, ".producer-artifacts")),
     /ENOENT/u,

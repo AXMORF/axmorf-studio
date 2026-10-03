@@ -643,7 +643,22 @@ export const renderSceneTaskPreview = async ({
     const decodeCommand = await resolveMediaToolCommand({
       rootDir: runtimeRootDir,
       tool: "ffmpeg",
-      args: ["-v", "error", "-xerror", "-i", videoPath, "-f", "null", "-"],
+      // The bundled FFmpeg lacks the null muxer's default wrapped_avframe
+      // encoder. Decode both streams with its supported raw codecs, as delivery does.
+      args: [
+        "-v",
+        "error",
+        "-xerror",
+        "-i",
+        videoPath,
+        "-c:v",
+        "rawvideo",
+        "-c:a",
+        "pcm_s16le",
+        "-f",
+        "null",
+        "-",
+      ],
     });
     const decoded = await runProcess(
       decodeCommand.command,
