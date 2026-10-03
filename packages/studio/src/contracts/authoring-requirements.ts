@@ -3,7 +3,10 @@ import { z } from "zod";
 import { computeRenderSpecFingerprint } from "./auto-check";
 import { VideoBriefSchema } from "./brief";
 import { createFingerprint, serializeCanonicalJson } from "./fingerprint";
-import { computeStoryFingerprint } from "./generation-input";
+import {
+  computeNoNarrationFingerprint,
+  computeStoryFingerprint,
+} from "./generation-input";
 import { NarrationSpecSchema } from "./narration";
 import { ProjectSoundPlanSchema } from "./project-sound";
 import {
@@ -19,7 +22,7 @@ import {
   validateStoryCaptionReadability,
 } from "./scene-readability";
 import { RenderSpecSchema } from "./render";
-import { StorySpecSchema } from "./story";
+import { isVisualStory, StorySpecSchema } from "./story";
 
 export const AUTHORING_REQUIREMENTS_CONTRACT_VERSION =
   "production-requirements-current-v4" as const;
@@ -84,7 +87,7 @@ const ProductionNormalizedSummarySchema = z
     fps: PositiveIntegerSchema.max(120),
     width: PositiveIntegerSchema,
     height: PositiveIntegerSchema,
-    voiceProfileId: VoiceProfileIdSchema,
+    voiceProfileId: VoiceProfileIdSchema.nullable(),
   })
   .strict()
   .readonly();
@@ -232,6 +235,20 @@ const addFreezeInputIssues = (
   freeze: AuthoringRequirementsInput,
   context: z.RefinementCtx,
 ) => {
+  if (
+    (freeze.normalizedSummary.voiceProfileId === null) !==
+      (freeze.sourceBindings.narrationSpec.fingerprint ===
+        computeNoNarrationFingerprint()) ||
+    (freeze.normalizedSummary.voiceProfileId === null) !==
+      (freeze.readabilityPolicy.captionMode === "none")
+  ) {
+    context.addIssue({
+      code: "custom",
+      message:
+        "Narration identity and caption reservation must match the authoring mode.",
+      path: ["normalizedSummary", "voiceProfileId"],
+    });
+  }
   const expectedPaths = {
     videoBrief: `src/projects/${freeze.storyId}/brief.json`,
     storySpec: `src/projects/${freeze.storyId}/story.json`,
@@ -343,12 +360,20 @@ const AuthoringRequirementsSourceSchema = z
   .object({
     brief: VideoBriefSchema,
     story: StorySpecSchema,
-    narration: NarrationSpecSchema,
+    narration: NarrationSpecSchema.nullable(),
     render: RenderSpecSchema,
     projectSound: ProjectSoundPlanSchema,
   })
   .strict()
   .superRefine((source, context) => {
+    if (isVisualStory(source.story) !== (source.narration === null)) {
+      context.addIssue({
+        code: "custom",
+        message:
+          "Visual Stories require null narration; narrated Stories require a NarrationSpec.",
+        path: ["narration"],
+      });
+    }
     if (
       source.brief.storyId !== source.story.storyId ||
       source.projectSound.storyId !== source.story.storyId
@@ -456,7 +481,10 @@ const buildAuthoringRequirementsBase = ({
       narrationSpec: {
         repositoryPath: `src/projects/${storyId}/narration.json`,
         checksum: sourceChecksums.narrationSpec,
-        fingerprint: computeNarrationSpecFingerprint(source.narration),
+        fingerprint:
+          source.narration === null
+            ? computeNoNarrationFingerprint()
+            : computeNarrationSpecFingerprint(source.narration),
       },
       renderSpec: {
         repositoryPath: `src/projects/${storyId}/render.json`,
@@ -474,7 +502,7 @@ const buildAuthoringRequirementsBase = ({
       fps: source.render.fps,
       width: source.render.width,
       height: source.render.height,
-      voiceProfileId: source.narration.voiceProfileId,
+      voiceProfileId: source.narration?.voiceProfileId ?? null,
     },
     enhancementSelection: selectedEnhancements,
     resourcePolicy,
@@ -490,12 +518,13 @@ export const buildAuthoringRequirements = (
   input: AuthoringRequirementsBuildInput,
 ) => {
   const base = buildAuthoringRequirementsBase(input);
+  const source = assertCurrentSource(input.source);
   const readabilityPolicy = resolveSceneReadabilityPolicy({
     width: base.normalizedSummary.width,
     height: base.normalizedSummary.height,
     edgeInsetPx: input.readability.edgeInsetPx,
+    ...(isVisualStory(source.story) ? { captionMode: "none" as const } : {}),
   });
-  const source = assertCurrentSource(input.source);
   validateStoryCaptionReadability({
     story: source.story,
     policy: readabilityPolicy,

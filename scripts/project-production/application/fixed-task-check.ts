@@ -18,7 +18,10 @@ import {
   StoryBeatSchema,
   StorySpecSchema,
   computeGenerationInputFingerprint,
+  computeNoNarrationFingerprint,
   createFingerprint,
+  generateVisualSemanticTiming,
+  isVisualStory,
   serializeCanonicalJson,
   type ProducerTaskSpec,
 } from "@axmorf/studio/contracts";
@@ -117,6 +120,26 @@ const TimingContextSchema = z
   })
   .strict();
 
+const VisualTimingContextSchema = z
+  .object({
+    story: StorySpecSchema,
+    render: RenderSpecSchema,
+    timingPolicy: z.literal("authored-frames-v1"),
+  })
+  .strict();
+
+const visualTimingOutputs = [
+  "project/generated/mastered-narration.generated.json",
+  "project/generated/sealed-narration.generated.json",
+  "project/generated/semantic-timing.generated.json",
+] as const;
+const visualTimingInputIds = [
+  "narration",
+  "read:inputs/context.json",
+  "render",
+  "story",
+] as const;
+
 const CompositionContextSchema = z
   .object({
     storyId: z.string().min(1),
@@ -177,17 +200,32 @@ const assertTaskShape = (task: ProducerTaskSpec, kind: FixedTaskKind) => {
   if (task.taskKind !== kind || task.semanticId !== null) {
     throw new Error("Fixed task identity is cross-bound.");
   }
-  if (task.validatorPolicyVersion !== policies[kind]) {
+  const visualTiming =
+    kind === "semantic-timing" &&
+    task.validatorPolicyVersion === "visual-semantic-timing-validator-v1";
+  if (!visualTiming && task.validatorPolicyVersion !== policies[kind]) {
     throw new Error("Fixed task validator policy is incompatible.");
   }
   if (!same(task.declaredReadSet, ["inputs/context.json"])) {
     throw new Error("Fixed task declared read set is invalid.");
   }
-  if (!same(task.declaredOutputSet, [...outputs[kind]].sort())) {
+  if (
+    !same(
+      task.declaredOutputSet,
+      [...(visualTiming ? visualTimingOutputs : outputs[kind])].sort(),
+    )
+  ) {
     throw new Error("Fixed task declared output set is invalid.");
   }
   const actualInputIds = task.inputFingerprints.map(({ id }) => id);
-  if (!same(actualInputIds, [...requiredInputIds[kind]].sort())) {
+  if (
+    !same(
+      actualInputIds,
+      [
+        ...(visualTiming ? visualTimingInputIds : requiredInputIds[kind]),
+      ].sort(),
+    )
+  ) {
     throw new Error("Fixed task input bindings are incomplete.");
   }
 };
@@ -242,7 +280,7 @@ const checkSeal = async (workspace: string, task: ProducerTaskSpec) => {
     throw new Error("Narration seal output is cross-bound.");
   }
   const expectedSegments = context.story.beats.flatMap((beat) => {
-    if (beat.kind === "silent-scene") return [];
+    if (beat.kind !== "narrated-scene") return [];
     const pauses = new Map(
       beat.explicitPauses.map((pause) => [pause.afterChunkId, pause]),
     );
@@ -480,6 +518,59 @@ export const checkSceneTemplateTask = async (input: {
 };
 
 const checkTiming = async (workspace: string, task: ProducerTaskSpec) => {
+  if (task.validatorPolicyVersion === "visual-semantic-timing-validator-v1") {
+    assertDependencyCount(task, 0);
+    const context = await assertCanonicalContext(
+      join(workspace, "inputs/context.json"),
+      VisualTimingContextSchema,
+    );
+    if (
+      context.story.storyId !== task.storyId ||
+      !isVisualStory(context.story)
+    ) {
+      throw new Error("Visual timing context is cross-bound.");
+    }
+    const fingerprints = new Map(
+      task.inputFingerprints.map(({ id, fingerprint }) => [id, fingerprint]),
+    );
+    if (
+      fingerprints.get("narration") !== computeNoNarrationFingerprint() ||
+      fingerprints.get("story") !==
+        createFingerprint({
+          namespace: "revision-story",
+          version: 1,
+          value: context.story,
+        }) ||
+      fingerprints.get("render") !==
+        createFingerprint({
+          namespace: "revision-render",
+          version: 1,
+          value: context.render,
+        })
+    ) {
+      throw new Error("Visual timing task inputs are cross-bound.");
+    }
+    await parseJson(
+      join(workspace, "project/generated/sealed-narration.generated.json"),
+      z.null(),
+    );
+    await parseJson(
+      join(workspace, "project/generated/mastered-narration.generated.json"),
+      z.null(),
+    );
+    const timing = await parseJson(
+      join(workspace, "project/generated/semantic-timing.generated.json"),
+      SemanticTimingSchema,
+    );
+    const expected = generateVisualSemanticTiming({
+      story: context.story,
+      render: context.render,
+    });
+    if (!same(timing, expected)) {
+      throw new Error("Visual timing is stale against authored frames.");
+    }
+    return;
+  }
   assertDependencyCount(task, 1);
   const context = await assertCanonicalContext(
     join(workspace, "inputs/context.json"),

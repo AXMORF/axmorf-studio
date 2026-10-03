@@ -1,5 +1,14 @@
 # Iteration Status
 
+## 视觉叙事开发分支（2026-10-03，未发布、样片验收进行中）
+
+在已发布 0.1.16 的当前源码上开发 `visual-scene` 无旁白正文：authored frames 时序、明确 null 旁白、
+零 provider preparation、same-mode 隔离 revision 与既有四文件验证。新增绑定 Scene 的提交前低成本
+真实预览，以及可选 action timing helper 和 Renderer continuity props。新 task contract v2 使 Agent
+artifacts 一次失效，不改写 current Delivery；旧 narrated Story/create/PCM 指纹回归保持一致。
+这不认证审美达标、全片连续观看或听审。检查和两个主题正式样片结果待本轮证据记录后更新。
+见[视觉叙事工作流](guides/VISUAL_NARRATIVE_QUALITY.md)。当前 npm latest 仍是下述已发布 0.1.16。
+
 ## 0.1.16 当前发布闭环（2026-10-03，两包发布与公共安装烟测通过）
 
 当前 release worktree 基于 `7352dc9` 与原工作区73项已有修改，原分支、提交与文件 bytes 保持不变。

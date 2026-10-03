@@ -18,10 +18,14 @@ export const PUBLISHING_INTENT_VERSION = "publishing-intent-v2" as const;
 
 const PublishingTextSchema = z.string().trim().min(1);
 
-export const PublishingTopicSchema = z.string().min(1).max(48).refine(
-  (value) => !/[\s\p{White_Space}]/u.test(value),
-  "Publishing topics must not contain whitespace.",
-);
+export const PublishingTopicSchema = z
+  .string()
+  .min(1)
+  .max(48)
+  .refine(
+    (value) => !/[\s\p{White_Space}]/u.test(value),
+    "Publishing topics must not contain whitespace.",
+  );
 
 export const PublishingChapterNameSchema = PublishingTextSchema.max(64)
   .refine(
@@ -202,18 +206,17 @@ export const resolveCurrentPublishingIntent = ({
   ) {
     throw new Error("PublishingIntent is stale against the current StorySpec.");
   }
-  const narratedBeats = story.beats.filter(
-    (beat) => beat.kind === "narrated-scene",
+  const contentBeats = story.beats.filter(
+    (beat) => beat.kind !== "silent-scene",
   );
   if (
-    intent.chapters.length !== narratedBeats.length ||
+    intent.chapters.length !== contentBeats.length ||
     intent.chapters.some(
-      ({ meaningId }, index) =>
-        meaningId !== narratedBeats[index]?.meaningId,
+      ({ meaningId }, index) => meaningId !== contentBeats[index]?.meaningId,
     )
   ) {
     throw new Error(
-      "PublishingIntent chapters must cover narrated StoryBeats in Story order.",
+      "PublishingIntent chapters must cover narrated or visual StoryBeats in Story order.",
     );
   }
   return intent;

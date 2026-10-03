@@ -74,6 +74,7 @@ export const renderProjectVideo = async ({
       outputPath,
       "--codec=h264",
       "--audio-codec=aac",
+      "--enforce-audio-track",
       "--pixel-format=yuv420p",
       "--log=error",
       `--public-dir=${publicDir}`,

@@ -5,16 +5,31 @@ import { NarrativeProjectSourceSchema } from "./project";
 import { SealedNarrationManifestSchema } from "./sealed-narration";
 import {
   generateSemanticTiming,
+  generateVisualSemanticTiming,
   SemanticTimingSchema,
 } from "./semantic-timing";
+import { isVisualStory } from "./story";
 
 export const NarrativeArtifactBundleSchema = z
   .object({
     projectSource: NarrativeProjectSourceSchema,
-    sealedNarration: SealedNarrationManifestSchema,
+    sealedNarration: SealedNarrationManifestSchema.nullable(),
     semanticTiming: SemanticTimingSchema,
   })
   .strict()
+  .superRefine((bundle, context) => {
+    if (
+      isVisualStory(bundle.projectSource.story) !==
+      (bundle.sealedNarration === null)
+    ) {
+      context.addIssue({
+        code: "custom",
+        message:
+          "Visual Stories require no sealed PCM; narrated Stories require sealed narration.",
+        path: ["sealedNarration"],
+      });
+    }
+  })
   .readonly();
 
 export type NarrativeArtifactBundle = z.infer<
@@ -25,12 +40,21 @@ export const validateNarrativeArtifactBundle = (
   input: unknown,
 ): NarrativeArtifactBundle => {
   const bundle = NarrativeArtifactBundleSchema.parse(input);
-  const regenerated = generateSemanticTiming({
-    story: bundle.projectSource.story,
-    narration: bundle.projectSource.narration,
-    render: bundle.projectSource.render,
-    sealedNarration: bundle.sealedNarration,
-  });
+  const { story, narration, render } = bundle.projectSource;
+  const regenerated = isVisualStory(story)
+    ? generateVisualSemanticTiming({ story, render })
+    : (() => {
+        if (narration === null || bundle.sealedNarration === null)
+          throw new Error(
+            "Narrated Stories require a NarrationSpec and sealed narration.",
+          );
+        return generateSemanticTiming({
+          story,
+          narration,
+          render,
+          sealedNarration: bundle.sealedNarration,
+        });
+      })();
   if (
     serializeCanonicalJson(regenerated) !==
     serializeCanonicalJson(bundle.semanticTiming)

@@ -14,6 +14,7 @@ import {
   StoryIdSchema,
   computeGenerationInputFingerprint,
   flattenTtsChunks,
+  isVisualStory,
   serializeCanonicalJson,
   validateNarrativeArtifactBundle,
 } from "@axmorf/studio/contracts";
@@ -292,7 +293,7 @@ export const inspectProductionSourceReadiness = async ({
     await Promise.all([
       readJsonContract(
         join(projectRoot, TIMING_FILES[0]),
-        SealedNarrationManifestSchema,
+        SealedNarrationManifestSchema.nullable(),
         "SealedNarration",
       ),
       readJsonContract(
@@ -302,52 +303,76 @@ export const inspectProductionSourceReadiness = async ({
       ),
       readJsonContract(
         join(projectRoot, TIMING_FILES[2]),
-        MasteredNarrationManifestSchema,
+        MasteredNarrationManifestSchema.nullable(),
         "MasteredNarration",
       ),
     ]);
-  const receiptPath = join(projectRoot, NARRATION_PREPARATION_RECEIPT);
-  if (!(await isRegularFile(receiptPath))) {
-    return {
-      sourceState: "configured-authoring",
-      durationBudget,
-      missingAuthoringInputs: [],
-    };
-  }
-  const preparationReceipt = await readJsonContract(
-    receiptPath,
-    NarrationPreparationReceiptSchema,
-    "NarrationPreparationReceipt",
-  );
-  try {
-    validateNarrativeArtifactBundle({
-      projectSource,
-      sealedNarration,
-      semanticTiming,
-    });
-    if (
-      masteredNarration.sealedNarrationFingerprint !==
-        sealedNarration.sealedNarrationFingerprint ||
-      preparationReceipt.storyId !== projectId ||
-      preparationReceipt.generationInputFingerprint !==
-        sealedNarration.generationInputFingerprint ||
-      preparationReceipt.sealedNarrationFingerprint !==
-        sealedNarration.sealedNarrationFingerprint ||
-      serializeCanonicalJson(preparationReceipt.masteringPolicy) !==
-        serializeCanonicalJson(masteredNarration.masteringPolicy)
-    ) {
+  if (isVisualStory(projectSource.story)) {
+    if (sealedNarration !== null || masteredNarration !== null) {
+      throw new Error("Visual production cannot contain narration artifacts.");
+    }
+    try {
+      validateNarrativeArtifactBundle({
+        projectSource,
+        sealedNarration: null,
+        semanticTiming,
+      });
+    } catch {
       return {
         sourceState: "configured-authoring",
         durationBudget,
         missingAuthoringInputs: [],
       };
     }
-  } catch {
-    return {
-      sourceState: "configured-authoring",
-      durationBudget,
-      missingAuthoringInputs: [],
-    };
+  } else {
+    if (sealedNarration === null || masteredNarration === null) {
+      throw new Error(
+        "Narrated production requires sealed narration artifacts.",
+      );
+    }
+    const receiptPath = join(projectRoot, NARRATION_PREPARATION_RECEIPT);
+    if (!(await isRegularFile(receiptPath))) {
+      return {
+        sourceState: "configured-authoring",
+        durationBudget,
+        missingAuthoringInputs: [],
+      };
+    }
+    const preparationReceipt = await readJsonContract(
+      receiptPath,
+      NarrationPreparationReceiptSchema,
+      "NarrationPreparationReceipt",
+    );
+    try {
+      validateNarrativeArtifactBundle({
+        projectSource,
+        sealedNarration,
+        semanticTiming,
+      });
+      if (
+        masteredNarration.sealedNarrationFingerprint !==
+          sealedNarration.sealedNarrationFingerprint ||
+        preparationReceipt.storyId !== projectId ||
+        preparationReceipt.generationInputFingerprint !==
+          sealedNarration.generationInputFingerprint ||
+        preparationReceipt.sealedNarrationFingerprint !==
+          sealedNarration.sealedNarrationFingerprint ||
+        serializeCanonicalJson(preparationReceipt.masteringPolicy) !==
+          serializeCanonicalJson(masteredNarration.masteringPolicy)
+      ) {
+        return {
+          sourceState: "configured-authoring",
+          durationBudget,
+          missingAuthoringInputs: [],
+        };
+      }
+    } catch {
+      return {
+        sourceState: "configured-authoring",
+        durationBudget,
+        missingAuthoringInputs: [],
+      };
+    }
   }
   const measuredDurationBudget = buildProjectDurationBudget({
     ...projectSource,
@@ -390,9 +415,11 @@ const createExpectedNarration = ({
   readonly story: Awaited<
     ReturnType<typeof loadNarrationProjectFiles>
   >["projectSource"]["story"];
-  readonly narration: Awaited<
-    ReturnType<typeof loadNarrationProjectFiles>
-  >["projectSource"]["narration"];
+  readonly narration: NonNullable<
+    Awaited<
+      ReturnType<typeof loadNarrationProjectFiles>
+    >["projectSource"]["narration"]
+  >;
   readonly providerAttemptFingerprint: string;
 }): NarrationGenerationExpected => {
   const generationInputFingerprint = computeGenerationInputFingerprint(
@@ -448,6 +475,16 @@ export const inspectNarrationCache = async ({
     rootDir: scope.isolatedRoot,
     projectId,
   });
+  if (isVisualStory(projectSource.story)) {
+    return {
+      providerRequests: 0,
+      providerCacheHits: 0,
+      narrationReady: true,
+    };
+  }
+  if (projectSource.narration === null) {
+    throw new Error("Narrated production requires a NarrationSpec.");
+  }
   const inspection = await resolveProducerNarrationInspection({
     rootDir: scope.shared.runtimeRoot,
     env,

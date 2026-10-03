@@ -33,6 +33,7 @@ import {
   computeProjectRevisionAuthoringFingerprint,
   computeProjectRevisionCandidateId,
   computeVisualStyleFingerprint,
+  isVisualStory,
   serializeCanonicalJson,
   validateStoryResourcePool,
   type DeliveryPublish,
@@ -226,8 +227,8 @@ const readProjectJson = async ({
     ),
   ) as unknown;
 
-const narratedBeats = (story: ReturnType<typeof StorySpecSchema.parse>) =>
-  story.beats.filter((beat) => beat.kind === "narrated-scene");
+const contentBeats = (story: ReturnType<typeof StorySpecSchema.parse>) =>
+  story.beats.filter((beat) => beat.kind !== "silent-scene");
 
 const editableVisualStyle = (
   visualStyle: ReturnType<typeof VisualStyleSpecSchema.parse>,
@@ -313,8 +314,8 @@ const readEditableProject = async ({
   ) {
     throw new Error("Project revision pending Scene authoring is stale.");
   }
-  const narratedMeaningIds = new Set(
-    narratedBeats(story).map(({ meaningId }) => meaningId),
+  const contentMeaningIds = new Set(
+    contentBeats(story).map(({ meaningId }) => meaningId),
   );
   const editable = ProjectRevisionEditableAuthoringSchema.parse({
     brief,
@@ -322,11 +323,11 @@ const readEditableProject = async ({
       schemaVersion: story.schemaVersion,
       storyId,
       title: story.title,
-      beats: narratedBeats(story),
+      beats: contentBeats(story),
     },
     visualStyle: editableVisualStyle(visualStyle),
     scenes: pending.scenes.filter(({ meaningId }) =>
-      narratedMeaningIds.has(meaningId),
+      contentMeaningIds.has(meaningId),
     ),
     globalVisual: { visualIntent: globalVisual.visualIntent },
     publishing: editablePublishing(publishing),
@@ -413,6 +414,9 @@ const readVerifiedRevisionState = async ({
     constraints: {
       sameProject: true,
       preserveNarratedMeaningIdsAndOrder: true,
+      ...(isVisualStory(project.story)
+        ? { preserveContentMeaningIdsAndOrder: true }
+        : {}),
       preserveBoundaryScenes: true,
       currentDeliveryRemainsUntilPromotion: true,
     },
@@ -451,7 +455,7 @@ const assertMeaningOrder = ({
     expected.some((meaningId, index) => meaningId !== actual[index])
   ) {
     throw new Error(
-      `${label} must preserve narrated meaning IDs and order exactly.`,
+      `${label} must preserve content meaning IDs and order exactly.`,
     );
   }
 };
@@ -509,6 +513,13 @@ const inspectProjectRevisionAuthoring = async ({
     }
   }
   if (input.patch.story !== undefined) {
+    if (
+      isVisualStory(input.patch.story) !== isVisualStory(state.project.story)
+    ) {
+      throw new Error(
+        "Project revision must preserve its visual or narrated content mode; create a new Project to change modes.",
+      );
+    }
     assertMeaningOrder({
       expected: expectedMeaningIds,
       actual: input.patch.story.beats.map(({ meaningId }) => meaningId),
@@ -643,7 +654,7 @@ const applyProjectRevisionPatch = async ({
       storyId,
       relativePath: "narration.json",
       label: "Revision NarrationSpec",
-    }).then(NarrationSpecSchema.parse),
+    }).then((value) => NarrationSpecSchema.nullable().parse(value)),
     readProjectJson({
       rootDir,
       storyId,
@@ -753,7 +764,7 @@ const applyProjectRevisionPatch = async ({
     publishing: editablePublishing(publishing),
   });
   // The staging tree is copied from the verified immutable base. Capture it
-  // before replacing authoring or removing a Scene whose narration changed.
+  // before replacing authoring or removing a Scene whose content timing changed.
   const priorSources = await freezeRevisionScenePriorSources({
     rootDir,
     runtimeRootDir,
@@ -812,7 +823,7 @@ const applyProjectRevisionPatch = async ({
       `src/projects/${storyId}/generated/scene-coverage.generated.json`,
       `src/projects/${storyId}/production-scene-runtime.generated.ts`,
       `src/projects/${storyId}/Composition.tsx`,
-      ...narratedBeats(project.story).map(
+      ...contentBeats(project.story).map(
         ({ meaningId }) => `src/projects/${storyId}/scenes/${meaningId}`,
       ),
     ]) {

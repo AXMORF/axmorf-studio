@@ -13,15 +13,15 @@ export const planSceneReview = (
   timing: SemanticTiming,
   delivery: PublishedTimeline,
 ) => {
-  const narrated = timing.storyBeats.filter(
-    (beat) => beat.kind === "narrated-scene",
+  const content = timing.storyBeats.filter(
+    (beat) => beat.kind !== "silent-scene",
   );
   if (
     timing.storyId !== delivery.storyId ||
     timing.fps !== delivery.fps ||
     timing.durationInFrames !== delivery.frameCount ||
-    narrated.length !== delivery.publishing.chapters.length ||
-    narrated.some(
+    content.length !== delivery.publishing.chapters.length ||
+    content.some(
       (beat, index) =>
         beat.meaningId !== delivery.publishing.chapters[index]?.meaningId ||
         beat.startFrame !== delivery.publishing.chapters[index]?.startFrame,

@@ -136,6 +136,7 @@
     "project:task:describe": "node --import tsx scripts/project-production/cli.ts task-describe",
     "project:task:finalize": "node --import tsx scripts/project-production/cli.ts task-finalize",
     "project:task:check": "node --import tsx scripts/project-production/cli.ts task-check",
+    "project:task:preview": "node --import tsx scripts/project-production/cli.ts task-preview",
     "project:task:commit": "node --import tsx scripts/project-production/cli.ts task-commit",
     "project:task:fail": "node --import tsx scripts/project-production/cli.ts task-fail",
     "project:task:file-read": "node --import tsx scripts/project-production/cli.ts task-file-read",

@@ -43,6 +43,8 @@ export const npmScriptProductionCommandFormatter: ProductionCommandFormatter = {
     `npm run project:task:finalize -- ${boundArguments(input)}`,
   checkTask: (input) =>
     `npm run project:task:check -- ${boundArguments(input)}`,
+  previewTask: ({ transport, ...input }) =>
+    `npm run project:task:preview -- ${boundArguments(input)} --transport ${transport}`,
   commitTask: (input) =>
     `npm run project:task:commit -- ${boundArguments(input)}`,
   failTask: ({ kind, ...input }) =>

@@ -54,6 +54,7 @@ const SceneReadabilityPolicyInputObject = z
     baseEdgeInsetPx: PositiveIntegerSchema.max(1000),
     edgeInsetPx: PositiveIntegerSchema,
     sceneBottomInsetPx: PositiveIntegerSchema,
+    captionMode: z.literal("none").optional(),
     typographyPolicy: z
       .object({ minFontSizePx: PositiveIntegerSchema })
       .strict()
@@ -106,10 +107,12 @@ const buildSceneReadabilityPolicyInput = ({
   width,
   height,
   edgeInsetPx: rawEdgeInsetPx,
+  captionMode,
 }: {
   readonly width: number;
   readonly height: number;
   readonly edgeInsetPx: number;
+  readonly captionMode?: "none";
 }) => {
   const parsedWidth = PositiveIntegerSchema.parse(width);
   const parsedHeight = PositiveIntegerSchema.parse(height);
@@ -129,10 +132,13 @@ const buildSceneReadabilityPolicyInput = ({
       2 * captionFontSizePx * CAPTION_LINE_HEIGHT_NUMERATOR,
       CAPTION_LINE_HEIGHT_DENOMINATOR,
     ) + captionVerticalPaddingPx;
-  const sceneBottomInsetPx = roundUpToMultiple(
-    captionBottomInsetPx + captionBoxHeightPx + captionGapPx,
-    10,
-  );
+  const sceneBottomInsetPx =
+    captionMode === "none"
+      ? edgeInsetPx
+      : roundUpToMultiple(
+          captionBottomInsetPx + captionBoxHeightPx + captionGapPx,
+          10,
+        );
   return SceneReadabilityPolicyInputSchema.parse({
     schemaVersion: 1,
     policyId: SCENE_READABILITY_POLICY_ID,
@@ -146,6 +152,7 @@ const buildSceneReadabilityPolicyInput = ({
     baseEdgeInsetPx,
     edgeInsetPx,
     sceneBottomInsetPx,
+    ...(captionMode === undefined ? {} : { captionMode }),
     typographyPolicy: { minFontSizePx },
     captionPolicy: {
       displayUnitAlgorithmId: CAPTION_DISPLAY_UNIT_ALGORITHM_ID,
@@ -189,6 +196,9 @@ export const SceneReadabilityPolicySchema =
         width: policy.width,
         height: policy.height,
         edgeInsetPx: policy.baseEdgeInsetPx,
+        ...(policy.captionMode === undefined
+          ? {}
+          : { captionMode: policy.captionMode }),
       });
       const actual = { ...policy } as Record<string, unknown>;
       delete actual.policyFingerprint;
@@ -265,15 +275,18 @@ export const resolveSceneReadabilityPolicy = ({
   width,
   height,
   edgeInsetPx = 90,
+  captionMode,
 }: {
   readonly width: number;
   readonly height: number;
   readonly edgeInsetPx?: number;
+  readonly captionMode?: "none";
 }) => {
   const input = buildSceneReadabilityPolicyInput({
     width,
     height,
     edgeInsetPx,
+    ...(captionMode === undefined ? {} : { captionMode }),
   });
   return SceneReadabilityPolicySchema.parse({
     ...input,

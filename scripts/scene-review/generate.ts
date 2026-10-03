@@ -188,12 +188,15 @@ export const generateSceneReview = async ({
           shots: shots.shots,
           anchors: anchors.anchors,
           duration: shots.sceneDurationInFrames,
-          narrationCues: timing.captionCues
-            .filter((cue) => cue.meaningId === beat.meaningId)
-            .map((cue) => ({
-              startFrame: cue.startFrame - beat.startFrame,
-              endFrame: cue.endFrame - beat.startFrame,
-            })),
+          narrationCues:
+            beat.kind === "narrated-scene"
+              ? timing.captionCues
+                  .filter((cue) => cue.meaningId === beat.meaningId)
+                  .map((cue) => ({
+                    startFrame: cue.startFrame - beat.startFrame,
+                    endFrame: cue.endFrame - beat.startFrame,
+                  }))
+              : undefined,
         });
       }
       actions.push(...planActionReview(shots, beat.startFrame));

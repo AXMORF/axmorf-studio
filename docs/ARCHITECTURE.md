@@ -1,5 +1,12 @@
 # Architecture
 
+无旁白正文沿同一 production 主链：`visual-scene` 的 authored frames 生成 `authored-frames-v1`
+SemanticTiming，旁白 source/两份 manifest 明确为 null，不创建 provider/narration tasks。Composition
+省略 NarrationAudioTrack，保留顶层 caption ownership；空 captions 回收字幕预留区。GlobalVisual 和
+BGM 使用完整正文窗口。Scene 可通过公开 action timing helper 消费计划，并接收冻结 continuity。
+绑定的 task preview 是独立诊断适配器：校验与快照 owning source 后实际渲染，不进入 artifact/delivery
+identity，也不扩展 worker 文件权限。详见[视觉叙事](guides/VISUAL_NARRATIVE_QUALITY.md)。
+
 > 文档类型：架构 authority
 
 ## 1. 模块与依赖方向
@@ -145,7 +152,7 @@ safe-area-local SceneViewport, Scene brief, VisualStyleSpec, Scene-local narrati
 selected resources. It does not receive the raw
 Composition readability policy, full-frame dimensions or insets. GlobalVisual reads
 Story/Timing/VisualStyle/requirements/brief/resources but never Scene output. Its fixed layer policy derives a
-full-Composition base range and a first-to-last narrated Scene decoration range from canonical SemanticTiming;
+full-Composition base range and a first-to-last content Scene decoration range from canonical SemanticTiming;
 the decoration component receives window-local frame zero. Cover reads only
 Story/VisualStyle/fixed CoverSpec. Template-copy is a fixed task over the configured Project-local template
 instance. Its artifact is the exact union of immutable copied source/assets and the canonical derived Scene bundle;
@@ -262,7 +269,7 @@ Project-local instance。
 
 意图优先 motionPlan v2 与可选 tracked v1 共用 Scene shot-plan/props；自绘代码不强制几何轨迹或组件。技术 task check/commit 单独报告 DOM 已验证、unsupported 或 intent-only，均仍需真实时间序列审查；不把 DOM 依赖当像素/美感证明。执行边界见 [内容动作审阅](guides/CONTENT_MOTION_REVIEW.md)。
 
-Root 可在 Scene brief 的 `outgoingHandoff` 冻结与下一 narrated Scene 共用的 subject；load-inputs 为两侧生成相同的
+Root 可在 Scene brief 的 `outgoingHandoff` 冻结与下一正文 Scene 共用的 subject；load-inputs 为两侧生成相同的
 `continuity.handoffs` 合同，seam identity 只由 Story 与相邻 meaning IDs 确定。tracked v1 另需 Root-authored
 边界 state，v2 不规定几何。shared Scene bundle validator 在提交与物化前核对 kind、ID、subject 和适用的 pose；
 Coverage 仍复验跨 Scene 衔接。未声明的 seam 使用 motivated cut，fixed template 边界禁止 continuous。

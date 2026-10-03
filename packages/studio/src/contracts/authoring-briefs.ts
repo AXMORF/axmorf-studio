@@ -13,6 +13,7 @@ const sortedUnique = (values: readonly string[], context: z.RefinementCtx, path:
   const sorted = [...values].sort();
   if (new Set(values).size !== values.length || values.some((value, index) => value !== sorted[index])) context.addIssue({ code: "custom", message: "Authoring identity lists must be sorted and unique.", path: [path] });
 };
+const isAuthoredContentKind = (kind: string | undefined) => kind === "narrated-scene" || kind === "visual-scene";
 
 export const STORY_RESOURCE_POOL_VERSION = "story-resource-pool-v1" as const;
 const SnapshotSchema = z.object({ sourceId: z.literal("video-shotcraft"), snapshotFingerprint: Sha256DigestSchema, allowedCardIds: z.array(CardIdSchema).min(1).max(128).readonly() }).strict().superRefine((value, context) => sortedUnique(value.allowedCardIds, context, "allowedCardIds")).readonly();
@@ -36,8 +37,8 @@ export const SceneProductionBriefItemSchema = z.object({ meaningId: MeaningIdSch
 
 export const addSceneHandoffAuthoringIssues = (scenes: readonly z.infer<typeof SceneProductionBriefItemSchema>[], beats: readonly { readonly kind: string; readonly meaningId: string }[], context: z.RefinementCtx) => {
   scenes.forEach((scene, index) => {
-    if (scene.outgoingHandoff !== undefined && (beats[index]?.kind !== "narrated-scene" || beats[index + 1]?.kind !== "narrated-scene"))
-      context.addIssue({ code: "custom", message: "An outgoing handoff requires a following narrated Scene; fixed template boundaries cannot promise continuity.", path: ["scenes", index, "outgoingHandoff"] });
+    if (scene.outgoingHandoff !== undefined && (!isAuthoredContentKind(beats[index]?.kind) || !isAuthoredContentKind(beats[index + 1]?.kind)))
+      context.addIssue({ code: "custom", message: "An outgoing handoff requires a following narrated or visual Scene; fixed template boundaries cannot promise continuity.", path: ["scenes", index, "outgoingHandoff"] });
   });
 };
 const BriefInput = z.object({ schemaVersion: z.literal(1), contractVersion: z.literal(SCENE_PRODUCTION_BRIEF_VERSION), storyId: StoryIdSchema, requirementsFingerprint: Sha256DigestSchema, semanticTimingFingerprint: Sha256DigestSchema, visualStyleFingerprint: Sha256DigestSchema, resourcePoolFingerprint: Sha256DigestSchema, soundPolicy: z.enum(["allowed", "none"]), reviewPolicy: z.literal("mechanical-only"), scenes: z.array(SceneProductionBriefItemSchema).min(1).max(256).readonly() }).strict().superRefine((brief, context) => { if (new Set(brief.scenes.map(({ meaningId }) => meaningId)).size !== brief.scenes.length) context.addIssue({ code: "custom", message: "Scene brief meaning IDs must be unique.", path: ["scenes"] }); });
@@ -50,7 +51,7 @@ export const validateSceneProductionBrief = ({ brief: rawBrief, story, requireme
   if (brief.storyId !== story.storyId || brief.requirementsFingerprint !== requirements.requirementsFingerprint || brief.semanticTimingFingerprint !== Sha256DigestSchema.parse(semanticTimingFingerprint) || brief.visualStyleFingerprint !== Sha256DigestSchema.parse(visualStyleFingerprint) || brief.resourcePoolFingerprint !== pool.poolFingerprint || brief.soundPolicy !== requirements.enhancementSelection.sound) throw new Error("Scene production brief identity is stale.");
   if (brief.scenes.length !== story.beats.length || brief.scenes.some(({ meaningId }, index) => meaningId !== story.beats[index]?.meaningId)) throw new Error("Scene production brief must contain every StoryBeat in order.");
   const poolResources = new Set(pool.allowedResourceIds); const poolSnapshots = new Map(pool.allowedSnapshots.map((snapshot) => [snapshot.sourceId, new Set(snapshot.allowedCardIds)]));
-  brief.scenes.forEach((scene, index) => { if (scene.outgoingHandoff !== undefined && (story.beats[index]?.kind !== "narrated-scene" || story.beats[index + 1]?.kind !== "narrated-scene")) throw new Error("Continuous handoffs require adjacent authored narrated Scenes."); });
+  brief.scenes.forEach((scene, index) => { if (scene.outgoingHandoff !== undefined && (!isAuthoredContentKind(story.beats[index]?.kind) || !isAuthoredContentKind(story.beats[index + 1]?.kind))) throw new Error("Continuous handoffs require adjacent authored narrated or visual Scenes."); });
   for (const scene of brief.scenes) {
     const beat = story.beats.find(({ meaningId }) => meaningId === scene.meaningId);
     if (beat?.kind === "silent-scene" && (scene.visualIntent !== beat.preset.visualIntent || scene.soundIntent !== beat.preset.soundIntent || JSON.stringify(scene.candidateResourceIds) !== JSON.stringify(beat.preset.resourceIds) || scene.allowedSnapshotCards.length > 0)) throw new Error(`Silent Scene ${scene.meaningId} brief is stale against its preset.`);

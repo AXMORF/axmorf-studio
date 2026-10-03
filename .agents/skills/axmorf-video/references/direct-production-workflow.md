@@ -12,7 +12,7 @@ strict input 用仓库相对路径；省略 `sceneTemplates` 继承 ProducerConf
 npm run project:create -- --project <storyId> --input <repository-relative-json>
 ```
 
-Create 原子保留 silent/narrated 语义并冻结 Scene baseline。legacy 缺失时 inspect 前须用户授权零 provider、持锁迁移：
+Create 保留 silent/narrated/visual 语义，冻结 Scene baseline。legacy 缺失时 inspect 前须用户授权零 provider、持锁迁移：
 
 ```bash
 npm run project:originality:freeze -- --project <storyId>

@@ -67,7 +67,7 @@ Scene originality baseline fingerprint/context 只进入 `scene-owner` TaskRevis
 historical graph，converge 在任何 scope materialization 前再次拒绝同 Revision exact/token-normalized duplicate。
 
 GlobalVisual layer policy 由 canonical SemanticTiming 确定性派生：base 是完整 Composition，decoration 是首个至
-末个 narrated Scene 的连续 frame range，且 decoration origin 固定为 window-local zero。它进入 task/context 与
+末个正文 Scene 的连续 frame range，且 decoration origin 固定为 window-local zero。它进入 task/context 与
 生成式 Composition projection，不由 Agent 自行选择或扩大。
 
 失效解释把正交事实分开：typed `artifactState` 描述目标 artifact 的 current integrity；`directChanges`
@@ -103,6 +103,11 @@ TaskRevision 的首个 task-terminal outcome 不可被相反结果覆盖，相�
 identity/bytes 保持 byte/mtime 稳定；冲突 fail closed。
 
 ## 5. Narration 与 timing
+
+无旁白正文以 `visual-scene.durationInFrames` 为时序 authority，算法 `authored-frames-v1` 从 Story/Render
+确定性累计帧数。narration、sealed/mastered manifest 为明确 null，sampleRate/narrationStartFrame 为 null，
+segments/captionCues 为空；absence identity 与 authored timing fingerprint 进入正式校验。它不使用假的
+sealed PCM，也不使 narrated 项目的 sample authority 可选。两种正文暂不在同一 Story 混排。
 
 Agent-authored `ttsChunks` 是一次 provider request 的语义单位。generation/provider attempt cache 以 authored
 text、provider/voice/rate/options 和 policy identity 寻址，不隐式 split/retry/fallback。seal 只有在所有 PCM

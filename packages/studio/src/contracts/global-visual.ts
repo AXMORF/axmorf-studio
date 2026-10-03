@@ -73,13 +73,13 @@ export const GlobalVisualLayerPolicySchema = z
 
 export const deriveGlobalVisualLayerPolicy = (rawTiming: unknown) => {
   const timing = SemanticTimingSchema.parse(rawTiming);
-  const narratedBeats = timing.storyBeats.filter(
-    (beat) => beat.kind === "narrated-scene",
+  const contentBeats = timing.storyBeats.filter(
+    (beat) => beat.kind !== "silent-scene",
   );
-  const firstNarratedBeat = narratedBeats[0];
-  const lastNarratedBeat = narratedBeats.at(-1);
-  if (firstNarratedBeat === undefined || lastNarratedBeat === undefined) {
-    throw new Error("GlobalVisual requires narrated content.");
+  const firstContentBeat = contentBeats[0];
+  const lastContentBeat = contentBeats.at(-1);
+  if (firstContentBeat === undefined || lastContentBeat === undefined) {
+    throw new Error("GlobalVisual requires narrated or visual content.");
   }
   return GlobalVisualLayerPolicySchema.parse({
     schemaVersion: 1,
@@ -89,8 +89,8 @@ export const deriveGlobalVisualLayerPolicy = (rawTiming: unknown) => {
       endFrame: getStoryCompositionDurationInFrames(timing.durationInFrames),
     },
     decorationFrameRange: {
-      startFrame: firstNarratedBeat.startFrame,
-      endFrame: lastNarratedBeat.endFrame,
+      startFrame: firstContentBeat.startFrame,
+      endFrame: lastContentBeat.endFrame,
     },
     decorationFrameOrigin: "window-local-zero",
   });

@@ -1,8 +1,8 @@
 # Content-driven motion and creative implementation
 
-New narrated projects freeze `scene-content-motion-v1`. The default worker example is
+New content projects freeze `scene-content-motion-v1`. The default worker example is
 `motionPlan` schemaVersion 2: explanatory intent, subjects, observable actions, exact
-Scene-local narration anchors, reading windows and motivated handoffs. It does not
+Scene-local narration or authored visual event anchors, reading windows and motivated handoffs. It does not
 prescribe trajectories, easing, camera moves, transition counts or reusable components.
 Use content-appropriate SVG, Canvas or already supported 3D capabilities. Existing
 source/import, asset-rights, safe-area, frame-determinism and technical-delivery checks
@@ -14,7 +14,7 @@ their copied sources, resources and canonical artifacts retain fixed validation.
 
 Root authoring freezes continuous seams before isolated workers are dispatched.
 An optional Scene brief `outgoingHandoff: { subject, trackedState? }` promises a
-shared subject to the next narrated Scene. Both tasks receive the same deterministic
+shared subject to the next content Scene. Both tasks receive the same deterministic
 seam identity and subject through `continuity.handoffs`; local bundle validation
 rejects missing or invented identities, kind changes and subject drift before
 commit. Tracked v1 requires an authored shared boundary pose; intent v2 leaves
@@ -35,6 +35,12 @@ tracked props; it proves neither visibility nor aesthetics. `unsupported` and
 DOM contradictions and nondeterminism still fail. Custom intent can be ignored by a
 renderer; detecting that requires inspection of actual previews, not self-reported
 metadata or a generic pixel-motion score.
+
+Before commit, a shared-workspace Scene worker can use its exact bound `commands.preview`
+to render the full owning Scene at reduced resolution and unchanged fps, then correct the
+same declared outputs. `resolveSceneActionTiming` optionally consumes action/anchor/hold
+timing; the Renderer `continuity` prop exposes the frozen seam. Preview remains diagnostic
+and excludes adjacent Scenes, GlobalVisual and project music. See [visual narrative](VISUAL_NARRATIVE_QUALITY.md).
 
 After a verified technical Delivery, run:
 

@@ -17,6 +17,7 @@ import {
   ExplicitPauseSchema,
   STORY_SPEC_SCHEMA_VERSION,
   TTSChunkSchema,
+  VisualStoryBeatSchema,
 } from "./story";
 import { VisualStyleArtDirectionSchema } from "./visual-style";
 import { VisualThemeSelectionSchema } from "./visual-theme";
@@ -104,13 +105,24 @@ export const ProjectCreateStorySchema = z
     schemaVersion: z.literal(STORY_SPEC_SCHEMA_VERSION),
     storyId: StoryIdSchema,
     title: NonEmptyTextSchema,
-    beats: z.array(ProjectCreateNarratedBeatSchema).min(1).max(256).readonly(),
+    beats: z
+      .array(
+        z.discriminatedUnion("kind", [
+          ProjectCreateNarratedBeatSchema,
+          VisualStoryBeatSchema,
+        ]),
+      )
+      .min(1)
+      .max(256)
+      .readonly(),
   })
   .strict()
   .superRefine((story, context) => {
     const meaningIds = story.beats.map(({ meaningId }) => meaningId);
-    const chunkIds = story.beats.flatMap(({ ttsChunks }) =>
-      ttsChunks.map(({ chunkId }) => chunkId),
+    const chunkIds = story.beats.flatMap((beat) =>
+      beat.kind === "narrated-scene"
+        ? beat.ttsChunks.map(({ chunkId }) => chunkId)
+        : [],
     );
     if (new Set(meaningIds).size !== meaningIds.length) {
       context.addIssue({
@@ -123,6 +135,17 @@ export const ProjectCreateStorySchema = z
       context.addIssue({
         code: "custom",
         message: "Project create TTS chunk IDs must be globally unique.",
+        path: ["beats"],
+      });
+    }
+    if (
+      story.beats.some((beat) => beat.kind === "visual-scene") &&
+      story.beats.some((beat) => beat.kind === "narrated-scene")
+    ) {
+      context.addIssue({
+        code: "custom",
+        message:
+          "Narrated and visual content Scenes cannot be mixed in one Story; choose one timing authority.",
         path: ["beats"],
       });
     }

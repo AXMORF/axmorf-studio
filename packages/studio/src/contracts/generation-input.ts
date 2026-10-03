@@ -38,6 +38,14 @@ export const buildGenerationInput = (
 export const computeStoryFingerprint = (story: StorySpec) =>
   createFingerprint({ namespace: "story-spec", version: 3, value: story });
 
+/** Explicit absence of narration, independent of any provider or voice setting. */
+export const computeNoNarrationFingerprint = () =>
+  createFingerprint({
+    namespace: "no-narration",
+    version: 1,
+    value: { narration: null },
+  });
+
 export const computeGenerationInputFingerprint = (
   story: StorySpec,
   narration: NarrationSpec,

@@ -34,12 +34,12 @@ source/public/narration/delivery 四个 Project-owned roots；失败完整 rollb
 ## 2. 必须长期保持的产品不变量
 
 - 一 Story 一个 Composition；一 StoryBeat 一个 meaningId、Scene 和完成后的 ScenePackage。
-- narrated 与 silent Scene 是 discriminated contract；silent Scene 只在时间线首尾且没有 TTS、CaptionCue
+- narrated、visual 与 silent Scene 是 discriminated contract；一 Story 暂不混合正文模式。visual 使用 authored frames，明确无旁白；silent Scene 只在时间线首尾且没有 TTS、CaptionCue
   或 sealed narration segment。
 - Agent-authored `ttsChunks` 不被工具改写；sealed PCM sample measurement 和累计 sample frame 是时间
   authority。
 - Scene root 透明；Composition 顶层 exactly once owns safe-area-local SceneViewport、captions、narration 和
-  GlobalVisual。GlobalVisual base 覆盖完整 Composition；decoration 仅覆盖首个至末个 narrated Scene 的连续
+  GlobalVisual。GlobalVisual base 覆盖完整 Composition；decoration 仅覆盖首个至末个正文 Scene 的连续
   窗口，不进入 silent boundary。Scene 只在本地 viewport 内布局，不感知 full-frame inset。
 - template-copy Scene 是 Project-local immutable instance，由 fixed task 产出，不派发 Agent。
 - package-owned shared Workspace resources 只通过 runtime policy、manifest、checksum 与 license gate 发行；

@@ -179,7 +179,8 @@ export const loadProjectRegistrationEntry = async ({
   if (projectSource.story.storyId !== slug) {
     throw new Error("Story ID must match the fixed project directory slug.");
   }
-  const sealedNarration = SealedNarrationManifestSchema.parse(rawManifest);
+  const sealedNarration =
+    SealedNarrationManifestSchema.nullable().parse(rawManifest);
   const semanticTiming = SemanticTimingSchema.parse(rawTiming);
   const artifactBundle = validateNarrativeArtifactBundle({
     projectSource,

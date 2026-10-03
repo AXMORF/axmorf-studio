@@ -14,11 +14,12 @@ import {
   StoryIdSchema,
   TtsChunkIdSchema,
 } from "./primitives";
-import type { RenderSpec } from "./render";
+import { RenderSpecSchema, type RenderSpec } from "./render";
 import type { SealedNarrationManifest } from "./sealed-narration";
-import type { StorySpec } from "./story";
+import { isVisualStory, StorySpecSchema, type StorySpec } from "./story";
 
 export const TIMING_ALGORITHM_ID = "pcm-cumulative-ceil-v1" as const;
+export const VISUAL_TIMING_ALGORITHM_ID = "authored-frames-v1" as const;
 
 const FrameRangeSchema = z
   .object({
@@ -141,9 +142,7 @@ const SilentStoryBeatTimingSchema = z
         message: "Silent StoryBeat timing must cover at least one frame.",
       });
     }
-    if (
-      beat.endFrame - beat.startFrame !== beat.presetDurationInFrames
-    ) {
+    if (beat.endFrame - beat.startFrame !== beat.presetDurationInFrames) {
       context.addIssue({
         code: "custom",
         message: "Silent StoryBeat timing must equal its preset duration.",
@@ -158,7 +157,7 @@ const StoryBeatTimingSchema = z.discriminatedUnion("kind", [
   SilentStoryBeatTimingSchema,
 ]);
 
-export const SemanticTimingSchema = z
+export const PcmSemanticTimingSchema = z
   .object({
     schemaVersion: z.literal(3),
     algorithmId: z.literal(TIMING_ALGORITHM_ID),
@@ -329,6 +328,109 @@ export const SemanticTimingSchema = z
   })
   .readonly();
 
+const VisualStoryBeatTimingSchema = z
+  .object({
+    kind: z.literal("visual-scene"),
+    meaningId: MeaningIdSchema,
+    durationInFrames: PositiveIntegerSchema,
+    startFrame: NonNegativeIntegerSchema,
+    endFrame: PositiveIntegerSchema,
+  })
+  .strict()
+  .refine((beat) => beat.endFrame - beat.startFrame === beat.durationInFrames, {
+    message: "Visual StoryBeat timing must equal its authored duration.",
+    path: ["endFrame"],
+  })
+  .readonly();
+
+export const VisualSemanticTimingSchema = z
+  .object({
+    schemaVersion: z.literal(3),
+    algorithmId: z.literal(VISUAL_TIMING_ALGORITHM_ID),
+    storyId: StoryIdSchema,
+    fingerprint: Sha256DigestSchema,
+    sampleRate: z.null(),
+    fps: PositiveIntegerSchema,
+    leadInFrames: NonNegativeIntegerSchema,
+    tailFrames: NonNegativeIntegerSchema,
+    narrationStartFrame: z.null(),
+    durationInFrames: PositiveIntegerSchema,
+    segments: z
+      .array(z.discriminatedUnion("kind", [TimedChunkSchema, TimedPauseSchema]))
+      .max(0)
+      .readonly(),
+    captionCues: z.array(CaptionCueSchema).max(0).readonly(),
+    storyBeats: z
+      .array(
+        z.discriminatedUnion("kind", [
+          VisualStoryBeatTimingSchema,
+          SilentStoryBeatTimingSchema,
+        ]),
+      )
+      .min(1)
+      .readonly(),
+  })
+  .strict()
+  .superRefine((timing, context) => {
+    let cursor = timing.leadInFrames;
+    const meaningIds = new Set<string>();
+    timing.storyBeats.forEach((beat, index) => {
+      if (beat.startFrame !== cursor) {
+        context.addIssue({
+          code: "custom",
+          message: "StoryBeat timing windows must be continuous.",
+          path: ["storyBeats", index, "startFrame"],
+        });
+      }
+      if (meaningIds.has(beat.meaningId)) {
+        context.addIssue({
+          code: "custom",
+          message: "StoryBeat timing meaning IDs must be unique.",
+          path: ["storyBeats", index, "meaningId"],
+        });
+      }
+      meaningIds.add(beat.meaningId);
+      if (
+        beat.kind === "silent-scene" &&
+        index !== 0 &&
+        index !== timing.storyBeats.length - 1
+      ) {
+        context.addIssue({
+          code: "custom",
+          message: "Silent Scenes must stay at a Story boundary.",
+          path: ["storyBeats", index],
+        });
+      }
+      cursor = beat.endFrame;
+    });
+    if (!timing.storyBeats.some((beat) => beat.kind === "visual-scene")) {
+      context.addIssue({
+        code: "custom",
+        message: "Authored-frame timing requires visual content.",
+        path: ["storyBeats"],
+      });
+    }
+    const expectedDuration = cursor + timing.tailFrames;
+    if (
+      !Number.isSafeInteger(expectedDuration) ||
+      timing.durationInFrames !== expectedDuration
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "durationInFrames must include the final boundary and tail.",
+        path: ["durationInFrames"],
+      });
+    }
+  })
+  .readonly();
+
+export const SemanticTimingSchema = z.discriminatedUnion("algorithmId", [
+  PcmSemanticTimingSchema,
+  VisualSemanticTimingSchema,
+]);
+
+export type PcmSemanticTiming = z.infer<typeof PcmSemanticTimingSchema>;
+export type VisualSemanticTiming = z.infer<typeof VisualSemanticTimingSchema>;
 export type SemanticTiming = z.infer<typeof SemanticTimingSchema>;
 
 export const ceilDivBigInt = (value: bigint, divisor: bigint): bigint => {
@@ -404,7 +506,11 @@ export const generateSemanticTiming = ({
   readonly narration: NarrationSpec;
   readonly render: RenderSpec;
   readonly sealedNarration: SealedNarrationManifest;
-}): SemanticTiming => {
+}): PcmSemanticTiming => {
+  if (isVisualStory(story))
+    throw new Error(
+      "Visual Stories use authored-frame timing without sealed narration.",
+    );
   if (story.storyId !== sealedNarration.storyId)
     throw new Error("Story and sealed narration ids differ.");
   if (
@@ -421,7 +527,7 @@ export const generateSemanticTiming = ({
   }
 
   const expected = story.beats.flatMap((beat) => {
-    if (beat.kind === "silent-scene") return [];
+    if (beat.kind !== "narrated-scene") return [];
     const pauses = new Map(
       beat.explicitPauses.map((pause) => [pause.afterChunkId, pause]),
     );
@@ -555,6 +661,8 @@ export const generateSemanticTiming = ({
 
   let beatFrameCursor = render.leadInFrames;
   const storyBeats = story.beats.map((beat) => {
+    if (beat.kind === "visual-scene")
+      throw new Error("Visual Stories cannot use PCM timing.");
     if (beat.kind === "silent-scene") {
       const startFrame = beatFrameCursor;
       beatFrameCursor = toSafeNumber(
@@ -588,11 +696,15 @@ export const generateSemanticTiming = ({
     return timingBeat;
   });
 
-  return SemanticTimingSchema.parse({
+  return PcmSemanticTimingSchema.parse({
     schemaVersion: 3,
     algorithmId: TIMING_ALGORITHM_ID,
     storyId: story.storyId,
-    fingerprint: computeSemanticTimingFingerprint(story, sealedNarration, render),
+    fingerprint: computeSemanticTimingFingerprint(
+      story,
+      sealedNarration,
+      render,
+    ),
     sampleRate: sealedNarration.canonicalPcm.sampleRate,
     fps: render.fps,
     leadInFrames: render.leadInFrames,
@@ -604,6 +716,80 @@ export const generateSemanticTiming = ({
     ),
     segments: timedSegments,
     captionCues,
+    storyBeats,
+  });
+};
+
+export const computeVisualSemanticTimingFingerprint = (
+  story: StorySpec,
+  render: RenderSpec,
+) =>
+  createFingerprint({
+    namespace: "semantic-timing",
+    version: 3,
+    value: {
+      algorithmId: VISUAL_TIMING_ALGORITHM_ID,
+      storyFingerprint: computeStoryFingerprint(story),
+      fps: render.fps,
+      leadInFrames: render.leadInFrames,
+      tailFrames: render.tailFrames,
+    },
+  });
+
+/** Visual Scenes own authored frame durations; no PCM or speech is synthesized. */
+export const generateVisualSemanticTiming = ({
+  story: rawStory,
+  render: rawRender,
+}: {
+  readonly story: StorySpec;
+  readonly render: RenderSpec;
+}): VisualSemanticTiming => {
+  const story = StorySpecSchema.parse(rawStory);
+  const render = RenderSpecSchema.parse(rawRender);
+  if (!isVisualStory(story))
+    throw new Error("Authored-frame timing requires a visual Story.");
+  let cursor = render.leadInFrames;
+  const storyBeats = story.beats.map((beat) => {
+    if (beat.kind === "narrated-scene")
+      throw new Error("Narrated and visual content Scenes cannot be mixed.");
+    const duration =
+      beat.kind === "visual-scene"
+        ? beat.durationInFrames
+        : beat.preset.durationInFrames;
+    const startFrame = cursor;
+    cursor = toSafeNumber(
+      BigInt(cursor) + BigInt(duration),
+      `Scene ${beat.meaningId} endFrame`,
+    );
+    return {
+      kind: beat.kind,
+      meaningId: beat.meaningId,
+      ...(beat.kind === "visual-scene"
+        ? { durationInFrames: duration }
+        : {
+            presetFingerprint: beat.preset.presetFingerprint,
+            presetDurationInFrames: duration,
+          }),
+      startFrame,
+      endFrame: cursor,
+    };
+  });
+  return VisualSemanticTimingSchema.parse({
+    schemaVersion: 3,
+    algorithmId: VISUAL_TIMING_ALGORITHM_ID,
+    storyId: story.storyId,
+    fingerprint: computeVisualSemanticTimingFingerprint(story, render),
+    sampleRate: null,
+    fps: render.fps,
+    leadInFrames: render.leadInFrames,
+    tailFrames: render.tailFrames,
+    narrationStartFrame: null,
+    durationInFrames: toSafeNumber(
+      BigInt(cursor) + BigInt(render.tailFrames),
+      "durationInFrames",
+    ),
+    segments: [],
+    captionCues: [],
     storyBeats,
   });
 };

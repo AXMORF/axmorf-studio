@@ -230,7 +230,10 @@ void renderer;
       shots: motionShots.shots,
       anchors: motionAnchors.anchors,
       duration: motionShots.sceneDurationInFrames,
-      narrationCues: context.scene?.narrationCues,
+      narrationCues:
+        taskInput.storyBeat.kind === "narrated-scene"
+          ? context.scene?.narrationCues
+          : undefined,
     });
   }
   validateSceneArtifactBundle({
@@ -274,6 +277,7 @@ void renderer;
         viewportWidth: taskInput.sceneViewport.width,
         viewportHeight: taskInput.sceneViewport.height,
         storyBeat: taskInput.storyBeat,
+        continuity: taskInput.continuity.handoffs,
         sourceReferences: taskInput.sourceReferences,
         timingBeat: taskInput.timingBeat,
         visualStyle: VisualStyleSpecSchema.parse(context.scene?.visualStyle),

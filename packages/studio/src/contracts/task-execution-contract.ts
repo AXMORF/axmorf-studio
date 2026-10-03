@@ -3,7 +3,7 @@ import { z } from "zod";
 import { ProducerLogicalPathSchema } from "./producer-task";
 
 export const TASK_EXECUTION_CONTRACT_VERSION =
-  "agent-task-execution-contract-v1" as const;
+  "agent-task-execution-contract-v2" as const;
 
 export const AgentTaskKindSchema = z.enum([
   "scene-owner",

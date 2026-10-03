@@ -13,7 +13,7 @@ const ProjectSoundContributionSchema = z
     descriptorFingerprint: Sha256DigestSchema,
     volume: z.number().finite().min(0).max(1),
     loop: z.boolean(),
-    playbackScope: z.literal("narrated-content"),
+    playbackScope: z.enum(["narrated-content", "content"]),
   })
   .strict()
   .readonly();

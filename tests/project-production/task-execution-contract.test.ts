@@ -370,7 +370,7 @@ test("TaskExecutionContract is npm-native, attempt-neutral, and mechanically mat
 
   for (const contract of contracts) {
     assert.equal(contract.schemaVersion, 1);
-    assert.equal(contract.contractVersion, "agent-task-execution-contract-v1");
+    assert.equal(contract.contractVersion, "agent-task-execution-contract-v2");
     assert.deepEqual(contract.immutableInputs, [
       "task.json",
       "inputs/context.json",

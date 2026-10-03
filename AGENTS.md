@@ -99,7 +99,8 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
 - 只使用宿主机 Node.js/npm 与 Workspace-local Remotion CLI，不新增 Docker；所有 `remotion` 与 `@remotion/*` 保持
   完全相同的精确版本。
 - 一 Story 一个 Composition；一 StoryBeat 一个 meaningId 和 Scene，完成物化的 Scene 对应一个
-  ScenePackage。StoryBeat 严格区分 narrated 与只允许位于首尾的 silent Scene。
+  ScenePackage。StoryBeat 区分 narrated、visual 与只允许位于首尾的 silent Scene；正文暂不混排。
+  visual-scene 以 authored durationInFrames 生成时序，旁白及 sealed/mastered 为明确 null，零 provider。
 - `project:create` 从 strict create input 原子创建 configured authoring，并将选定边界 Scene template
   源码与资源复制为 Project-local immutable instance；它不调用 provider、不生成媒体或生产 attempt。
 - 用户明确的尺寸/横竖屏、fps、locale 写入 create input 的 `render.width/height/fps/locale`，未指定字段继承配置；
@@ -124,10 +125,10 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
   `caption-display-budget-exceeded` 由 Agent 改短或按自然语义拆分，不得降低 validator。
 - 字幕只由顶层 CaptionLayer 渲染；Scene root 透明，只输出 Beat 语义视觉与音效。Composition exactly
   once owns safe-area-local SceneViewport、captions、narration 和 GlobalVisual layers；GlobalVisual base 覆盖完整
-  Composition，decoration 只覆盖首个至末个 narrated Scene 的连续窗口。Scene 的 `(0, 0)` 是 viewport 左上角，
+  Composition，decoration 只覆盖首个至末个正文 Scene 的连续窗口。Scene 的 `(0, 0)` 是 viewport 左上角，
   只接收 viewport width/height，不感知 full-frame inset。
 - 新 Project 的 `VisualStyleSpec.theme` 固化已校验四角色配色，Composition 实际绘制 background；themed GlobalVisual base 必须直接返回 null，正文/首尾共用主题。旧 immutable 模板不静默迁移；不兼容主题在 create/revision 前置拒绝。
-- 旁白独占 narration track；非旁白声音都是独立 `SoundContribution`。Project BGM 只覆盖 narrated
+- 旁白独占 narration track；非旁白声音都是独立 `SoundContribution`。Project BGM 只覆盖正文
   content window，不进入 silent boundary Scenes。
 - JSON/数据文件不包含 executable expression；renderer 由 composition-local static registry 绑定。
   render runtime 不调用 Agent、Skill、MCP、Git、网络或目录扫描。
@@ -245,7 +246,6 @@ contact sheet 或布局。第三方 source/media 分别校验 license/attributio
 - Root 只有在解析为 `inline` 时才能按 task prompt 串行创作；不得读其他 executor workspace、跨 task 代
   commit 或持久化 child identity/chat/heartbeat/token。subagents 模式的 spawn failure 记录 exact
   `spawnFailureCommand`，不得自动回退 inline。
-
 
 短 `--assignment` 只路由 exact project/attempt 的 immutable dirty task 序号；CLI 还原 full task/binding 后继续原验证，不能混入手写长身份。
 Root 优先整段转发 prepare/reissue 的 `workerPrompts`；进程工具返回 session/cell handle 时完整保留并等待，不能只取 output 或提前结束 Root。

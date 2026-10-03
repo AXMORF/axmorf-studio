@@ -51,8 +51,22 @@ const SilentTimingBeatSchema = z
   })
   .readonly();
 
+const VisualTimingBeatSchema = z
+  .object({
+    kind: z.literal("visual-scene"),
+    durationInFrames: z.number().int().positive().safe(),
+    ...TimingRangeShape,
+  })
+  .strict()
+  .refine((beat) => beat.endFrame - beat.startFrame === beat.durationInFrames, {
+    message: "Visual Scene timing Beat must equal its authored duration.",
+    path: ["endFrame"],
+  })
+  .readonly();
+
 const TimingBeatSchema = z.discriminatedUnion("kind", [
   NarratedTimingBeatSchema,
+  VisualTimingBeatSchema,
   SilentTimingBeatSchema,
 ]);
 
@@ -174,7 +188,7 @@ const addSceneTaskIssues = (
           : task.continuity.nextMeaningId;
       if (
         seam !== null &&
-        (task.storyBeat.kind !== "narrated-scene" ||
+        (task.storyBeat.kind === "silent-scene" ||
           neighbor === null ||
           seam.continuityId !==
             computeSceneContinuityId(
@@ -199,6 +213,17 @@ const addSceneTaskIssues = (
       code: "custom",
       message: "Scene task StoryBeat and timing must own one Scene identity.",
       path: ["meaningId"],
+    });
+  }
+  if (
+    task.storyBeat.kind === "visual-scene" &&
+    (task.timingBeat.kind !== "visual-scene" ||
+      task.timingBeat.durationInFrames !== task.storyBeat.durationInFrames)
+  ) {
+    context.addIssue({
+      code: "custom",
+      message: "Visual Scene task authored timing identity is stale.",
+      path: ["timingBeat"],
     });
   }
   if (

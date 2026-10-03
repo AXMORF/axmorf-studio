@@ -267,3 +267,91 @@ test("Scene sound runtime source owns no narrative global mix provider or networ
     assert.equal(source.includes(forbidden), false);
   }
 });
+
+test("visual background music spans content without leaking into boundary templates", () => {
+  const { descriptor: sound } = createSoundRuntimeFixture();
+  const descriptor = {
+    ...sound,
+    id: "asset.synthetic-proof.background-music",
+    mediaRole: "background-music",
+  } as const;
+  const meaningIds = ["intro", "visual-one", "visual-two", "outro"];
+  const coverage = buildSceneCoverageMap({
+    storyId: "synthetic-proof",
+    storyBeatOrder: meaningIds,
+    packages: [],
+    stalePackages: [],
+    fallbacks: meaningIds.map((meaningId) =>
+      buildSceneFallbackDeclaration({
+        taskInputFingerprint: `sha256:${"b".repeat(64)}`,
+        meaningId,
+        reason: "Transparent test Scene.",
+      }),
+    ),
+  });
+  const timings = [
+    { kind: "silent-scene", meaningId: "intro", startFrame: 0, endFrame: 20 },
+    {
+      kind: "visual-scene",
+      meaningId: "visual-one",
+      startFrame: 20,
+      endFrame: 140,
+    },
+    {
+      kind: "visual-scene",
+      meaningId: "visual-two",
+      startFrame: 140,
+      endFrame: 180,
+    },
+    {
+      kind: "silent-scene",
+      meaningId: "outro",
+      startFrame: 180,
+      endFrame: 220,
+    },
+  ];
+  const projectSoundPlan = buildProjectSoundPlan({
+    storyId: "synthetic-proof",
+    contributions: [
+      {
+        contributionId: "background-music",
+        resourceId: descriptor.id,
+        descriptorFingerprint: computeResourceDescriptorFingerprint(descriptor),
+        volume: 0.15,
+        loop: true,
+        playbackScope: "content",
+      },
+    ],
+  });
+  const projection = buildSoundDesignProjection({
+    storyId: "synthetic-proof",
+    coverage,
+    storyBeatTimings: timings,
+    sceneSoundProjections: [],
+    projectSoundPlan,
+    projectSoundResources: [descriptor],
+  });
+  assert.equal(projection.contributions.length, 1);
+  assert.equal(projection.contributions[0].startFrame, 20);
+  assert.equal(projection.contributions[0].endFrame, 180);
+  assert.throws(
+    () =>
+      buildSoundDesignProjection({
+        storyId: "synthetic-proof",
+        coverage,
+        storyBeatTimings: timings,
+        sceneSoundProjections: [],
+        projectSoundPlan: buildProjectSoundPlan({
+          storyId: "synthetic-proof",
+          contributions: [
+            {
+              ...projectSoundPlan.contributions[0],
+              playbackScope: "narrated-content",
+            },
+          ],
+        }),
+        projectSoundResources: [descriptor],
+      }),
+    /not runtime-approved/u,
+  );
+});

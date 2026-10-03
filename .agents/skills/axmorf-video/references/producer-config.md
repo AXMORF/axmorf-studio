@@ -17,7 +17,6 @@ New Project input only.
   config drift changes content identities while unrelated valid artifacts remain reusable.
 - Execution preferences: mode/concurrency only. Verified `shared-workspace` or `controller-io` transport
   is ephemeral host evidence, never config or content identity.
-- Creation ends at `configured-authoring`. Report read-only inspect before preparation. Never fabricate
-  timing-bound authoring or a Revision before verified PCM timing.
+- Narrated create 为 configured-authoring；visual create 写真实 authored timing/null manifests，零 provider。先报告 inspect 再 prepare；不伪造 PCM。
 - Environment diagnostics cover metadata, health/ready and browser checks. Never generate test speech,
   warm providers or weaken Chromium sandboxing.

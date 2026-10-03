@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, stat, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -38,4 +38,33 @@ test("final assembly writer refuses non-pass declarations", async () => {
       assembly: { aggregateStatus: "fail" },
     }),
   );
+});
+
+test("visual final assembly persists explicit narration absence and refuses a partial null pair", async (context) => {
+  const rootDir = await mkdtemp(
+    join(tmpdir(), "axmorf-visual-final-assembly-"),
+  );
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const assembly = createFinalAssemblyPlan({
+    ...finalAssemblyInput(),
+    sealedNarrationChecksum: null,
+    sealedNarrationFingerprint: null,
+  });
+  const written = await writeFinalAssemblyIfPassed({ rootDir, assembly });
+  assert.equal(
+    (await checkPersistedFinalAssembly({ rootDir, expectedAssembly: assembly }))
+      .sealedNarrationFingerprint,
+    null,
+  );
+  const before = await readFile(written.destination, "utf8");
+  await assert.rejects(() =>
+    writeFinalAssemblyIfPassed({
+      rootDir,
+      assembly: {
+        ...assembly,
+        sealedNarrationChecksum: finalAssemblyInput().sealedNarrationChecksum,
+      },
+    }),
+  );
+  assert.equal(await readFile(written.destination, "utf8"), before);
 });

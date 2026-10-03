@@ -29,6 +29,7 @@ import {
 import {
   copyProjectRevisionRegularTree,
   inspectProjectRevisionCandidateDefinition,
+  inspectProjectRevisionNarrationTree,
   inspectProjectRevisionRegularTree,
 } from "./project-revision-candidate-store";
 
@@ -95,7 +96,7 @@ type TreeSnapshot = Awaited<
 type CandidateState = Readonly<{
   source: TreeSnapshot;
   public: TreeSnapshot;
-  narration: TreeSnapshot;
+  narration: TreeSnapshot | null;
   delivery: TreeSnapshot;
 }>;
 
@@ -104,6 +105,7 @@ type PromotionDirectorySlot = {
   readonly live: string;
   readonly staging: string;
   readonly backup: string;
+  readonly absent: boolean;
   backedUp: boolean;
   installed: boolean;
 };
@@ -183,12 +185,12 @@ const assertDirectoryChain = async ({
   }
 };
 
-const sameTree = (left: TreeSnapshot, right: TreeSnapshot) =>
+const sameTree = (left: TreeSnapshot | null, right: TreeSnapshot | null) =>
   serializeCanonicalJson(left) === serializeCanonicalJson(right);
 
 const assertSameTree = (
-  actual: TreeSnapshot,
-  expected: TreeSnapshot,
+  actual: TreeSnapshot | null,
+  expected: TreeSnapshot | null,
   label: string,
 ) => {
   if (!sameTree(actual, expected)) {
@@ -384,7 +386,11 @@ const inspectCandidate = async ({
   const state = {
     source: await inspectProjectRevisionRegularTree(paths.source),
     public: await inspectProjectRevisionRegularTree(paths.public),
-    narration: await inspectProjectRevisionRegularTree(paths.narration),
+    narration: await inspectProjectRevisionNarrationTree({
+      rootDir: scope.isolatedRoot,
+      sourceRoot: paths.source,
+      narrationRoot: paths.narration,
+    }),
     delivery: await inspectProjectRevisionRegularTree(paths.delivery),
   } as const;
   const revision = await readCandidateRevision({
@@ -450,7 +456,11 @@ const inspectLive = async ({
   });
   const source = await inspectProjectRevisionRegularTree(paths.source);
   const publicTree = await inspectProjectRevisionRegularTree(paths.public);
-  const narration = await inspectProjectRevisionRegularTree(paths.narration);
+  const narration = await inspectProjectRevisionNarrationTree({
+    rootDir: scope.repositoryRoot,
+    sourceRoot: paths.source,
+    narrationRoot: paths.narration,
+  });
   const deliveryTree = await inspectProjectRevisionRegularTree(paths.delivery);
   const revision = await readRevision({
     rootDir: scope.repositoryRoot,
@@ -486,7 +496,7 @@ const inspectLive = async ({
           : expectedTree.scope === "delivery"
             ? deliveryTree
             : expectedTree.scope === "narration"
-              ? narration
+              ? (narration ?? [])
               : await snapshotForBaseScope({
                   scope,
                   snapshotScope: expectedTree.scope,
@@ -501,6 +511,12 @@ const inspectLive = async ({
 };
 
 const installDirectorySlot = async (slot: PromotionDirectorySlot) => {
+  if (slot.absent) {
+    if ((await pathState(slot.live)) !== null) {
+      throw new Error("Visual Project narration workspace must remain absent.");
+    }
+    return;
+  }
   await assertRealDirectory(slot.live, `Live ${slot.name}`);
   await rename(slot.live, slot.backup);
   slot.backedUp = true;
@@ -661,16 +677,21 @@ export const promoteProjectRevisionCandidate = async (
         "delivery",
       ] as const) {
         const staging = join(stagingRoot, name);
-        const copied = await copyProjectRevisionRegularTree({
-          sourceRoot: candidatePathsForPromotion[name],
-          destinationRoot: staging,
-        });
-        assertSameTree(copied, candidate.state[name], `Staged ${name}`);
+        const absent =
+          name === "narration" && candidate.state.narration === null;
+        if (!absent) {
+          const copied = await copyProjectRevisionRegularTree({
+            sourceRoot: candidatePathsForPromotion[name],
+            destinationRoot: staging,
+          });
+          assertSameTree(copied, candidate.state[name], `Staged ${name}`);
+        }
         directorySlots.push({
           name,
           live: livePathsForPromotion[name],
           staging,
           backup: join(backupRoot, name),
+          absent,
           backedUp: false,
           installed: false,
         });

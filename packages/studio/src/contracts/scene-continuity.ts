@@ -57,7 +57,7 @@ export const computeSceneContinuityId = (
   }).slice("sha256:".length)}`;
 
 type Beat = Readonly<{
-  kind: "narrated-scene" | "silent-scene";
+  kind: "narrated-scene" | "visual-scene" | "silent-scene";
   meaningId: string;
 }>;
 type Brief = Readonly<{
@@ -88,11 +88,12 @@ export const buildSceneContinuityContract = ({
       throw new Error("Scene continuity authoring is cross-bound.");
     if (from.brief.outgoingHandoff === undefined) return null;
     if (
-      from.beat.kind !== "narrated-scene" ||
-      to?.beat.kind !== "narrated-scene"
+      from.beat.kind === "silent-scene" ||
+      to === null ||
+      to.beat.kind === "silent-scene"
     )
       throw new Error(
-        "Continuous handoffs require two adjacent authored narrated Scenes.",
+        "Continuous handoffs require two adjacent authored narrated or visual Scenes.",
       );
     return ContinuousHandoffSchema.parse({
       ...from.brief.outgoingHandoff,

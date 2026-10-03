@@ -20,6 +20,7 @@ import {
   StoryIdSchema,
 } from "./primitives";
 import { AuthoredPublishingIntentSchema } from "./publishing-intent";
+import { isVisualStory } from "./story";
 
 export const PROJECT_REVISION_INPUT_VERSION =
   "project-revision-input-v1" as const;
@@ -174,7 +175,7 @@ export const ProjectRevisionEditableAuthoringSchema = z
       context.addIssue({
         code: "custom",
         message:
-          "Project revision editable Scenes must cover narrated beats in order.",
+          "Project revision editable Scenes must cover authored content beats in order.",
         path: ["scenes"],
       });
     }
@@ -187,7 +188,7 @@ export const ProjectRevisionEditableAuthoringSchema = z
       context.addIssue({
         code: "custom",
         message:
-          "Project revision publishing chapters must cover narrated beats in order.",
+          "Project revision publishing chapters must cover authored content beats in order.",
         path: ["publishing", "chapters"],
       });
     }
@@ -207,6 +208,7 @@ export const ProjectRevisionContextSchema = z
       .object({
         sameProject: z.literal(true),
         preserveNarratedMeaningIdsAndOrder: z.literal(true),
+        preserveContentMeaningIdsAndOrder: z.literal(true).optional(),
         preserveBoundaryScenes: z.literal(true),
         currentDeliveryRemainsUntilPromotion: z.literal(true),
       })
@@ -215,6 +217,17 @@ export const ProjectRevisionContextSchema = z
   })
   .strict()
   .superRefine((revisionContext, context) => {
+    if (
+      isVisualStory(revisionContext.editable.story) &&
+      revisionContext.constraints.preserveContentMeaningIdsAndOrder !== true
+    ) {
+      context.addIssue({
+        code: "custom",
+        message:
+          "Visual revision context must preserve content Scene IDs and order.",
+        path: ["constraints", "preserveContentMeaningIdsAndOrder"],
+      });
+    }
     if (revisionContext.editable.story.storyId !== revisionContext.storyId) {
       context.addIssue({
         code: "custom",

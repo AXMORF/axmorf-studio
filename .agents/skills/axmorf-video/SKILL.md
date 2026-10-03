@@ -9,9 +9,9 @@ exact attempt-bound worker 走 [task protocol](references/task-execution-protoco
 
 ## Create the Project when needed
 
-已授权制作的汇报用进度消息，同轮继续工具；仅交付、blocker、用户暂停或已派发 native work 的等待可结束轮次。
+已授权制作的汇报用进度消息，同轮继续工具；仅交付/blocker/用户暂停/native work 等待可结束轮次。
 
-先按 context API guides 选语义能力或说明自绘。
+按 API guides 选能力或说明自绘。无旁白用 visualFirst：authored frames/明确 null/零 TTS，正文暂不混排。
 
 新建先用 `npm run project:create:context -- --project <storyId>`；按 `fieldExamples` 写附加要求对象，按 `durationBudget` 预算旁白并报告实测偏差。
 尺寸/横竖屏、fps、locale 要求写入 `render.width/height/fps/locale`，其余继承；创建后核对 `render`，不改长期设置。
@@ -19,7 +19,7 @@ exact attempt-bound worker 走 [task protocol](references/task-execution-protoco
 读 [policy](policy.json)、[workflow](references/direct-production-workflow.md)、
 [Producer config](references/producer-config.md). 报告首尾 Scene 的继承、选择或禁用。
 User silence means inheritance：省略 `sceneTemplates`，never infer `null`；新建用 `project:create`，修改走隔离 revision。
-新建 `visualStyle.theme` 默认 dark，可选 light/四角色 hex；全片按主题取色，palette 文案不能覆盖主题。
+theme 默认 dark，可选 light/四角色 hex；全片按主题取色，palette 不覆盖主题。
 
 `project:create` 冻结 originality baseline；legacy 缺失时必须显式 zero-provider `project:originality:freeze`，不伪造。
 修复 `authoring-validation-failed`：`caption-display-budget-exceeded` 时缩短或拆分 `ttsChunk`，每段最多 72 `caption-display-unit-v1` half-units；不降低 validator。
@@ -30,7 +30,7 @@ User silence means inheritance：省略 `sceneTemplates`，never infer `null`；
 
 Inspect 前仅看 current Agent's actually callable tools。同一 MCP 暴露 `get_provider_status`、`search_images`、
 `preview_images`、`acquire_image` 且 receipt 兼容 import 才启用；config, shell, another Agent's tools do not count。
-缺失时完整省略，不报错、不造 placeholder/DAG node。启用后先查 Catalog，再 `project:asset:import`；MCP 数据不进入 child、artifact、delivery 或 runtime。
+缺失时完整省略，不报错、不造 placeholder/DAG node。启用后先查 Catalog，再 `project:asset:import`；MCP 数据不进下游。
 
 ## Resolve Agent execution
 
@@ -62,7 +62,7 @@ Task failure exits nonzero without converge; all-success converges exactly once;
 
 ## Preserve production invariants
 
-- Sealed PCM samples 定义 timing；Composition 拥有 captions、narration、background。
+- Narrated 用 sealed PCM，visual 用 authored frames/明确 null。Composition 拥有 captions/narration/background。
 - Scene/GlobalVisual/Cover 隔离；template 固定生产；Scene root 透明。
 - TS/TSX 不可重复 frozen baseline 或同 revision source graph；template-copy 豁免。
 - Diagnostics 不改变 authority；保护 private/voice/其他 Project/history。

@@ -2,8 +2,11 @@ import { z } from "zod";
 
 import type { VideoBrief } from "./brief";
 import type { RenderSpec } from "./render";
-import type { SemanticTiming } from "./semantic-timing";
-import type { StorySpec } from "./story";
+import {
+  generateVisualSemanticTiming,
+  type SemanticTiming,
+} from "./semantic-timing";
+import { isVisualStory, type StorySpec } from "./story";
 
 const FramesSchema = z.number().int().nonnegative().safe();
 const SecondsSchema = z.number().finite().nonnegative();
@@ -15,10 +18,20 @@ export const DurationBudgetSchema = z
     boundarySeconds: SecondsSchema,
     leadAndTailSeconds: SecondsSchema,
     availableNarratedSeconds: SecondsSchema,
-    budgetState: z.enum(["narration-budget-available", "no-narration-budget"]),
+    availableVisualSeconds: SecondsSchema.optional(),
+    budgetState: z.enum([
+      "narration-budget-available",
+      "no-narration-budget",
+      "visual-budget-available",
+      "no-visual-budget",
+    ]),
     actualTotalSeconds: SecondsSchema.nullable(),
     deltaSeconds: z.number().finite().nullable(),
-    measurement: z.enum(["not-yet-sealed", "sealed-semantic-timing"]),
+    measurement: z.enum([
+      "not-yet-sealed",
+      "sealed-semantic-timing",
+      "authored-semantic-timing",
+    ]),
     comparison: z.enum([
       "not-yet-measured",
       "longer-than-target",
@@ -102,8 +115,12 @@ export const buildProjectDurationBudget = ({
   readonly story: StorySpec;
   readonly render: RenderSpec;
   readonly timing?: SemanticTiming;
-}): DurationBudget =>
-  buildDurationBudget({
+}): DurationBudget => {
+  const visual = isVisualStory(story);
+  const currentTiming =
+    timing ??
+    (visual ? generateVisualSemanticTiming({ story, render }) : undefined);
+  const budget = buildDurationBudget({
     targetDurationSeconds: brief.targetDurationSeconds,
     fps: render.fps,
     boundaryFrames: story.beats.reduce(
@@ -114,7 +131,24 @@ export const buildProjectDurationBudget = ({
     ),
     leadInFrames: render.leadInFrames,
     tailFrames: render.tailFrames,
-    ...(timing === undefined
+    ...(currentTiming === undefined
       ? {}
-      : { actualDurationInFrames: timing.durationInFrames }),
+      : { actualDurationInFrames: currentTiming.durationInFrames }),
   });
+  if (!visual) return budget;
+  return DurationBudgetSchema.parse({
+    ...budget,
+    availableNarratedSeconds: 0,
+    availableVisualSeconds: budget.availableNarratedSeconds,
+    budgetState:
+      budget.availableNarratedSeconds > 0
+        ? "visual-budget-available"
+        : "no-visual-budget",
+    measurement: "authored-semantic-timing",
+    guidance: [
+      "The authored frame durations include visual content, silent boundaries and render lead-in/tail; no voice or PCM estimate is required.",
+      "Plan key text reading time, explanatory state changes and deliberate pauses inside each visual Scene duration.",
+      "If the authored total differs from the target, report the exact deviation and revise Scene durations explicitly; do not truncate content or create silent narration.",
+    ],
+  });
+};

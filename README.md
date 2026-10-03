@@ -24,6 +24,12 @@ validators 判断一次生产是否真正完成。
 生产任务冻结选定资源和指南；校验会拒绝仅声明却未调用的能力，以及调用未声明的能力。自绘仍可使用，
 需要说明与现有 API 的适配理由；这些机械检查不代替成片审片。
 
+开发分支支持两种正文：`narrated-scene` 以实测旁白驱动字幕和动作；`visual-scene` 以明确的
+`durationInFrames` 驱动对象状态、短文案与音效，不调用 TTS。后者通过 create context 的 `visualFirst`
+示例选择，保留相同的正式生产与四文件交付流程。Scene worker 可用绑定返回的 `commands.preview`
+在提交前实际渲染和定向修正；最终的跨 Scene 衔接、音乐混音和完整审片仍需交付后 review。
+这些改进尚未发布到 npm，当前公开版本仍为 0.1.16。
+
 ## 把这段提示词交给你的 Agent
 
 复制下面一句，只需替换本地目标路径：
@@ -99,7 +105,7 @@ deliveries/<storyId>/publish.json
 | 创建 Project                       | `npm run project:create -- --project <story-id> --input <input.json>` |
 | 只读检查生产计划                   | `npm run project:produce:inspect -- --project <story-id>`             |
 | 开始有成本的准备                   | `npm run project:produce:prepare -- --project <story-id>`             |
-| 交付后复核每个 Scene 的关键画面     | `npm run project:scene:review -- --project <story-id>`                 |
+| 交付后复核每个 Scene 的关键画面    | `npm run project:scene:review -- --project <story-id>`                |
 | 检查 Project                       | `npm run project:check -- --project <story-id>`                       |
 
 日常使用建议让 Agent 消费结构化输出和返回的 exact commands，不要手工拼接内部参数。完整顺序见

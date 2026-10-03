@@ -14,6 +14,7 @@ import test from "node:test";
 import { computeProjectRevisionCandidateId } from "../../packages/studio/src/contracts/project-revision";
 import { createProjectRevisionProductionScope } from "../../scripts/project-production/application/production-scope";
 import {
+  inspectProjectRevisionNarrationTree,
   createProjectRevisionCandidateDefinition,
   inspectProjectRevisionCandidateDefinition,
   stageProjectRevisionCandidateDefinition,
@@ -198,5 +199,54 @@ test("candidate staging rejects a symbolic storage parent", async (context) => {
       baseDirectories,
     }),
     /storage path must be a real directory/u,
+  );
+});
+
+test("a missing narration snapshot remains a failure without verified visual source", async (context) => {
+  const { scope, baseDirectories } = await fixture(context);
+  await writeFile(
+    join(baseDirectories.source, "story.json"),
+    JSON.stringify(validProjectCreateInput.story),
+  );
+  await writeFile(
+    join(baseDirectories.source, "narration.json"),
+    JSON.stringify({
+      schemaVersion: 2,
+      voiceProfileId: "my-voice",
+      mode: "voice-clone",
+    }),
+  );
+  await rm(baseDirectories.narration, { recursive: true });
+  await assert.rejects(
+    stageProjectRevisionCandidateDefinition({
+      scope,
+      input: revisionInput,
+      baseDirectories,
+    }),
+    { code: "ENOENT" },
+  );
+  await writeFile(join(baseDirectories.source, "narration.json"), "null\n");
+  await assert.rejects(
+    stageProjectRevisionCandidateDefinition({
+      scope,
+      input: revisionInput,
+      baseDirectories,
+    }),
+    /Null narration requires visual Project content/u,
+  );
+});
+
+test("absent visual narration still rejects a symbolic parent", async (context) => {
+  const { root, baseDirectories } = await fixture(context);
+  const redirected = join(root, "redirected-narration");
+  await mkdir(redirected);
+  await symlink(redirected, join(root, ".narration-work"));
+  await assert.rejects(
+    inspectProjectRevisionNarrationTree({
+      rootDir: root,
+      sourceRoot: baseDirectories.source,
+      narrationRoot: join(root, ".narration-work", revisionInput.storyId),
+    }),
+    /narration parent must be a real directory/u,
   );
 });

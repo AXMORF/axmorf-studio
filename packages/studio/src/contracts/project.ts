@@ -4,7 +4,7 @@ import { VideoBriefSchema } from "./brief";
 import { NarrationSpecSchema } from "./narration";
 import { StoryIdSchema } from "./primitives";
 import { RenderSpecSchema } from "./render";
-import { StorySpecSchema } from "./story";
+import { isVisualStory, StorySpecSchema } from "./story";
 
 export const NARRATIVE_PROJECT_FILES = {
   brief: "brief.json",
@@ -25,11 +25,19 @@ export const NarrativeProjectSourceSchema = z
   .object({
     brief: VideoBriefSchema,
     story: StorySpecSchema,
-    narration: NarrationSpecSchema,
+    narration: NarrationSpecSchema.nullable(),
     render: RenderSpecSchema,
   })
   .strict()
   .superRefine((project, context) => {
+    if (isVisualStory(project.story) !== (project.narration === null)) {
+      context.addIssue({
+        code: "custom",
+        message:
+          "Visual Stories require null narration; narrated Stories require a NarrationSpec.",
+        path: ["narration"],
+      });
+    }
     if (project.brief.storyId !== project.story.storyId) {
       context.addIssue({
         code: "custom",

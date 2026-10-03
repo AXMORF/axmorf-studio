@@ -148,11 +148,6 @@ export const buildSoundDesignProjection = (rawInput: {
         }))
       : [],
   );
-  const narratedTimings = rawInput.storyBeatTimings.filter(
-    ({ kind }) => kind === "narrated-scene",
-  );
-  const firstNarrated = narratedTimings[0];
-  const lastNarrated = narratedTimings.at(-1);
   const projectResources = (rawInput.projectSoundResources ?? []).map(
     (resource) => ResourceAssetDescriptorSchema.parse(resource),
   );
@@ -169,12 +164,19 @@ export const buildSoundDesignProjection = (rawInput: {
   }
   const projectContributions = (projectSound?.contributions ?? []).map(
     (contribution) => {
+      const contentTimings = rawInput.storyBeatTimings.filter(
+        ({ kind }) =>
+          kind === "narrated-scene" ||
+          (contribution.playbackScope === "content" && kind === "visual-scene"),
+      );
+      const firstContent = contentTimings[0];
+      const lastContent = contentTimings.at(-1);
       const resource = projectResources.find(
         ({ id }) => id === contribution.resourceId,
       );
       if (
-        firstNarrated === undefined ||
-        lastNarrated === undefined ||
+        firstContent === undefined ||
+        lastContent === undefined ||
         resource === undefined ||
         resource.assetKind !== "audio" ||
         resource.mediaRole !== "background-music" ||
@@ -191,8 +193,8 @@ export const buildSoundDesignProjection = (rawInput: {
         resourceId: resource.id,
         publicPath: resource.localPath,
         checksum: resource.checksum,
-        startFrame: firstNarrated.startFrame as number,
-        endFrame: lastNarrated.endFrame as number,
+        startFrame: firstContent.startFrame as number,
+        endFrame: lastContent.endFrame as number,
         volume: contribution.volume,
         loop: contribution.loop,
       };

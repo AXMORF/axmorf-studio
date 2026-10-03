@@ -21,6 +21,7 @@ import {
   StoryIdSchema,
   StorySpecSchema,
   VisualStyleSpecSchema,
+  isVisualStory,
   buildDeliveryPublishing,
   createFingerprint,
   deriveCoverCompositionBaseId,
@@ -536,10 +537,14 @@ export const prepareProjectAuthoringBuild = async ({
       storyId: projectId,
       compositionId: deriveCoverCompositionBaseId(projectId),
     }),
-    checkMasteredNarrationArtifacts({
-      rootDir: contentRoot,
-      storyId: projectId,
-    }),
+    ...(isVisualStory(story)
+      ? []
+      : [
+          checkMasteredNarrationArtifacts({
+            rootDir: contentRoot,
+            storyId: projectId,
+          }),
+        ]),
   ]);
   await generateProjectRegistry({ rootDir: contentRoot, mode: "write" });
   await compileTargetProjectComposition({
@@ -573,7 +578,7 @@ export const prepareProjectAuthoringBuild = async ({
       const beat = timing.storyBeats.find(
         ({ meaningId }) => meaningId === chapter.meaningId,
       );
-      if (beat === undefined || beat.kind !== "narrated-scene") {
+      if (beat === undefined || beat.kind === "silent-scene") {
         throw new Error(
           "Publishing chapters are stale against SemanticTiming.",
         );

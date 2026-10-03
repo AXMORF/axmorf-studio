@@ -35,6 +35,8 @@ import {
   assertProjectRevisionOwnedPath,
   type ProjectRevisionProductionScope,
 } from "../../project-production/application/production-scope";
+import { StorySpecSchema, isVisualStory } from "@axmorf/studio/contracts";
+import { readContainedRegularFile } from "../adapters/project-create-store";
 
 export type ProjectRevisionBaseDirectories = Readonly<
   Record<(typeof PROJECT_REVISION_BASE_SNAPSHOT_SCOPES)[number], string>
@@ -371,6 +373,77 @@ export const inspectProjectRevisionRegularTree = async (
   );
 };
 
+const sourceHasNoNarration = async (sourceRoot: string) => {
+  let narrationBytes: Uint8Array;
+  try {
+    narrationBytes = await readContainedRegularFile({
+      rootDir: sourceRoot,
+      relativePath: "narration.json",
+      label: "Project revision narration source",
+    });
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return false;
+    throw error;
+  }
+  if (JSON.parse(new TextDecoder().decode(narrationBytes)) !== null)
+    return false;
+  const story = StorySpecSchema.parse(
+    JSON.parse(
+      new TextDecoder().decode(
+        await readContainedRegularFile({
+          rootDir: sourceRoot,
+          relativePath: "story.json",
+          label: "Project revision Story source",
+        }),
+      ),
+    ),
+  );
+  if (!isVisualStory(story)) {
+    throw new Error("Null narration requires visual Project content.");
+  }
+  return true;
+};
+
+export const inspectProjectRevisionNarrationTree = async ({
+  rootDir,
+  sourceRoot,
+  narrationRoot,
+}: {
+  readonly rootDir: string;
+  readonly sourceRoot: string;
+  readonly narrationRoot: string;
+}) => {
+  const fromRoot = relative(resolve(rootDir), resolve(narrationRoot));
+  if (
+    fromRoot === "" ||
+    fromRoot === ".." ||
+    fromRoot.startsWith(`..${sep}`) ||
+    isAbsolute(fromRoot)
+  ) {
+    throw new Error("Revision narration workspace escapes its fixed root.");
+  }
+  await assertRealDirectory(rootDir, "Project revision repository root");
+  let parent = resolve(rootDir);
+  for (const segment of relative(parent, dirname(narrationRoot))
+    .split(sep)
+    .filter(Boolean)) {
+    parent = join(parent, segment);
+    const state = await pathState(parent);
+    if (state !== null && (state.isSymbolicLink() || !state.isDirectory())) {
+      throw new Error(
+        "Project revision narration parent must be a real directory.",
+      );
+    }
+  }
+  if (
+    (await pathState(narrationRoot)) === null &&
+    (await sourceHasNoNarration(sourceRoot))
+  ) {
+    return null;
+  }
+  return inspectProjectRevisionRegularTree(narrationRoot);
+};
+
 const assertExactNames = (
   actual: readonly string[],
   expected: readonly string[],
@@ -519,11 +592,26 @@ export const stageProjectRevisionCandidateDefinition = async ({
     await mkdir(baseRoot);
     const baseTrees = [];
     for (const snapshotScope of PROJECT_REVISION_BASE_SNAPSHOT_SCOPES) {
+      const destinationRoot = join(baseRoot, snapshotScope);
+      if (
+        snapshotScope === "narration" &&
+        (await pathState(baseDirectories.narration)) === null &&
+        (await inspectProjectRevisionNarrationTree({
+          rootDir: scope.repositoryRoot,
+          sourceRoot: baseDirectories.source,
+          narrationRoot: baseDirectories.narration,
+        })) === null
+      ) {
+        // Keep the canonical snapshot scope without fabricating a narration workspace.
+        await mkdir(destinationRoot);
+        baseTrees.push({ scope: snapshotScope, entries: [] });
+        continue;
+      }
       baseTrees.push({
         scope: snapshotScope,
         entries: await copyProjectRevisionRegularTree({
           sourceRoot: baseDirectories[snapshotScope],
-          destinationRoot: join(baseRoot, snapshotScope),
+          destinationRoot,
         }),
       });
     }
@@ -712,6 +800,17 @@ export const copyProjectRevisionBaseAuthoring = async ({
     },
   ];
   for (const mapping of mappings) {
+    if (
+      mapping.snapshotScope === "narration" &&
+      (
+        await inspectProjectRevisionRegularTree(
+          join(scope.baseSnapshotRoot, "narration"),
+        )
+      ).length === 0 &&
+      (await sourceHasNoNarration(join(scope.baseSnapshotRoot, "source")))
+    ) {
+      continue;
+    }
     await mkdir(dirname(mapping.destination), { recursive: true });
     await copyProjectRevisionRegularTree({
       sourceRoot: join(scope.baseSnapshotRoot, mapping.snapshotScope),

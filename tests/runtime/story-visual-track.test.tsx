@@ -209,6 +209,10 @@ test("Scene renderer and mount props enforce the current ownership boundary", ()
       durationInFrames: 120,
       sceneBoundaryVersion: "scene-composition-boundary-v2",
       readabilityPolicy: policy,
+      continuity: {
+        incoming: null,
+        outgoing: { kind: "motivated-cut", reason: "New causal question." },
+      },
     } as SceneRendererMountProps,
     6,
   );
@@ -225,6 +229,10 @@ test("Scene renderer and mount props enforce the current ownership boundary", ()
   assert.equal(current.props.children.props.sceneFrame, 6);
   assert.equal(current.props.children.props.viewportWidth, 900);
   assert.equal(current.props.children.props.viewportHeight, 1470);
+  assert.deepEqual(current.props.children.props.continuity, {
+    incoming: null,
+    outgoing: { kind: "motivated-cut", reason: "New causal question." },
+  });
   assert.equal(
     (current.props.children.props as Readonly<Record<string, unknown>>)
       .readabilityPolicy,

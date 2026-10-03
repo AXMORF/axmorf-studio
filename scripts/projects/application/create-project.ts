@@ -19,10 +19,13 @@ import {
   SCENE_MOTION_REQUIREMENT,
   buildGlobalVisualBrief,
   buildProjectAssetManifest,
+  buildProjectSoundPlan,
   buildPublishingIntent,
   buildSceneProductionBrief,
   buildStoryResourcePool,
   computeVisualStyleFingerprint,
+  generateVisualSemanticTiming,
+  isVisualStory,
   serializeCanonicalJson,
   validateSceneProductionBrief,
   validateStoryResourcePool,
@@ -188,7 +191,7 @@ const synthesizePendingScenes = ({
         "Preserve the configured boundary Scene frame-driven motion exactly.",
       soundIntent: beat.preset.soundIntent,
       continuityBrief:
-        "Keep this configured boundary isolated from narrated Scene ownership.",
+        "Keep this configured boundary isolated from authored content Scene ownership.",
       candidateResourceIds: beat.preset.resourceIds,
       allowedSnapshotCards: [],
     } as const;
@@ -584,6 +587,7 @@ const prepareCreation = async ({
     prepared: sceneTemplates,
   });
   const story = sceneTemplates.story;
+  const visualStory = isVisualStory(story);
   const baseManifest = ProjectAssetManifestSchema.parse(
     JSON.parse(
       await readFile(
@@ -592,19 +596,32 @@ const prepareCreation = async ({
       ),
     ),
   );
-  const sound = await prepareProjectSound({
+  const preparedSound = await prepareProjectSound({
     rootDir,
     projectId: storyId,
     config,
     baseAssetManifest: baseManifest,
   });
+  const sound = visualStory
+    ? {
+        ...preparedSound,
+        plan: buildProjectSoundPlan({
+          storyId: preparedSound.plan.storyId,
+          contributions: preparedSound.plan.contributions.map(
+            (contribution) => ({ ...contribution, playbackScope: "content" }),
+          ),
+        }),
+      }
+    : preparedSound;
   await commitProjectSound({ rootDir: stageRepositoryRoot, prepared: sound });
 
-  const narration = NarrationSpecSchema.parse({
-    schemaVersion: 2,
-    voiceProfileId: config.tts.defaultVoiceProfileId,
-    mode: "voice-clone",
-  });
+  const narration = visualStory
+    ? null
+    : NarrationSpecSchema.parse({
+        schemaVersion: 2,
+        voiceProfileId: config.tts.defaultVoiceProfileId,
+        mode: "voice-clone",
+      });
   const render = RenderSpecSchema.parse({
     schemaVersion: 1,
     compositionId: input.render.compositionId,
@@ -750,6 +767,16 @@ const prepareCreation = async ({
     [`${projectRoot}/production/global-visual-brief.json`, globalVisual],
     [`${projectRoot}/${SCENE_ORIGINALITY_BASELINE_PATH}`, originalityBaseline],
     [`${projectRoot}/${PENDING_SCENE_AUTHORING_PATH}`, pending],
+    ...(visualStory
+      ? ([
+          [
+            `${projectRoot}/generated/semantic-timing.generated.json`,
+            generateVisualSemanticTiming({ story, render }),
+          ],
+          [`${projectRoot}/generated/sealed-narration.generated.json`, null],
+          [`${projectRoot}/generated/mastered-narration.generated.json`, null],
+        ] as const)
+      : []),
     [
       `${projectRoot}/generated/resource-catalog.generated.json`,
       projectCatalog,
@@ -921,7 +948,9 @@ export const createProject = async ({
         render: prepared.render,
         writtenLogicalPaths: [],
         pendingAuthoringRequirements: [PENDING_SCENE_AUTHORING_PATH],
-        nextAction: "prepare-narration",
+        nextAction: isVisualStory(input.story)
+          ? "prepare-production"
+          : "prepare-narration",
       } as const;
     }
     await store.commit({
@@ -962,7 +991,9 @@ export const createProject = async ({
         PROJECT_CREATE_CATALOG_PATH,
       ].sort((left, right) => left.localeCompare(right)),
       pendingAuthoringRequirements: [PENDING_SCENE_AUTHORING_PATH],
-      nextAction: "prepare-narration",
+      nextAction: isVisualStory(input.story)
+        ? "prepare-production"
+        : "prepare-narration",
       requirementsFingerprint: prepared.requirementsFingerprint,
       publishingIntentFingerprint: prepared.publishingIntentFingerprint,
       pendingAuthoringFingerprint: prepared.pendingAuthoringFingerprint,

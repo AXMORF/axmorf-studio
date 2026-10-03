@@ -28,6 +28,8 @@ import {
   computeVisualStyleFingerprint,
   createFinalMechanicalCheckReport,
   createFinalMechanicalCheckV2Report,
+  getStoryCompositionDurationInFrames,
+  validateNarrativeArtifactBundle,
   type FinalMechanicalCheckId,
   type FinalMechanicalCheckReportInput,
   type FinalMechanicalCheckV2Id,
@@ -59,6 +61,8 @@ import {
   getProjectCheckPaths,
   loadProjectCheckJson,
   loadProjectCheckSemanticTiming,
+  loadProjectCheckSealedNarration,
+  loadProjectCheckMasteredNarration,
   loadProjectCheckText,
 } from "./project-files";
 
@@ -827,9 +831,39 @@ export const loadCurrentFinalAssemblyBranch = async ({
         "final-assembly.generated.json",
       ),
     );
+    const paths = getProjectCheckPaths({ rootDir, projectId });
+    const [
+      { projectSource },
+      semanticTiming,
+      sealedNarration,
+      masteredNarration,
+    ] = await Promise.all([
+      loadNarrationProjectFiles({ rootDir, projectId }),
+      loadProjectCheckSemanticTiming(paths.semanticTiming),
+      loadProjectCheckSealedNarration(paths.sealedNarration),
+      loadProjectCheckMasteredNarration(paths.masteredNarration),
+    ]);
+    validateNarrativeArtifactBundle({
+      projectSource,
+      semanticTiming,
+      sealedNarration,
+    });
     if (
       globalVisual === null ||
       assembly.storyId !== projectId ||
+      assembly.compositionId !== projectSource.render.compositionId ||
+      assembly.fps !== projectSource.render.fps ||
+      assembly.width !== projectSource.render.width ||
+      assembly.height !== projectSource.render.height ||
+      assembly.durationInFrames !==
+        getStoryCompositionDurationInFrames(semanticTiming.durationInFrames) ||
+      assembly.semanticTimingFingerprint !== semanticTiming.fingerprint ||
+      assembly.sealedNarrationFingerprint !==
+        (sealedNarration?.sealedNarrationFingerprint ?? null) ||
+      (projectSource.narration === null &&
+        (assembly.sealedNarrationChecksum !== null ||
+          masteredNarration !== null)) ||
+      (projectSource.narration !== null && masteredNarration === null) ||
       assembly.globalVisualPlanFingerprint !== globalVisual.planFingerprint ||
       assemblyCatalog === null ||
       assembly.resourceCatalogFingerprint !==

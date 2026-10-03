@@ -21,7 +21,7 @@ preserving unaffected source, layout, motion, sound and resources. Output paths 
 lineage bytes exactly; finalize recomputes fresh derived fields. Never redraw the whole Scene for a local correction or
 read base snapshot paths, other Scenes, history, or another executor workspace. If absent, create from the current brief
 and do not claim preservation of existing source.
-For a new Scene without prior source, design a visible opening, meaning-driven change, and result aligned with narration. The Renderer in the task contract is
+For a new Scene without prior source, design a visible opening, meaning-driven change, and result aligned with narration or authored visual events. The Renderer in the task contract is
 an API scaffold and must be replaced; its unchanged source fails the Scene checker.
 For new authoring, stage one clear focal subject per shot, keep it recognizable across changes in scale or viewpoint, and make the final state
 show the Beat's consequence. Leave visual breathing room for Composition-owned captions.
@@ -77,7 +77,8 @@ Before the first command, briefly tell the user the plan. Report inherited bound
    attempt-bound bind command before any task read/write. Continue only after
    `task-worker-bound`; consume immutable `task.json`, `inputs/context.json`, and
    `inputs/task-contract.json` through the returned capability.
-8. The assigned executor writes only contract-declared Agent/Agent-draft outputs and uses its exact returned
+8. The shared-workspace Scene executor uses its exact bound `commands.preview` before commit: render the same validated outputs, inspect causal actions and reading holds, and repair only the owning declared outputs. Controller-IO previews are explicitly unavailable. Preview is diagnostic and does not replace final boundary/music review.
+   The assigned executor writes only contract-declared Agent/Agent-draft outputs and uses its exact returned
    describe/finalize/check/commit/failure commands; the Root is that executor only in inline mode.
    With `controller-io`, the executor uses only returned strict file-read/file-write commands.
 9. Start the exact continuation command once per attempt. Root supervises with native notifications or blocking waits on its original
@@ -95,11 +96,11 @@ Before the first command, briefly tell the user the plan. Report inherited bound
 
 After `project-production-complete` or `project-production-current`, the exact four files are technically verified. Generate the low-cost `project:scene:review --motion` previews described below, inspect actions/boundaries against intent and readability, then report paths and actual review scope once. Retain needs-temporal-review when perception is unavailable; never claim automatic visual approval. If a separate recheck is needed, use exactly `npm run project:check -- --project <storyId> --level final`; do not omit `--level`. `project:revise:context` starts a revision within the authorized brief and is not a delivery inspection command.
 
-Timing comes from sealed PCM samples. Scenes do not own captions or narration.
+Narrated timing comes from sealed PCM samples; visual timing comes from authored frames, with explicit null narration and no fake PCM. Scenes do not own captions or narration.
 Agent-owned Scene TS/TSX graphs must be unique against the frozen baseline and
 within the current revision; fixed template-copy Scenes are exempt.
 All visual workers read context.visualStyle and use its semantic theme roles. Composition paints theme.background and composites decoration behind Scenes in an isolated group capped at 8% opacity; GlobalVisualBaseLayer must directly return null and is not mounted. Legacy Projects without a theme retain their base layer. Its decoration export is limited
-to the continuous first-to-last narrated Scene window and receives local frame
+to the continuous first-to-last content Scene window and receives local frame
 zero at that window's start; neither layer may read Scene output or carry Beat
 copy.
 Runtime code does not call Agents, providers, Git, or the network. Delivery is
@@ -111,6 +112,5 @@ does not alter production identity or automatically grade visual quality.
 Compare each Scene's opening, change, and result with its `narrativePurpose`, Scene brief, and narration cues. If the visible
 result misses the user's meaning or the focal subject is unclear, describe the specific mismatch and use the isolated
 revision flow for corrections within the authorized brief. Mechanical delivery success alone does not prove visual quality.
-
 
 `npm run project:scene:review -- --project <storyId> --motion` exports whole Scenes, boundary clips and available action windows, including cause/result/reading-hold samples. `revision-feedback.json` scopes observed defects to meaningId/actionId/frame ranges; it is diagnostic feedback, not accepted revision input or approval. Read `project:revise:context`, then use the strict isolated revision workflow; preserve sealed narration and unaffected assets. Source-plan annotations are explicitly current-source references, not attested statements about the delivered animation. Watch actual clips and compare their visible causal actions; numeric motion, static stills and generated evidence never certify aesthetics or listening. Formal release checks remain unchanged.

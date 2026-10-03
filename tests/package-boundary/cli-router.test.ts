@@ -231,6 +231,11 @@ test("the public CLI maps grouped commands exactly without leaking routing argum
       ["task-check", "--task", "task"],
     ],
     [
+      ["project", "task", "preview", "--task", "task"],
+      "projectProduction",
+      ["task-preview", "--task", "task"],
+    ],
+    [
       ["project", "task", "commit", "--task", "task"],
       "projectProduction",
       ["task-commit", "--task", "task"],

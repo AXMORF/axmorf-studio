@@ -13,14 +13,32 @@
 The following boundary example is checked by the same Scene validator used in production. Replace its visual with the Beat's meaning:
 
 ```tsx
-import type {SceneRendererProps} from "@axmorf/studio/remotion";
-import {interpolate} from "remotion";
+import type { SceneRendererProps } from "@axmorf/studio/remotion";
+import { interpolate } from "remotion";
 
-const Renderer = ({sceneFrame, fps, viewportWidth, viewportHeight}: SceneRendererProps) => {
-  const progress = interpolate(sceneFrame, [0, fps], [0, 1], {extrapolateRight: "clamp"});
-  return <div style={{width: viewportWidth, height: viewportHeight}}>
-    <div style={{width: 120, height: 120, borderRadius: 60, backgroundColor: "#00d4ff", opacity: progress, transform: `translateX(${progress * 40}px)`}} />
-  </div>;
+const Renderer = ({
+  sceneFrame,
+  fps,
+  viewportWidth,
+  viewportHeight,
+}: SceneRendererProps) => {
+  const progress = interpolate(sceneFrame, [0, fps], [0, 1], {
+    extrapolateRight: "clamp",
+  });
+  return (
+    <div style={{ width: viewportWidth, height: viewportHeight }}>
+      <div
+        style={{
+          width: 120,
+          height: 120,
+          borderRadius: 60,
+          backgroundColor: "#00d4ff",
+          opacity: progress,
+          transform: `translateX(${progress * 40}px)`,
+        }}
+      />
+    </div>
+  );
 };
 export default Renderer;
 ```
@@ -51,3 +69,9 @@ and rule to correct the cause; do not add dummy typography to purely graphical c
 
 Source checks do not measure rendered contrast, clipping, or pacing. Choose readable foreground/background
 pairs and adequate spacing; when reviewing a render, inspect the text in its actual frame and background.
+
+## Preview before commit
+
+Use the exact shared-workspace bound `commands.preview` after the outputs pass validation. It renders the owning Scene with unchanged fps at reduced resolution and returns its source fingerprint. Inspect cause, visible change, result and label hold; for visual-only content check muted comprehension, for narrated content compare spoken timing. Amend only your declared outputs. Preview omits adjacent Scenes, GlobalVisual and project music, and cannot certify aesthetics or human listening.
+
+The optional public `resolveSceneActionTiming({shots, syncAnchors, actionId, sceneFrame})` consumes authored anticipation/change/reading-hold timing without prescribing geometry or easing. The optional Renderer `continuity` prop contains the exact frozen incoming/outgoing seam. Match the actual subject at the boundary; identity alone does not prove pixel continuity.

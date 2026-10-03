@@ -206,6 +206,7 @@ export const productionRendererPropsByMeaning: Readonly<Record<string, SceneRend
     durationInFrames: task.timingBeat.endFrame - task.timingBeat.startFrame,
     fps: render.fps,
     storyBeat: task.storyBeat,
+    continuity: task.continuity.handoffs,
     sourceReferences: task.sourceReferences,
     timingBeat: task.timingBeat,
     visualStyle,
@@ -265,8 +266,8 @@ import visualStyleJson from "./visual-style.json";
 const requirements = AuthoringRequirementsSchema.parse(requirementsJson);
 const visualStyle = VisualStyleSpecSchema.parse(visualStyleJson);
 const projectSource = parseNarrativeProjectSource({brief: briefJson, story: storyJson, narration: narrationJson, render: renderJson});
-const sealedNarration = SealedNarrationManifestSchema.parse(sealedNarrationJson);
-const masteredNarration = MasteredNarrationManifestSchema.parse(masteredNarrationJson);
+const sealedNarration = SealedNarrationManifestSchema.nullable().parse(sealedNarrationJson);
+const masteredNarration = MasteredNarrationManifestSchema.nullable().parse(masteredNarrationJson);
 const semanticTiming = SemanticTimingSchema.parse(semanticTimingJson);
 const artifactBundle = validateNarrativeArtifactBundle({projectSource, sealedNarration, semanticTiming});
 const storyId = artifactBundle.projectSource.story.storyId;
@@ -274,14 +275,15 @@ const render = artifactBundle.projectSource.render;
 const timing = artifactBundle.semanticTiming;
 const globalVisualLayerPolicy = deriveGlobalVisualLayerPolicy(timing);
 const globalVisualPlan = GlobalVisualPlanSchema.parse(globalVisualPlanJson);
-if (storyId !== ${JSON.stringify(storyId)} || visualStyle.storyId !== storyId || render.fps !== timing.fps || requirements.readabilityPolicy.width !== render.width || requirements.readabilityPolicy.height !== render.height || globalVisualPlan.storyId !== storyId || globalVisualPlan.compositionId !== render.compositionId || masteredNarration.storyId !== storyId || masteredNarration.sealedNarrationFingerprint !== sealedNarration.sealedNarrationFingerprint) throw new Error("Project production Composition identity is stale.");
-const completeAudioLocalPath = masteredNarration.outputAudio.localPath;
-if (!completeAudioLocalPath.startsWith("public/projects/" + storyId + "/narration-mastered/")) throw new Error("Mastered narration path is outside the Project.");
+if (storyId !== ${JSON.stringify(storyId)} || visualStyle.storyId !== storyId || render.fps !== timing.fps || requirements.readabilityPolicy.width !== render.width || requirements.readabilityPolicy.height !== render.height || globalVisualPlan.storyId !== storyId || globalVisualPlan.compositionId !== render.compositionId) throw new Error("Project production Composition identity is stale.");
+if (projectSource.narration === null ? sealedNarration !== null || masteredNarration !== null : sealedNarration === null || masteredNarration === null || masteredNarration.storyId !== storyId || masteredNarration.sealedNarrationFingerprint !== sealedNarration.sealedNarrationFingerprint) throw new Error("Project production narration identity is stale.");
+const completeAudioLocalPath = masteredNarration?.outputAudio.localPath ?? null;
+if (completeAudioLocalPath !== null && !completeAudioLocalPath.startsWith("public/projects/" + storyId + "/narration-mastered/")) throw new Error("Mastered narration path is outside the Project.");
 const ProductionGlobalVisualBaseLayer: GlobalVisualLayersComponent<typeof GlobalVisualBaseLayer> = GlobalVisualBaseLayer;
 const ProductionGlobalVisualDecorationLayers: GlobalVisualLayersComponent<typeof GlobalVisualDecorationLayers> = GlobalVisualDecorationLayers;
-const completeNarrationSrc = staticFile(completeAudioLocalPath.slice("public/".length));
+const completeNarrationSrc = completeAudioLocalPath === null ? null : staticFile(completeAudioLocalPath.slice("public/".length));
 export const productionNarrativeCompositionMetadata = {id: render.compositionId, fps: render.fps, width: render.width, height: render.height, durationInFrames: getStoryCompositionDurationInFrames(timing.durationInFrames), defaultProps: {projectId: storyId}} as const;
-export const createProductionNarrativeCoreProps = (input: unknown): NarrativeCoreProps => { const props = StoryCompositionPropsSchema.parse(input); if (props.projectId !== storyId) throw new Error("Composition only accepts its own Project."); return {src: completeNarrationSrc, narrationStartFrame: timing.narrationStartFrame, captionCues: timing.captionCues, safeAreaPx: requirements.readabilityPolicy.captionSafeAreaPx, readabilityPolicy: requirements.readabilityPolicy}; };
+export const createProductionNarrativeCoreProps = (input: unknown): NarrativeCoreProps => { const props = StoryCompositionPropsSchema.parse(input); if (props.projectId !== storyId) throw new Error("Composition only accepts its own Project."); const shared = {captionCues: timing.captionCues, safeAreaPx: requirements.readabilityPolicy.captionSafeAreaPx, readabilityPolicy: requirements.readabilityPolicy}; if (completeNarrationSrc === null) { if (timing.narrationStartFrame !== null || timing.captionCues.length !== 0) throw new Error("Visual-only Composition cannot own narration or captions."); return {...shared, src: null, narrationStartFrame: null}; } if (timing.narrationStartFrame === null) throw new Error("Narrated Composition requires its sealed audio start."); return {...shared, src: completeNarrationSrc, narrationStartFrame: timing.narrationStartFrame}; };
 const ${componentName}: FC<StoryCompositionProps> = (props) => {
   const decorationLayers = <Sequence from={globalVisualLayerPolicy.decorationFrameRange.startFrame} durationInFrames={globalVisualLayerPolicy.decorationFrameRange.endFrame - globalVisualLayerPolicy.decorationFrameRange.startFrame} layout="absolute-fill"><ProductionGlobalVisualDecorationLayers/></Sequence>;
   return <CompositionAssembly storyVisualTrack={<StoryVisualTrack projection={productionStoryVisualProjection} registry={productionRendererRegistry} rendererPropsByMeaning={productionRendererPropsByMeaning}/>} globalVisualBackgroundLayers={visualStyle.theme === undefined ? <ProductionGlobalVisualBaseLayer/> : <ThemedGlobalVisualBackground theme={visualStyle.theme}>{decorationLayers}</ThemedGlobalVisualBackground>} globalVisualLayers={visualStyle.theme === undefined ? decorationLayers : null} narrativeCore={<NarrativeCore {...createProductionNarrativeCoreProps(props)}/>} soundDesignTrack={<SoundDesignTrack projection={productionSoundDesignProjection}/>}/>;

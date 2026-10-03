@@ -18,6 +18,9 @@ export type ProductionCommandFormatter = Readonly<{
   describeTask: (input: BoundTaskCommandInput) => string;
   finalizeTask: (input: BoundTaskCommandInput) => string;
   checkTask: (input: BoundTaskCommandInput) => string;
+  previewTask: (
+    input: BoundTaskCommandInput & Readonly<{ transport: TaskWorkerTransport }>,
+  ) => string;
   commitTask: (input: BoundTaskCommandInput) => string;
   failTask: (
     input: BoundTaskCommandInput &

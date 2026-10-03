@@ -118,3 +118,5 @@ Root 优先整段转发 prepare/reissue 的 `workerPrompts`；进程工具返回
 prepare 原始结果或句柄遗失时报告阻塞，禁止从磁盘、日志或 child 消息重建派发及 continuation 命令。
 
 New Projects freeze `visualStyle.theme`: dark (default), light, or validated opaque hex roles background/primaryText/secondaryText/accent. Composition paints that background. Themed GlobalVisualBaseLayer must return null; Scene and boundary colors use the same theme. Legacy immutable boundaries are never silently migrated; incompatible theme revisions fail before mutation.
+
+Content can be narrated-scene with sealed PCM timing or visual-scene with authored frame timing, explicit null narration and zero TTS. Adapt create context visualFirst for a no-narration request; preserve both modes. Shared-workspace Scene workers may use their exact bound commands.preview before commit, without writing extra task files or treating it as aesthetic approval.

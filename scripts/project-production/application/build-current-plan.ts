@@ -10,13 +10,17 @@ import {
   SCENE_MOTION_REQUIREMENT_ID,
   buildProducerTaskSpec,
   createFingerprint,
+  computeNoNarrationFingerprint,
   deriveGlobalVisualLayerPolicy,
+  isVisualStory,
   serializeCanonicalJson,
   type ArtifactAttestation,
   type ProducerTaskSpec,
   type ProductionRevisionId,
   type Sha256Digest,
   type NarrationPreparationReceipt,
+  type MasteredNarrationManifest,
+  type SealedNarrationManifest,
 } from "@axmorf/studio/contracts";
 import type { DiagnosticSubject } from "@axmorf/studio/contracts";
 import type { RuntimePolicyManifest } from "../../../packages/studio/src/runtime/policy-manifest";
@@ -68,6 +72,7 @@ const COVER_OUTPUTS = [
 ] as const;
 
 type LoadedInputs = Awaited<ReturnType<typeof loadProjectProductionInputs>>;
+type NarrationMasteringPolicy = MasteredNarrationManifest["masteringPolicy"];
 
 export const contextFile = (value: unknown) => {
   const bytes = `${serializeCanonicalJson(value)}\n`;
@@ -270,8 +275,8 @@ export const buildNarrationTasks = async ({
   readonly revisionId: ProductionRevisionId;
   readonly narration: Readonly<{
     providerAttemptFingerprint: Sha256Digest;
-    masteringPolicy: LoadedInputs["masteredNarration"]["masteringPolicy"];
-    sealedNarration: LoadedInputs["sealedNarration"];
+    masteringPolicy: NarrationMasteringPolicy;
+    sealedNarration: SealedNarrationManifest;
   }>;
 }) => {
   const nodes: ProducerTaskNode[] = [];
@@ -413,7 +418,7 @@ export const buildSemanticTimingTask = ({
   readonly revisionId: ProductionRevisionId;
   readonly sealTask: ProducerTaskSpec;
   readonly sealAttestation: ArtifactAttestation | null;
-  readonly masteringPolicy: LoadedInputs["masteredNarration"]["masteringPolicy"];
+  readonly masteringPolicy: NarrationMasteringPolicy;
 }) =>
   buildContextTask({
     taskKind: "semantic-timing",
@@ -444,6 +449,64 @@ export const buildSemanticTimingTask = ({
       masteringPolicy,
     },
   });
+
+export const buildVisualSemanticTimingTask = ({
+  inputs,
+  revisionId,
+}: {
+  readonly inputs: LoadedInputs;
+  readonly revisionId: ProductionRevisionId;
+}) => {
+  if (!isVisualStory(inputs.story) || inputs.narration !== null) {
+    throw new Error("Authored frame timing requires a visual Story.");
+  }
+  return buildContextTask({
+    taskKind: "semantic-timing",
+    storyId: inputs.projectId,
+    semanticId: null,
+    revisionId,
+    inputFingerprints: [
+      { id: "story", fingerprint: inputs.fingerprints.story },
+      { id: "render", fingerprint: inputs.fingerprints.render },
+      { id: "narration", fingerprint: computeNoNarrationFingerprint() },
+    ],
+    outputs: [
+      "project/generated/mastered-narration.generated.json",
+      "project/generated/sealed-narration.generated.json",
+      "project/generated/semantic-timing.generated.json",
+    ],
+    validatorPolicyVersion: "visual-semantic-timing-validator-v1",
+    context: {
+      story: inputs.story,
+      render: inputs.render,
+      timingPolicy: "authored-frames-v1",
+    },
+  });
+};
+
+const buildVisualTimingTasks = async ({
+  rootDir,
+  inputs,
+  revisionId,
+}: {
+  readonly rootDir: string;
+  readonly inputs: LoadedInputs;
+  readonly revisionId: ProductionRevisionId;
+}) => {
+  const timing = buildVisualSemanticTimingTask({ inputs, revisionId });
+  const inspection = await inspect({ rootDir, task: timing.task });
+  return {
+    nodes: [
+      { task: timing.task, dependencyTaskRevisions: [] },
+    ] as ProducerTaskNode[],
+    timingTask: timing.task,
+    timingAttestation: inspection.attestation,
+    inspections: new Map([[timing.task.taskRevision, inspection]]),
+    subjects: new Map<string, DiagnosticSubject>([
+      [timing.task.taskRevision, { kind: "project", id: inputs.projectId }],
+    ]),
+  } as const;
+};
 
 export const buildAgentTasks = (
   inputs: LoadedInputs,
@@ -701,7 +764,7 @@ export type BuildCurrentProductionPlanInput = Readonly<{
   inputs?: LoadedInputs;
   narration?: Readonly<{
     providerAttemptFingerprint?: string;
-    masteringPolicy?: LoadedInputs["masteredNarration"]["masteringPolicy"];
+    masteringPolicy?: NarrationMasteringPolicy;
     preparationReceipt?: NarrationPreparationReceipt;
   }>;
   baseline?: Awaited<ReturnType<typeof readProductionDiagnosticBaseline>>;
@@ -737,26 +800,6 @@ export const buildCurrentProductionPlan = async ({
       runtimePolicyManifest,
       scope,
     }));
-  const narration =
-    suppliedNarration ??
-    (await inspectNarrationCache({ rootDir, projectId, env, scope }));
-  if (narration.providerAttemptFingerprint === undefined) {
-    throw new Error("Narration preparation identity is unavailable.");
-  }
-  if (
-    narration.preparationReceipt !== undefined &&
-    (narration.preparationReceipt.storyId !== inputs.projectId ||
-      narration.preparationReceipt.generationInputFingerprint !==
-        inputs.sealedNarration.generationInputFingerprint ||
-      narration.preparationReceipt.providerAttemptFingerprint !==
-        narration.providerAttemptFingerprint ||
-      narration.preparationReceipt.sealedNarrationFingerprint !==
-        inputs.sealedNarration.sealedNarrationFingerprint ||
-      serializeCanonicalJson(narration.preparationReceipt.masteringPolicy) !==
-        serializeCanonicalJson(inputs.masteredNarration.masteringPolicy))
-  ) {
-    throw new Error("Narration preparation receipt is stale.");
-  }
   const revision = buildCurrentProductionRevision(inputs);
   const baseline =
     suppliedBaseline ??
@@ -765,18 +808,52 @@ export const buildCurrentProductionPlan = async ({
       runtimeRootDir: scope.shared.runtimeRoot,
       projectId,
     }));
-  const fixed = await buildNarrationTasks({
-    rootDir,
-    inputs,
-    revisionId: revision.revisionId,
-    narration: {
-      providerAttemptFingerprint:
-        narration.providerAttemptFingerprint as Sha256Digest,
-      masteringPolicy:
-        narration.masteringPolicy ?? inputs.masteredNarration.masteringPolicy,
-      sealedNarration: inputs.sealedNarration,
-    },
-  });
+  let fixed;
+  if (isVisualStory(inputs.story)) {
+    fixed = await buildVisualTimingTasks({
+      rootDir,
+      inputs,
+      revisionId: revision.revisionId,
+    });
+  } else {
+    const sealedNarration = inputs.sealedNarration;
+    const masteredNarration = inputs.masteredNarration;
+    if (sealedNarration === null || masteredNarration === null) {
+      throw new Error("Narrated production inputs require sealed audio.");
+    }
+    const narration =
+      suppliedNarration ??
+      (await inspectNarrationCache({ rootDir, projectId, env, scope }));
+    if (narration.providerAttemptFingerprint === undefined) {
+      throw new Error("Narration preparation identity is unavailable.");
+    }
+    if (
+      narration.preparationReceipt !== undefined &&
+      (narration.preparationReceipt.storyId !== inputs.projectId ||
+        narration.preparationReceipt.generationInputFingerprint !==
+          sealedNarration.generationInputFingerprint ||
+        narration.preparationReceipt.providerAttemptFingerprint !==
+          narration.providerAttemptFingerprint ||
+        narration.preparationReceipt.sealedNarrationFingerprint !==
+          sealedNarration.sealedNarrationFingerprint ||
+        serializeCanonicalJson(narration.preparationReceipt.masteringPolicy) !==
+          serializeCanonicalJson(masteredNarration.masteringPolicy))
+    ) {
+      throw new Error("Narration preparation receipt is stale.");
+    }
+    fixed = await buildNarrationTasks({
+      rootDir,
+      inputs,
+      revisionId: revision.revisionId,
+      narration: {
+        providerAttemptFingerprint:
+          narration.providerAttemptFingerprint as Sha256Digest,
+        masteringPolicy:
+          narration.masteringPolicy ?? masteredNarration.masteringPolicy,
+        sealedNarration,
+      },
+    });
+  }
   const builtOwners = buildAgentTasks(inputs, revision.revisionId);
   const ownerNodes: ProducerTaskNode[] = [];
   const ownerInspections = new Map<string, ArtifactInspection>();

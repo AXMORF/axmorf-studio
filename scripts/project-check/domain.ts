@@ -64,16 +64,24 @@ export const createNarrativeCheckItem = ({
   checkId,
   status,
   error,
+  timingAlgorithmId,
 }: {
   readonly checkId: NarrativeAutoCheckId;
-  readonly status: "pass" | "fail";
+  readonly status: NarrativeAutoCheckReportInput["checks"][number]["status"];
   readonly error?: unknown;
+  readonly timingAlgorithmId?: "pcm-cumulative-ceil-v1" | "authored-frames-v1";
 }): NarrativeAutoCheckReportInput["checks"][number] => ({
   checkId,
   status,
-  evidenceIds: CHECK_EVIDENCE[checkId],
+  evidenceIds:
+    timingAlgorithmId === "authored-frames-v1" && checkId === "sealed-narration"
+      ? ["sealed-manifest"]
+      : timingAlgorithmId === "authored-frames-v1" &&
+          checkId === "baseline-evidence"
+        ? []
+        : CHECK_EVIDENCE[checkId],
   failureReasons:
-    status === "pass" ? [] : [mapNarrativeCheckFailure(checkId, error)],
+    status === "fail" ? [mapNarrativeCheckFailure(checkId, error)] : [],
 });
 
 export const orderNarrativeCheckItems = (

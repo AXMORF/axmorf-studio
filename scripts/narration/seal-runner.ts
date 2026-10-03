@@ -107,6 +107,9 @@ export const runNarrationSeal = async ({
   readonly supersedeFingerprint?: string;
   readonly fileOperations?: NarrationSealFileOperations;
 }) => {
+  if (projectSource.narration === null)
+    throw new Error("Visual-only Projects have no narration to seal.");
+  const narration = projectSource.narration;
   const storyId = projectSource.story.storyId;
   const generatedDirectory = join(
     rootDir,
@@ -126,13 +129,13 @@ export const runNarrationSeal = async ({
     async () => {
       const seal = buildNarrationSeal({
         story: projectSource.story,
-        narration: projectSource.narration,
+        narration,
         progress,
         normalizedChunks,
       });
       const timing = generateSemanticTiming({
         story: projectSource.story,
-        narration: projectSource.narration,
+        narration,
         render: projectSource.render,
         sealedNarration: seal.manifest,
       });

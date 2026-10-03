@@ -765,6 +765,7 @@ test("public prepare persists frozen prior Scene inputs through the real planner
     {
       inspect: async () => ready,
       prepareNarration: async () => ({
+        mode: "narrated",
         ...narration,
         semanticTiming: currentInputs.timing,
         masteredNarration,

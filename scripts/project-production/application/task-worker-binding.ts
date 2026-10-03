@@ -291,6 +291,11 @@ export const bindTaskWorker = async ({
         describe: commandFormatter.describeTask(commandInput),
         finalize: commandFormatter.finalizeTask(commandInput),
         check: commandFormatter.checkTask(commandInput),
+        preview:
+          bound.task.taskKind === "scene-owner" &&
+          transport === "shared-workspace"
+            ? commandFormatter.previewTask({ ...commandInput, transport })
+            : null,
         commit: commandFormatter.commitTask(commandInput),
         taskFailure: commandFormatter.failTask({
           ...commandInput,

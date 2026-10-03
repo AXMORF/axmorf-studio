@@ -107,10 +107,7 @@ const SilentSceneImplementationSchema = z.discriminatedUnion("kind", [
       templateFingerprint: Sha256DigestSchema,
       instanceFingerprint: Sha256DigestSchema,
       rendererSourceFingerprint: Sha256DigestSchema,
-      soundCues: z
-        .array(TemplateSceneSoundCueSchema)
-        .max(16)
-        .readonly(),
+      soundCues: z.array(TemplateSceneSoundCueSchema).max(16).readonly(),
     })
     .strict()
     .readonly(),
@@ -235,8 +232,19 @@ const SilentStoryBeatSchema = z
   .strict()
   .readonly();
 
+export const VisualStoryBeatSchema = z
+  .object({
+    kind: z.literal("visual-scene"),
+    meaningId: MeaningIdSchema,
+    narrativePurpose: NonEmptyTextSchema,
+    durationInFrames: PositiveIntegerSchema,
+  })
+  .strict()
+  .readonly();
+
 export const StoryBeatSchema = z.discriminatedUnion("kind", [
   NarratedStoryBeatSchema,
+  VisualStoryBeatSchema,
   SilentStoryBeatSchema,
 ]);
 
@@ -252,6 +260,7 @@ export const StorySpecSchema = z
     const meaningIds = new Set<string>();
     const chunkIds = new Set<string>();
     let narratedBeatCount = 0;
+    let visualBeatCount = 0;
 
     story.beats.forEach((beat, beatIndex) => {
       if (meaningIds.has(beat.meaningId)) {
@@ -267,11 +276,15 @@ export const StorySpecSchema = z
         if (beatIndex !== 0 && beatIndex !== story.beats.length - 1) {
           context.addIssue({
             code: "custom",
-            message:
-              "Silent Scenes must stay at a Story boundary.",
+            message: "Silent Scenes must stay at a Story boundary.",
             path: ["beats", beatIndex],
           });
         }
+        return;
+      }
+
+      if (beat.kind === "visual-scene") {
+        visualBeatCount += 1;
         return;
       }
 
@@ -287,10 +300,19 @@ export const StorySpecSchema = z
         chunkIds.add(chunk.chunkId);
       });
     });
-    if (narratedBeatCount === 0) {
+    if (narratedBeatCount + visualBeatCount === 0) {
       context.addIssue({
         code: "custom",
-        message: "StorySpec requires at least one narrated content Scene.",
+        message:
+          "StorySpec requires at least one narrated or visual content Scene.",
+        path: ["beats"],
+      });
+    }
+    if (narratedBeatCount > 0 && visualBeatCount > 0) {
+      context.addIssue({
+        code: "custom",
+        message:
+          "Narrated and visual content Scenes cannot be mixed in one Story; choose one timing authority.",
         path: ["beats"],
       });
     }
@@ -305,6 +327,10 @@ export type SilentSceneImplementation = z.infer<
 >;
 export type StoryBeat = z.infer<typeof StoryBeatSchema>;
 export type StorySpec = z.infer<typeof StorySpecSchema>;
+export type VisualStoryBeat = z.infer<typeof VisualStoryBeatSchema>;
+
+export const isVisualStory = (story: Pick<StorySpec, "beats">): boolean =>
+  story.beats.some((beat) => beat.kind === "visual-scene");
 
 export const flattenTtsChunks = (story: StorySpec) =>
   story.beats.flatMap((beat) =>

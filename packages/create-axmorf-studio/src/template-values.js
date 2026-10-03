@@ -70,6 +70,7 @@ const SCRIPTS = Object.freeze({
   "project:task:describe": "axmorf project task describe",
   "project:task:finalize": "axmorf project task finalize",
   "project:task:check": "axmorf project task check",
+  "project:task:preview": "axmorf project task preview",
   "project:task:commit": "axmorf project task commit",
   "project:task:fail": "axmorf project task fail",
   "project:task:file-read": "axmorf project task file-read",

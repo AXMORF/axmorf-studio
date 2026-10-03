@@ -106,8 +106,12 @@ template；create 只把所选 template 实际使用的音频复制到 `public/p
 Project-owned resource IDs。共享路径冲突不会覆盖，未被 template 使用的共享视觉素材继续作为 Catalog capability
 供新 Scene authoring 选择；既有 Project 不自动迁移。
 
-StoryBeat 明确区分 narrated-scene 与 silent-scene。narrated beat 的 `ttsChunks` 是 Agent-authored atomic
-units；silent beat 只允许在首尾，使用固定 frame/template/sound，不创建 TTS、CaptionCue 或 sealed segment。
+StoryBeat 区分 narrated-scene、visual-scene 与 silent-scene。正文选择纯 narrated 或纯 visual，暂不混排。
+narrated beat 的 `ttsChunks` 是 Agent-authored atomic units；visual beat 的 `durationInFrames` 是明确的
+正整数帧预算，使用 `authored-frames-v1` 时序，旁白 source、sealed/mastered manifest 为 JSON null，
+segments/captions 为空且 preparation 零 provider。silent beat 只允许在首尾，使用固定
+frame/template/sound，不创建 TTS、CaptionCue 或 sealed segment。无旁白并不删除一个 narrated 项目的音轨；
+Scene 的对象状态、短文案、事件锚点与阅读停留共同表达含义，readability 回收字幕预留区。
 外部媒体必须先经 `project:asset:import` 本地化为 Project-owned、runtime-approved asset，只有 manifest ID
 和校验后的 bytes fingerprint 进入 Revision/task inputs。
 
@@ -126,7 +130,7 @@ npm run project:revise -- --project <storyId> --input <repository-relative-json>
 
 context 在返回 editable authoring 前同时复验 current `baseRevisionId` 与 exact-four-file
 `baseDeliveryBuildId`。revision 无 `--schema`，validate 只接受 `--input`；先核 installed public `ProjectRevisionInputSchema`。
-strict patch 只开放 authored sections，并保持 narrated meaningId/order 与 boundary Scenes。局部 Scene 排版只改完整
+strict patch 只开放 authored sections，并保持正文 meaningId/order 与 boundary Scenes。局部 Scene 排版只改完整
 `patch.scenes` 列表中的目标 Scene brief，不顺手改全局 VisualStyle/GlobalVisual/Story/TTS；没有 Cover-only patch API。
 candidateId 由 canonical input 确定；候选在 `.producer-revisions/<storyId>/<candidateId>/` 隔离 source/public/
 narration/work/attempt/out/delivery。相同完整 input/base bytes 只读 current，stale base、未知文件、symlink、special
@@ -388,6 +392,5 @@ failure 或 validator/store/materialization/delivery fixed failure 都立即结�
 
 Browser preparation, real-render readiness, bounded media processes and explicit interrupted-attempt recovery are described in
 [Workspace reliability](guides/WORKSPACE_RELIABILITY.md). Process ownership and logs are diagnostic-only; read-only inspection remains zero-write.
-
 
 `npm run project:scene:review -- --project <storyId> --motion` exports whole Scenes, boundary clips and available action windows, including cause/result/reading-hold samples. `revision-feedback.json` scopes observed defects to meaningId/actionId/frame ranges; it is diagnostic feedback, not accepted revision input or approval. Read `project:revise:context`, then use the strict isolated revision workflow; preserve sealed narration and unaffected assets. Source-plan annotations are explicitly current-source references, not attested statements about the delivered animation. Watch actual clips and compare their visible causal actions; numeric motion, static stills and generated evidence never certify aesthetics or listening. Formal release checks remain unchanged.

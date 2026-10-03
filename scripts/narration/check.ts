@@ -82,6 +82,10 @@ export const checkM2NarrationArtifacts = async ({
   readonly rootDir: string;
   readonly projectSource: NarrativeProjectSource;
 }): Promise<M2NarrationCheckResult> => {
+  if (projectSource.narration === null)
+    throw new Error(
+      "Visual-only Projects have no PCM narration; check their authored timeline with project:check.",
+    );
   const manifest = await readManifest(rootDir, projectSource.story.storyId);
   const timing = await readTiming(rootDir, projectSource.story.storyId);
 

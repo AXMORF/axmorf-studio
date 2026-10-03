@@ -145,7 +145,9 @@ export const inspectProjectProduction = async (
       tasks: [],
       nextAction:
         readiness.sourceState === "configured-authoring"
-          ? "prepare-narration"
+          ? readiness.durationBudget?.measurement === "authored-semantic-timing"
+            ? "prepare-production"
+            : "prepare-narration"
           : "complete-authoring",
     });
   }

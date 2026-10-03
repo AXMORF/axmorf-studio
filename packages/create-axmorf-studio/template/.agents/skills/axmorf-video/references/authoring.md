@@ -30,15 +30,16 @@ caption budget and licensing are still checked by create. Do not read package in
   through 120; locale is canonical BCP 47. Recalculate duration budget if fps changes. Before production, compare
   the successful create response `render` with the request; stop before provider calls on a mismatch.
 - Use lowercase hyphenated `storyId`. Use registered `styleProfileId` values (without the `style.` Catalog ID prefix).
-- Each narrated beat owns one `meaningId`, one Scene brief and one publishing chapter in the same order.
-- Write each narrated Scene as a visible causal sequence: identify the subject and its initial state, the action that changes it,
+- Each content beat owns one `meaningId`, one Scene brief and one publishing chapter in the same order.
+- For a no-narration request, adapt the complete `visualFirst` field example. A `visual-scene` uses `meaningId`, `narrativePurpose` and positive integer `durationInFrames`, with no TTS chunks. Pure visual Story timing is authored frames; narrator and sealed/mastered records are null, captions/segments empty and preparation zero provider. Keep short on-screen copy readable, show causal state changes and budget reading holds; do not strip audio from a narrated Project. One Story currently uses one content mode.
+- Write each content Scene as a visible causal sequence: identify the subject and its initial state, the action that changes it,
   and the resulting state the viewer should understand. Put concrete staging and focal hierarchy in `compositionIntent`, and
   describe the timed visible action in `motionIntent`. Tie the change to the relevant `ttsChunk`; keep the visual subject consistent
   with `visualStyle` and `continuityBrief`. For longer narration, plan distinct framing or visible state changes at semantic
   turns, then hold the result briefly; camera drift alone does not add information. Keep text and chart labels readable after
   camera scaling, use theme roles for every foreground, and reserve the caption region. A generic diagram or decorative movement is not a substitute for that sequence.
-- Before create, Root selects continuous seams: add `outgoingHandoff: { "subject": "the same subject and meaning across the boundary" }` to the preceding narrated Scene brief. Both isolated tasks receive the same immutable `scene.taskInput.continuity.handoffs` ID, subject and outgoing kind. Leave the field absent for a motivated cut; fixed template boundaries cannot promise continuous motion. Tracked v1 continuous seams also need a complete Root-authored `trackedState` boundary pose. Intent v2 leaves geometry and implementation free. Do not invent handoff IDs in workers or coordinate by reading another workspace.
-- New narrated Projects freeze `scene-content-motion-v1`: use intent-first motionPlan v2 for subjects, explanatory actions, sealed narration anchors and reading holds. Custom frame-driven SVG, Canvas and supported 3D are allowed. Tracked v1 and `ProducerMotionObject` are optional; their limited DOM dependency probe checks declared tracks without proving visibility or aesthetics. Intent-only and unsupported results require actual temporal review. Match frozen handoffs, explain deliberate holds/cuts and inspect real action/boundary previews; no camera quota or fixed metaphor. Fixed `scene-template` tasks retain canonical validation and are exempt from Agent content-motion checks.
+- Before create, Root selects continuous seams: add `outgoingHandoff: { "subject": "the same subject and meaning across the boundary" }` to the preceding content Scene brief. Both isolated tasks receive the same immutable `scene.taskInput.continuity.handoffs` ID, subject and outgoing kind. Leave the field absent for a motivated cut; fixed template boundaries cannot promise continuous motion. Tracked v1 continuous seams also need a complete Root-authored `trackedState` boundary pose. Intent v2 leaves geometry and implementation free. Do not invent handoff IDs in workers or coordinate by reading another workspace.
+- New content Projects freeze `scene-content-motion-v1`: use intent-first motionPlan v2 for subjects, explanatory actions, sealed narration or authored visual event anchors and reading holds. Custom frame-driven SVG, Canvas and supported 3D are allowed. Tracked v1 and `ProducerMotionObject` are optional; their limited DOM dependency probe checks declared tracks without proving visibility or aesthetics. Intent-only and unsupported results require actual temporal review. Match frozen handoffs, explain deliberate holds/cuts and inspect real action/boundary previews; no camera quota or fixed metaphor. Fixed `scene-template` tasks retain canonical validation and are exempt from Agent content-motion checks.
 - `ttsChunks` contains objects with `chunkId` and `ttsText`, not strings. Keep each within 72 caption display half-units; shorten or
   split by natural meaning when needed. Audio sample measurements determine actual duration.
 - The duration brief includes inherited intro/outro Scenes. Report their selection before create; do not silently disable them to
@@ -93,7 +94,7 @@ const input = ProjectRevisionInputSchema.parse({
     scenes: revisionContext.editable.scenes.map((scene) =>
       scene.meaningId === targetMeaningId
         ? { ...scene, compositionIntent: revisedCompositionIntent }
-        : scene
+        : scene,
     ),
   },
 });

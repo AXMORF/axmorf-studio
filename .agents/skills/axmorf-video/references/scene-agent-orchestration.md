@@ -16,7 +16,7 @@ scene.priorSource 冻结源码/声明；比新旧 brief 只改 delta，其余保
 
 sound-plan.json 限预制 sound-effect，按 description 卡点；完整音效须在 Scene 内，Renderer 不重复播放。禁止合成/下载音频。
 
-motionPlan v2 写目的/旁白时机；unsupported 须时序审查。
+motionPlan v2 写目的/旁白或 visual authored event 时机；unsupported 须时序审查。
 
 originalityBaseline 冻结。
 

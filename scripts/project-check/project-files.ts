@@ -104,15 +104,15 @@ export const checksumFile = async (path: string): Promise<Sha256Digest> =>
 
 export const loadProjectCheckSealedNarration = async (
   path: string,
-): Promise<SealedNarrationManifest> =>
-  SealedNarrationManifestSchema.parse(
+): Promise<SealedNarrationManifest | null> =>
+  SealedNarrationManifestSchema.nullable().parse(
     await readJson(path, "sealed-narration.generated.json"),
   );
 
 export const loadProjectCheckMasteredNarration = async (
   path: string,
-): Promise<MasteredNarrationManifest> =>
-  MasteredNarrationManifestSchema.parse(
+): Promise<MasteredNarrationManifest | null> =>
+  MasteredNarrationManifestSchema.nullable().parse(
     await readJson(path, "mastered-narration.generated.json"),
   );
 
