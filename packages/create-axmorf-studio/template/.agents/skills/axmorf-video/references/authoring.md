@@ -6,7 +6,7 @@ Run the read-only command first:
 npm run project:create:context -- --project <storyId>
 ```
 
-It returns `example`, `fieldExamples`, `durationBudget`, current `styleProfiles`, capability API guides, licensed `soundResources`, redacted `soundDefaults`, publishing collections, render defaults and inherited boundary templates. Adapt
+It returns `example`, `fieldExamples`, `durationBudget`, current `styleProfiles`, capability API guides, licensed `soundResources`, redacted `soundDefaults`, `backgroundMusic` candidates/status, publishing collections, render defaults and inherited boundary templates. Adapt
 `example` to the user's brief and write only that object to `inputs/<storyId>.json`. Do not pass the enclosing context response to
 create. Never start with `{}` and discover fields by repeatedly invoking create. For exact field shapes:
 
@@ -59,7 +59,7 @@ caption budget and licensing are still checked by create. Do not read package in
 - Narration provider, voice and publishing defaults come from settings. Context deliberately omits connections and credentials.
 - Source assets must have Workspace ownership and validated manifests. Do not download random files to bypass asset admission.
 - For motion sound effects, query `npm run catalog:query -- --kind asset --tag motion-sync`. The bundled AXMORF effects are prebuilt audio, not a generation task. Put selected IDs in both resources.allowedResourceIds and the Scene candidateResourceIds; describe their visible action in soundIntent. At execution, select only availableResources and follow the descriptor's onset or swell-center timing hint in sound-plan.json. SoundDesignTrack owns playback; do not also mount the same audio in the Renderer.
-- `soundResources` is current licensed Catalog discovery; `soundDefaults` only reports BGM configuration and volume. Neither turns a brief into an enabled soundtrack. Configured local BGM is copied into Project ownership at create and covers content Scenes. Prefer an approved original loop WAV over a faded preview; user music is separate from bundled shared media. Keep task execution speed independent of audio speed, pitch and gain, and listen to the full mix.
+- Choose an approved loop from `backgroundMusic.candidates` by topic/energy/mood; set create input `backgroundMusic:{mode:"selected",resourceId,volume?}`. Omission inherits auto/file/null settings (new Workspaces default auto); auto matches the current brief. Explicit `backgroundMusic:null` disables all scores, retaining narration/effects. Report create's actual selection or unavailable state before preparation. A selected score is frozen Project-local and loops across the entire composition, including unvoiced boundaries and lead/tail; Scene effects stay independent and second Scene scores are suppressed. Catalog discovery alone never proves enabled BGM. Prefer approved loop masters over previews; private user music is separate from bundled media. Review the complete mix; task execution speed does not control music playback.
 
 Once the input is complete, execute its returned `nextCommand`. A successful `project-created` response is authoring only.
 For existing authoring, use `project:revise:context`, `project:revise:validate`, and `project:revise`; never overwrite the live Project.
