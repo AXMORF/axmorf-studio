@@ -3246,25 +3246,54 @@ const readOnlyDiagnostic = (call: { name: string; arguments: string }) => {
   );
   const bindings = new Map<
     string,
-    { initializer?: ts.Expression; projected: boolean }
+    {
+      initializer?: ts.Expression;
+      projected: boolean;
+      parameterScopes?: Set<ts.ArrowFunction>;
+    }
   >();
   let valid = true;
   const bind = (
     name: ts.BindingName,
     initializer: ts.Expression | undefined,
     projected = false,
+    parameterScope?: ts.ArrowFunction,
   ) => {
     if (ts.isIdentifier(name)) {
-      if (bindings.has(name.text)) valid = false;
-      bindings.set(name.text, { initializer, projected });
+      const prior = bindings.get(name.text);
+      if (
+        prior?.parameterScopes &&
+        parameterScope &&
+        !prior.parameterScopes.has(parameterScope) &&
+        prior.initializer === undefined &&
+        initializer === undefined &&
+        prior.projected === projected
+      ) {
+        prior.parameterScopes.add(parameterScope);
+        return;
+      }
+      if (prior) valid = false;
+      bindings.set(name.text, {
+        initializer,
+        projected,
+        ...(parameterScope ? { parameterScopes: new Set([parameterScope]) } : {}),
+      });
     } else {
       for (const element of name.elements)
-        if (ts.isBindingElement(element)) bind(element.name, initializer, true);
+        if (ts.isBindingElement(element))
+          bind(element.name, initializer, true, parameterScope);
     }
   };
   const gather = (node: ts.Node) => {
     if (ts.isVariableDeclaration(node) || ts.isParameter(node))
-      bind(node.name, node.initializer);
+      bind(
+        node.name,
+        node.initializer,
+        false,
+        ts.isParameter(node) && ts.isArrowFunction(node.parent)
+          ? node.parent
+          : undefined,
+      );
     ts.forEachChild(node, gather);
   };
   gather(source);

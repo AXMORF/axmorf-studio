@@ -718,6 +718,12 @@ const c=JSON.parse(r.output.slice(r.output.indexOf('{"status"')));
 store("createContext",c);text({status:c.status});`,
     ],
     [
+      "separate data-map callbacks keep their repeated parameter names local",
+      `const r=load("createContextResult");
+const c=JSON.parse(r.output.slice(r.output.indexOf('{"status"')));
+text({sounds:c.soundResources.map(x=>({id:x.descriptor.id})),capabilities:c.capabilities.map(x=>({id:x.descriptor.id}))});`,
+    ],
+    [
       "stored output chunks are joined and sliced before JSON parsing",
       `const chunks=load("prepareChunks");
 const all=chunks.map(x=>x.output).join("");
