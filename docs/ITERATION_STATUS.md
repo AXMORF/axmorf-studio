@@ -1,6 +1,6 @@
 # Iteration Status
 
-## 视觉叙事开发分支（2026-10-03，未发布、正式样片已产出、衔接修订中）
+## 视觉叙事开发分支（2026-10-04，未发布，真实样片与重复性已核验）
 
 在已发布 0.1.16 的当前源码上开发 `visual-scene` 无旁白正文：authored frames 时序、明确 null 旁白、
 零 provider preparation、same-mode 隔离 revision 与既有四文件验证。新增绑定 Scene 的提交前低成本
@@ -9,9 +9,21 @@ artifacts 一次失效，不改写 current Delivery；旧 narrated Story/create/
 已提交版本完整 check 1143/1143 通过，真实 production 还暴露并修复 EOF decoder 和无旁白
 ScenePackage anchor 两处 fixed-flow 缺陷。正式四文件已产出：同输入/同旁白的 Attention 旧新两片、
 50秒零 TTS 站点候选，以及带旁白站点旧版。均通过 public final check；前三片已取得真实 Library ID。
-真实相邻帧仍发现 Q 形状与站点 UI 姿态跳变。正在以可选 frozen SVG visual 和独立实际 DOM 消费检查
-修订，构建后的 focused 49/49 通过。包含实际 SVG 消费与有效字号检查的全量 check 1176/1176
-通过，typecheck/lint/build/host checks 退出0；正式修复版和带旁白站点新版本配对待生成。
+真实相邻帧曾发现 Q 形状与站点 UI 姿态跳变，已用可选 frozen SVG visual 和独立实际 DOM 消费检查
+修订；构建后的 focused 49/49 与全量 check 1176/1176 通过。正式 r6 带旁白站点与 r7 无旁白站点
+已完成，公开 final 各 7/7；分别重渲染全部 1343/1500 帧，解码 RGB 与 PCM 一致。这些只证明对应
+样本的技术重复性与共享主体衔接，用户仍指出 r7 景别小、颜色与节奏弱，不能当作审美达标。
+
+本轮在现有 create context 投影公开、许可已核验的音效/音乐与 BGM 配置状态；Scene 合同明确大字、
+景别与语义粒子自由编排、起音/声势中心卡点，给出共享 SVG 的具体 handoff 参数，保留既有门禁。
+全新安装 Workspace 经四路 native probe/subagents 正式生成 35 秒品牌样片，先完成 10 秒开头预览
+抽查再完成后段，最终四文件和公开 final 7/7 通过；新片与两封面已保存到 Library，旧片未覆盖。
+本轮 focused 22/22 与实际安装/渲染通过；完整测试首次 1173/1177，4 个启动时序 fixture 失败，
+其所在文件原样单并发复验 27/27，通过时未改 300ms/2s 时限；首轮失败不改签为 Green。
+补跑被测试退出截断的 typecheck/lint、文档/资源检查、config/build 与宿主 gate 均退出0。
+新片独立重渲染全部1050帧的解码 RGB 与 PCM 相同，MP4 文件 bytes 不同。
+首尾仍继承 2+8 秒固定模板，音乐主观混音与
+完整连续观看/听审未验证。见[视听导演与样片证据](evidence/2026-10-04-audiovisual-directing.md)。
 这不认证审美达标、全片连续观看或听审；截图、计划声明与技术完成不能替代感知验收。
 见[工程检查点](evidence/2026-10-03-visual-narrative-development.md)。
 见[视觉叙事工作流](guides/VISUAL_NARRATIVE_QUALITY.md)。当前 npm latest 仍是下述已发布 0.1.16。

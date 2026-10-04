@@ -48,9 +48,31 @@ export const inspectProjectCreateContext = async ({
       descriptor.status === "approved" &&
       descriptor.allowedUse === "runtime-approved",
   );
-  const exampleResources = capabilities
-    .filter(({ descriptor }) => descriptor.id === "capability.camera")
+  const soundResources = catalog.entries.filter(
+    ({ descriptor }) =>
+      descriptor.kind === "asset" &&
+      descriptor.assetKind === "audio" &&
+      descriptor.status === "approved" &&
+      descriptor.allowedUse === "runtime-approved" &&
+      descriptor.license.verificationStatus === "verified" &&
+      (descriptor.mediaRole === "sound-effect" ||
+        descriptor.mediaRole === "background-music"),
+  );
+  const exampleSoundResources = soundResources
+    .filter(({ descriptor }) =>
+      [
+        "asset.axmorf.sfx.whoosh-sweep-v1",
+        "asset.axmorf.sfx.snap-lock-v1",
+        "asset.axmorf.sfx.confirm-chime-v1",
+      ].includes(descriptor.id),
+    )
     .map(({ descriptor }) => descriptor.id);
+  const exampleResources = [
+    ...capabilities
+      .filter(({ descriptor }) => descriptor.id === "capability.camera")
+      .map(({ descriptor }) => descriptor.id),
+    ...exampleSoundResources,
+  ].sort();
   const style =
     styleProfiles.find(
       ({ styleProfileId }) => styleProfileId === "editorial-tech",
@@ -257,9 +279,11 @@ export const inspectProjectCreateContext = async ({
         lighting: "平面清晰光照，层次只服务于证据与判断的关系",
         texture: "清晰边缘与细线连接",
         compositionGrammar:
-          "保持判断节点的空间位置，让证据沿明确方向进入并改变它",
-        motionLanguage: "先形成暂定关系，再对照证据、改写关系并停留在结果",
-        typography: "少量短标签帮助识别状态，不用整段文字代替动作",
+          "先看线索全貌，再放大判断成为主角；证据到来时以对照关系接管画面，保留同一主体",
+        motionLanguage:
+          "线索聚合成判断，再由证据拆开、对照与重组；动作有快慢，读完结果后继续推进",
+        typography:
+          "短主张可以大幅占据画面；状态标签次之，文字与图形共同表达证据对照",
       },
       continuityRules: ["两段承接同一判断节点，证据进入后才改变其状态。"],
       forbiddenTreatments: ["不要用无关闪光、粒子或整屏文案代替证据对照。"],
@@ -270,10 +294,11 @@ export const inspectProjectCreateContext = async ({
         visualIntent:
           "少量线索聚到一个判断节点，节点形成暂定结果，但证据入口仍为空。",
         compositionIntent:
-          "让线索与判断之间的连接清楚可见；结尾停在节点和空缺的证据入口。",
+          "从线索全貌切近到暂定判断，让判断放大成为主角；证据入口随后进入焦点，不把整段锁在一个小节点上。",
         motionIntent:
-          "线索依次进入、连接聚合，暂定结果显现；留出识别当前状态的时间。",
-        soundIntent: "仅在确有已授权本地音效或背景音乐时使用。",
+          "线索沿可追踪路径聚合成暂定判断；短暂读取后，判断向证据入口移动，为下一步对照蓄势。粒子可表示这些线索，不作无关填充。",
+        soundIntent:
+          "从 soundResources 中选已批准且在本 Scene allowlist 的音效：聚合扫动对齐声势中心，判断落位对齐起音；只强调有意义的事件，未配置的 Project BGM 不会由 brief 自动启用。",
         continuityBrief:
           "同一判断节点、线索连接和空缺的证据入口延续到下一 Scene。",
         outgoingHandoff: { subject: "同一暂定判断节点、线索连接及其证据入口" },
@@ -285,10 +310,11 @@ export const inspectProjectCreateContext = async ({
         visualIntent:
           "外部证据到达同一判断节点，与原有线索对照，冲突的连接被修正。",
         compositionIntent:
-          "从上一 Scene 的节点与入口承接，突出证据对照过程，最后留下可读的修正结果。",
+          "承接同一判断，把证据与原线索放大到可读的近景；修正结果成为大字主张，再退回全貌看见关系已改变。",
         motionIntent:
-          "证据进入并与线索逐项比对；冲突被标出、错误连接被改写，结果稳定停留。",
-        soundIntent: "仅在确有已授权本地音效或背景音乐时使用。",
+          "证据进入并与线索比对，冲突的连接断开后重组；结果出现时短暂减速供阅读，主体仍可持续微动，不以长冻结填满时长。",
+        soundIntent:
+          "用已批准的落位或确认音效强调关系重组完成；startFrame 按音效起音或声势中心偏移对齐 syncAnchor，降低音量让主张清楚。Project BGM 由配置和顶层统一播放。",
         continuityBrief:
           "保留原有节点及其位置，只让证据造成的关系变化成为视觉焦点。",
         candidateResourceIds: exampleResources,
@@ -323,6 +349,11 @@ export const inspectProjectCreateContext = async ({
     })),
     styleProfiles,
     capabilities,
+    soundResources,
+    soundDefaults: {
+      backgroundMusicConfigured: config.audioDefaults?.globalBgm != null,
+      backgroundMusicVolume: config.audioDefaults?.globalBgm?.volume ?? null,
+    },
     example,
     fieldExamples: {
       render: { ...example.render, width: 1920, height: 1080 },
@@ -341,6 +372,8 @@ export const inspectProjectCreateContext = async ({
       "Keep Story content beats, scenes and publishing chapters in the same meaningId order. Each narrated ttsChunk is an object with chunkId and ttsText; each visual Scene authors durationInFrames at the resolved render fps.",
       "For each narrated Scene, turn narrativePurpose into a visible subject, an observable change and a resulting state. Make the scene's compositionIntent and motionIntent describe what the viewer sees at the relevant narration cue; avoid generic diagrams, decorative motion and text that merely repeats the narration.",
       "For each visual Scene, choose the visible mechanism that explains narrativePurpose: what the subject does, what causes a change, and which resulting state the viewer can understand. Author enough frames for anticipation, the meaningful change and reading the result; reuse the same subject across related Scenes through outgoingHandoff. Choose SVG, Canvas, spatial geometry or approved media according to the idea; the example's evidence-flow subject is illustrative, not a template for other topics.",
+      "Plan the attention hierarchy and rhythm in the existing compositionIntent/motionIntent fields: what fills the frame, what becomes a close-up, and when the next fact takes over. A short key claim may be a large visual subject. Purposeful particles, trajectories, masks, morphs and color masses may represent the idea or carry its transition; choose them for the subject rather than applying an effect recipe to every topic. Reading holds should match text complexity, not consume the remaining Scene budget.",
+      "Use soundResources as current approved audio choices, not a requirement to add sound everywhere. Put selected sound-effect IDs in the resource pool and relevant Scene candidateResourceIds; align their documented onset or swell to visible event anchors. Project background music is enabled by audioDefaults.globalBgm in the Workspace configuration and localized by project:create; naming music in a brief or allowlist does not enable it. soundDefaults reports only whether music is configured and its volume, never its private source path. Review music, voice when used, and effects together in the final video; an isolated Scene preview excludes Project BGM.",
       "Visual-first duration is the sum of authored content frames, inherited boundary frames and render lead/tail divided by the chosen fps. Recalculate durationInFrames when the target or fps changes; the narration durationBudget is not a measurement of visual content.",
       "The JSON Schema describes shape; project:create also validates cross-field semantics, caption budget and current Catalog choices.",
     ],

@@ -43,6 +43,11 @@ common state; do not replace the drawing for a single boundary frame or hide a j
 a crossfade. Only the shared subject needs this representation. Other SVG, Canvas, 3D
 and within-Scene composition remain authored choices.
 
+Use `<SceneContinuityVisual handoff={continuity.incoming}/>` or the continuous outgoing
+handoff. At the seam it must have neutral viewport ancestors: even a visually identity
+transform or an overflow-hidden wrapper conflicts with that check. A Fragment root can
+keep the shared drawing independent from the Scene's animated camera and typography.
+
 For these explicit visual handoffs, task checks compare the actual first/last rendered
 SVG subtree with the frozen drawing, check neutral viewport ancestors, and perturb the
 input to detect a copied or ignored drawing. Contradictory supported DOM output blocks
@@ -61,6 +66,27 @@ runtime helper. It resolves anticipation, change and reading hold from the autho
 and event anchor. End frames are exclusive; the last changing frame reaches the result. It
 uses only the requested frame and plans, so seeking backward gives the same state. Geometry,
 easing, follow-through and camera remain the renderer's choices.
+
+## Direct attention and sound
+
+Plan framing and hierarchy in the existing compositionIntent and motionIntent: what fills
+the viewport, what becomes a close-up, and what meaningful event takes over next. Short
+claims can be large visual actors. Geometry, particles, masks or morphs can carry the subject's
+aggregation and transformation; choose them for the idea rather than repeating an effect
+recipe. Alternate action with the time needed to read, instead of filling a Scene with a
+long static result.
+
+The create context exposes `soundResources`: current approved, runtime-approved audio with
+verified licenses, plus `soundDefaults` configuration state and volume without private paths.
+Select effect IDs into the Project resource pool and the relevant Scene allowlist. Use each
+descriptor's onset or swell-center guidance to offset startFrame against the visible anchor;
+the entire media duration must fit the Scene. Sparse accents support the motion and voice.
+
+Project music requires `audioDefaults.globalBgm` configuration and create-time localization.
+Naming music in a brief or resource allowlist does not enable it. Composition owns that
+track; Scene renderers must not duplicate it. An isolated Scene preview excludes Project
+BGM, so review the final music, effects and narration when used together. Technical audio
+levels and successful decode do not establish the subjective mix.
 
 ## Render while the owning task can still change
 

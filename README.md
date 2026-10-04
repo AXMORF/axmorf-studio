@@ -30,6 +30,8 @@ validators 判断一次生产是否真正完成。
 在提交前实际渲染和定向修正；最终的跨 Scene 衔接、音乐混音和完整审片仍需交付后 review。
 需要同一主体跨 Scene 保持外观时，可冻结自由 SVG handoff，由两侧消费同一绘制状态；
 Scene 内的因果动作、其他 SVG/Canvas/3D 仍自由创作。实际消费检查不代替连续播放审阅。
+create context 同时提供已核验许可的 `soundResources` 和不含私有路径的音乐配置状态。
+Scene 选择音效并对齐实际起音或声势中心；Project BGM 仍由配置启用并由顶层统一播放。
 这些改进尚未发布到 npm，当前公开版本仍为 0.1.16。
 
 ## 把这段提示词交给你的 Agent

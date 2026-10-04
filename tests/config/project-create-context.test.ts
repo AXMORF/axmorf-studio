@@ -13,7 +13,11 @@ import { runProjectCreateCli } from "../../scripts/projects/create";
 import {
   prepareProjectCreateFixture,
   projectCreateRuntimeResources,
+  validProjectCreateProducerConfig,
 } from "../fixtures/project-create";
+import { writeProducerConfig } from "../../scripts/config/producer-config";
+import { generateResourceCatalog } from "../../scripts/catalog/generate";
+import { readGeneratedResourceCatalog } from "../../scripts/catalog/project-files";
 
 test("create context supplies a usable example from current public choices without private data or writes", async (t) => {
   const fixture = await prepareProjectCreateFixture();
@@ -270,5 +274,96 @@ test("create context includes a complete visual-first example with authored fram
   assert.match(result.guidance.join(" "), /SVG, Canvas, spatial geometry/u);
   assert.match(result.guidance.join(" "), /illustrative, not a template/u);
   assert.deepEqual(await readFile(fixture.configPath), configBefore);
+  assert.deepEqual(await readdir(join(fixture.rootDir, "src/projects")), []);
+});
+
+test("create context exposes usable public sound choices and music readiness without disclosing configured paths", async (t) => {
+  const fixture = await prepareProjectCreateFixture();
+  t.after(() => rm(fixture.rootDir, { recursive: true, force: true }));
+  const catalog = await readGeneratedResourceCatalog(fixture.rootDir);
+  const { assets } = JSON.parse(
+    await readFile(
+      new URL(
+        "../../packages/studio/src/remotion/catalog/assets.manifest.json",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+  );
+  await generateResourceCatalog({
+    rootDir: fixture.rootDir,
+    mode: "write",
+    loadDescriptors: async () => [
+      ...catalog.entries.map(({ descriptor }) => descriptor),
+      ...assets,
+    ],
+  });
+  const inspect = () =>
+    inspectProjectCreateContext({
+      rootDir: fixture.rootDir,
+      storyId: "sound-directed-video",
+      env: { RSP_PRODUCER_CONFIG: fixture.configPath },
+    });
+  const unconfigured = await inspect();
+  assert.deepEqual(unconfigured.soundDefaults, {
+    backgroundMusicConfigured: false,
+    backgroundMusicVolume: null,
+  });
+  const snap = unconfigured.soundResources.find(
+    ({ descriptor }) => descriptor.id === "asset.axmorf.sfx.snap-lock-v1",
+  );
+  assert.ok(snap);
+  assert.match(snap.descriptor.description, /onset/u);
+  assert.ok(
+    unconfigured.fieldExamples.visualFirst.resources.allowedResourceIds.includes(
+      snap.descriptor.id,
+    ),
+  );
+  assert.ok(
+    unconfigured.fieldExamples.visualFirst.scenes.every(
+      ({ candidateResourceIds }) =>
+        candidateResourceIds.includes(snap.descriptor.id),
+    ),
+  );
+  assert.ok(
+    unconfigured.soundResources.some(
+      ({ descriptor }) =>
+        descriptor.kind === "asset" &&
+        descriptor.mediaRole === "background-music",
+    ),
+  );
+  assert.ok(
+    unconfigured.soundResources.every(
+      ({ descriptor }) =>
+        descriptor.kind === "asset" &&
+        descriptor.assetKind === "audio" &&
+        descriptor.status === "approved" &&
+        descriptor.allowedUse === "runtime-approved" &&
+        descriptor.license.verificationStatus === "verified",
+    ),
+  );
+  await writeProducerConfig({
+    configPath: fixture.configPath,
+    value: {
+      ...validProjectCreateProducerConfig,
+      audioDefaults: {
+        globalBgm: {
+          sourcePath: "private/undisclosed-music.wav",
+          volume: 0.18,
+        },
+      },
+    },
+  });
+  const before = await readFile(fixture.configPath);
+  const configured = await inspect();
+  assert.deepEqual(configured.soundDefaults, {
+    backgroundMusicConfigured: true,
+    backgroundMusicVolume: 0.18,
+  });
+  assert.doesNotMatch(
+    JSON.stringify(configured),
+    /undisclosed-music|visible-editable-token|referenceAudioPath/u,
+  );
+  assert.deepEqual(await readFile(fixture.configPath), before);
   assert.deepEqual(await readdir(join(fixture.rootDir, "src/projects")), []);
 });

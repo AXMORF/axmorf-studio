@@ -10,6 +10,9 @@ BGM 使用完整正文窗口。Scene 可通过公开 action timing helper 消费
 这些检查不证明浏览器遮挡、Canvas/3D paint、完整运动或审美质量，仍须实际边界审阅。
 绑定的 task preview 是独立诊断适配器：校验与快照 owning source 后实际渲染，不进入 artifact/delivery
 identity，也不扩展 worker 文件权限。详见[视觉叙事](guides/VISUAL_NARRATIVE_QUALITY.md)。
+create context 的 `soundResources` 只投影当前 Catalog 已批准、runtime-approved、许可 verified 的
+音效与音乐；`soundDefaults` 只返回 BGM 配置状态和音量，不暴露配置路径。选择或 brief 不启用 BGM，
+既有配置、本地化、顶层声音所有权与 production identity 规则继续负责实际播放。
 
 > 文档类型：架构 authority
 
