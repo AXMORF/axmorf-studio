@@ -220,6 +220,12 @@ must have exit code zero and an empty intervention list. Never store credentials
 in an evidence folder or commit raw host profiles. Hermes TUI runs additionally retain
 `uiSessionId` and the stored identity as `storedSessionId` or `sessionId` from the native session-create response. If both stored-identity fields are present, both must match the native database.
 
+The recorder binds snapshot and run Workspace paths by filesystem `realpath`,
+so host aliases such as macOS `/tmp` and `/private/tmp` must name the same
+directory. Native transcripts and UI still authenticate the original run cwd;
+the recorder does not rewrite either record. Different directories, even with
+identical package contents, are rejected.
+
 For Codex, retain the fresh root and every native child's
 `CODEX_HOME/sessions/**/rollout-*.jsonl`. For Hermes,
 export the root and every native child's SQLite messages in order, preserving

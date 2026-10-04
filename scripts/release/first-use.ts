@@ -738,6 +738,17 @@ export function assertFinalAttemptDelivery(
   );
 }
 
+export async function assertWorkspaceIdentity(
+  snapshotWorkspace: string,
+  runWorkspace: string,
+) {
+  assert.equal(
+    await realpath(runWorkspace),
+    await realpath(snapshotWorkspace),
+    "Native run Workspace differs from its pre-run snapshot",
+  );
+}
+
 export async function record(
   snapshotPath: string,
   evidencePath: string,
@@ -790,14 +801,16 @@ export async function record(
     .passthrough()
     .parse(await readJson(input.runFile));
   assert.equal(run.host, initial.host);
-  assert.equal(run.workspace, initial.workspace);
+  await assertWorkspaceIdentity(initial.workspace, run.workspace);
   assert.equal(run.prompt, initial.prompt);
   assert.ok(
     Date.parse(initial.createdAt) <= Date.parse(run.startedAt),
     "Snapshot was not created before the run",
   );
   assert.ok(Date.parse(run.endedAt) > Date.parse(run.startedAt));
-  const workspace = initial.workspace;
+  // Authenticate the original native cwd after binding both host path spellings
+  // to the same directory; keep the snapshot and run records unchanged.
+  const workspace = run.workspace;
   const installed = await directoryFiles(
     join(workspace, "node_modules/@axmorf/studio"),
   );

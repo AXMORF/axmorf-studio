@@ -19,6 +19,7 @@ import {
   auditHermesSession,
   assertHermesRunIdentity,
   assertEmptyWorkspace,
+  assertWorkspaceIdentity,
   create,
   createPublic,
   verifyPublicReceipt,
@@ -54,6 +55,29 @@ const runtime: PackageContent = {
   files: [file],
 };
 const creator: PackageContent = { ...runtime, name: "create-axmorf-studio" };
+
+test("release recorder binds physical Workspace identity across host path aliases", async (context) => {
+  const root = await mkdtemp(join(tmpdir(), "axmorf-workspace-identity-"));
+  context.after(() => rm(root, { recursive: true, force: true }));
+  const original = join(root, "workspace");
+  const alias = join(root, "alias");
+  const other = join(root, "other");
+  await mkdir(original);
+  await mkdir(other);
+  await writeFile(join(original, "same-file"), "same bytes");
+  await writeFile(join(other, "same-file"), "same bytes");
+  await symlink(original, alias, "dir");
+  await assertWorkspaceIdentity(original, alias);
+  await assertWorkspaceIdentity(alias, original);
+  await assert.rejects(
+    () => assertWorkspaceIdentity(original, other),
+    /Native run Workspace differs from its pre-run snapshot/u,
+  );
+  await assert.rejects(
+    () => assertWorkspaceIdentity(join(root, "missing"), original),
+    /ENOENT/u,
+  );
+});
 
 test("Hermes run identity aliases must all agree with the native DB", () => {
   assertHermesRunIdentity({ sessionId: "native" }, "native");
