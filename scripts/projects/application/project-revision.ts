@@ -287,6 +287,9 @@ const editableSound = (
   contractVersion: sound.contractVersion,
   storyId: sound.storyId,
   contributions: sound.contributions,
+  ...(sound.sceneMusicPolicy === undefined
+    ? {}
+    : { sceneMusicPolicy: sound.sceneMusicPolicy }),
 });
 
 const readEditableProject = async ({
@@ -617,6 +620,7 @@ const inspectProjectRevisionAuthoring = async ({
     const current = state.project.sound;
     const audioIdentity = (sound: typeof current | typeof next) => ({
       storyId: sound.storyId,
+      sceneMusicPolicy: sound.sceneMusicPolicy ?? "preserve",
       contributions: sound.contributions.map((contribution) => ({
         contributionId: contribution.contributionId,
         resourceId: contribution.resourceId,
@@ -645,28 +649,64 @@ const inspectProjectRevisionAuthoring = async ({
               label: "Revision current measured sound window",
             }),
           );
+    const render = RenderSpecSchema.parse(
+      await readProjectJson({
+        rootDir,
+        storyId: input.storyId,
+        relativePath: "render.json",
+        label: "Revision RenderSpec",
+      }),
+    );
+    const boundaryFrames = state.project.story.beats.reduce((frames, beat) => {
+      if (beat.kind !== "silent-scene") return frames;
+      const authoredBoundary = input.patch.boundaryScenes?.find(
+        ({ meaningId }) => meaningId === beat.meaningId,
+      );
+      const range = authoredBoundary?.playbackRange;
+      const implementation = beat.preset.implementation;
+      const sourceDuration =
+        implementation.kind === "template-copy"
+          ? (implementation.playbackWindow?.sourceDurationInFrames ??
+            beat.preset.durationInFrames)
+          : beat.preset.durationInFrames;
+      return (
+        frames +
+        (authoredBoundary === undefined
+          ? beat.preset.durationInFrames
+          : range == null
+            ? sourceDuration
+            : range.endFrame - range.startFrame)
+      );
+    }, 0);
     for (const track of next.contributions) {
       const duration = isVisualStory(authoredStory)
-        ? authoredStory.beats.reduce(
+        ? (track.playbackScope === "composition"
+            ? render.leadInFrames + render.tailFrames + boundaryFrames
+            : 0) +
+          authoredStory.beats.reduce(
             (frames, beat) =>
               frames +
-              (beat.kind === "visual-scene" && track.playbackScope === "content"
+              (beat.kind === "visual-scene" &&
+              (track.playbackScope === "content" ||
+                track.playbackScope === "composition")
                 ? beat.durationInFrames
                 : 0),
             0,
           )
-        : measuredTiming?.storyBeats
-            .filter((beat) => beat.kind === "narrated-scene")
-            .reduce(
-              (frames, beat) => frames + beat.endFrame - beat.startFrame,
-              0,
-            );
+        : track.playbackScope === "composition"
+          ? measuredTiming?.durationInFrames
+          : measuredTiming?.storyBeats
+              .filter((beat) => beat.kind === "narrated-scene")
+              .reduce(
+                (frames, beat) => frames + beat.endFrame - beat.startFrame,
+                0,
+              );
       if (
         duration !== undefined &&
         ((track.fadeInFrames ?? 0) > duration ||
           (track.fadeOutFrames ?? 0) > duration)
       ) {
-        throw new Error("Revision sound fades must fit the content window.");
+        throw new Error("Revision sound fades must fit the playback window.");
       }
     }
   }

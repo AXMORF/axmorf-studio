@@ -16,6 +16,20 @@ import {
 } from "@axmorf/studio/remotion";
 import { createSoundRuntimeFixture } from "../fixtures/scene/sound-runtime";
 import type { SoundContributionValue } from "@axmorf/studio/remotion";
+import { loopPlaybackRate } from "../../packages/studio/src/remotion/runtime/sound-design/LoopingAudio";
+
+test("loop music preserves its complete source at an integral frame boundary", () => {
+  const duration = 32.54238095238095;
+  const rate = loopPlaybackRate(duration, 30);
+  assert.equal(Math.round((duration * 30) / rate), 976);
+  assert.ok(Math.abs(rate - 1) < 0.0003);
+  assert.equal(loopPlaybackRate(30, 30), 1);
+  assert.equal(loopPlaybackRate(30, 30, 30), 1);
+  for (const invalid of [0, -1, Number.NaN, Number.POSITIVE_INFINITY]) {
+    assert.throws(() => loopPlaybackRate(invalid, 30), /playable source/iu);
+  }
+  assert.throws(() => loopPlaybackRate(1, 30, 30), /playable source/iu);
+});
 
 const makeSoundDesign = () => {
   const fixture = createSoundRuntimeFixture();
@@ -103,6 +117,104 @@ test("looping music fades once across the contribution rather than restarting ea
   assert.equal(audio.volume(480), 0.4);
   assert.equal(audio.volume(742), 0.2);
   assert.equal(audio.volume(749), 0);
+});
+
+test("one composition music track spans lead/tail and unvoiced boundaries, suppressing Scene scores but retaining effects", () => {
+  const { coverage, fixture } = makeSoundDesign();
+  const music = {
+    ...fixture.descriptor,
+    id: "asset.synthetic-proof.music",
+    mediaRole: "background-music" as const,
+  };
+  const source = {
+    ...fixture.projection,
+    contributions: [
+      ...fixture.projection.contributions,
+      {
+        ...fixture.projection.contributions[0]!,
+        contributionId: "boundary-score",
+        role: "background-music" as const,
+      },
+    ],
+  };
+  const inputs = {
+    storyId: "synthetic-proof",
+    coverage,
+    durationInFrames: 210,
+    storyBeatTimings: [
+      {
+        meaningId: "meaning-one",
+        kind: "silent-scene",
+        startFrame: 20,
+        endFrame: 140,
+      },
+      {
+        meaningId: "meaning-two",
+        kind: "visual-scene",
+        startFrame: 140,
+        endFrame: 180,
+      },
+    ],
+    sceneSoundProjections: [source],
+  };
+  const plan = buildProjectSoundPlan({
+    storyId: "synthetic-proof",
+    contributions: [
+      {
+        contributionId: "background-music",
+        resourceId: music.id,
+        descriptorFingerprint: computeResourceDescriptorFingerprint(music),
+        volume: 0.12,
+        loop: true,
+        playbackScope: "composition",
+      },
+    ],
+  });
+  const projection = buildSoundDesignProjection({
+    ...inputs,
+    projectSoundPlan: plan,
+    projectSoundResources: [music],
+  });
+  assert.deepEqual(
+    projection.contributions.map(({ contributionId }) => contributionId),
+    ["meaning-one:pulse", "project:background-music"],
+  );
+  const score = projection.contributions.at(-1)!;
+  assert.equal(score.startFrame, 0);
+  assert.equal(score.endFrame, 210);
+  assert.equal(score.loop, true);
+  assert.equal(score.volume, 0.12);
+  assert.equal(
+    projection.contributions[0]?.startFrame,
+    fixture.projection.beatStartFrame +
+      fixture.projection.contributions[0]!.startFrame,
+  );
+  for (const durationInFrames of [undefined, 179, -1, Infinity, 210.5]) {
+    assert.throws(
+      () =>
+        buildSoundDesignProjection({
+          ...inputs,
+          durationInFrames,
+          projectSoundPlan: plan,
+          projectSoundResources: [music],
+        }),
+      /exact composition duration/u,
+    );
+  }
+  const silent = buildSoundDesignProjection({
+    ...inputs,
+    projectSoundPlan: buildProjectSoundPlan({
+      storyId: "synthetic-proof",
+      contributions: [],
+      sceneMusicPolicy: "mute",
+    }),
+  });
+  assert.deepEqual(
+    silent.contributions.map(({ contributionId }) => contributionId),
+    ["meaning-one:pulse"],
+  );
+  const inherited = buildSoundDesignProjection(inputs);
+  assert.equal(inherited.contributions.length, 2);
 });
 
 test("zero, one-frame and overlapping fades stay finite and preserve unspecified playback", () => {

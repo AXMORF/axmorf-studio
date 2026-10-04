@@ -165,7 +165,7 @@ export const createSafeProducerConfig = () => {
       introSceneTemplateId: "axmorf-brand-reveal-v1",
       outroSceneTemplateId: "axmorf-source-follow-v1",
     },
-    audioDefaults: { globalBgm: null },
+    audioDefaults: { globalBgm: { mode: "auto", volume: 0.15 } },
     publishingCollections: [
       {
         id: "default",

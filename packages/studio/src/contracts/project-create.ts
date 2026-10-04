@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ProjectBackgroundMusicSelectionSchema } from "./background-music";
 
 import { AuthoringRequirementSchema } from "./authoring-requirements";
 import {
@@ -319,6 +320,7 @@ const ProjectCreateInputObject = z.object({
   publishing: AuthoredPublishingIntentSchema,
   production: ProductionChoicesSchema,
   sceneTemplates: SceneTemplateSelectionsSchema.optional(),
+  backgroundMusic: ProjectBackgroundMusicSelectionSchema.optional(),
 });
 
 export const ProjectCreateInputSchema = ProjectCreateInputObject.strict()

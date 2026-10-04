@@ -553,6 +553,92 @@ for (const failureCheckpoint of [
   });
 }
 
+test("composition music revisions preserve score policy and validate fades against the whole video", async (context) => {
+  const current = await visualFixture(context);
+  const storyId = current.input.storyId;
+  const projectRoot = join(current.rootDir, "src/projects", storyId);
+  const baseSound = buildProjectSoundPlan({
+    storyId,
+    sceneMusicPolicy: "preserve",
+    contributions: [
+      {
+        contributionId: "music",
+        resourceId: `res-project-${storyId}-music`,
+        descriptorFingerprint: sha("8"),
+        volume: 0.15,
+        loop: true,
+        playbackScope: "composition",
+      },
+    ],
+  });
+  await writeFile(
+    join(projectRoot, "sound.json"),
+    `${serializeCanonicalJson(baseSound)}\n`,
+  );
+  const revisionContext = await readProjectRevisionContext({
+    rootDir: current.rootDir,
+    projectId: storyId,
+    dependencies: current.dependencies,
+  });
+  assert.equal(revisionContext.editable.sound?.sceneMusicPolicy, "preserve");
+  const duration = JSON.parse(
+    await readFile(
+      join(projectRoot, "generated/semantic-timing.generated.json"),
+      "utf8",
+    ),
+  ).durationInFrames;
+  const sound = {
+    ...revisionContext.editable.sound!,
+    contributions: baseSound.contributions.map((track) => ({
+      ...track,
+      fadeOutFrames: duration,
+    })),
+  };
+  const input = {
+    schemaVersion: 1,
+    contractVersion: "project-revision-input-v1",
+    storyId,
+    baseRevisionId: revisionContext.baseRevisionId,
+    baseDeliveryBuildId: revisionContext.baseDeliveryBuildId,
+    patch: { sound },
+  };
+  await validateProjectRevisionAuthoring({
+    rootDir: current.rootDir,
+    input,
+    dependencies: current.dependencies,
+  });
+  await assert.rejects(
+    validateProjectRevisionAuthoring({
+      rootDir: current.rootDir,
+      dependencies: current.dependencies,
+      input: {
+        ...input,
+        patch: { sound: { ...sound, sceneMusicPolicy: "mute" } },
+      },
+    }),
+    /gain and fades/u,
+  );
+  await assert.rejects(
+    validateProjectRevisionAuthoring({
+      rootDir: current.rootDir,
+      dependencies: current.dependencies,
+      input: {
+        ...input,
+        patch: {
+          sound: {
+            ...sound,
+            contributions: sound.contributions.map((track) => ({
+              ...track,
+              fadeOutFrames: duration + 1,
+            })),
+          },
+        },
+      },
+    }),
+    /playback window/u,
+  );
+});
+
 test("boundary and music revision retains immutable source bytes and isolates a 75-frame ending", async (context) => {
   const current = await visualFixture(context);
   const storyId = current.input.storyId;

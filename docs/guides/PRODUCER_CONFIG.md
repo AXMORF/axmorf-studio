@@ -141,9 +141,13 @@ fingerprint 不匹配、未知字段或结构
 - 声线的 `referenceAudioPath`、`promptAudioPath` 和 `promptTextPath` 只保存仓库根目录相对路径，
   例如 `voxcpm/voice_profile/my-voice.wav`；绝对路径、反斜杠、URL 与 `..` 逃逸均被拒绝。Narration
   和 preflight 在进入 VoxCPM 适配器前统一解析为宿主绝对路径，配置页保存的仍是相对值。
-- `audioDefaults.globalBgm`：可为空，或保存一个仓库相对 `sourcePath` 与 0–1 线性 `volume`。这是
-  配置页中的本地 BGM 预设。`project:create` 会复制并 checksum-bound 到 Project-local 资产，
-  写入 `sound.json`；render runtime 将它作为循环 contribution 播放于 narrated 或 visual 正文窗口，并保留独立音量。
+- `audioDefaults.globalBgm`：新 Workspace 默认 `{mode:"auto",volume:0.15}`，从全局已批准、许可 verified 且带 `loop` tag
+  的音乐中按当前 brief 选一首；可选 `resourceIds` 限定曲库。null 禁用全局预设，旧 `{sourcePath,volume}` 自定义文件仍可用。
+  单次 create 的 `backgroundMusic` 省略继承，`{mode:"auto",volume?}` 自动，`{mode:"selected",resourceId,volume?}` 指定曲目，
+  null 明确关闭全部背景音乐，不影响旁白/音效。缺曲返回 unavailable 和真实空音轨，指定无效曲目或 bytes drift 拒绝创建。
+  `project:create` 复制并 checksum-bound 到 Project-local 资产，写入 `sound.json`；新音轨从 0 到整片结束连续循环，
+  包括首尾无旁白场景，跨 Scene 不重启。有整片音乐时抑制模板/Scene 的第二首音乐，独立音效保留。旧 Project 不自动迁移。
+  gain 为 0–1 线性值，默认 0.15；旁白仍由 `tts.speech.targetLoudnessLufs` 控制，当前没有自动 ducking。
   选择该本地文件即由 operator 声明其有权用于当前 Project；冻结的 manifest 记录这份 operator-provided
   授权证据，runtime 不接受 URL、symlink 或未封存字节。
   本地音乐库与 package-owned shared media 是不同来源；选择循环原音、维护试听版本及整片听审见

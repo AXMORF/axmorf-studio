@@ -163,7 +163,13 @@ cover content StoryBeats (narrated or visual) and use their absolute SemanticTim
 
 ## Sound playback
 
-Composition owns Project BGM, narration and Scene sound contributions. Project BGM covers only the content window.
+Composition owns Project BGM, narration and Scene sound contributions. New Project music uses `playbackScope:"composition"`,
+one looping contribution from frame zero through the exact SemanticTiming duration, including unvoiced boundaries and lead/tail.
+Legacy `narrated-content` and `content` retain their narrower windows. A composition score suppresses Scene background-music,
+while effects remain independent; optional `sceneMusicPolicy:"mute"` suppresses Scene scores for an explicit no-music request.
+Create input `backgroundMusic` inherits when omitted, selects automatically with `{mode:"auto"}`, selects an approved global loop with
+`{mode:"selected",resourceId,volume?}`, or disables music with null. Automatic candidates are global approved licensed loop assets;
+creation freezes their Project-local bytes and original license. An empty library reports unavailable rather than enabled BGM.
 Optional `sourceStartFrame` selects an audio source offset; `fadeInFrames`/`fadeOutFrames` define contribution-local
 linear gain. Looping music uses the full contribution clock, so a fade does not restart each loop. Omitted optional
 fields preserve the previous canonical identity. Plans remain JSON data; playback uses static Remotion components.

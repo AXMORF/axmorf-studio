@@ -1,6 +1,6 @@
 {
   "name": "axmorf-studio",
-  "version": "0.1.16",
+  "version": "0.1.17",
   "description": "Agent-first video production workspace and npm distribution for AXMORF Studio.",
   "repository": {
     "type": "git",

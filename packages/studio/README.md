@@ -1,5 +1,9 @@
 # @axmorf/studio
 
+New Workspaces can automatically select approved global loop music at Project creation, or explicitly select/disable a score.
+One top-level Project track spans the complete composition; Scene effects remain independent. Missing music is reported explicitly,
+and private user libraries remain outside the published package.
+
 The runtime, CLI, contracts, Remotion components, and local Web control center behind AXMORF Studio workspaces.
 
 [![npm](https://img.shields.io/npm/v/%40axmorf%2Fstudio)](https://www.npmjs.com/package/@axmorf/studio)

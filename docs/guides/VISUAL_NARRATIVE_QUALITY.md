@@ -95,9 +95,12 @@ Select effect IDs into the Project resource pool and the relevant Scene allowlis
 descriptor's onset or swell-center guidance to offset startFrame against the visible anchor;
 the entire media duration must fit the Scene. Sparse accents support the motion and voice.
 
-Project music requires `audioDefaults.globalBgm` configuration and create-time localization.
-Naming music in a brief or resource allowlist does not enable it. Composition owns that
-track; Scene renderers must not duplicate it. An isolated Scene preview excludes Project
+New Workspaces default to automatic approved global loop selection. The context's `backgroundMusic.candidates`
+lets the Agent choose by the subject and mood through create input `{mode:"selected",resourceId,volume?}`;
+omission inherits settings, null explicitly disables music, and an empty library reports unavailable.
+Creation freezes the selected license and bytes in the Project. One Composition-owned track plays across all Scenes,
+including unvoiced boundaries and lead/tail; Scene scores are suppressed while effects remain independent.
+Naming music in a brief or Scene resource allowlist alone does not enable it. An isolated Scene preview excludes Project
 BGM, so review the final music, effects and narration when used together. Technical audio
 levels and successful decode do not establish the subjective mix.
 Original user-local loop music is distinct from package seed media; see

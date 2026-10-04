@@ -24,7 +24,10 @@ export type EditableTtsConfig = {
     outroSceneTemplateId: string | null;
   };
   audioDefaults?: {
-    globalBgm: null | { sourcePath: string; volume: number };
+    globalBgm:
+      | null
+      | { sourcePath: string; volume: number }
+      | { mode: "auto"; volume?: number; resourceIds?: readonly string[] };
   };
   tts: {
     defaultProviderId: string;
@@ -227,10 +230,13 @@ export const getConfigConsistencyError = (
   }
   const bgm = config.audioDefaults?.globalBgm;
   if (bgm !== null && bgm !== undefined) {
-    if (!isRepositoryRelativeFilePath(bgm.sourcePath)) {
+    if ("sourcePath" in bgm && !isRepositoryRelativeFilePath(bgm.sourcePath)) {
       return "全局 BGM 文件必须使用仓库相对路径。";
     }
-    if (!Number.isFinite(bgm.volume) || bgm.volume < 0 || bgm.volume > 1) {
+    if (
+      bgm.volume !== undefined &&
+      (!Number.isFinite(bgm.volume) || bgm.volume < 0 || bgm.volume > 1)
+    ) {
       return "全局 BGM 音量必须在 0 到 1 之间。";
     }
   }

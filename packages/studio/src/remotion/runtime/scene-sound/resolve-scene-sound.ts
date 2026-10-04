@@ -27,6 +27,7 @@ export type SceneSoundContributionValue = SoundPlaybackOptions &
     startFrame: number;
     endFrame: number;
     volume: number;
+    role?: "sound-effect" | "background-music";
   }>;
 
 export type SceneSoundProjection = Readonly<{
@@ -189,6 +190,7 @@ export const resolveSceneSound = ({
       startFrame,
       endFrame,
       volume,
+      role: selected.role as "sound-effect" | "background-music",
       ...(sourceStartFrame === undefined ? {} : { sourceStartFrame }),
       ...(fadeInFrames === undefined ? {} : { fadeInFrames }),
       ...(fadeOutFrames === undefined ? {} : { fadeOutFrames }),

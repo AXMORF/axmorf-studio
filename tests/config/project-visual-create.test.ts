@@ -248,7 +248,7 @@ test("visual create preserves configured boundary inheritance and explicit rende
   const sound = ProjectSoundPlanSchema.parse(
     JSON.parse(await readFile(join(projectRoot, "sound.json"), "utf8")),
   );
-  assert.equal(sound.contributions[0].playbackScope, "content");
+  assert.equal(sound.contributions[0].playbackScope, "composition");
   assert.deepEqual(
     await readFile(
       join(

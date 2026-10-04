@@ -657,6 +657,7 @@ export const loadCurrentFinalSceneBranch = async ({
     );
     const soundProjection = buildSoundDesignProjection({
       storyId: paths.storyId,
+      durationInFrames: semanticTiming.durationInFrames,
       coverage,
       storyBeatTimings: semanticTiming.storyBeats,
       sceneSoundProjections: soundProjections,

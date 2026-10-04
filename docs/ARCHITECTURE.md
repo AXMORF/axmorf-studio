@@ -14,7 +14,7 @@ missing artifact 的 owning Scene task input 完全不变时可冻结其已验�
 无旁白正文沿同一 production 主链：`visual-scene` 的 authored frames 生成 `authored-frames-v1`
 SemanticTiming，旁白 source/两份 manifest 明确为 null，不创建 provider/narration tasks。Composition
 省略 NarrationAudioTrack，保留顶层 caption ownership；空 captions 回收字幕预留区。GlobalVisual 和
-BGM 使用完整正文窗口。Scene 可通过公开 action timing helper 消费计划，并接收冻结 continuity。
+新 Project BGM 使用完整 Composition 窗口，GlobalVisual decoration 仍使用正文窗口。Scene 可通过公开 action timing helper 消费计划，并接收冻结 continuity。
 可选 `outgoingHandoff.visual` 是自由 SVG 数据，与相邻任务共享同一 immutable seam；公开
 `SceneContinuityVisual` 只绘制该主体。声明进入 Scene input fingerprint，语义 handoff ID 保持原定义。
 有 visual 时独立检查首/末帧的实际 DOM、输入消费与 viewport 字号；没有 visual 的旧任务不改变。
@@ -22,8 +22,10 @@ BGM 使用完整正文窗口。Scene 可通过公开 action timing helper 消费
 绑定的 task preview 是独立诊断适配器：校验与快照 owning source 后实际渲染，不进入 artifact/delivery
 identity，也不扩展 worker 文件权限。详见[视觉叙事](guides/VISUAL_NARRATIVE_QUALITY.md)。
 create context 的 `soundResources` 只投影当前 Catalog 已批准、runtime-approved、许可 verified 的
-音效与音乐；`soundDefaults` 只返回 BGM 配置状态和音量，不暴露配置路径。选择或 brief 不启用 BGM，
-既有配置、本地化、顶层声音所有权与 production identity 规则继续负责实际播放。
+音效与音乐；`backgroundMusic` 另投影已核验的全局 loop 候选、自动/文件/禁用模式及缺曲状态，不暴露私有配置路径。
+create input 可选 `backgroundMusic`：省略继承，auto 按当前 brief 匹配候选，selected 指定 resourceId，null 明确关闭背景音乐。
+create-time 本地化冻结 checksum/license/Project-owned bytes；一个 composition-scope 音轨覆盖首尾和 lead/tail，抑制 Scene 的第二条音乐，
+音效仍按独立 anchor 混音。旧 narrated-content/content Plan 不改语义，空曲库返回 unavailable 和空 Project 音轨。
 
 ## 1. 模块与依赖方向
 

@@ -33,6 +33,7 @@ test("Scene sound resolves current selected local audio and exact anchor ranges"
       startFrame: 56,
       endFrame: 68,
       volume: 0.5,
+      role: "sound-effect",
     },
   ]);
   for (const descriptor of [
@@ -92,6 +93,7 @@ test("Scene sound preserves the source trim and fades through package resolution
     startFrame: 0,
     endFrame: 75,
     volume: 0.5,
+    role: "sound-effect",
     sourceStartFrame: 165,
     fadeInFrames: 8,
     fadeOutFrames: 15,

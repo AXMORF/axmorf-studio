@@ -80,8 +80,14 @@ SoundDesignTrack 实际播放，Renderer 不再重复挂载 Audio。
 ## 循环音乐与试听版本
 
 用户本地音乐库不属于 npm 的共享 seed。选曲以当前 Catalog 及许可为准，循环 BGM 优先使用已批准的原始循环
-WAV；带淡出、裁剪或试听处理的 MP3 不应冒充循环原音。`audioDefaults.globalBgm` 通过 create 冻结为
-Project-local contribution，覆盖正文窗口；不要在各 Scene 重复挂载同一 BGM。执行任务更快不授权改变音频速度、
+WAV；带淡出、裁剪或试听处理的 MP3 不应冒充循环原音。新 Workspace 的 `audioDefaults.globalBgm` 默认 auto；
+context 返回 `backgroundMusic.candidates`，Agent 按主题、能量和情绪显式选择 `{mode:"selected",resourceId,volume?}`，
+省略时按 brief 自动匹配。只有全局许可已核验的 loop 可候选，排除模板音乐、Project-owned 音乐及试听版；空库明确报告缺曲。
+单片 `backgroundMusic:null` 关闭全部背景音乐；自定义全局文件预设仍优先于默认自动选择。create 冻结为 Project-local
+contribution，覆盖完整 Composition（首尾、lead/tail），有整片音乐时只保留 Scene 音效，避免叠曲；旧 scope 不迁移。
+循环由 `@remotion/media` 提取音频 samples，并把完整源时长以微小播放速率调整对齐到最近视频帧，避免非整帧
+循环边界漏掉部分音频帧。32.542 秒曲目在 30 fps 的速率变化约 0.028%；源 bytes 不变，旁白和音效不调速。
+不要在各 Scene 重复挂载同一 BGM。执行任务更快不授权改变音频速度、
 音高、BPM 或 gain。
 
 本开发分支可通过 strict `patch.sound` 修改已有 Project 音乐的音量和淡入/淡出，通过 `boundaryScenes` 修改

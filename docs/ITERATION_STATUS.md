@@ -10,7 +10,10 @@ preparation、same-mode 隔离 revision，以及绑定 Scene 的提交前真实�
 
 create context 投影许可已核验的 `soundResources` 和不含私有路径的 BGM 配置状态。现有 brief/Scene contract
 指导按含义安排对象变化、注意力、景别、短主张、语义粒子与读停，并以实际起音/声势中心卡点；仍由 Agent 创作，
-没有自动导演、固定特效模板或审美评分。BGM 由配置与 create-time 本地化启用，Scene preview 不包含它。
+没有自动导演、固定特效模板或审美评分。新 Workspace 默认 auto BGM：context 给出全局已批准 loop 候选，
+Agent 可按主题指定，也可由 create 根据 brief 自动匹配并冻结原许可/bytes。新音轨覆盖完整 Composition，
+抑制 Scene 第二首音乐并保留独立音效；可明确关闭或使用自定义文件，缺曲报告 unavailable，旧 Project 不迁移。
+Scene preview 不包含 Project BGM，整片主观听审仍是独立验收。
 
 最新源码还开放 strict `patch.boundaryScenes` 的 immutable template 播放区间及独立音乐包络、`patch.sound`
 的已有 Project 音乐增益/包络。模板/媒体/许可、资源与 track 身份、loop/scope、sealed narration 均保持冻结；

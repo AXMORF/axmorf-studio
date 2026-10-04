@@ -84,6 +84,10 @@ Explicit render requests use optional `render.width/height/fps/locale` fields in
 inherit settings without changing saved defaults; create returns the frozen render values for verification before production.
 Use the generated Workspace-local authoring and host-execution references for exact task execution and interruption recovery.
 
+New Workspaces default to automatic music selection from approved global loop resources. Create context exposes candidates;
+create freezes one continuous Project-local track across the entire video. Per-project selection or explicit silence overrides
+the default; an empty library is reported as unavailable. Private user music is never included in the npm package.
+
 The development template documents narrated and visual content, licensed sound choices, optional shared SVG continuity,
 bound Scene previews and narrow boundary/music revisions. These additions have not been published to npm 0.1.16.
 Generated guides must match the installed runtime; updating this repository does not upgrade existing private Workspaces,

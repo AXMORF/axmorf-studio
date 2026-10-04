@@ -1,5 +1,6 @@
 import type { FC } from "react";
 import { Audio, Sequence, staticFile } from "remotion";
+import { LoopingAudio } from "./LoopingAudio";
 
 import {
   resolveSoundVolume,
@@ -15,6 +16,7 @@ export type SoundContributionValue = SoundPlaybackOptions &
     endFrame: number;
     volume: number;
     loop: boolean;
+    sourceDurationInSeconds?: number;
   }>;
 
 export const SoundContribution: FC<{
@@ -34,12 +36,13 @@ export const SoundContribution: FC<{
   }
   const durationInFrames = contribution.endFrame - contribution.startFrame;
   validateSoundPlayback(contribution, durationInFrames);
+  const AudioComponent = contribution.loop ? LoopingAudio : Audio;
   return (
     <Sequence
       from={contribution.startFrame}
       durationInFrames={durationInFrames}
     >
-      <Audio
+      <AudioComponent
         src={staticFile(contribution.publicPath.slice("public/".length))}
         volume={(localFrame) =>
           resolveSoundVolume(
@@ -50,6 +53,10 @@ export const SoundContribution: FC<{
           )
         }
         loop={contribution.loop}
+        {...(contribution.loop &&
+        contribution.sourceDurationInSeconds !== undefined
+          ? { sourceDurationInSeconds: contribution.sourceDurationInSeconds }
+          : {})}
         {...(contribution.sourceStartFrame === undefined
           ? {}
           : { trimBefore: contribution.sourceStartFrame })}

@@ -132,8 +132,10 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
   Composition，decoration 只覆盖首个至末个正文 Scene 的连续窗口。Scene 的 `(0, 0)` 是 viewport 左上角，
   只接收 viewport width/height，不感知 full-frame inset。
 - 新 Project 的 `VisualStyleSpec.theme` 固化已校验四角色配色，Composition 实际绘制 background；themed GlobalVisual base 必须直接返回 null，正文/首尾共用主题。旧 immutable 模板不静默迁移；不兼容主题在 create/revision 前置拒绝。
-- 旁白独占 narration track；非旁白声音都是独立 `SoundContribution`。Project BGM 只覆盖正文
-  content window，不进入 silent boundary Scenes。
+- 旁白独占 narration track；非旁白声音都是独立 `SoundContribution`。新 Project 的 BGM 在 create 时从已批准的全局
+  loop 音乐库自动选曲或按明确选择冻结，单个 contribution 覆盖完整 Composition（含首尾与 lead/tail），跨 Scene 不重启。
+  有整片 BGM 时抑制 Scene 的 background-music，保留独立音效；显式 `backgroundMusic:null` 抑制全部背景音乐。
+  缺曲必须报告 unavailable，不把资源发现当作播放成功；旧 Plan 的 narrated-content/content scope 保留，不自动迁移。
 - JSON/数据文件不包含 executable expression；renderer 由 composition-local static registry 绑定。
   render runtime 不调用 Agent、Skill、MCP、Git、网络或目录扫描。
 - 所有媒体都位于当前 Workspace `public/`、具有 manifest identity 并通过检查。render-critical motion

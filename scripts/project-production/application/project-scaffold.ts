@@ -190,6 +190,7 @@ const sceneSoundProjections = scenes.map((scene) => resolveSceneSound({
 }));
 export const productionSoundDesignProjection = buildSoundDesignProjection({
   storyId: ${JSON.stringify(storyId)},
+  durationInFrames: semanticTiming.durationInFrames,
   coverage: productionSceneCoverage,
   storyBeatTimings,
   sceneSoundProjections,

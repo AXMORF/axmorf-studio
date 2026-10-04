@@ -11,6 +11,7 @@ import {
 } from "../../config/producer-config";
 
 import { getSceneTemplateDefinition } from "../../../packages/studio/src/remotion/capabilities/scene-templates/registry";
+import { backgroundMusicCandidates } from "../domain/background-music";
 
 /** Project creation guidance only exposes public authoring choices, never TTS connections. */
 export const inspectProjectCreateContext = async ({
@@ -67,6 +68,16 @@ export const inspectProjectCreateContext = async ({
       ].includes(descriptor.id),
     )
     .map(({ descriptor }) => descriptor.id);
+  const configuredMusic =
+    config.audioDefaults === undefined
+      ? { mode: "auto" as const, volume: 0.15 }
+      : config.audioDefaults.globalBgm;
+  const musicCandidates = backgroundMusicCandidates(
+    catalog.entries.map(({ descriptor }) => descriptor),
+    configuredMusic !== null && "mode" in configuredMusic
+      ? configuredMusic.resourceIds
+      : undefined,
+  );
   const exampleResources = [
     ...capabilities
       .filter(({ descriptor }) => descriptor.id === "capability.camera")
@@ -298,7 +309,7 @@ export const inspectProjectCreateContext = async ({
         motionIntent:
           "线索沿可追踪路径聚合成暂定判断；短暂读取后，判断向证据入口移动，为下一步对照蓄势。粒子可表示这些线索，不作无关填充。",
         soundIntent:
-          "从 soundResources 中选已批准且在本 Scene allowlist 的音效：聚合扫动对齐声势中心，判断落位对齐起音；只强调有意义的事件，未配置的 Project BGM 不会由 brief 自动启用。",
+          "从 soundResources 中选已批准且在本 Scene allowlist 的音效：聚合扫动对齐声势中心，判断落位对齐起音；只强调有意义的事件，连续 Project BGM 由 create 的选曲结果确认。",
         continuityBrief:
           "同一判断节点、线索连接和空缺的证据入口延续到下一 Scene。",
         outgoingHandoff: { subject: "同一暂定判断节点、线索连接及其证据入口" },
@@ -350,6 +361,40 @@ export const inspectProjectCreateContext = async ({
     styleProfiles,
     capabilities,
     soundResources,
+    backgroundMusic: {
+      status:
+        configuredMusic === null
+          ? "disabled"
+          : "sourcePath" in configuredMusic
+            ? "configured"
+            : musicCandidates.length === 0
+              ? "unavailable"
+              : "available",
+      mode:
+        configuredMusic === null
+          ? "none"
+          : "sourcePath" in configuredMusic
+            ? "file"
+            : "auto",
+      volume: configuredMusic?.volume ?? 0.15,
+      candidates: musicCandidates.map(
+        ({ id, title, useCases, tags, media }) => ({
+          resourceId: id,
+          title,
+          useCases,
+          tags,
+          durationInSeconds: media?.durationInSeconds ?? null,
+        }),
+      ),
+      reason:
+        configuredMusic === null
+          ? "Background music explicitly disabled."
+          : "sourcePath" in configuredMusic
+            ? "Configured local file will be localized at creation."
+            : musicCandidates.length === 0
+              ? "No approved global loop background music is available; new Projects have no BGM."
+              : "Select a suitable approved loop using backgroundMusic, or let automatic selection match the brief.",
+    },
     soundDefaults: {
       backgroundMusicConfigured: config.audioDefaults?.globalBgm != null,
       backgroundMusicVolume: config.audioDefaults?.globalBgm?.volume ?? null,
@@ -358,6 +403,8 @@ export const inspectProjectCreateContext = async ({
     fieldExamples: {
       render: { ...example.render, width: 1920, height: 1080 },
       visualFirst,
+      backgroundMusic: { mode: "auto", volume: 0.15 },
+      "backgroundMusic.disabled": null,
       "production.additionalRequirements": [AUTHORING_REQUIREMENT_EXAMPLE],
     },
     guidance: [
@@ -373,7 +420,7 @@ export const inspectProjectCreateContext = async ({
       "For each narrated Scene, turn narrativePurpose into a visible subject, an observable change and a resulting state. Make the scene's compositionIntent and motionIntent describe what the viewer sees at the relevant narration cue; avoid generic diagrams, decorative motion and text that merely repeats the narration.",
       "For each visual Scene, choose the visible mechanism that explains narrativePurpose: what the subject does, what causes a change, and which resulting state the viewer can understand. Author enough frames for anticipation, the meaningful change and reading the result; reuse the same subject across related Scenes through outgoingHandoff. Choose SVG, Canvas, spatial geometry or approved media according to the idea; the example's evidence-flow subject is illustrative, not a template for other topics.",
       "Plan the attention hierarchy and rhythm in the existing compositionIntent/motionIntent fields: what fills the frame, what becomes a close-up, and when the next fact takes over. A short key claim may be a large visual subject. Purposeful particles, trajectories, masks, morphs and color masses may represent the idea or carry its transition; choose them for the subject rather than applying an effect recipe to every topic. Reading holds should match text complexity, not consume the remaining Scene budget.",
-      "Use soundResources as current approved audio choices, not a requirement to add sound everywhere. Put selected sound-effect IDs in the resource pool and relevant Scene candidateResourceIds; align their documented onset or swell to visible event anchors. Project background music is enabled by audioDefaults.globalBgm in the Workspace configuration and localized by project:create; naming music in a brief or allowlist does not enable it. soundDefaults reports only whether music is configured and its volume, never its private source path. Review music, voice when used, and effects together in the final video; an isolated Scene preview excludes Project BGM.",
+      "Use soundResources for independently anchored Scene effects. Choose one suitable approved loop from backgroundMusic.candidates by the topic, energy and mood: set backgroundMusic:{mode:'selected',resourceId,volume} in the create input. Omit backgroundMusic to inherit audioDefaults.globalBgm (automatic for new Workspaces); automatic selection matches the current brief and freezes one Project-local track. Use backgroundMusic:null only for an explicit no-music request. The selected loop plays continuously across the entire composition, including unvoiced boundaries and lead/tail, while Scene effects remain independent. Project music suppresses Scene background-music tracks to avoid stacking two scores. Missing loop resources are reported as unavailable, never as enabled music; suggest registering an approved loop or proceed with that explicit limitation. Naming music in a brief or Scene allowlist alone does not enable it. Diagnostics never expose private configured paths. Review music, voice when used, and effects together in the final video; an isolated Scene preview excludes Project BGM.",
       "Visual-first duration is the sum of authored content frames, inherited boundary frames and render lead/tail divided by the chosen fps. Recalculate durationInFrames when the target or fps changes; the narration durationBudget is not a measurement of visual content.",
       "The JSON Schema describes shape; project:create also validates cross-field semantics, caption budget and current Catalog choices.",
     ],

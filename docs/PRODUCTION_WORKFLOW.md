@@ -74,6 +74,11 @@ boundary，task executors 与 runtime 不感知。
 
 新 Project 从 strict `ProjectCreateInput` 原子创建：
 
+创建前查看 context 的 `backgroundMusic`：从获批全局 loop 候选按主题选择 `backgroundMusic:{mode:"selected",resourceId,volume?}`，
+或省略以继承新 Workspace 的自动选曲。明确无背景音乐才用 null；旧自定义文件/禁用设置继续继承。
+创建后报告真实选曲或 unavailable 再进入 inspect/prepare。选中音乐冻结为一个完整 Composition 的连续音轨，
+包括首尾与 lead/tail；不在 Scene 中重复播放，镜头音效独立配合。用户私有曲库不随 npm 包发行。
+
 ```bash
 npm run project:create -- --project <storyId> --input <repository-relative-json>
 ```

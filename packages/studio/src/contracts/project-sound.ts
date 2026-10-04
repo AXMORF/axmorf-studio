@@ -17,7 +17,7 @@ const ProjectSoundContributionSchema = z
     descriptorFingerprint: Sha256DigestSchema,
     volume: z.number().finite().min(0).max(1),
     loop: z.boolean(),
-    playbackScope: z.enum(["narrated-content", "content"]),
+    playbackScope: z.enum(["narrated-content", "content", "composition"]),
     fadeInFrames: NonNegativeIntegerSchema.optional(),
     fadeOutFrames: NonNegativeIntegerSchema.optional(),
   })
@@ -29,6 +29,7 @@ const ProjectSoundPlanInputObject = z
     schemaVersion: z.literal(1),
     contractVersion: z.literal(PROJECT_SOUND_PLAN_VERSION),
     storyId: StoryIdSchema,
+    sceneMusicPolicy: z.enum(["preserve", "mute"]).optional(),
     contributions: z
       .array(ProjectSoundContributionSchema)
       .max(16)
