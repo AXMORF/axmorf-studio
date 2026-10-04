@@ -103,12 +103,19 @@ const assertTuiResult = (name: string, actual: unknown, expected: unknown) => {
       "TUI vision text differs from native DB",
     );
     const image = result.content[1].image_url.url;
-    assert.match(image, /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/u);
+    const encoded = /^data:image\/(jpeg|png);base64,([A-Za-z0-9+/=]+)$/u.exec(
+      image,
+    );
+    assert.ok(encoded, "TUI vision image uses an unsupported data URL");
+    const signature =
+      encoded[1] === "jpeg"
+        ? Buffer.from([0xff, 0xd8, 0xff])
+        : Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
     assert.ok(
-      Buffer.from(image.slice("data:image/jpeg;base64,".length), "base64")
-        .subarray(0, 3)
-        .equals(Buffer.from([0xff, 0xd8, 0xff])),
-      "TUI vision image is missing or invalid",
+      Buffer.from(encoded[2]!, "base64")
+        .subarray(0, signature.length)
+        .equals(signature),
+      "TUI vision image bytes differ from its declared MIME type",
     );
     return;
   }
@@ -166,6 +173,7 @@ function hermesUiTimeline(input: HermesUiInput, records: Row[]) {
     id: string;
     name: string;
     arguments: Row;
+    emptyArguments: boolean;
     row: number;
   }> = [];
   const expectedResults: Array<{ id: string; value: unknown; row: number }> =
@@ -185,15 +193,23 @@ function hermesUiTimeline(input: HermesUiInput, records: Row[]) {
         const fn = object(raw.function);
         let name = String(fn.name);
         let arguments_ = args(fn.arguments);
+        const originalArguments = parseValue(fn.arguments);
+        let emptyArguments =
+          originalArguments !== null &&
+          typeof originalArguments === "object" &&
+          !Array.isArray(originalArguments) &&
+          Object.keys(originalArguments).length === 0;
         if (name === "tool_call") {
           const bridge = unwrapHermesToolCall(fn.arguments);
           name = bridge.name;
           arguments_ = bridge.arguments;
+          emptyArguments = Object.keys(arguments_).length === 0;
         }
         expectedCalls.push({
           id: String(raw.id),
           name,
           arguments: arguments_,
+          emptyArguments,
           row: index,
         });
       }
@@ -269,7 +285,11 @@ function hermesUiTimeline(input: HermesUiInput, records: Row[]) {
         "TUI tool name differs from native DB",
       );
       assert.deepEqual(
-        payload.args,
+        type === "tool.start" &&
+          !Object.hasOwn(payload, "args") &&
+          expected.emptyArguments
+          ? {}
+          : payload.args,
         expected.arguments,
         "TUI tool arguments differ from native DB",
       );

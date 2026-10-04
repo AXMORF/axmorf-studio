@@ -1178,7 +1178,17 @@ const isSelfDraining = (source: ts.SourceFile, calls: ts.CallExpression[]) => {
   return valid;
 };
 
-const nativeOperations = (call: { name: string; arguments: string }) => {
+const nativeOperations = (call: {
+  name: string;
+  arguments: string;
+}): NativeOperation[] => {
+  if (call.name === "tool_call") {
+    const bridge = unwrapHermesToolCall(call.arguments);
+    return nativeOperations({
+      name: bridge.name,
+      arguments: JSON.stringify(bridge.arguments),
+    });
+  }
   let input: Row;
   try {
     input = object(JSON.parse(call.arguments));
@@ -1190,6 +1200,25 @@ const nativeOperations = (call: { name: string; arguments: string }) => {
       ? String(value)
       : undefined;
   const operation = (name: string, arguments_: Row): NativeOperation | null => {
+    if (name === "terminal")
+      return {
+        kind: "exec",
+        ...(typeof arguments_.command === "string"
+          ? { command: arguments_.command }
+          : {}),
+        ...(typeof arguments_.workdir === "string"
+          ? { cwd: arguments_.workdir }
+          : {}),
+      };
+    if (
+      ["process_manage", "process"].includes(name) &&
+      arguments_.action === "wait"
+    )
+      return {
+        kind: "process",
+        handle: handle(arguments_.session_id),
+        chars: "",
+      };
     if (name === "exec_command")
       return {
         kind: "exec",
@@ -1211,9 +1240,10 @@ const nativeOperations = (call: { name: string; arguments: string }) => {
     return null;
   };
   if (!/(?:^|[._])exec$/u.test(call.name)) {
-    const name = /(?:^|[._])(exec_command|write_stdin|wait)$/u.exec(
-      call.name,
-    )?.[1];
+    const name =
+      /(?:^|[._])(exec_command|write_stdin|wait|terminal|process_manage|process)$/u.exec(
+        call.name,
+      )?.[1];
     return [name ? operation(name, input) : null].filter(
       (value): value is NativeOperation => value !== null,
     );
@@ -1669,6 +1699,34 @@ const unavailableFirstNativeCall = (
 // Code mode can fail before any native tool is invoked. Only the host's failed
 // envelope, source stack and complete UI command timeline can prove that case.
 // It contributes no shell output, exit code, or process completion authority.
+const outerSource = (call: { arguments: string }) => {
+  let arguments_: Row;
+  try {
+    arguments_ = object(JSON.parse(call.arguments));
+  } catch {
+    arguments_ = { code: call.arguments };
+  }
+  let code = String(arguments_.code ?? "");
+  const pragma = /^[ \t]*\/\/ @exec:([^\r\n]*)\r?\n/u.exec(code);
+  if (pragma) {
+    z.object({
+      yield_time_ms: z.number().int().nonnegative().optional(),
+      max_output_tokens: z.number().int().positive().optional(),
+    })
+      .strict()
+      .parse(JSON.parse(pragma[1]!));
+    // The native host removes this metadata line before evaluating exec_main.
+    // Ordinary comments and subsequent lines keep their original coordinates.
+    code = code.slice(pragma[0].length);
+  }
+  return ts.createSourceFile(
+    "exec_main.mjs",
+    code,
+    ts.ScriptTarget.Latest,
+    true,
+  );
+};
+
 const proveUnstartedOuterFailures = (
   trace: NativeTrace,
   input: CodexUiInput,
@@ -1730,18 +1788,7 @@ const proveUnstartedOuterFailures = (
         "Native outer process results need an original source stack",
       );
       if (stack) {
-        let arguments_: Row;
-        try {
-          arguments_ = object(JSON.parse(call.arguments));
-        } catch {
-          arguments_ = { code: call.arguments };
-        }
-        const source = ts.createSourceFile(
-          "exec_main.mjs",
-          String(arguments_.code ?? ""),
-          ts.ScriptTarget.Latest,
-          true,
-        );
+        const source = outerSource(call);
         const starts = source.getLineStarts();
         const line = Number(stack[1]);
         const column = Number(stack[2]);
@@ -1807,18 +1854,7 @@ const proveUnstartedOuterFailures = (
       ),
       "Failed outer tool cannot contain process results or handles",
     );
-    let arguments_: Row;
-    try {
-      arguments_ = object(JSON.parse(call.arguments));
-    } catch {
-      arguments_ = { code: call.arguments };
-    }
-    const source = ts.createSourceFile(
-      "exec_main.mjs",
-      String(arguments_.code ?? ""),
-      ts.ScriptTarget.Latest,
-      true,
-    );
+    const source = outerSource(call);
     const line = Number(stack[3]);
     const column = Number(stack[4]);
     const starts = source.getLineStarts();
@@ -4425,7 +4461,7 @@ function commandOrigins(trace: ReturnType<typeof nativeTrace>) {
           : undefined;
       // A primitive packet's stdout may quote process-like JSON. Its single
       // host header supplies process state; quoted data cannot supply wrappers.
-      const wrappers =
+      let wrappers =
         direct !== null
           ? []
           : (batchResult?.wrappers ??
@@ -4436,6 +4472,47 @@ function commandOrigins(trace: ReturnType<typeof nativeTrace>) {
                 (value.session_id !== undefined ||
                   typeof value.exit_code === "number"),
             ));
+      if (
+        trace.records[output.index]!.role === "tool" &&
+        wrappers.some((value) => value.output === "Background process started")
+      ) {
+        const invocation =
+          call.name === "tool_call"
+            ? unwrapHermesToolCall(call.arguments)
+            : {
+                name: call.name,
+                arguments: object(JSON.parse(call.arguments)),
+              };
+        assert.equal(invocation.name, "terminal");
+        assert.equal(
+          invocation.arguments.background,
+          true,
+          "Hermes continuation requires its native background process",
+        );
+        assert.ok(
+          invocation.arguments.notify === true ||
+            invocation.arguments.notify_on_complete === true,
+        );
+        assert.equal(owner.operation.kind, "exec");
+        assert.equal(wrappers.length, 1);
+        const admission = z
+          .object({
+            output: z.literal("Background process started"),
+            session_id: z.string().regex(/^proc_[a-zA-Z0-9]+$/u),
+            pid: z.number().int().positive(),
+            exit_code: z.literal(0),
+            error: z.null(),
+            notify_on_complete: z.literal(true),
+          })
+          .strict()
+          .parse(JSON.parse(String(result)));
+        assert.deepEqual(wrappers[0], admission);
+        // Hermes reports spawn success with zero; it is not the command's exit.
+        // Keep the original handle pending and require its real terminal wait.
+        const pendingAdmission: Row = { ...admission };
+        delete pendingAdmission.exit_code;
+        wrappers = [pendingAdmission];
+      }
       const pending = [
         ...wrappers
           .filter((value) => value.session_id !== undefined)

@@ -110,6 +110,10 @@ not pass this gate. Hermes `message.interim` prose is visible in the TUI but may
 from SQLite assistant content. The recorder binds the fresh `session.create` response to
 the run's UI and stored session IDs, then matches every root UI tool call and result
 (ID, name, arguments, content, and order) to the unmodified complete SQLite transcript.
+The TUI may omit `tool.start.args` only for an original empty-object invocation;
+nonempty missing arguments, null, arrays and changed values are rejected.
+Native vision results retain the original JPEG or PNG data URL, require matching
+image signatures, and bind the accompanying text exactly to the database result.
 It requires contiguous native UI event sequence numbers and matches final report text
 against SQLite. Report timing comes from native `message.interim` and `message.complete`
 events. The complete raw UI stream checksum is recorded in `supervision.uiEvidence`;
@@ -126,6 +130,18 @@ result order, exit code and complete output-delta sequence all agree. Bind the
 supplement to the original result time and index and record the UI checksum.
 Missing or ambiguous linkage is a failed audit; child output or a disk plan cannot
 reconstruct a missing prepare result.
+
+The native host removes a first-line `@exec` JSON metadata directive before
+evaluating code. Error-stack coordinates use that evaluated source; ordinary
+comments keep their coordinates. The original input, error envelope and complete
+UI command timeline remain unchanged and must still authenticate the failure.
+
+Hermes `terminal` background admission reports `exit_code: 0` for a successful
+spawn alongside its process handle. Only the exact native admission envelope
+with `background: true` and completion notifications establishes a pending
+process. It supplies no command exit authority. A matching original
+`process_manage` or `process` wait must provide the real terminal result;
+missing or foreign handles and unfinished production commands still fail.
 
 A code-mode call may also drain its own literal command result with
 `while (result.session_id !== undefined)`: every wait must use that same result's

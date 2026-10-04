@@ -3942,6 +3942,8 @@ for (let i=0;i<results.length;i++) text({index:i,...results[i]});`;
   assert.equal(auditProductionAttempts(actual.trace), null);
   for (const records of [
     withStack(source.replaceAll("results", "items")),
+    withStack(`// @exec: {"max_output_tokens": 60000}\n${source}`),
+    withStack(`  // @exec: {"yield_time_ms": 1000}\r\n${source}`),
     withStack(
       'await tools.exec_command({cmd:"cat guide.txt"});',
       "TypeError: tools.exec_command is not a function\n    at exec_main.mjs:1:13",
@@ -3969,6 +3971,12 @@ for (let i=0;i<results.length;i++) text({index:i,...results[i]});`;
     "TypeError: tools.exec_command is not a function\n    at exec_main.mjs:3:9",
   ])
     assert.throws(() => audit(withStack(source, stack)), stack);
+  assert.throws(() =>
+    audit(withStack(`// ordinary source comment\n${source}`)),
+  );
+  assert.throws(() =>
+    audit(withStack(`\n// @exec: {"max_output_tokens": 60000}\n${source}`)),
+  );
   for (const options of [
     'cmd:load("command")',
     'cmd:tools.exec_command({cmd:"hidden"})',
@@ -4133,7 +4141,8 @@ for (let i=0;i<results.length;i++) text({index:i,...results[i]});`;
     );
   }
   const afterTool = withStack(
-    `let r=await tools.exec_command({cmd:"npm run doctor",workdir:"/workspace"});
+    `// @exec: {"max_output_tokens": 60000}
+let r=await tools.exec_command({cmd:"npm run doctor",workdir:"/workspace"});
 text(r);
 while(r.session_id!==undefined){r=await tools.write_stdin({session_id:r.session_id,chars:""});text(r);}
 if(r.exit_code!==0)throw new Error("doctor failed");`,
@@ -4195,6 +4204,96 @@ if(r.exit_code!==0)throw new Error("doctor failed");`,
   assert.ok(
     completed.trace.outputs[0]!.objects.every((value) => value.exit_code === 1),
   );
+});
+
+test("Hermes background admission retains its handle until an original terminal wait", () => {
+  const command = "npm run project:produce:continue -- --project story";
+  const admission = {
+    output: "Background process started",
+    session_id: "proc_native",
+    pid: 321,
+    exit_code: 0,
+    error: null,
+    notify_on_complete: true,
+  };
+  const rows = (background: unknown = true, start: unknown = admission) => [
+    {
+      role: "assistant",
+      timestamp: 1,
+      tool_calls: [
+        {
+          id: "start",
+          function: {
+            name: "terminal",
+            arguments: JSON.stringify({ command, background, notify: true }),
+          },
+        },
+      ],
+    },
+    {
+      role: "tool",
+      timestamp: 2,
+      tool_call_id: "start",
+      content: JSON.stringify(start),
+    },
+    {
+      role: "assistant",
+      timestamp: 3,
+      tool_calls: [
+        {
+          id: "wait",
+          function: {
+            name: "process_manage",
+            arguments: JSON.stringify({
+              action: "wait",
+              session_id: "proc_native",
+              timeout: 60,
+            }),
+          },
+        },
+      ],
+    },
+    {
+      role: "tool",
+      timestamp: 4,
+      tool_call_id: "wait",
+      content: JSON.stringify({
+        status: "exited",
+        command,
+        exit_code: 0,
+        output: "completed",
+      }),
+    },
+  ];
+  const audit = (records: unknown[]) =>
+    auditProductionAttempts(nativeTrace("hermes", JSON.stringify(records)));
+  const complete = rows();
+  assert.equal(audit(complete), null);
+  assert.deepEqual(
+    nativeTrace("hermes", JSON.stringify(complete)).records,
+    complete,
+  );
+  assert.throws(
+    () => audit(complete.slice(0, 2)),
+    /completed original handle chain/u,
+  );
+  for (const background of [false, null, "true"])
+    assert.throws(() => audit(rows(background)));
+  for (const start of [
+    { ...admission, exit_code: 1 },
+    { ...admission, output: "completed" },
+    { ...admission, notify_on_complete: false },
+    { ...admission, pid: -1 },
+    { ...admission, error: "failed to start" },
+  ])
+    assert.throws(() => audit(rows(true, start)));
+  const foreignWait = rows();
+  foreignWait[2]!.tool_calls![0]!.function.arguments = JSON.stringify({
+    action: "wait",
+    session_id: "proc_foreign",
+    timeout: 60,
+  });
+  assert.throws(() => audit(foreignWait), /original process handle/u);
 });
 
 test("original Codex UI stdout restores complete prepared sets for single and grouped attempts", async (context) => {
