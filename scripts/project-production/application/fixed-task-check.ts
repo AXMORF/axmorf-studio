@@ -22,6 +22,7 @@ import {
   createFingerprint,
   generateVisualSemanticTiming,
   isVisualStory,
+  resolveTemplateScenePlayback,
   serializeCanonicalJson,
   type ProducerTaskSpec,
 } from "@axmorf/studio/contracts";
@@ -410,7 +411,6 @@ export const checkSceneTemplateWorkspaceBinding = async ({
     beat.kind !== "silent-scene" ||
     beat.meaningId !== task.semanticId ||
     beat.preset.implementation.kind !== "template-copy" ||
-    beat.preset.durationInFrames !== instance.durationInFrames ||
     beat.preset.visualIntent !== instance.visualIntent ||
     beat.preset.soundIntent !== instance.soundIntent ||
     !same(beat.preset.resourceIds, instance.resourceIds) ||
@@ -427,6 +427,7 @@ export const checkSceneTemplateWorkspaceBinding = async ({
       "Scene template instance does not match its frozen StoryBeat.",
     );
   }
+  resolveTemplateScenePlayback({ instance, preset: beat.preset });
   const copied = [...instance.copiedSourceFiles, ...instance.copiedAssetFiles];
   const mapped = new Map<
     string,

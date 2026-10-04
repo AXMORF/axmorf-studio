@@ -35,6 +35,7 @@ import {
   freezeRevisionScenePriorSources,
   readScenePriorSourceIndex,
   snapshotScenePriorSource,
+  snapshotUnchangedCurrentScene,
 } from "../../scripts/projects/application/scene-prior-source";
 import { createScenePackageInput } from "../fixtures/scene/package-input";
 import { validProjectCreateInput } from "../fixtures/project-create";
@@ -173,6 +174,67 @@ const rootFixture = async (context: {
   await writeScene(rootDir, "meaning-two", "base-two");
   return rootDir;
 };
+
+test("an unmaterialized owning Scene has no current source to rebind", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "axmorf-unmaterialized-scene-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const task = createScenePackageInput().task;
+  assert.equal(
+    await snapshotUnchangedCurrentScene({
+      rootDir,
+      runtimeRootDir: rootDir,
+      task,
+      brief: { ...authoring().scenes[0], meaningId: task.meaningId },
+    }),
+    null,
+  );
+});
+
+test("a changed task policy can freeze only a verified unchanged owning current Scene", async (context) => {
+  const rootDir = await rootFixture(context);
+  const owning = await writeScene(rootDir, "meaning-one", "base-one");
+  const brief = authoring().scenes[0];
+  const options = {
+    rootDir,
+    runtimeRootDir: rootDir,
+    task: owning.task,
+    brief,
+  };
+  const rebound = await snapshotUnchangedCurrentScene(options);
+  assert.ok(rebound);
+  assert.deepEqual(
+    rebound,
+    await snapshotScenePriorSource({
+      rootDir,
+      storyId,
+      meaningId: brief.meaningId,
+      brief,
+    }),
+  );
+  assert.ok(
+    rebound.files.some(
+      ({ path, content }) =>
+        path === "label.ts" && content.includes("base-one"),
+    ),
+  );
+  assert.ok(!rebound.files.some(({ content }) => content.includes("base-two")));
+  const changed = buildSceneTaskInputV7({
+    ...owning.task,
+    storyFingerprint: `sha256:${"f".repeat(64)}`,
+  });
+  assert.equal(
+    await snapshotUnchangedCurrentScene({ ...options, task: changed }),
+    null,
+  );
+  await writeFile(
+    join(rootDir, `src/projects/${storyId}/scenes/meaning-one/label.ts`),
+    "export const label = 'drift';\n",
+  );
+  await assert.rejects(
+    snapshotUnchangedCurrentScene(options),
+    /source graph is stale/u,
+  );
+});
 
 test("only the changed local brief and real continuous seam receive new prior Scene inputs", () => {
   const before = authoring();

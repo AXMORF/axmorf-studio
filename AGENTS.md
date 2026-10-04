@@ -118,6 +118,10 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
   先核 installed public `ProjectRevisionInputSchema` 可用字段；局部 Scene 排版只改完整 `patch.scenes` 的目标 Scene brief，
   不顺手改全局 VisualStyle/GlobalVisual/Story/TTS，不虚构 Cover-only API。候选隔离 source/public/
   narration/work/attempt/out/delivery；promote 前 current Project/Delivery 始终是 authority。
+  `patch.boundaryScenes` 只按 context 的完整 boundary meaningId/order 选择既有 immutable template 的受检播放区间，
+  保留源码/素材/身份；`patch.sound` 只改既有 track 的音量与首尾包络，不新增或替换媒体。运行时升级后先正式复验
+  current 交付再修订；artifact missing 且完整 Scene task input 未变时，planner 可冻结已复验的 owning current Scene，
+  供 bound executor 保留源码并重新 finalization/validation，不扫描历史或伪造 artifact hit。
 - `ttsChunks` 是 Agent 已确定的原子朗读单元。sealed PCM 实测 samples 是绝对时间 authority；frame
   boundary 统一为 `ceilDiv(cumulativeSamples × fps, sampleRate)`。Scene/transition 不吞 spoken frames。
 - create 与 revision validate/create 在 mutation 前执行 structured authoring validation；每个 authored

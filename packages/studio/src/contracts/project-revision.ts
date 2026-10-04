@@ -16,11 +16,13 @@ import {
 } from "./project-create";
 import {
   NonNegativeIntegerSchema,
+  MeaningIdSchema,
   Sha256DigestSchema,
   StoryIdSchema,
 } from "./primitives";
 import { AuthoredPublishingIntentSchema } from "./publishing-intent";
-import { isVisualStory } from "./story";
+import { isVisualStory, TemplateScenePlaybackRangeSchema } from "./story";
+import { ProjectSoundPlanInputSchema } from "./project-sound";
 
 export const PROJECT_REVISION_INPUT_VERSION =
   "project-revision-input-v1" as const;
@@ -59,10 +61,12 @@ export const ProjectRevisionSnapshotLogicalPathSchema = z
   );
 
 export const PROJECT_REVISION_SECTION_NAMES = [
+  "boundaryScenes",
   "brief",
   "globalVisual",
   "publishing",
   "scenes",
+  "sound",
   "story",
   "visualStyle",
 ] as const;
@@ -71,8 +75,32 @@ export const ProjectRevisionSectionNameSchema = z.enum(
   PROJECT_REVISION_SECTION_NAMES,
 );
 
+export const ProjectRevisionBoundaryScenesSchema = z
+  .array(
+    z
+      .object({
+        meaningId: MeaningIdSchema,
+        playbackRange: TemplateScenePlaybackRangeSchema.nullable(),
+      })
+      .strict()
+      .readonly(),
+  )
+  .max(2)
+  .superRefine((scenes, context) => {
+    if (
+      new Set(scenes.map(({ meaningId }) => meaningId)).size !== scenes.length
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Revision boundary Scene identities must be unique.",
+      });
+    }
+  })
+  .readonly();
+
 const ProjectRevisionPatchObject = z
   .object({
+    boundaryScenes: ProjectRevisionBoundaryScenesSchema.optional(),
     brief: VideoBriefSchema.optional(),
     story: ProjectCreateStorySchema.optional(),
     visualStyle: ProjectCreateVisualStyleSchema.optional(),
@@ -84,6 +112,7 @@ const ProjectRevisionPatchObject = z
       .optional(),
     globalVisual: ProjectCreateGlobalVisualSchema.optional(),
     publishing: AuthoredPublishingIntentSchema.optional(),
+    sound: ProjectSoundPlanInputSchema.optional(),
   })
   .strict();
 
@@ -127,6 +156,7 @@ export const ProjectRevisionInputSchema = z
     const sectionStoryIds = [
       ["brief", input.patch.brief?.storyId],
       ["story", input.patch.story?.storyId],
+      ["sound", input.patch.sound?.storyId],
     ] as const;
     for (const [section, sectionStoryId] of sectionStoryIds) {
       if (sectionStoryId !== undefined && sectionStoryId !== input.storyId) {
@@ -143,12 +173,14 @@ export const ProjectRevisionInputSchema = z
 
 export const ProjectRevisionEditableAuthoringSchema = z
   .object({
+    boundaryScenes: ProjectRevisionBoundaryScenesSchema.optional(),
     brief: VideoBriefSchema,
     story: ProjectCreateStorySchema,
     visualStyle: ProjectCreateVisualStyleSchema,
     scenes: z.array(SceneProductionBriefItemSchema).min(1).max(256).readonly(),
     globalVisual: ProjectCreateGlobalVisualSchema,
     publishing: AuthoredPublishingIntentSchema,
+    sound: ProjectSoundPlanInputSchema.optional(),
   })
   .strict()
   .superRefine((authoring, context) => {

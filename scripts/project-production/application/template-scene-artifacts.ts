@@ -9,6 +9,7 @@ import {
   buildSceneVisualPlan,
   buildShotPlanSet,
   buildShotRecipeSelection,
+  resolveTemplateScenePlayback,
   serializeCanonicalJson,
   validateSelectedResourceRef,
   type ProducerTaskSpec,
@@ -121,44 +122,138 @@ export const buildTemplateSceneArtifactFiles = ({
   );
   const durationInFrames =
     taskInput.timingBeat.endFrame - taskInput.timingBeat.startFrame;
+  const playback = resolveTemplateScenePlayback({
+    instance,
+    preset: taskInput.storyBeat.preset,
+  });
+  const windowed =
+    taskInput.storyBeat.preset.implementation.playbackWindow !== undefined;
+  const projectedAnchors = windowed
+    ? instance.anchors
+        .filter(
+          ({ sceneLocalFrame }) =>
+            sceneLocalFrame >= playback.startFrame &&
+            sceneLocalFrame < playback.endFrame,
+        )
+        .map((anchor) => ({
+          ...anchor,
+          sceneLocalFrame: anchor.sceneLocalFrame - playback.startFrame,
+        }))
+    : instance.anchors;
+  const projectedAnchorIds = new Set(
+    projectedAnchors.map(({ eventId }) => eventId),
+  );
+  const projectedShots = windowed
+    ? instance.shots
+        .filter(
+          ({ primaryRange }) =>
+            primaryRange.startFrame < playback.endFrame &&
+            primaryRange.endFrame > playback.startFrame,
+        )
+        .map((shot, order) => ({
+          ...shot,
+          order,
+          primaryRange: {
+            startFrame:
+              Math.max(shot.primaryRange.startFrame, playback.startFrame) -
+              playback.startFrame,
+            endFrame:
+              Math.min(shot.primaryRange.endFrame, playback.endFrame) -
+              playback.startFrame,
+          },
+          syncAnchorIds: shot.syncAnchorIds.filter((id) =>
+            projectedAnchorIds.has(id),
+          ),
+        }))
+    : instance.shots;
   const visual = buildSceneVisualPlan({
     taskInputFingerprint: taskInput.taskInputFingerprint,
     meaningId: taskInput.meaningId,
     ...instance.visual,
+    orderedShotIds: projectedShots.map(({ shotId }) => shotId),
     recipeDecision: "empty",
   });
   const shots = buildShotPlanSet({
     taskInputFingerprint: taskInput.taskInputFingerprint,
     meaningId: taskInput.meaningId,
     sceneDurationInFrames: durationInFrames,
-    shots: instance.shots,
+    shots: projectedShots,
   });
   const anchors = buildSceneSyncAnchors({
     taskInputFingerprint: taskInput.taskInputFingerprint,
     meaningId: taskInput.meaningId,
     sceneDurationInFrames: durationInFrames,
-    anchors: instance.anchors,
+    anchors: projectedAnchors,
   });
+  const anchorFrames = new Map(
+    instance.anchors.map(({ eventId, sceneLocalFrame }) => [
+      eventId,
+      sceneLocalFrame,
+    ]),
+  );
   const sound = buildSceneSoundPlan({
     taskInputFingerprint: taskInput.taskInputFingerprint,
     meaningId: taskInput.meaningId,
     sceneDurationInFrames: durationInFrames,
-    contributions: instance.soundCues.map((cue) => {
+    contributions: instance.soundCues.flatMap<
+      Parameters<typeof buildSceneSoundPlan>[0]["contributions"][number]
+    >((cue) => {
       const resource = selectedById.get(cue.resourceId);
       if (resource === undefined) {
         throw new Error("Scene template sound cue resource is unavailable.");
       }
-      return {
-        contributionId: cue.cueId,
-        resource,
-        timing: {
-          kind: "anchor" as const,
-          eventId: cue.anchorId,
-          offsetFrames: cue.offsetFrames,
+      if (windowed) {
+        const anchorFrame = anchorFrames.get(cue.anchorId);
+        if (anchorFrame === undefined) {
+          throw new Error("Scene template sound cue anchor is unavailable.");
+        }
+        const sourceStart = anchorFrame + cue.offsetFrames;
+        const start = Math.max(sourceStart, playback.startFrame);
+        const end = Math.min(
+          sourceStart + cue.durationInFrames,
+          playback.endFrame,
+        );
+        if (start >= end) return [];
+        const duration = end - start;
+        const music = resource.role === "background-music";
+        return [
+          {
+            contributionId: cue.cueId,
+            resource,
+            timing: {
+              kind: "explicit" as const,
+              sceneLocalFrame: start - playback.startFrame,
+            },
+            durationInFrames: duration,
+            sourceStartFrame: start - sourceStart,
+            volume: music ? (playback.musicVolume ?? cue.volume) : cue.volume,
+            ...(music && playback.musicFadeInFrames !== undefined
+              ? { fadeInFrames: Math.min(playback.musicFadeInFrames, duration) }
+              : {}),
+            ...(music && playback.musicFadeOutFrames !== undefined
+              ? {
+                  fadeOutFrames: Math.min(
+                    playback.musicFadeOutFrames,
+                    duration,
+                  ),
+                }
+              : {}),
+          },
+        ];
+      }
+      return [
+        {
+          contributionId: cue.cueId,
+          resource,
+          timing: {
+            kind: "anchor" as const,
+            eventId: cue.anchorId,
+            offsetFrames: cue.offsetFrames,
+          },
+          durationInFrames: cue.durationInFrames,
+          volume: cue.volume,
         },
-        durationInFrames: cue.durationInFrames,
-        volume: cue.volume,
-      };
+      ];
     }),
   });
   const selection = buildShotRecipeSelection({

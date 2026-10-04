@@ -1,7 +1,11 @@
 import { z } from "zod";
 
 import { createFingerprint } from "./fingerprint";
-import { Sha256DigestSchema, StoryIdSchema } from "./primitives";
+import {
+  NonNegativeIntegerSchema,
+  Sha256DigestSchema,
+  StoryIdSchema,
+} from "./primitives";
 import { ResourceIdSchema } from "./resource-catalog";
 
 export const PROJECT_SOUND_PLAN_VERSION = "project-sound-plan-v1" as const;
@@ -14,6 +18,8 @@ const ProjectSoundContributionSchema = z
     volume: z.number().finite().min(0).max(1),
     loop: z.boolean(),
     playbackScope: z.enum(["narrated-content", "content"]),
+    fadeInFrames: NonNegativeIntegerSchema.optional(),
+    fadeOutFrames: NonNegativeIntegerSchema.optional(),
   })
   .strict()
   .readonly();

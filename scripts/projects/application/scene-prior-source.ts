@@ -15,6 +15,7 @@ import {
   computeUtf8Checksum,
   serializeCanonicalJson,
   type ScenePriorSource,
+  type SceneTaskInput,
 } from "@axmorf/studio/contracts";
 import { collectRendererSourceGraph } from "../../renderer-registry/domain";
 import { buildScenePackage } from "../../scene-package/domain";
@@ -62,13 +63,19 @@ export const affectedPriorSourceMeaningIds = ({
   readonly before: ProjectRevisionEditableAuthoring;
   readonly after: ProjectRevisionEditableAuthoring;
 }) => {
-  const globalChanged = ["brief", "story", "visualStyle"].some(
+  const globalChanged = [
+    "brief",
+    "story",
+    "visualStyle",
+    "boundaryScenes",
+    "sound",
+  ].some(
     (section) =>
       serializeCanonicalJson(
-        before[section as "brief" | "story" | "visualStyle"],
+        before[section as keyof ProjectRevisionEditableAuthoring] ?? null,
       ) !==
       serializeCanonicalJson(
-        after[section as "brief" | "story" | "visualStyle"],
+        after[section as keyof ProjectRevisionEditableAuthoring] ?? null,
       ),
   );
   const sceneInputs = (authoring: ProjectRevisionEditableAuthoring) => {
@@ -298,6 +305,55 @@ export const snapshotScenePriorSource = async ({
     rendererSourceFingerprint: graph.sourceGraphFingerprint,
     scenePackageFingerprint: scenePackage.packageFingerprint,
     files,
+  });
+};
+
+/** A policy/contract miss may rebind the verified current Scene, never history. */
+export const snapshotUnchangedCurrentScene = async ({
+  rootDir,
+  runtimeRootDir,
+  task,
+  brief,
+}: {
+  readonly rootDir: string;
+  readonly runtimeRootDir: string;
+  readonly task: SceneTaskInput;
+  readonly brief: ScenePriorSource["brief"];
+}) => {
+  SceneTaskInputSchema.parse(task);
+  let bytes;
+  try {
+    await assertRealRepositoryDirectoryChain({
+      rootDir,
+      relativePath: task.allowedDirectories.sceneRoot,
+      allowMissingTail: true,
+    });
+    await lstat(
+      join(
+        rootDir,
+        task.allowedDirectories.sceneRoot,
+        "task-input.generated.json",
+      ),
+    );
+    bytes = await readContainedRegularFile({
+      rootDir,
+      relativePath: `${task.allowedDirectories.sceneRoot}/task-input.generated.json`,
+      label: "Current owning Scene task input",
+    });
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+    throw error;
+  }
+  const current = SceneTaskInputSchema.parse(
+    JSON.parse(bytes.toString("utf8")),
+  );
+  if (current.taskInputFingerprint !== task.taskInputFingerprint) return null;
+  return snapshotScenePriorSource({
+    rootDir,
+    runtimeRootDir,
+    storyId: task.storyId,
+    meaningId: task.meaningId,
+    brief,
   });
 };
 

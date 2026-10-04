@@ -29,6 +29,9 @@ import {
   buildDeliveryPublish,
   buildDeliveryPublishing,
   buildProductionRevision,
+  buildProjectSoundPlan,
+  computeStoryFingerprint,
+  ProjectSceneTemplateInstantiationSchema,
   buildNotApplicableFidelityReceipt,
   buildSceneSoundPlan,
   buildSceneSyncAnchors,
@@ -549,6 +552,186 @@ for (const failureCheckpoint of [
     await access(join(current.candidateRoot, "story.json"));
   });
 }
+
+test("boundary and music revision retains immutable source bytes and isolates a 75-frame ending", async (context) => {
+  const current = await visualFixture(context);
+  const storyId = current.input.storyId;
+  const projectRoot = join(current.rootDir, "src/projects", storyId);
+  const originalStoryBytes = await readFile(
+    join(projectRoot, "story.json"),
+    "utf8",
+  );
+  const originalStory = StorySpecSchema.parse(JSON.parse(originalStoryBytes));
+  const originalInstance = await readFile(
+    join(
+      projectRoot,
+      "scenes/configured-outro-scene/scene-template-instance.json",
+    ),
+  );
+  const originalRenderer = await readFile(
+    join(projectRoot, "scenes/configured-outro-scene/Renderer.tsx"),
+  );
+  // State/media readers are injected in this authoring test; the audio identity is frozen as base input.
+  const baseSound = buildProjectSoundPlan({
+    storyId,
+    contributions: [
+      {
+        contributionId: "existing-music",
+        resourceId: `res-project-${storyId}-music`,
+        descriptorFingerprint: sha("8"),
+        volume: 0.16,
+        loop: true,
+        playbackScope: "content",
+      },
+    ],
+  });
+  await writeFile(
+    join(projectRoot, "sound.json"),
+    `${serializeCanonicalJson(baseSound)}\n`,
+  );
+  const revisionContext = await readProjectRevisionContext({
+    rootDir: current.rootDir,
+    projectId: storyId,
+    dependencies: current.dependencies,
+  });
+  const { soundPlanFingerprint: _baseFingerprint, ...soundInput } = baseSound;
+  void _baseFingerprint;
+  const input = ProjectRevisionInputSchema.parse({
+    schemaVersion: 1,
+    contractVersion: "project-revision-input-v1",
+    storyId,
+    baseRevisionId: revisionContext.baseRevisionId,
+    baseDeliveryBuildId: revisionContext.baseDeliveryBuildId,
+    patch: {
+      boundaryScenes: revisionContext.editable.boundaryScenes?.map((scene) => ({
+        ...scene,
+        playbackRange:
+          scene.meaningId === "configured-outro-scene"
+            ? {
+                startFrame: 165,
+                endFrame: 240,
+                musicVolume: 0.44,
+                musicFadeInFrames: 8,
+                musicFadeOutFrames: 15,
+              }
+            : scene.playbackRange,
+      })),
+      sound: {
+        ...soundInput,
+        contributions: soundInput.contributions.map((track) => ({
+          ...track,
+          volume: 0.44,
+          fadeInFrames: 10,
+          fadeOutFrames: 15,
+        })),
+      },
+    },
+  });
+  const created = await createProjectRevisionCandidate({
+    rootDir: current.rootDir,
+    projectId: storyId,
+    input,
+    env: { RSP_PRODUCER_CONFIG: current.configPath },
+    dependencies: current.dependencies,
+  });
+  const scope = createProjectRevisionProductionScope({
+    rootDir: current.rootDir,
+    storyId,
+    candidateId: created.candidateId,
+  });
+  const candidateRoot = join(scope.projectSourceRoot, storyId);
+  const revised = StorySpecSchema.parse(
+    JSON.parse(await readFile(join(candidateRoot, "story.json"), "utf8")),
+  );
+  assert.deepEqual(
+    revised.beats.filter((beat) => beat.kind !== "silent-scene"),
+    originalStory.beats.filter((beat) => beat.kind !== "silent-scene"),
+  );
+  const outro = revised.beats.at(-1);
+  assert.ok(outro?.kind === "silent-scene");
+  assert.equal(outro.preset.durationInFrames, 75);
+  assert.deepEqual(
+    await readFile(
+      join(
+        candidateRoot,
+        "scenes/configured-outro-scene/scene-template-instance.json",
+      ),
+    ),
+    originalInstance,
+  );
+  assert.deepEqual(
+    await readFile(
+      join(candidateRoot, "scenes/configured-outro-scene/Renderer.tsx"),
+    ),
+    originalRenderer,
+  );
+  const selection = ProjectSceneTemplateInstantiationSchema.parse(
+    JSON.parse(
+      await readFile(
+        join(candidateRoot, "production/scene-template-instantiation.json"),
+        "utf8",
+      ),
+    ),
+  );
+  assert.equal(
+    selection.materializedStoryFingerprint,
+    computeStoryFingerprint(revised),
+  );
+  assert.equal(
+    selection.selections.outro?.presetFingerprint,
+    outro.preset.presetFingerprint,
+  );
+  const revisedSound = JSON.parse(
+    await readFile(join(candidateRoot, "sound.json"), "utf8"),
+  );
+  assert.equal(revisedSound.contributions[0].volume, 0.44);
+  assert.equal(revisedSound.contributions[0].fadeInFrames, 10);
+  assert.equal(
+    await readFile(join(projectRoot, "story.json"), "utf8"),
+    originalStoryBytes,
+  );
+  assert.deepEqual(
+    JSON.parse(await readFile(join(projectRoot, "sound.json"), "utf8")),
+    baseSound,
+  );
+  await assert.rejects(
+    validateProjectRevisionAuthoring({
+      rootDir: current.rootDir,
+      dependencies: current.dependencies,
+      input: {
+        ...input,
+        patch: {
+          sound: {
+            ...input.patch.sound,
+            contributions: [
+              {
+                ...soundInput.contributions[0],
+                resourceId: "res-unowned-music",
+              },
+            ],
+          },
+        },
+      },
+    }),
+    /existing tracks only/u,
+  );
+  await assert.rejects(
+    validateProjectRevisionAuthoring({
+      rootDir: current.rootDir,
+      dependencies: current.dependencies,
+      input: {
+        ...input,
+        patch: {
+          boundaryScenes: input.patch.boundaryScenes?.map((scene) => ({
+            ...scene,
+            playbackRange: { startFrame: 165, endFrame: 241 },
+          })),
+        },
+      },
+    }),
+    /exceeds its immutable source/u,
+  );
+});
 
 test("visual revision exposes authored content and isolates duration changes while retaining null narration and boundaries", async (context) => {
   const current = await visualFixture(context);

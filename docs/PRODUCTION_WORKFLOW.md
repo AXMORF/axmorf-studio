@@ -130,7 +130,11 @@ npm run project:revise -- --project <storyId> --input <repository-relative-json>
 
 context 在返回 editable authoring 前同时复验 current `baseRevisionId` 与 exact-four-file
 `baseDeliveryBuildId`。revision 无 `--schema`，validate 只接受 `--input`；先核 installed public `ProjectRevisionInputSchema`。
-strict patch 只开放 authored sections，并保持正文 meaningId/order 与 boundary Scenes。局部 Scene 排版只改完整
+strict patch 只开放 authored sections，并保持正文 meaningId/order 与 boundary Scene 身份及 immutable source。`boundaryScenes`
+可以选择已有模板的受检播放区间，fixed task 同步派生时序、shot/anchor、源音轨裁剪；`sound` 只调整既有音乐的增益与
+首尾淡入淡出，保持媒体、身份、loop/scope。运行时升级使 current tuple 失配时先正式复验现稿交付，不能绕过 context。
+仅在 artifact missing 且完整 owning Scene task input 未变时，planner 可冻结已验证的 current source 为 bound priorSource，
+executor 仍需重新 finalization/check/commit；它不是 artifact hit，也不允许读取历史或其他 Scene。局部 Scene 排版只改完整
 `patch.scenes` 列表中的目标 Scene brief，不顺手改全局 VisualStyle/GlobalVisual/Story/TTS；没有 Cover-only patch API。
 candidateId 由 canonical input 确定；候选在 `.producer-revisions/<storyId>/<candidateId>/` 隔离 source/public/
 narration/work/attempt/out/delivery。相同完整 input/base bytes 只读 current，stale base、未知文件、symlink、special

@@ -16,6 +16,7 @@ import {
   SoundContribution,
   type SoundContributionValue,
 } from "./SoundContribution";
+import { validateSoundPlayback } from "./audio-playback";
 
 type SoundDesignEntry =
   | Readonly<{
@@ -188,6 +189,10 @@ export const buildSoundDesignProjection = (rawInput: {
       ) {
         throw new Error("Project sound contribution is not runtime-approved.");
       }
+      validateSoundPlayback(
+        contribution,
+        (lastContent.endFrame as number) - (firstContent.startFrame as number),
+      );
       return {
         contributionId: `project:${contribution.contributionId}`,
         resourceId: resource.id,
@@ -197,6 +202,12 @@ export const buildSoundDesignProjection = (rawInput: {
         endFrame: lastContent.endFrame as number,
         volume: contribution.volume,
         loop: contribution.loop,
+        ...(contribution.fadeInFrames === undefined
+          ? {}
+          : { fadeInFrames: contribution.fadeInFrames }),
+        ...(contribution.fadeOutFrames === undefined
+          ? {}
+          : { fadeOutFrames: contribution.fadeOutFrames }),
       };
     },
   );

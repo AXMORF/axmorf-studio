@@ -99,6 +99,64 @@ export const TemplateSceneSoundCueSchema = z
   .strict()
   .readonly();
 
+const TemplateScenePlaybackRangeObject = z
+  .object({
+    startFrame: NonNegativeIntegerSchema,
+    endFrame: PositiveIntegerSchema,
+    musicVolume: z.number().finite().min(0).max(1).optional(),
+    musicFadeInFrames: NonNegativeIntegerSchema.optional(),
+    musicFadeOutFrames: NonNegativeIntegerSchema.optional(),
+  })
+  .strict();
+
+const addPlaybackRangeIssues = (
+  range: z.infer<typeof TemplateScenePlaybackRangeObject>,
+  context: z.RefinementCtx,
+) => {
+  const duration = range.endFrame - range.startFrame;
+  if (duration <= 0) {
+    context.addIssue({
+      code: "custom",
+      message: "Template playback range must contain at least one frame.",
+      path: ["endFrame"],
+    });
+  }
+  for (const field of ["musicFadeInFrames", "musicFadeOutFrames"] as const) {
+    if ((range[field] ?? 0) > duration) {
+      context.addIssue({
+        code: "custom",
+        message: "Template music fades must fit the playback range.",
+        path: [field],
+      });
+    }
+  }
+};
+
+export const TemplateScenePlaybackRangeSchema =
+  TemplateScenePlaybackRangeObject.superRefine(
+    addPlaybackRangeIssues,
+  ).readonly();
+
+export const TemplateScenePlaybackWindowSchema =
+  TemplateScenePlaybackRangeObject.extend({
+    sourceDurationInFrames: PositiveIntegerSchema,
+  })
+    .superRefine((window, context) => {
+      addPlaybackRangeIssues(window, context);
+      if (window.endFrame > window.sourceDurationInFrames) {
+        context.addIssue({
+          code: "custom",
+          message: "Template playback must stay inside its immutable source.",
+          path: ["endFrame"],
+        });
+      }
+    })
+    .readonly();
+
+export type TemplateScenePlaybackRange = z.infer<
+  typeof TemplateScenePlaybackRangeSchema
+>;
+
 const SilentSceneImplementationSchema = z.discriminatedUnion("kind", [
   z
     .object({
@@ -108,6 +166,7 @@ const SilentSceneImplementationSchema = z.discriminatedUnion("kind", [
       instanceFingerprint: Sha256DigestSchema,
       rendererSourceFingerprint: Sha256DigestSchema,
       soundCues: z.array(TemplateSceneSoundCueSchema).max(16).readonly(),
+      playbackWindow: TemplateScenePlaybackWindowSchema.optional(),
     })
     .strict()
     .readonly(),
@@ -145,6 +204,17 @@ const SilentScenePresetInputSchema = z
       }
     });
     if (preset.implementation.kind === "template-copy") {
+      const window = preset.implementation.playbackWindow;
+      if (
+        window !== undefined &&
+        preset.durationInFrames !== window.endFrame - window.startFrame
+      ) {
+        context.addIssue({
+          code: "custom",
+          message: "Template preset duration must equal its playback range.",
+          path: ["durationInFrames"],
+        });
+      }
       const cueIds = new Set<string>();
       preset.implementation.soundCues.forEach((cue, index) => {
         if (cueIds.has(cue.cueId)) {
@@ -164,7 +234,8 @@ const SilentScenePresetInputSchema = z
         }
         if (
           cue.offsetFrames < 0 ||
-          cue.offsetFrames + cue.durationInFrames > preset.durationInFrames
+          cue.offsetFrames + cue.durationInFrames >
+            (window?.sourceDurationInFrames ?? preset.durationInFrames)
         ) {
           context.addIssue({
             code: "custom",

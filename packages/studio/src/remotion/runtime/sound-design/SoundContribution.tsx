@@ -1,14 +1,21 @@
 import type { FC } from "react";
 import { Audio, Sequence, staticFile } from "remotion";
 
-export type SoundContributionValue = Readonly<{
-  contributionId: string;
-  publicPath: string;
-  startFrame: number;
-  endFrame: number;
-  volume: number;
-  loop: boolean;
-}>;
+import {
+  resolveSoundVolume,
+  validateSoundPlayback,
+  type SoundPlaybackOptions,
+} from "./audio-playback";
+
+export type SoundContributionValue = SoundPlaybackOptions &
+  Readonly<{
+    contributionId: string;
+    publicPath: string;
+    startFrame: number;
+    endFrame: number;
+    volume: number;
+    loop: boolean;
+  }>;
 
 export const SoundContribution: FC<{
   readonly contribution: SoundContributionValue;
@@ -25,15 +32,31 @@ export const SoundContribution: FC<{
   ) {
     throw new Error("Sound contribution is not runtime-safe.");
   }
+  const durationInFrames = contribution.endFrame - contribution.startFrame;
+  validateSoundPlayback(contribution, durationInFrames);
   return (
     <Sequence
       from={contribution.startFrame}
-      durationInFrames={contribution.endFrame - contribution.startFrame}
+      durationInFrames={durationInFrames}
     >
       <Audio
         src={staticFile(contribution.publicPath.slice("public/".length))}
-        volume={() => contribution.volume}
+        volume={(localFrame) =>
+          resolveSoundVolume(
+            localFrame,
+            durationInFrames,
+            contribution.volume,
+            contribution,
+          )
+        }
         loop={contribution.loop}
+        {...(contribution.sourceStartFrame === undefined
+          ? {}
+          : { trimBefore: contribution.sourceStartFrame })}
+        {...(contribution.fadeInFrames === undefined &&
+        contribution.fadeOutFrames === undefined
+          ? {}
+          : { loopVolumeCurveBehavior: "extend" as const })}
       />
     </Sequence>
   );

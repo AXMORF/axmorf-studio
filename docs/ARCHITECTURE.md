@@ -1,5 +1,12 @@
 # Architecture
 
+边界修订使用 Story preset 中可选、fingerprint-covered 的 template playback window：immutable instance 与 copied bytes 不变，
+fixed artifact 派生局部 shot/anchor 和音轨源起点，SceneSlot 保持实际 Beat Sequence 时长并偏移模板 source clock。
+Project/Scene 音轨可选首尾线性包络；循环 BGM 的包络延续到整条 contribution，不能每轮重置。
+正式 revision 只开放既有 template 区间与既有 track 的增益/包络。运行时升级后须正式重验 current delivery；
+missing artifact 的 owning Scene task input 完全不变时可冻结其已验证 current source 为 bound priorSource，
+保留既有画面后重新执行 validators 和提交，不能把 current source 当 artifact hit。
+
 无旁白正文沿同一 production 主链：`visual-scene` 的 authored frames 生成 `authored-frames-v1`
 SemanticTiming，旁白 source/两份 manifest 明确为 null，不创建 provider/narration tasks。Composition
 省略 NarrationAudioTrack，保留顶层 caption ownership；空 captions 回收字幕预留区。GlobalVisual 和

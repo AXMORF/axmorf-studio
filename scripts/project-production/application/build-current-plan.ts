@@ -43,6 +43,7 @@ import {
   expectedTemplateSceneOutputSetFromPreparedFiles,
 } from "../domain/template-scene-output";
 import { loadProjectProductionInputs } from "./load-inputs";
+import { snapshotUnchangedCurrentScene } from "../../projects/application/scene-prior-source";
 import { buildCurrentProductionRevision } from "./current-revision";
 import {
   assertTaskExecutionContractMatchesTask,
@@ -865,7 +866,8 @@ export const buildCurrentProductionPlan = async ({
       taskContractBytes: string | null;
     }>
   >();
-  for (const built of builtOwners) {
+  for (const initialBuilt of builtOwners) {
+    let built = initialBuilt;
     let task = built.task;
     if (task.taskKind === "scene-template") {
       if (task.semanticId === null)
@@ -877,7 +879,44 @@ export const buildCurrentProductionPlan = async ({
       });
       task = rebindTemplateTaskOutputs(task, Object.keys(templateFiles));
     }
-    ownerInspections.set(task.taskRevision, await inspect({ rootDir, task }));
+    let inspection = await inspect({ rootDir, task });
+    if (
+      task.taskKind === "scene-owner" &&
+      inspection.artifactState === "missing"
+    ) {
+      const scene = inputs.sceneInputs.find(
+        ({ meaningId }) => meaningId === task.semanticId,
+      );
+      if (scene !== undefined && scene.priorSource === undefined) {
+        const priorSource = await snapshotUnchangedCurrentScene({
+          rootDir: scope.isolatedRoot,
+          runtimeRootDir: scope.shared.runtimeRoot,
+          task: scene.taskInput,
+          brief: scene.brief,
+        });
+        if (priorSource !== null) {
+          const rebound = buildAgentTasks(
+            {
+              ...inputs,
+              sceneInputs: inputs.sceneInputs.map((entry) =>
+                entry === scene ? { ...entry, priorSource } : entry,
+              ),
+            },
+            revision.revisionId,
+          ).find(
+            ({ task: owner }) =>
+              owner.taskKind === "scene-owner" &&
+              owner.semanticId === task.semanticId,
+          );
+          if (rebound === undefined)
+            throw new Error("Current Scene source rebind lost its owner.");
+          built = rebound;
+          task = built.task;
+          inspection = await inspect({ rootDir, task });
+        }
+      }
+    }
+    ownerInspections.set(task.taskRevision, inspection);
     taskSeeds.set(task.taskRevision, {
       task,
       contextBytes: built.contextBytes,

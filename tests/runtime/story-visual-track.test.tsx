@@ -11,6 +11,7 @@ import {
   buildSceneFallbackDeclaration,
   computeScenePackageFingerprint,
   resolveSceneReadabilityPolicy,
+  buildSilentScenePreset,
 } from "@axmorf/studio/contracts";
 import {
   renderSceneRendererMount,
@@ -190,6 +191,54 @@ test("current SceneSlot keeps boundary policy internal to the mount", () => {
   });
   assert.ok(isValidElement<ElementProps>(element));
   assert.equal(Children.count(element.props.children), 1);
+});
+
+test("template playback changes the source clock while keeping the 75-frame Beat and viewport", () => {
+  const preset = buildSilentScenePreset({
+    presetId: "short-outro",
+    durationInFrames: 75,
+    visualIntent: "Keep the brand ending.",
+    soundIntent: "Play the matching excerpt.",
+    resourceIds: [],
+    implementation: {
+      kind: "template-copy",
+      templateId: "brand-ending",
+      templateFingerprint: `sha256:${"a".repeat(64)}`,
+      instanceFingerprint: `sha256:${"b".repeat(64)}`,
+      rendererSourceFingerprint: `sha256:${"c".repeat(64)}`,
+      soundCues: [],
+      playbackWindow: {
+        sourceDurationInFrames: 240,
+        startFrame: 165,
+        endFrame: 240,
+      },
+    },
+  });
+  const policy = resolveSceneReadabilityPolicy({ width: 1080, height: 1920 });
+  const Renderer = () => <div />;
+  const rendererProps = {
+    durationInFrames: 75,
+    sceneBoundaryVersion: "scene-composition-boundary-v2",
+    readabilityPolicy: policy,
+    storyBeat: {
+      kind: "silent-scene",
+      meaningId: "outro",
+      narrativePurpose: "Brand ending.",
+      preset,
+    },
+  } as SceneRendererMountProps;
+  for (const localFrame of [0, 37, 74]) {
+    const mounted = renderSceneRendererMount(
+      Renderer,
+      rendererProps,
+      localFrame,
+    );
+    assert.ok(isValidElement<{ children: ReactNode }>(mounted));
+    assert.ok(isValidElement<SceneRendererProps>(mounted.props.children));
+    assert.equal(mounted.props.children.props.sceneFrame, 165 + localFrame);
+    assert.equal(mounted.props.children.props.durationInFrames, 75);
+    assert.equal(mounted.props.children.props.viewportWidth, 900);
+  }
 });
 
 test("Scene renderer and mount props enforce the current ownership boundary", () => {
