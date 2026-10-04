@@ -24,7 +24,7 @@ validators 判断一次生产是否真正完成。
 生产任务冻结选定资源和指南；校验会拒绝仅声明却未调用的能力，以及调用未声明的能力。自绘仍可使用，
 需要说明与现有 API 的适配理由；这些机械检查不代替成片审片。
 
-开发分支支持两种正文：`narrated-scene` 以实测旁白驱动字幕和动作；`visual-scene` 以明确的
+0.1.17 支持两种正文：`narrated-scene` 以实测旁白驱动字幕和动作；`visual-scene` 以明确的
 `durationInFrames` 驱动对象状态、短文案与音效，不调用 TTS。后者通过 create context 的 `visualFirst`
 示例选择，保留相同的正式生产与四文件交付流程。Scene worker 可用绑定返回的 `commands.preview`
 在提交前实际渲染和定向修正；最终的跨 Scene 衔接、音乐混音和完整审片仍需交付后 review。
@@ -33,9 +33,10 @@ Scene 内的因果动作、其他 SVG/Canvas/3D 仍自由创作。实际消费�
 create context 同时提供已核验许可的 `soundResources` 和不含私有路径的音乐配置状态。
 Scene 选择音效并对齐实际起音或声势中心；新 Project 默认从已批准的全局循环曲库选一首，冻结为 Project-local 资源，
 由顶层跨 Scene 连续播放到整片结束。可明确静音、指定获批曲目或继承自定义文件；缺曲会报告 unavailable。
-本分支还可通过 strict revision 调整 immutable 首尾模板的播放区间及既有音乐增益/包络，不修改模板或旁白 bytes。
+还可通过 strict revision 调整 immutable 首尾模板的播放区间及既有音乐增益/包络，不修改模板或旁白 bytes。
 该新增修订已有回归测试，正式整片 candidate 和听审尚待验证，见 [修订指南](docs/guides/PROJECT_REVISION.md)。
-这些改进尚未发布到 npm，当前公开版本仍为 0.1.16。具体样片与未验证范围见当前实现状态。
+这些能力已随两个官方 npm 包的 0.1.17 发布。发布及公共安装证据见
+[发布记录](docs/evidence/v0.1.17-publication.json)，具体样片与未验证范围见当前实现状态。
 
 ## 把这段提示词交给你的 Agent
 

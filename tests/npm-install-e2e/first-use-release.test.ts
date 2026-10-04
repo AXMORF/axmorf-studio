@@ -11,7 +11,8 @@ import {
   writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { basename, dirname, join } from "node:path";
+import { basename, dirname, join, relative } from "node:path";
+import { realpathSync } from "node:fs";
 import test from "node:test";
 import { build } from "esbuild";
 import {
@@ -1965,6 +1966,76 @@ test("public registry metadata, tar bytes and lock reject redirected or local pa
       ),
     );
 });
+
+test(
+  "public creator lock binds npm's Darwin tmp alias to the exact physical package owner",
+  { skip: process.platform !== "darwin" },
+  async (context) => {
+    const root = await mkdtemp("/tmp/axmorf-public-lock-alias-");
+    context.after(() => rm(root, { recursive: true, force: true }));
+    const name = "create-axmorf-studio" as const;
+    await mkdir(join(root, "node_modules", name), { recursive: true });
+    const physical = realpathSync(root);
+    assert.equal(physical, `/private${root}`);
+    const key = relative(root, join(physical, "node_modules", name));
+    const metadata = {
+      name,
+      version: "0.1.17",
+      tarball:
+        "https://registry.npmjs.org/create-axmorf-studio/-/create-axmorf-studio-0.1.17.tgz",
+      integrity: `sha512-${createHash("sha512").update("public creator").digest("base64")}`,
+    };
+    const entry = {
+      version: metadata.version,
+      resolved: metadata.tarball,
+      integrity: metadata.integrity,
+    };
+    const lock = { lockfileVersion: 3, packages: { [key]: entry } };
+    const path = join(root, "package-lock.json");
+    const frozen = JSON.stringify(lock);
+    assertPublicLock(lock, metadata, path);
+    assert.equal(JSON.stringify(lock), frozen);
+    assert.throws(() => assertPublicLock(lock, metadata));
+    assert.throws(() =>
+      assertPublicLock(
+        { ...lock, packages: { [key.replace(name, "foreign")]: entry } },
+        metadata,
+        path,
+      ),
+    );
+    assert.throws(
+      () =>
+        assertPublicLock(
+          {
+            ...lock,
+            packages: { [key]: entry, [`node_modules/${name}`]: entry },
+          },
+          metadata,
+          path,
+        ),
+      /ambiguous/u,
+    );
+    for (const override of [
+      { resolved: "file:local.tgz" },
+      { integrity: `sha512-${"A".repeat(86)}==` },
+      { version: "0.1.16" },
+      { link: true },
+    ])
+      assert.throws(() =>
+        assertPublicLock(
+          { ...lock, packages: { [key]: { ...entry, ...override } } },
+          metadata,
+          path,
+        ),
+      );
+    const other = await mkdtemp("/tmp/axmorf-public-lock-foreign-");
+    context.after(() => rm(other, { recursive: true, force: true }));
+    await mkdir(join(other, "node_modules", name), { recursive: true });
+    assert.throws(() =>
+      assertPublicLock(lock, metadata, join(other, "package-lock.json")),
+    );
+  },
+);
 
 test("public creation uses npm latest with fresh registry cache and distinct verifiable receipts", async (context) => {
   const root = await mkdtemp(join(tmpdir(), "axmorf-public-registry-"));

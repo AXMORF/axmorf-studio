@@ -33,6 +33,15 @@ and failed superseded attempts remain retained. The compact receipt binds 290 ru
 [native receipt](../evidence/v0.1.17-first-use.json) and
 [BGM verification](../evidence/v0.1.17-bgm-verification.json).
 
+The unchanged `v0.1.17` tag was published successfully by the existing trusted workflow.
+The [publication record](../evidence/v0.1.17-publication.json) records its exact source,
+registry/CI tarball identity, official provenance and a subsequent anonymous public install.
+That install verifies the original locks, package files, generated guides and doctor; it does
+not claim another public native video run. For npm's Darwin `/tmp` cache alias, public lock
+verification accepts only the exact `/private/tmp` physical package owner, rejects ambiguous
+or foreign keys, and retains all version, official URL, integrity and no-link checks. It never
+rewrites the original lock or treats a failed install as a completed snapshot.
+
 When native acceptance is required, use fresh workspaces and fresh host profiles with one
 ordinary business prompt per required host. They do not inherit the repository, earlier
 sessions, memory, global project skills, or engineering hints. Only the npm-generated workspace

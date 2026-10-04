@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { appendFileSync } from "node:fs";
+import { appendFileSync, realpathSync } from "node:fs";
 import { mkdir, mkdtemp, readFile, readdir, writeFile } from "node:fs/promises";
-import { basename, dirname, join } from "node:path";
+import { basename, dirname, join, relative, resolve } from "node:path";
 import { z } from "zod";
 import { resolveNpmCliPath } from "../../packages/create-axmorf-studio/src/index.js";
 import { directoryFiles, packageContent, sha256 } from "./package-content";
@@ -92,7 +92,11 @@ export function assertPublicIntegrity(bytes: Buffer, expected: string) {
   );
 }
 
-export function assertPublicLock(value: unknown, metadata: RegistryPackage) {
+export function assertPublicLock(
+  value: unknown,
+  metadata: RegistryPackage,
+  lockPath?: string,
+) {
   const lock = z
     .object({
       lockfileVersion: z.number().min(2),
@@ -100,6 +104,31 @@ export function assertPublicLock(value: unknown, metadata: RegistryPackage) {
     })
     .passthrough()
     .parse(value);
+  let packageKey = `node_modules/${metadata.name}`;
+  if (lockPath && process.platform === "darwin") {
+    const owner = resolve(dirname(lockPath));
+    const physicalOwner = realpathSync(owner);
+    if (owner.startsWith("/tmp/") && physicalOwner === `/private${owner}`) {
+      const expected = join(physicalOwner, "node_modules", metadata.name);
+      assert.equal(
+        realpathSync(join(owner, "node_modules", metadata.name)),
+        expected,
+        "Public package directory escapes its original lock owner",
+      );
+      // npm may compute a physical-location key relative to its original
+      // logical /tmp cache path. Resolve lexically before realpath, as npm
+      // does; applying filesystem '..' traversal to the alias is different.
+      const aliasKey = relative(owner, expected);
+      if (Object.hasOwn(lock.packages, aliasKey)) {
+        assert.ok(
+          !Object.hasOwn(lock.packages, packageKey),
+          "Public lock contains ambiguous package ownership",
+        );
+        assert.equal(realpathSync(resolve(owner, aliasKey)), expected);
+        packageKey = aliasKey;
+      }
+    }
+  }
   const installed = z
     .object({
       version: Version,
@@ -108,7 +137,7 @@ export function assertPublicLock(value: unknown, metadata: RegistryPackage) {
       link: z.literal(false).optional(),
     })
     .passthrough()
-    .parse(lock.packages[`node_modules/${metadata.name}`]);
+    .parse(lock.packages[packageKey]);
   assert.equal(
     installed.version,
     metadata.version,
@@ -154,7 +183,7 @@ export async function verifyPublicArtifacts(
       checksum,
       "Public installation lock changed after snapshot",
     );
-    assertPublicLock(JSON.parse(bytes.toString("utf8")), metadata);
+    assertPublicLock(JSON.parse(bytes.toString("utf8")), metadata, path);
   }
 }
 

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "status": "bgm-implementation-verified-publication-pending",
+  "status": "bgm-implementation-published-and-production-configured",
   "version": "0.1.17",
   "implementationCommit": "87ae0071893ef83e31b11567fef9558c6318dfa2",
   "scaffoldGuideCommit": "d72adf491a9a5cbe8c2a739ef817e222c0ab6724",
@@ -102,6 +102,41 @@
       "workflowChecksum": "sha256:9517a000fefb3a8a7798321856817612f40cb4b70fb09ed5804a9449bf0619a4",
       "testChecksum": "sha256:e3bc1cc8874361c63e25cdd962af8d82872345228e21f3846615783e8a1ff30c",
       "npmAuditVulnerabilities": 0
+    },
+    "exactTagCi": {
+      "node": "24.16.0",
+      "scopedTests": {
+        "tests": 153,
+        "pass": 153,
+        "fail": 0,
+        "skipped": 0
+      },
+      "completeRepositoryTests": {
+        "tests": 1212,
+        "pass": 1211,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 1,
+        "skipReason": "Darwin sandbox process inspection reports the real spawnSync EPERM; platform-specific test on Linux"
+      },
+      "completeLogChecksum": "sha256:a6515558a0381dde989f4b78db234a4acb6f37bea726f9ab6f37a24acde352f7",
+      "packageTypecheckBuildAudit": "pass",
+      "sourceTypecheckLintBuild": "pass",
+      "minimalRealRender": {
+        "schemaVersion": 1,
+        "status": "pass",
+        "compositionId": "DefaultIntroPreview",
+        "checksum": "sha256:55d3f4fc336ea393ebdf7d2bf35f78c7592177f57d1d2ca72a727bd0be2fc2f8",
+        "width": 1080,
+        "height": 1920,
+        "fps": 30,
+        "durationInFrames": 60,
+        "audioCodec": "aac",
+        "audioChannels": 2,
+        "eofDecode": true
+      },
+      "freshExternalWorkspaceAndDoctor": "pass",
+      "reviewedPlanAndExactNativeReceipts": "pass"
     }
   },
   "runtimeAudioProof": {
@@ -263,7 +298,7 @@
   "releaseGate": {
     "codexCandidate": "verified",
     "hermesCandidate": "verified",
-    "npmPublication": "not-started",
+    "npmPublication": "published-and-verified",
     "policy": "change-scoped-layered-release",
     "requiredHosts": [
       "codex",
@@ -274,7 +309,10 @@
     "nativeRunDurationsMinutes": {
       "codex": 44.95,
       "hermes": 57.72
-    }
+    },
+    "sourceCommit": "3b2a01ce1f27ac8761e123722c090fba0bccd289",
+    "actionsUrl": "https://github.com/AXMORF/axmorf-studio/actions/runs/37231367445",
+    "latestVersion": "0.1.17"
   },
   "scopeNotes": [
     "Full runtime render proof is separate from the native first-use production gate.",
@@ -303,6 +341,81 @@
       "fail": 0,
       "cancelled": 0,
       "skipped": 0
+    },
+    "publicRegistryLockIdentityFollowup": {
+      "tests": 33,
+      "pass": 33,
+      "fail": 0,
+      "skipped": 0,
+      "lintExitCode": 0,
+      "typecheckExitCode": 0,
+      "scope": "Accept only the exact Darwin /tmp to /private/tmp package-owner alias; preserve raw lock bytes and all public package source checks.",
+      "publishedPackageContentsChanged": false,
+      "testLogChecksum": "sha256:481174e539b30a560b647b1bb06dc8469e4d90233b22c8caa2ccde131ca472ad"
     }
+  },
+  "publishedSourceCommit": "3b2a01ce1f27ac8761e123722c090fba0bccd289",
+  "publicationEvidence": "v0.1.17-publication.json",
+  "publicInstallation": {
+    "status": "verified",
+    "snapshotChecksum": "sha256:e05cd8179aed79d3028d342d2d4c69551be7da50a8a5717ec6ffbf2bf78ebf81",
+    "generatedGuides": 12,
+    "doctor": {
+      "status": "workspace-ready",
+      "workspaceVersion": 1,
+      "checks": {
+        "layout": "pass",
+        "runtimeResources": "pass",
+        "remotionCli": "pass",
+        "browserRender": "pass",
+        "producerConfig": "pass",
+        "resourceCatalog": "pass"
+      }
+    },
+    "originalLocksUnchanged": true,
+    "publicNativeVideoRun": false
+  },
+  "productionWorkspace": {
+    "runtimeVersion": "0.1.17",
+    "backgroundMusic": {
+      "mode": "auto",
+      "volume": 0.15,
+      "approvedPrivateLoopCount": 5,
+      "contextStatus": "available",
+      "wholeCompositionContinuousLoop": true,
+      "narrationAndSceneEffectsIndependent": true,
+      "explicitMuteAndCustomOverride": true,
+      "missingMusicReportedHonestly": true
+    },
+    "preservation": {
+      "status": "production-upgrade-preservation-verified",
+      "runtimeVersion": "0.1.17",
+      "checkedFiles": 423,
+      "unchangedFiles": 419,
+      "protectedProjectFiles": 397,
+      "protectedDeliveryFiles": 14,
+      "protectedMusicFiles": 7,
+      "protectedAssetManifestFiles": 1,
+      "protectedInventoryUnchanged": true,
+      "packageOnlyApprovedChanges": true,
+      "otherDependenciesAndScriptsPreserved": true,
+      "unrelatedPrivateSettingsPreserved": true,
+      "privateConfigAndBackupMode": "0600",
+      "existingProjectsMigrated": false,
+      "unrelatedAutomaticVideoProjectModified": false
+    },
+    "doctor": {
+      "status": "workspace-ready",
+      "workspaceVersion": 1,
+      "checks": {
+        "layout": "pass",
+        "runtimeResources": "pass",
+        "remotionCli": "pass",
+        "browserRender": "pass",
+        "producerConfig": "pass",
+        "resourceCatalog": "pass"
+      }
+    },
+    "privateMusicAndSettingsExcludedFromNpm": true
   }
 }

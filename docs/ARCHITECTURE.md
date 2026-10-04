@@ -2,7 +2,7 @@
 
 > 文档类型：架构 authority
 
-## 开发分支的视觉与音频扩展
+## 0.1.17 的视觉与音频扩展
 
 边界修订使用 Story preset 中可选、fingerprint-covered 的 template playback window：immutable instance 与 copied bytes 不变，
 fixed artifact 派生局部 shot/anchor 和音轨源起点，SceneSlot 保持实际 Beat Sequence 时长并偏移模板 source clock。
