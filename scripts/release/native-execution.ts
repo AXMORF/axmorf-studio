@@ -3351,6 +3351,31 @@ const readOnlyDiagnostic = (call: { name: string; arguments: string }) => {
     );
   };
   type DataKind = "data" | "array" | "object" | "string" | "number" | "scalar";
+  const fromSerializedStore = (
+    node: ts.Expression,
+    seen = new Set<string>(),
+  ): boolean => {
+    if (ts.isParenthesizedExpression(node))
+      return fromSerializedStore(node.expression, seen);
+    if (ts.isIdentifier(node)) {
+      const binding = bindings.get(node.text);
+      return (
+        !seen.has(node.text) &&
+        binding?.initializer !== undefined &&
+        !binding.projected &&
+        fromSerializedStore(binding.initializer, new Set([...seen, node.text]))
+      );
+    }
+    if (ts.isPropertyAccessExpression(node))
+      return fromSerializedStore(node.expression, seen);
+    return (
+      ts.isCallExpression(node) &&
+      ts.isIdentifier(node.expression) &&
+      node.expression.text === "load" &&
+      node.arguments.length === 1 &&
+      ts.isStringLiteral(node.arguments[0]!)
+    );
+  };
   // Stored/parsed JSON and native read-only results contain data, not callable
   // members. Resolve local values so object methods cannot masquerade as String
   // or Array operations; callbacks are allowed only as the explicit map input.
@@ -3499,8 +3524,18 @@ const readOnlyDiagnostic = (call: { name: string; arguments: string }) => {
     if (!args.every((value) => read(value))) return undefined;
     if (callee.name.text === "join" && receiver === "array" && args.length <= 1)
       return "string";
-    if (receiver !== "string" && receiver !== "array") return undefined;
-    if (callee.name.text === "slice" && args.length <= 2) return receiver;
+    const storedOutput =
+      receiver === "data" &&
+      ts.isPropertyAccessExpression(callee.expression) &&
+      callee.expression.name.text === "output" &&
+      fromSerializedStore(callee.expression.expression);
+    if (receiver !== "string" && receiver !== "array" && !storedOutput)
+      return undefined;
+    // The code-mode store serializes JSON, so loaded output fields cannot
+    // contain callable members. These two built-in reads remain diagnostics;
+    // their text still cannot establish a command or process result.
+    if (callee.name.text === "slice" && args.length <= 2)
+      return storedOutput ? "data" : receiver;
     if (callee.name.text === "indexOf" && args.length >= 1 && args.length <= 2)
       return "number";
     return undefined;

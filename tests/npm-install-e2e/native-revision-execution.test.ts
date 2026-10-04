@@ -712,6 +712,12 @@ test("read-only code-mode summaries retain their text without acquiring native c
   assert.equal(auditProductionAttempts(authenticated)!.length, 2);
   for (const [label, source] of [
     [
+      "serialized native output fields are sliced before JSON parsing",
+      `const r=load("createContextResult");
+const c=JSON.parse(r.output.slice(r.output.indexOf('{"status"')));
+store("createContext",c);text({status:c.status});`,
+    ],
+    [
       "stored output chunks are joined and sliced before JSON parsing",
       `const chunks=load("prepareChunks");
 const all=chunks.map(x=>x.output).join("");
@@ -1019,6 +1025,8 @@ while(r.session_id!==undefined){r=await tools.write_stdin({session_id:r.session_
     "const s={slice:(start)=>String(start)};text(s.slice(0));",
     'const s={get slice(){return load("hidden")}};text(s.slice(0));',
     'const s=load("hidden");text(s.slice(0));',
+    'const s={output:{slice:load("hidden")}};text(s.output.slice(0));',
+    'const s={output:{indexOf:load("hidden")}};text(s.output.indexOf("x"));',
     'const s={indexOf:load("hidden")};text(s.indexOf("x"));',
     'const s={join:load("hidden")};text(s.join(""));',
     'text(String({toString:()=>load("hidden")()}));',

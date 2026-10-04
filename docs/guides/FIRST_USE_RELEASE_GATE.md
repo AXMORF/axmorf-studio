@@ -131,6 +131,12 @@ supplement to the original result time and index and record the UI checksum.
 Missing or ambiguous linkage is a failed audit; child output or a disk plan cannot
 reconstruct a missing prepare result.
 
+Read-only code-mode summaries may slice or search an `output` field loaded from
+the host's serialized JSON store. These reads retain diagnostic text without
+acquiring command authority. Local callable objects, unknown methods and changed
+process results remain rejected; the complete original UI still proves that the
+diagnostic cell started no command.
+
 The native host removes a first-line `@exec` JSON metadata directive before
 evaluating code. Error-stack coordinates use that evaluated source; ordinary
 comments keep their coordinates. The original input, error envelope and complete
