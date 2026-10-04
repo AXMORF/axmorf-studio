@@ -32,7 +32,9 @@ validators 判断一次生产是否真正完成。
 Scene 内的因果动作、其他 SVG/Canvas/3D 仍自由创作。实际消费检查不代替连续播放审阅。
 create context 同时提供已核验许可的 `soundResources` 和不含私有路径的音乐配置状态。
 Scene 选择音效并对齐实际起音或声势中心；Project BGM 仍由配置启用并由顶层统一播放。
-这些改进尚未发布到 npm，当前公开版本仍为 0.1.16。
+本分支还可通过 strict revision 调整 immutable 首尾模板的播放区间及既有音乐增益/包络，不修改模板或旁白 bytes。
+该新增修订已有回归测试，正式整片 candidate 和听审尚待验证，见 [修订指南](docs/guides/PROJECT_REVISION.md)。
+这些改进尚未发布到 npm，当前公开版本仍为 0.1.16。具体样片与未验证范围见当前实现状态。
 
 ## 把这段提示词交给你的 Agent
 
@@ -78,6 +80,7 @@ AXMORF 不用操作系统 allowlist 预先阻止安装。Agent 可以准备声�
 视频 brief
   → 用户自有 Workspace
   → strict Project create / isolated revision candidate
+  → 本次宿主 capability 验证与 execution resolve
   → read-only inspect（readiness、成本、复用、blocker）
   → explicit prepare（唯一允许调用 provider 的入口）
   → Agent 创作 dirty Scenes / GlobalVisual / Covers
@@ -106,16 +109,20 @@ deliveries/<storyId>/publish.json
 | 同时打开控制中心与 Remotion Studio | `npm run dev`                                                         |
 | 只打开 Web 控制中心                | `npm run web`                                                         |
 | 只打开 Remotion Studio             | `npm run preview`                                                     |
+| 读取完整创作示例与当前能力         | `npm run project:create:context -- --project <story-id>`              |
 | 创建 Project                       | `npm run project:create -- --project <story-id> --input <input.json>` |
 | 只读检查生产计划                   | `npm run project:produce:inspect -- --project <story-id>`             |
 | 开始有成本的准备                   | `npm run project:produce:prepare -- --project <story-id>`             |
 | 交付后复核每个 Scene 的关键画面    | `npm run project:scene:review -- --project <story-id>`                |
+| 交付后审阅完整 Scene 与衔接片段    | `npm run project:scene:review -- --project <story-id> --motion`       |
 | 检查 Project                       | `npm run project:check -- --project <story-id>`                       |
 
 日常使用建议让 Agent 消费结构化输出和返回的 exact commands，不要手工拼接内部参数。完整顺序见
 [生产流程](docs/PRODUCTION_WORKFLOW.md) 和 [生产编排指南](docs/guides/PRODUCTION_ORCHESTRATION.md)。
 
 新建视频时，提示词明确指定的横竖屏、尺寸、帧率优先于配置；未指定字段继承配置，单次覆盖不改写长期默认值。
+worker 的提交前 Scene 预览使用 bind 返回的 exact `commands.preview`；完整动作与音乐仍需连续观看和听审。
+用户本地循环音乐与包内共享资源分开维护，选曲和试听退役规则见 [音效与音乐指南](docs/guides/SCENE_SOUND_EFFECTS.md)。
 
 <details>
 <summary>Agent / 高级生产命令参考</summary>
@@ -187,6 +194,7 @@ artifacts、attempts、revision candidates、render output 和 Delivery；这些
 - [生产流程](docs/PRODUCTION_WORKFLOW.md)：Project、Revision、Task、Artifact 与 Delivery 主链
 - [配置指南](docs/guides/PRODUCER_CONFIG.md)：TTS、render、readability、模板和发布集合
 - [Project revision](docs/guides/PROJECT_REVISION.md)：安全修改已有作品
+- [视觉叙事](docs/guides/VISUAL_NARRATIVE_QUALITY.md)：视觉机制、连续主体、预览与验证边界
 - [本地交付](docs/guides/LOCAL_DELIVERY.md)：四文件 Delivery 结构与验证
 - [首次用户发布验收](docs/guides/FIRST_USE_RELEASE_GATE.md)：候选包双 Agent 验收与发布后复验
 - [当前实现状态](docs/ITERATION_STATUS.md)：已实现能力和验收事实

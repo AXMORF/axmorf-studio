@@ -70,6 +70,9 @@ Revision commands have no `--schema`; validate accepts no `--project`. Read the 
 [authoring](.agents/skills/axmorf-video/references/authoring.md#existing-project-revision); use only supported fields.
 For a local Scene layout fix, change only that Scene's authoring in the full `patch.scenes` list; preserve unrelated Scenes,
 VisualStyle, GlobalVisual, Story and TTS. Do not invent a Cover-only patch API. Carry the candidate ID through production.
+If the installed schema supports boundary/music revisions, preserve the complete context lists and all immutable identities.
+Only choose existing template source frames or alter existing track gain/envelopes; do not admit new media or change sealed audio.
+Read the authoring reference for raw input shapes and runtime-upgrade base verification.
 The bound `scene.priorSource`, when present, is only the owning Scene's verified, frozen current base graph and declarations.
 Compare its previous brief with the current brief and apply the delta while preserving unaffected behavior and exact license/lineage
 bytes. It grants no access to base snapshot paths, other Scenes, history or another workspace. Without it, create from the current
@@ -105,7 +108,7 @@ Scene. Render-critical motion uses Remotion frame APIs, Scene roots stay
 transparent, and the Composition alone owns narration and captions.
 
 GlobalVisual exports a full-Composition base layer and a decoration layer that
-is sequenced from the first through last narrated Scene with local frame zero at
+is sequenced from the first through last content Scene (narrated or visual) with local frame zero at
 that window's start. It must not read Scene output or carry Beat-specific copy.
 
 Never publish, push, delete a Project, or expose private configuration unless

@@ -121,6 +121,15 @@ ceilDiv(cumulativeSamples × fps, sampleRate)
 
 Scene/CaptionCue/Composition 消费同一 timing artifact；transition 不移动、缩短或覆盖 spoken frames。
 
+模板播放区间进入 Story preset fingerprint，只选 frozen instance 的 source frames；fixed projection 对 shots、
+anchors 和 cue 相交区间确定性裁剪，保留 renderer/source audio offset，不改变 copied bytes。Project 音乐的可选
+增益/淡入/淡出进入声音计划 identity，包络沿 contribution 全程应用，不随 loop 重启；未提供可选字段时保持旧指纹。
+这类修订不能改变 sealed/mastered narration。
+
+bound Scene preview 先验证并快照 owning source/media，按固定 fps 渲染并复验 frame count、EOF 和漂移。
+预览目录、clip、时间戳和 source diagnostic 不进入 TaskRevision、ArtifactAttestation 或 DeliveryBuildId；它既不授予
+访问其他任务的能力，也不产生审美或混音通过结论。
+
 ## 6. Fixed continuation、convergence 与 materialization
 
 Root 派发全部 dirty Agent tasks 后启动 prepare 返回的 attempt-bound fixed continuation，每个 attempt 仅一次；

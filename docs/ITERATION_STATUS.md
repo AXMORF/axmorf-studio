@@ -1,32 +1,43 @@
 # Iteration Status
 
-## 视觉叙事开发分支（2026-10-04，未发布，真实样片与重复性已核验）
+## 视觉叙事开发分支（2026-10-04，未发布）
 
-在已发布 0.1.16 的当前源码上开发 `visual-scene` 无旁白正文：authored frames 时序、明确 null 旁白、
-零 provider preparation、same-mode 隔离 revision 与既有四文件验证。新增绑定 Scene 的提交前低成本
-真实预览，以及可选 action timing helper 和 Renderer continuity props。新 task contract v2 使 Agent
-artifacts 一次失效，不改写 current Delivery；旧 narrated Story/create/PCM 指纹回归保持一致。
-已提交版本完整 check 1143/1143 通过，真实 production 还暴露并修复 EOF decoder 和无旁白
-ScenePackage anchor 两处 fixed-flow 缺陷。正式四文件已产出：同输入/同旁白的 Attention 旧新两片、
-50秒零 TTS 站点候选，以及带旁白站点旧版。均通过 public final check；前三片已取得真实 Library ID。
-真实相邻帧曾发现 Q 形状与站点 UI 姿态跳变，已用可选 frozen SVG visual 和独立实际 DOM 消费检查
-修订；构建后的 focused 49/49 与全量 check 1176/1176 通过。正式 r6 带旁白站点与 r7 无旁白站点
-已完成，公开 final 各 7/7；分别重渲染全部 1343/1500 帧，解码 RGB 与 PCM 一致。这些只证明对应
-样本的技术重复性与共享主体衔接，用户仍指出 r7 景别小、颜色与节奏弱，不能当作审美达标。
+本轮在已发布 0.1.16 的源码基线上开发；既有 motionPlan v2、自绘 SVG/Canvas/3D、计划消费检查、素材复用和
+局部修订继续使用。新增 `visual-scene` 无旁白正文、authored frame timing、明确 null narration、零 provider
+preparation、same-mode 隔离 revision，以及绑定 Scene 的提交前真实预览。可选 action timing helper 连接动作/
+阅读停留与 renderer；Root 可冻结自由 SVG handoff，由相邻隔离任务通过 `SceneContinuityVisual` 消费，实际 DOM/
+输入扰动/有效字号检查拒绝受支持范围内的矛盾。它们不验证全部浏览器 paint、遮挡、Canvas/3D 或审美。
 
-本轮在现有 create context 投影公开、许可已核验的音效/音乐与 BGM 配置状态；Scene 合同明确大字、
-景别与语义粒子自由编排、起音/声势中心卡点，给出共享 SVG 的具体 handoff 参数，保留既有门禁。
-全新安装 Workspace 经四路 native probe/subagents 正式生成 35 秒品牌样片，先完成 10 秒开头预览
-抽查再完成后段，最终四文件和公开 final 7/7 通过；新片与两封面已保存到 Library，旧片未覆盖。
-本轮 focused 22/22 与实际安装/渲染通过；完整测试首次 1173/1177，4 个启动时序 fixture 失败，
-其所在文件原样单并发复验 27/27，通过时未改 300ms/2s 时限；首轮失败不改签为 Green。
-补跑被测试退出截断的 typecheck/lint、文档/资源检查、config/build 与宿主 gate 均退出0。
-新片独立重渲染全部1050帧的解码 RGB 与 PCM 相同，MP4 文件 bytes 不同。
-首尾仍继承 2+8 秒固定模板，音乐主观混音与
-完整连续观看/听审未验证。见[视听导演与样片证据](evidence/2026-10-04-audiovisual-directing.md)。
-这不认证审美达标、全片连续观看或听审；截图、计划声明与技术完成不能替代感知验收。
-见[工程检查点](evidence/2026-10-03-visual-narrative-development.md)。
-见[视觉叙事工作流](guides/VISUAL_NARRATIVE_QUALITY.md)。当前 npm latest 仍是下述已发布 0.1.16。
+create context 投影许可已核验的 `soundResources` 和不含私有路径的 BGM 配置状态。现有 brief/Scene contract
+指导按含义安排对象变化、注意力、景别、短主张、语义粒子与读停，并以实际起音/声势中心卡点；仍由 Agent 创作，
+没有自动导演、固定特效模板或审美评分。BGM 由配置与 create-time 本地化启用，Scene preview 不包含它。
+
+最新源码还开放 strict `patch.boundaryScenes` 的 immutable template 播放区间及独立音乐包络、`patch.sound`
+的已有 Project 音乐增益/包络。模板/媒体/许可、资源与 track 身份、loop/scope、sealed narration 均保持冻结；
+fixed projection 裁剪时序并保留 source clock。运行时升级先正式复验 current；missing artifact 且 owning Scene
+输入完全未变时可冻结已复验 current 源码为新任务的 priorSource，仍须 bind/finalize/check/commit，不是假 artifact hit。
+这些最新修订有回归覆盖，尚未制作新的整片 candidate、promotion 样片或完成听审。详见
+[修订指南](guides/PROJECT_REVISION.md) 与 [收口证据](evidence/2026-10-04-visual-narrative-closeout.md)。
+
+正式样片覆盖 Attention 与站点两个主题。Attention 和 narrated 站点初始旧新两组 raw create input/旁白 bytes
+分别一致；后续站点 r6/r7 包含定向修订，不当作 raw-input-identical 比较。r6 narrated 与 r7 visual 的 final 各
+7/7，全部 1343/1500 帧解码 RGB 和 PCM 重渲染一致。共享主体接点改善，但 Attention Q 形状跳变仍有缺口，用户
+仍指出 r7 景别、颜色和节奏偏弱；这些样片不能证明稳定审美或未见主题的首次生成质量。
+
+另一全新安装 Workspace 使用四路 native probe/subagents 正式生成 35 秒品牌样片，bound 预览和最终四文件完成，
+public final 7/7，1050 帧 RGB/PCM 重渲染一致，MP4 bytes 不同；视频与封面保存在私人 Library，旧片未覆盖。
+此片仍使用 2+8 秒首尾，正文 BGM 0.16、片尾独立 0.65，无自动 ducking。仅查看实际抽样帧与封面，完整连续观看/
+人耳听审未完成。见 [视听样片证据](evidence/2026-10-04-audiovisual-directing.md)。
+
+工程检查点 `537c4a6` 的全覆盖等价 check 在 Node 24.15.0 下通过：全部 218 个 source 测试文件，216 个以并发4
+运行 1162 项、两个既有启动时序文件原样单并发运行27项，共1189/1189，零失败/取消/跳过；typecheck、lint、
+文档/资源检查、config/Remotion build 与 check:host 均退出0。这是完整 npm check 的同覆盖分阶段执行，不是字面
+`npm run check` 成功；历史默认调度的4个时序失败保留，未放宽300ms/2s时限。文档收口后的复验另见收口证据。
+真实制作曾暴露的 preview EOF 与 visual ScenePackage anchor fixed-flow 缺陷已有独立修复和回归。
+
+目前未执行两种未参与调试的中文 AI 概念完整旧新实验，也没有跨主题多次独立生成的稳定性数据。
+截图、自动分数、计划声明和技术完成都不能替代感知验收。操作入口见
+[视觉叙事工作流](guides/VISUAL_NARRATIVE_QUALITY.md)。当前 npm latest 仍是下述已发布 0.1.16。
 
 ## 0.1.16 当前发布闭环（2026-10-03，两包发布与公共安装烟测通过）
 

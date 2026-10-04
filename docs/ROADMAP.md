@@ -47,14 +47,18 @@ continuation 内部 application，不是 Root 命令。
 
 从 `foundation@e52d2a5` 开始的
 [npm Workspace 开源方案](archive/implementation-plans/2026-08-30-npm-workspace-open-source-implementation-plan.md)
-已经完成并归档。当前 `@axmorf/studio@0.1.3`、`create-axmorf-studio@0.1.3` 与 GitHub `v0.1.3` Release 已通过
-Trusted Publisher 纯 OIDC 公开发布；package-owned shared Workspace media、Organization transfer、default branch
-与 provenance workflow 均已完成。精确实现和验收事实只由
-[ITERATION_STATUS.md](ITERATION_STATUS.md) 与
-[v0.1.3 Mixkit bookend audio release](evidence/2026-09-05-v0.1.3-mixkit-bookend-audio-release.md) 维护。
+已经完成并归档。当前公开版本为 `@axmorf/studio@0.1.16`、`create-axmorf-studio@0.1.16`；package-owned shared
+Workspace media、Organization transfer、default branch 与 provenance workflow 均已完成。本轮开发分支新增
+纯视觉生产、共享 SVG 连续对象、bound Scene 预览及边界/音乐的窄范围修订，尚未发布。精确实现和验收事实只由
+[ITERATION_STATUS.md](ITERATION_STATUS.md) 维护。
 
 当前用户入口是 README 的“快速开始”，或者复制一句 Agent prompt，让 Agent 根据项目最新 README 在指定
 路径完成 Workspace 搭建与可用性验收。Workspace ready 后，generated README 的独立视频 prompt 才负责接收创作需求。
+
+视觉质量的下一项验收是两种未参与调试的中文 AI 概念，使用相同脚本、旁白 bytes、素材和渲染设置做旧版/新版
+正式生产对照。记录创作和修订预算，保留首次结果，分别报告 Agent 自主修正与人工逐帧指导。完整连续观看、听审
+和重复渲染须独立记录；两主题通过只构成初步泛化证据，多次独立生成后才评估稳定性。边界播放与音乐包络还需
+通过正式 candidate 制作、promotion 和整片听审验证，不能用 schema/单测通过代替成片验收。
 
 下一版本的 release gate 是：
 

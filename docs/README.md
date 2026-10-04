@@ -2,7 +2,7 @@
 
 > 文档类型：唯一导航入口
 >
-> 最后复核：2026-09-03
+> 最后复核：2026-10-04
 
 先按问题选择文档，不要从历史计划或 evidence 反推 current implementation。
 
@@ -32,6 +32,9 @@
 | 完整 Project 数据删除                                                                                         | [PRODUCTION_WORKFLOW.md#8-作品删除](PRODUCTION_WORKFLOW.md#8-作品删除)         |
 | TTS generation cache、PCM seal 与 timing                                                                      | [guides/NARRATION_GENERATION.md](guides/NARRATION_GENERATION.md)               |
 | 机械 acceptance 与完成事实                                                                                    | [guides/REVIEW_MODEL.md](guides/REVIEW_MODEL.md)                               |
+| 视觉机制、跨 Scene 连续对象与当前验证边界                                                                     | [guides/VISUAL_NARRATIVE_QUALITY.md](guides/VISUAL_NARRATIVE_QUALITY.md)       |
+| bound Scene 预览与时序审阅                                                                                    | [guides/CONTENT_MOTION_REVIEW.md](guides/CONTENT_MOTION_REVIEW.md)             |
+| 音效、音乐选择与循环素材维护                                                                                  | [guides/SCENE_SOUND_EFFECTS.md](guides/SCENE_SOUND_EFFECTS.md)                 |
 | Project-owned profile 与复验命令                                                                              | [guides/FORMAL_PROJECT_VERIFICATION.md](guides/FORMAL_PROJECT_VERIFICATION.md) |
 | 资源与共享能力目录                                                                                            | [guides/CAPABILITY_CATALOG.md](guides/CAPABILITY_CATALOG.md)                   |
 | 新仓库初始化和白名单迁移                                                                                      | [guides/BOOTSTRAP_IMPORT_MANIFEST.md](guides/BOOTSTRAP_IMPORT_MANIFEST.md)     |
@@ -44,8 +47,8 @@
 - `promotions/` 保存尚未完全达到完成定义的提案和实施计划；每份文档必须明确自身批准/实施状态。
 - npm Workspace 开源方案已经完成并
   [归档实施计划](archive/implementation-plans/2026-08-30-npm-workspace-open-source-implementation-plan.md)；当前是
-  `v0.1.3` public release，事实以 [ITERATION_STATUS.md](ITERATION_STATUS.md) 与
-  [v0.1.3 Mixkit bookend audio release](evidence/2026-09-05-v0.1.3-mixkit-bookend-audio-release.md) 为准。
+  `v0.1.16` public release。本轮视觉与音频修订能力属于尚未发布的开发分支，当前事实和验收边界以
+  [ITERATION_STATUS.md](ITERATION_STATUS.md) 为准，历史 release evidence 不代表新增能力已随 npm 发布。
 - [archive/](archive/README.md) 保存已完成或被取代的 plans/specs，仅供追溯。
 
 ## 管理规则

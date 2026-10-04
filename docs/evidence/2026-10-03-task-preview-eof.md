@@ -1,5 +1,8 @@
 # Bound Scene preview EOF incident
 
+This records the incident and repair at that checkpoint. Later formal production evidence is in
+[current status](../ITERATION_STATUS.md); earlier failures remain failures.
+
 The first real production preview of a validated narrated Scene failed before commit with
 `Scene preview did not decode completely to EOF.` Its finalize and check had passed;
 the failed attempt was terminated through its fixed failure and original continuation commands.
@@ -28,8 +31,7 @@ the old command exits nonzero and the repaired command fully decodes with exit z
 A truncated MP4 remains rejected. These fixtures are codec evidence, not narration,
 production deliverables or aesthetic approval.
 
-Local diagnostic evidence is retained outside Git under
-`/tmp/axmorf-quality-benchmark-20261003/preview-eof-incident/evidence.json`, with the
+Local diagnostic evidence is retained outside Git, with the
 fixture generator and videos. A rawvideo input-demuxer fixture attempt also failed
 because that demuxer is absent; the successful fixtures use the real Remotion renderer.
 

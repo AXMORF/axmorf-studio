@@ -70,3 +70,9 @@ The creator prepares the pinned browser and checks a real tiny PNG render before
 preparation is serialized and bounded; doctor never silently downloads Chrome. New authoring begins with
 `npm run project:create:context -- --project <storyId>`, which returns a complete example and current public choices.
 Use the generated Workspace-local authoring and host-execution references for exact task execution and interruption recovery.
+
+This development branch adds authored-frame visual content, licensed sound discovery, optional shared SVG continuity,
+public action timing and bound pre-commit Scene previews. It also adds narrow revisions for immutable template playback
+windows and existing music gain/envelopes. These additions are not part of published npm 0.1.16; inspect the installed
+public schemas and local instructions before use. Technical validation does not certify aesthetics, complete playback
+review or the subjective mix. User-local music and Library attachments are not bundled Workspace seed resources.

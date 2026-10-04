@@ -2,7 +2,7 @@
 
 > 文档类型：current contract 说明
 >
-> 最后复核：2026-08-21
+> 最后复核：2026-10-04
 
 同步 `DeliveryBuild` 是唯一最终交付合同。它只消费当前 ProductionRevision、已验证 ArtifactSet、
 Composition metadata、build policy 与 PublishingIntent；不读取或迁移旧 Run、receipt、render-ready 或
@@ -21,7 +21,7 @@ detached launch 数据。
 - `video.mp4`、`cover-4x3.png`、`cover-3x4.png` 的固定 repository path、checksum 和 size；
 - video 的 H.264/AAC、声道、尺寸、fps、frameCount 与 EOF decode；
 - Cover 的 PNG、固定尺寸与 EOF decode；
-- current PublishingIntent 投影的 title、description、topics、collection 与 narrated chapters。
+- current PublishingIntent 投影的 title、description、topics、collection 与正文 chapters（narrated 或 visual）。
 
 current slot 只允许上述三个媒体和 `publish.json`。同 DeliveryBuildId no-op 仍需重读 schema、hash、probe
 和 decode；任何缺失、unknown file、symlink、path drift、checksum/media drift 都使 delivery 不完整。

@@ -83,3 +83,8 @@ preparation is serialized and bounded; doctor never silently downloads Chrome. N
 Explicit render requests use optional `render.width/height/fps/locale` fields in the create input. Unspecified fields
 inherit settings without changing saved defaults; create returns the frozen render values for verification before production.
 Use the generated Workspace-local authoring and host-execution references for exact task execution and interruption recovery.
+
+The development template documents narrated and visual content, licensed sound choices, optional shared SVG continuity,
+bound Scene previews and narrow boundary/music revisions. These additions have not been published to npm 0.1.16.
+Generated guides must match the installed runtime; updating this repository does not upgrade existing private Workspaces,
+rewrite immutable templates or migrate sealed audio. Visual and listening review remain separate from mechanical completion.

@@ -13,7 +13,7 @@ revision 无 `--schema`；validate 仅 `--input`，不加 `--project`。先核 i
 `storyId`、`baseRevisionId`、`baseDeliveryBuildId`、`patch`。
 局部 Scene 排版只改完整 `patch.scenes` 列表中目标 Scene 的 brief；不顺手改全局 VisualStyle/GlobalVisual/Story/TTS。
 patch 支持 brief/story/visualStyle/scenes/globalVisual/publishing，以及边界播放与现有音乐的窄修订；无 Cover-only API。
-`boundaryScenes` 必须按 context 给出的完整边界 meaningId/order 提交；`playbackRange: null` 保留完整模板，
+`boundaryScenes` 必须按 context 给出的完整边界 meaningId/order 提交；`playbackRange: null` 恢复完整模板，
 非空区间使用 `[startFrame,endFrame)`，只能选择已有 immutable instance 的帧，不改变源码、素材或身份。
 可选 `musicVolume/musicFadeInFrames/musicFadeOutFrames` 只控制该区间的模板 BGM；固定任务同步裁剪 shot、anchor 与音轨源起点。
 `sound` 使用 context 的完整 ProjectSoundPlan input，只能修改已有 contribution 的 volume/fadeInFrames/fadeOutFrames；

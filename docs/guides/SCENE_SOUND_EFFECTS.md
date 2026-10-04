@@ -1,4 +1,4 @@
-# Scene 预制动效音效
+# Scene 音效与音乐
 
 这组素材在开发仓库离线制作，作为 runtime package 的共享 Workspace seed 发行。Scene 制作只选素材、安排
 卡点与音量；render 只读取已冻结的本地 WAV，不运行合成器或调用外部服务。
@@ -57,6 +57,9 @@ npm run catalog:query -- --kind asset --tag motion-sync
 npm run catalog:query -- --kind asset --tag mouse
 ```
 
+本开发分支的 `project:create:context` 同时返回许可已核验的 `soundResources` 与不含私有路径的 BGM 配置状态。
+公开 npm 0.1.16 尚无此投影，仍使用当前 Catalog 查询。发现素材不代表已将它准入 Project 或启用 BGM。
+
 新建 Project 时把选定 ID 同时写入 `resources.allowedResourceIds` 和需要使用该音效的 Scene
 `candidateResourceIds`，并在 `soundIntent` 描述动作与卡点。已绑定的 Scene executor 只使用
 `scene.availableResources` 内的素材，把 selected/descriptor 原样登记到 `selected-resources.json`。
@@ -70,8 +73,26 @@ SoundDesignTrack 实际播放，Renderer 不再重复挂载 Audio。
 建议初次试听的 contribution volume 为 0.2–0.4；根据旁白、BGM 和整片混音调整。素材保留峰值余量，
 但多个声音叠加后的响度和可懂度仍需要成片试听。只为有意义的动作安排声音。
 
-现有 Project 的 live authoring 保持 immutable；新增音效选择需走 `project:revise:context` 与隔离 revision，
-以实际返回的 candidate resources 为准。当前 attempt 的 allowlist 不因安装了新素材而扩大。
+现有 Project 的 live authoring 保持 immutable；调整音效选择需走 `project:revise:context` 与隔离 revision，
+且只能使用 base snapshot 已准入的 Project-owned media。candidate 不提供外部素材 import。
+当前 attempt 的 allowlist 不因安装了新素材而扩大。
+
+## 循环音乐与试听版本
+
+用户本地音乐库不属于 npm 的共享 seed。选曲以当前 Catalog 及许可为准，循环 BGM 优先使用已批准的原始循环
+WAV；带淡出、裁剪或试听处理的 MP3 不应冒充循环原音。`audioDefaults.globalBgm` 通过 create 冻结为
+Project-local contribution，覆盖正文窗口；不要在各 Scene 重复挂载同一 BGM。执行任务更快不授权改变音频速度、
+音高、BPM 或 gain。
+
+本开发分支可通过 strict `patch.sound` 修改已有 Project 音乐的音量和淡入/淡出，通过 `boundaryScenes` 修改
+immutable 模板播放区间及其独立音乐包络，见 [PROJECT_REVISION.md](PROJECT_REVISION.md)。包络使用整段
+contribution 时间，循环不会每次重启淡入。它不修改原音和 sealed narration，也不等于自动 ducking 或混音认证。
+检查 codec、循环边界 waveform 和 PCM 可重复性只能证明技术属性；接缝是否可闻、旁白可懂度和整体平衡仍需听审。
+
+退役旧试听版本前，检查其 resource ID、路径和 checksum 在 current Catalog、Project-owned manifests、源码、
+sealed snapshots 和 delivery 依赖中的引用。有依赖时保留兼容资源，不自动迁移既有作品；无依赖且用户已授权时，
+使用可恢复的废纸篓并复验当前目录、Catalog 和原作品。历史报告按原状态保留。音乐文件、私有 Library 标识和
+操作报告留在用户 Workspace，不因维护公共指南而提交到源码仓库。
 
 ## 开发与验证
 

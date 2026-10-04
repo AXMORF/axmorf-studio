@@ -19,9 +19,11 @@ context 才返回 editable authoring、`baseRevisionId`、`baseDeliveryBuildId` 
 
 ## 2. Validate and create the candidate
 
-raw input 必须是 strict `ProjectRevisionInput`：same `storyId`、exact base tuple、非空 authored patch。patch 只允许
-`brief`、`story`、`visualStyle`、`scenes`、`globalVisual`、`publishing`，并保持 narrated meaningId/order 与 boundary
-Scenes。revision 无 `--schema`；validate 只接 `--input`，不加 `--project`。先读 installed public schema 的 input 形状：
+raw input 必须是 strict `ProjectRevisionInput`：same `storyId`、exact base tuple、非空 authored patch。本开发分支的
+patch 允许 `boundaryScenes`、`brief`、`globalVisual`、`publishing`、`scenes`、`sound`、`story`、`visualStyle`，
+并保持正文 meaningId/order、narrated/visual 模式和边界 Scene 身份。公开 npm 0.1.16 尚不包含新增的
+`boundaryScenes`/`sound` 字段；应以 installed schema 为准。revision 无 `--schema`；validate 只接 `--input`，
+不加 `--project`。先读 installed public schema 的 input 形状：
 
 ```bash
 node --input-type=module -e 'import {ProjectRevisionInputSchema} from "@axmorf/studio/contracts"; console.log(JSON.stringify(ProjectRevisionInputSchema.toJSONSchema({io:"input"}), null, 2));'
@@ -49,6 +51,24 @@ Delivery。runtime/config/operation lock 与 content-addressed Artifact Store �
 
 本流程不提供 candidate-local asset import。revision patch 只能引用 live Project 已经准入并纳入 base snapshot 的
 Project-owned media。
+
+### 边界播放与音乐包络
+
+仅当 installed schema 支持时，复制 context 的完整 `editable.boundaryScenes`，保持顺序和 meaningId。
+`playbackRange: {startFrame, endFrame}` 选择 immutable template 的 source-frame 区间，`endFrame` 不包含在内；
+`playbackRange: null` 恢复完整模板。可在 range 中提供 `musicVolume`、`musicFadeInFrames`、`musicFadeOutFrames`，
+只影响模板的 background-music contribution，不改变音效。不要提交派生的 `sourceDurationInFrames` 或指纹。
+固定生成器裁剪 shots、anchors 和 cues，renderer 使用 source clock；模板源码、媒体与许可 bytes 保持冻结。
+
+`patch.sound` 使用 context 的完整 ProjectSoundPlan，仅修改已有 contribution 的 `volume`、`fadeInFrames`、
+`fadeOutFrames`。trackId、顺序、resourceId、descriptor fingerprint、loop 和 playbackScope 必须保持相同。
+包络覆盖 contribution 的完整播放时间，循环时不逐次重启淡入；旁白及 sealed/mastered audio 不变。
+这两个输入均不开放新素材准入，也不提供后处理剪辑 API。
+
+运行时 policy 升级可能使原 current Revision/Delivery tuple 过期；此时先通过正式 unchanged-current production
+取得复验后的 context，不得编辑 publish.json 或 artifact。若 owning Scene 输入完全未变而 artifact 缺失，planner
+可复验 current Scene 源码并将它冻结为该任务的 priorSource，仍需新的 bind/finalize/check/commit；这不构成 artifact hit。
+上述边界/音乐能力已有回归测试，尚未经过本轮新的整片 candidate 与听审验收。
 
 builder 在替换 authoring 或清理受影响 Scene 前，从已复验 base 冻结该普通 Scene 的完整本地 TS/TSX 图、plans、
 许可及 lineage，保存到 authoring-owned `production/scene-prior-source.json`，纳入 candidate 的 authoring checksum。

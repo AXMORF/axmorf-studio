@@ -54,11 +54,7 @@
   ],
   "executionPolicy": {
     "resolutionPhase": "before-production-inspect",
-    "precedence": [
-      "user-prompt",
-      "settings-page",
-      "builtin-default"
-    ],
+    "precedence": ["user-prompt", "settings-page", "builtin-default"],
     "promptOverridePersistence": "current-production-only-unless-explicit-save",
     "defaultMode": "subagents",
     "defaultSubagentMaxConcurrency": 4,
@@ -122,7 +118,8 @@
     "coverReadsOnlyTaskInputs": true,
     "childIdentityPersisted": false,
     "timingPolicy": "pcm-cumulative-ceil-v1",
-    "storyBeatContract": "discriminated-narrated-or-silent-scene",
+    "visualTimingPolicy": "authored-frames-v1",
+    "storyBeatContract": "discriminated-narrated-visual-or-silent-scene",
     "configuredSceneTemplates": "project-create-copy-with-project-local-instance",
     "templateCopyPolicy": "fixed-task-artifact-without-agent",
     "silentSceneNarrationPolicy": "no-tts-no-captions-fixed-preset-frames",

@@ -21,7 +21,7 @@
 该检查在 create/revision mutation 前执行；它不检查淡入态、布局、裁剪或任意 Agent Scene 的实际可读性。
 
 生成式 Composition 直接在完整 frame 绘制 theme.background。themed GlobalVisual task 的 base export 必须直接
-返回 null，且不会被 Composition 挂载；decoration 只进入 narrated Scene 窗口，并在正文后方由固定隔离合成组限制到最高 8% opacity。
+返回 null，且不会被 Composition 挂载；decoration 只进入正文 Scene（narrated 或 visual）窗口，并在正文后方由固定隔离合成组限制到最高 8% opacity。
 即使子节点使用不透明背景、SVG 或高 z-index，也不能提高组透明度或覆盖正文；首尾仍是准确的 theme.background。正文 Scene context
 收到完整 VisualStyleSpec，Renderer 与固定首尾都从同一主题取色。Scene root 保持透明，字幕仍由 Composition 独占。
 引用卡片无额外背景衬板；关注按钮以 primaryText/accent 作底、background 作字色，复用相同已校验颜色对。

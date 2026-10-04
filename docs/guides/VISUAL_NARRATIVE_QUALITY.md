@@ -3,6 +3,19 @@
 This development branch extends the published 0.1.16 workflow. Technical validation proves
 identity, rights, timing and deliverable integrity. It does not prove aesthetic quality.
 
+The published baseline already has intent motionPlan v2, custom frame-driven SVG/Canvas/3D,
+plan consumption checks, local revision and artifact reuse. This branch connects additional
+inputs and runtime behavior; the director and Scene executor still author the visual mechanism.
+It does not add an autonomous aesthetic reviewer or guarantee a good first result for every topic.
+
+| Entry                             | Formal consumption                                                                          |
+| --------------------------------- | ------------------------------------------------------------------------------------------- |
+| `project:create:context`          | Select current APIs, resources and a narrated or visual example before strict create.       |
+| Scene `outgoingHandoff.visual`    | Root freezes the shared subject; adjacent bound Renderers consume the same SVG data.        |
+| Public `resolveSceneActionTiming` | Renderer optionally evaluates its authored action and reading windows at the current frame. |
+| Bound `commands.preview`          | Owning worker renders and revises its declared outputs before commit.                       |
+| `project:scene:review --motion`   | Root reviews delivered action/boundary clips and scopes an isolated revision.               |
+
 ## Choose how meaning reaches the viewer
 
 Use narrated content when the explanation needs spoken qualification or detail. Use visual
@@ -87,6 +100,10 @@ Naming music in a brief or resource allowlist does not enable it. Composition ow
 track; Scene renderers must not duplicate it. An isolated Scene preview excludes Project
 BGM, so review the final music, effects and narration when used together. Technical audio
 levels and successful decode do not establish the subjective mix.
+Original user-local loop music is distinct from package seed media; see
+[sound selection and retirement](SCENE_SOUND_EFFECTS.md). Narrow existing music gain/envelope
+and immutable boundary playback revisions use the [strict revision input](PROJECT_REVISION.md).
+They have regression coverage but still need a new complete candidate and perceptual validation.
 
 ## Render while the owning task can still change
 

@@ -143,17 +143,19 @@ fingerprint 不匹配、未知字段或结构
   和 preflight 在进入 VoxCPM 适配器前统一解析为宿主绝对路径，配置页保存的仍是相对值。
 - `audioDefaults.globalBgm`：可为空，或保存一个仓库相对 `sourcePath` 与 0–1 线性 `volume`。这是
   配置页中的本地 BGM 预设。`project:create` 会复制并 checksum-bound 到 Project-local 资产，
-  写入 `sound.json`；render runtime 将它作为循环 contribution 播放于 narrated 内容窗口，并保留独立音量。
+  写入 `sound.json`；render runtime 将它作为循环 contribution 播放于 narrated 或 visual 正文窗口，并保留独立音量。
   选择该本地文件即由 operator 声明其有权用于当前 Project；冻结的 manifest 记录这份 operator-provided
   授权证据，runtime 不接受 URL、symlink 或未封存字节。
+  本地音乐库与 package-owned shared media 是不同来源；选择循环原音、维护试听版本及整片听审见
+  [SCENE_SOUND_EFFECTS.md](SCENE_SOUND_EFFECTS.md)。任务执行快慢不改变音乐速度、音高或 BPM。
 
 `RSP_PRODUCER_CONFIG` 支持仓库根目录相对路径和绝对路径。生产脚本、preflight、迁移命令与配置页
 使用同一解析规则。
 
 ## 创建新 Project
 
-先 author 一个 strict `ProjectCreateInput`，其中包含 storyId、VideoBrief、narrated StoryBeat 与 exact ordered
-`ttsChunks`、VisualStyle authored fields、GlobalVisual brief、Scene creative briefs、resource/render/publishing/
+先运行 `project:create:context`，再 author 一个 strict `ProjectCreateInput`，其中包含 storyId、VideoBrief、同模式
+正文 StoryBeat（narrated 与 exact ordered `ttsChunks`，或 visual 与 authored frames）、VisualStyle authored fields、GlobalVisual brief、Scene creative briefs、resource/render/publishing/
 production choices 和 optional boundary template selections。input 必须位于 repository 内的 regular
 no-symlink JSON；不能包含 derived fingerprint、absolute/private path、provider secret 或 runtime output。
 
@@ -173,9 +175,9 @@ transaction 先在受控 staging 生成并严格解析 exact set，再原子提�
 escape 或 special file 都在覆盖前 fail closed。相同 creation identity 再次运行只读返回 current，不改 bytes/
 mtime。create 不调用 provider、不生成媒体，也不写 `.narration-work`、artifact、workspace、attempt 或 delivery。
 
-create 返回 `configured-authoring` 和 `prepare-narration`；timing-bound SceneProductionBrief 以 story-owned
-pending authoring 保持 authored values，不填 placeholder fingerprint。只有 verified PCM/timing 后，fixed prepare
-才绑定真实 timing。Project-local media 必须在 Project root 成功创建后通过 `project:asset:import` 导入；不跨
+create 返回 `configured-authoring`；timing-bound SceneProductionBrief 以 story-owned pending authoring 保持 authored
+values，不填 placeholder fingerprint。narrated Story 通过 verified PCM/timing，visual Story 通过 authored frames，
+再由 fixed prepare 绑定真实 timing。Project-local media 必须在 Project root 成功创建后通过 `project:asset:import` 导入；不跨
 Project 复用旧 manifest 或媒体。
 
 `project:produce:inspect` 只读估算同一配置解析结果的 narration cache/cost；Root 报告后，

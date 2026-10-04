@@ -1,5 +1,8 @@
 # Visual ScenePackage motion anchor incident
 
+This is a historical failure/repair record. Subsequent production and repeatability evidence is in
+[current status](../ITERATION_STATUS.md), without rewriting this failed attempt.
+
 The genuine no-narration `portfolio-visual-quality` sample completed all four
 Agent tasks and their bound checks in the isolated candidate Workspace. Both
 Scene previews decoded to EOF. Fixed convergence then exited with

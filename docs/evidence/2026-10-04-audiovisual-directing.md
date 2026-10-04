@@ -1,7 +1,8 @@
 # 视听导演与正式样片（2026-10-04）
 
-本轮继续未发布的 `axmorf/visual-narrative-quality` 分支，源码隔离于
-`/tmp/axmorf-visual-narrative-quality`。公开 npm 两包 0.1.16 已发布；没有回退、推送或发布新包。
+本轮样片检查点使用未发布的 `axmorf/visual-narrative-quality` 分支和隔离源码 worktree。
+公开 npm 两包 0.1.16 已发布；此检查点没有回退、推送或发布新包。
+之后的源码/文档收口和验证见 [当前状态](../ITERATION_STATUS.md)，不将后续检查结果改签为本轮首测通过。
 原源码工作区、用户生产 Workspace、已认可视频和既有比较样片未修改。
 
 ## 参考与选择
@@ -40,12 +41,12 @@ inspect 和 prepare 后派发 2 Scene、1 GlobalVisual、1 Cover owner；固定�
 前修正参数/时序/可读性问题并提交相同已预览 bytes。唯一 continuation 实际退出 0，返回
 `project-production-complete`。公开 `project:check --level final` 的 7 项全部 pass。
 
-| 交付 | 实际结果 |
-| --- | --- |
-| video | 1080×1920、30fps、1050 帧、35 秒画面，H.264/AAC 48kHz stereo |
-| cover-4x3 | 1600×1200 PNG |
-| cover-3x4 | 1200×1600 PNG |
-| publish | same Revision、ArtifactSet 与 DeliveryBuild；exact 四文件 |
+| 交付      | 实际结果                                                     |
+| --------- | ------------------------------------------------------------ |
+| video     | 1080×1920、30fps、1050 帧、35 秒画面，H.264/AAC 48kHz stereo |
+| cover-4x3 | 1600×1200 PNG                                                |
+| cover-3x4 | 1200×1600 PNG                                                |
+| publish   | same Revision、ArtifactSet 与 DeliveryBuild；exact 四文件    |
 
 Revision `revision-b4088495dad26e0b513d1a6c277f5ce0cccec28c7b8b33790692852e8aef752a`；
 DeliveryBuild `delivery-513f4d6390910b1c0615c159cac4b49d4d56db0f12bf06c403be1d439810aeb0`。
@@ -83,8 +84,7 @@ MP4 文件 bytes 不同：重复文件 SHA-256 为
 8 秒片尾继续按未指定偏好的规则继承，片尾的通用长文案与正文品牌节奏仍不完全一致。动态 CSS scale
 的保守可读性检查仍存在；worker 用数值布局重构图形景别、保持文字尺寸，未修改此门禁。
 
-本地 benchmark：`/tmp/axmorf-audiovisual-showcase-20261004`。正式四文件在其
-`workspace/deliveries/axmorf-audiovisual-showcase/`，独立交付副本在 `deliverables/`。
+本地 benchmark 与独立交付副本保留在 Git 之外；正式四文件使用标准 `deliveries/<storyId>/` 结构。
 focused 完整性/资源回归 22/22，package build、安装与真实渲染均通过。完整测试首次运行
 1173/1177，4 个已有进程/浏览器 fixture 在 300ms/2s 启动时限失败；它们所在的两个测试文件原样
 单并发复验 27/27。未改 timeout、实现或门禁，单独复验不能把首轮全量失败改签为 Green。

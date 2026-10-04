@@ -238,7 +238,7 @@ contract 只改变相关 Agent TaskRevision，不改变 ProductionRevision。
 不适用的能力允许由自绘替代，理由写进 styleRealization；源码调用检查不代替实际画面审阅。
 
 GlobalVisual context 包含 fixed workflow 从 canonical SemanticTiming 派生的严格 layer policy：base range 是完整
-Composition，decoration range 是首个至末个 narrated Scene 的连续窗口，decoration 的 Remotion frame origin 是
+Composition，decoration range 是首个至末个正文 Scene（narrated 或 visual）的连续窗口，decoration 的 Remotion frame origin 是
 窗口 local zero。GlobalVisual validator 要求同一入口恰好导出两个 no-Props component，并拒绝越出
 decoration range 的 continuity window；themed base 必须直接返回 null，由 Composition 固定绘制 theme.background。
 themed decoration 在 Scene 后方的固定隔离组内合成，group opacity 上限 8%，配色校验覆盖该最差背景范围。
@@ -324,7 +324,7 @@ build 同步等待 Remotion/FFmpeg，依次验证：
 current files 完整，不是计划、聊天或进程启动事实。
 
 交付后可运行 `npm run project:scene:review -- --project <storyId>`。命令先复验 current 四文件
-Delivery，再核对当前 SemanticTiming 的 fps/frame count 与 narrated chapter 起点；逐个 Scene 提取开头、
+Delivery，再核对当前 SemanticTiming 的 fps/frame count 与正文 chapter 起点；逐个 Scene 提取开头、
 中点和末帧，生成 `out/<storyId>/scene-review/<deliveryBuildId>-*/index.html` 与 `review.json`。
 该产物只供人工复核，既不进入 Project/Task/Artifact/Delivery identity，也不自动判定审美质量。
 

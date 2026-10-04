@@ -1,5 +1,9 @@
 # Architecture
 
+> 文档类型：架构 authority
+
+## 开发分支的视觉与音频扩展
+
 边界修订使用 Story preset 中可选、fingerprint-covered 的 template playback window：immutable instance 与 copied bytes 不变，
 fixed artifact 派生局部 shot/anchor 和音轨源起点，SceneSlot 保持实际 Beat Sequence 时长并偏移模板 source clock。
 Project/Scene 音轨可选首尾线性包络；循环 BGM 的包络延续到整条 contribution，不能每轮重置。
@@ -20,8 +24,6 @@ identity，也不扩展 worker 文件权限。详见[视觉叙事](guides/VISUAL
 create context 的 `soundResources` 只投影当前 Catalog 已批准、runtime-approved、许可 verified 的
 音效与音乐；`soundDefaults` 只返回 BGM 配置状态和音量，不暴露配置路径。选择或 brief 不启用 BGM，
 既有配置、本地化、顶层声音所有权与 production identity 规则继续负责实际播放。
-
-> 文档类型：架构 authority
 
 ## 1. 模块与依赖方向
 
