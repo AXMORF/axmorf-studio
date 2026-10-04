@@ -1,5 +1,23 @@
 # Iteration Status
 
+## 0.1.17 发布候选（2026-10-04，Actions 尚未执行）
+
+已接通全局循环曲库、主题选曲、create-time Project-owned 冻结和整片连续 BGM；旁白与镜头音效独立。
+38 秒真实完整 runtime 渲染验证了跨场景、循环边界、有/无旁白窗口和混音，程序检查通过；未做整片主观听审。
+两份正式原生候选收据已严格复验：Codex 30 秒初稿及单 Scene revision/promotion，2 attempts/2 continuations，
+14 个原生 children、四路 bound 重叠 262227 ms；Hermes 46 秒、四路重叠 379863 ms、后续补位及四文件交付。
+对应 290/41 文件候选内容未变，原始日志及失败旧试次保留。见[收据](evidence/v0.1.17-first-use.json)与
+[BGM 证据](evidence/v0.1.17-bgm-verification.json)。
+
+用户明确批准[分层发布规则](guides/FIRST_USE_RELEASE_GATE.md)：普通发布保留源码/包完整性、type/lint/build、
+受影响回归、全新安装和最小真实渲染；production/执行协议/scaffold 重大变更要求完整主宿主原生首用。
+第二宿主由实际兼容性变更或明确全验收请求决定，不再按版本号强制。本版确有 production/scaffold 与
+Hermes 兼容性改动，复用已完成的两份有效证据，见[计划](evidence/v0.1.17-release-plan.json)。
+当前原始 `npm run check` 1212/1212 直接通过，零失败/跳过/取消；153 项 focused、type/lint、两包 build/type 与精确内容复验通过。
+最终最小渲染工作流选择另经 32 项回归与 lint 验证，实际公开 DefaultIntroPreview 的 60 帧 H.264/AAC、双声道及 EOF 通过，零漏洞审计通过。
+先完成文档、检查、commit/push，再沿既有 Actions 发布；registry、公共安装和生产 Workspace 升级仍待结果。
+
+
 ## 视觉叙事开发分支（2026-10-04，未发布）
 
 本轮在已发布 0.1.16 的源码基线上开发；既有 motionPlan v2、自绘 SVG/Canvas/3D、计划消费检查、素材复用和

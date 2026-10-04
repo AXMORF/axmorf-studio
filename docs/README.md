@@ -41,6 +41,8 @@
 | Narrative data contracts                                                                                      | [contracts/NARRATIVE_CONTRACTS.md](contracts/NARRATIVE_CONTRACTS.md)           |
 | DeliveryBuild identity、四文件提交与失败回滚                                                                  | [contracts/DELIVERY_BUILD_CONTRACT.md](contracts/DELIVERY_BUILD_CONTRACT.md)   |
 
+发布使用[分层发布门禁](guides/FIRST_USE_RELEASE_GATE.md)：普通发布验证包、源码、受影响回归、全新安装及最小真实渲染；production/执行合同/scaffold 重大变更才要求原生首用。第二宿主由实际兼容性范围或明确全验收请求决定。
+
 ## 证据、提案与历史
 
 - `evidence/` 记录发生时的验收证据，不定义 current runtime。

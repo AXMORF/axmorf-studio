@@ -703,8 +703,7 @@ const isSelfDraining = (source: ts.SourceFile, calls: ts.CallExpression[]) => {
     })
   )
     return false;
-  const firstPrint = source.statements[index + 1];
-  const remainder = source.statements.slice(index + 2);
+  const remainder = source.statements.slice(index + 1);
   const loopIndex = remainder.findIndex(ts.isWhileStatement);
   const loop = remainder[loopIndex];
   const beforeLoop = remainder.slice(0, loopIndex);
@@ -721,9 +720,12 @@ const isSelfDraining = (source: ts.SourceFile, calls: ts.CallExpression[]) => {
       ? expression.arguments[0]
       : undefined;
   };
+  const initialPrints = beforeLoop.filter((node) => printArgument(node));
+  const firstPrint = initialPrints[0];
   const initialPrintArgument = printArgument(firstPrint);
   if (
     index < 0 ||
+    initialPrints.length !== 1 ||
     !initialPrintArgument ||
     !loop ||
     !ts.isWhileStatement(loop) ||
@@ -747,12 +749,14 @@ const isSelfDraining = (source: ts.SourceFile, calls: ts.CallExpression[]) => {
   const waitIndex = loop.statement.statements.indexOf(
     assignment.parent as ts.Statement,
   );
-  const finalPrintArgument = printArgument(
-    loop.statement.statements[waitIndex + 1],
-  );
+  const afterWait = loop.statement.statements.slice(waitIndex + 1);
+  const finalPrints = afterWait.filter((node) => printArgument(node));
+  const finalPrint = finalPrints[0];
+  const finalPrintArgument = printArgument(finalPrint);
   const arguments_ = wait.arguments[0];
   if (
     !conditionVariable ||
+    finalPrints.length !== 1 ||
     !finalPrintArgument ||
     !ts.isAwaitExpression(wait.parent) ||
     !ts.isBinaryExpression(assignment) ||
@@ -907,13 +911,16 @@ const isSelfDraining = (source: ts.SourceFile, calls: ts.CallExpression[]) => {
     return true;
   };
   if (
-    !beforeLoop.every((node) => node === partsDeclaration || passive(node)) ||
+    !beforeLoop.every(
+      (node) =>
+        node === firstPrint || node === partsDeclaration || passive(node),
+    ) ||
     !loop.statement.statements
       .slice(0, waitIndex)
       .every((node) => passive(node))
   )
     return false;
-  const afterPrint = loop.statement.statements.slice(waitIndex + 2);
+  const afterPrint = afterWait.filter((node) => node !== finalPrint);
   if (!afterPrint.every((node) => passive(node, true))) return false;
   if (
     parts &&
@@ -1064,8 +1071,54 @@ const isSelfDraining = (source: ts.SourceFile, calls: ts.CallExpression[]) => {
     jsonReceiver = parse.expression.expression;
     return true;
   };
-  const passiveAfterLoop = captureProjection()
-    ? afterLoop.slice(0, -3)
+  const projectionJson = new Set<ts.Node>();
+  const captureReadOnlyProjection = () => {
+    if (!capturesWrappers || !parts) return 0;
+    const start = afterLoop.findIndex(
+      (node) =>
+        ts.isVariableStatement(node) ||
+        (!ts.isIfStatement(node) && !passive(node)),
+    );
+    if (start < 0) return 0;
+    const suffix = afterLoop.slice(start);
+    if (
+      !suffix.every((node) => {
+        if (ts.isVariableStatement(node))
+          return Boolean(node.declarationList.flags & ts.NodeFlags.Const);
+        return (
+          ts.isExpressionStatement(node) &&
+          ts.isCallExpression(node.expression) &&
+          ts.isIdentifier(node.expression.expression) &&
+          node.expression.expression.text === "store" &&
+          node.expression.arguments.length === 2 &&
+          ts.isStringLiteral(node.expression.arguments[0]!)
+        );
+      }) ||
+      !readOnlyDiagnostic({
+        name: "exec",
+        // Native result wrappers are JSON data. Reuse the pure diagnostic
+        // validator for copies after the terminal; no output/native call is
+        // allowed in this suffix and it supplies no process authority.
+        arguments: `const ${parts}=load("native-result-wrappers");\n${suffix.map((node) => node.getText(source)).join("\n")}`,
+      })
+    )
+      return 0;
+    const remember = (node: ts.Node) => {
+      if (ts.isIdentifier(node) && node.text === parts) passiveParts.add(node);
+      if (ts.isIdentifier(node) && node.text === "JSON")
+        projectionJson.add(node);
+      if (ts.isIdentifier(node) && node.text === "store")
+        passiveCallees.add(node);
+      ts.forEachChild(node, remember);
+    };
+    suffix.forEach(remember);
+    return suffix.length;
+  };
+  const projectionLength = captureProjection()
+    ? 3
+    : captureReadOnlyProjection();
+  const passiveAfterLoop = projectionLength
+    ? afterLoop.slice(0, -projectionLength)
     : afterLoop;
   const terminal = passiveAfterLoop.at(-1);
   if (
@@ -1142,10 +1195,11 @@ const isSelfDraining = (source: ts.SourceFile, calls: ts.CallExpression[]) => {
     )
       valid = false;
     if (
-      jsonReceiver &&
+      (jsonReceiver || projectionJson.size > 0) &&
       ts.isIdentifier(node) &&
       node.text === "JSON" &&
-      node !== jsonReceiver
+      node !== jsonReceiver &&
+      !projectionJson.has(node)
     )
       valid = false;
     if (
@@ -1322,16 +1376,437 @@ const nativeOperations = (call: {
   return found;
 };
 
+const diagnosticBindings = new Set([
+  "tools",
+  "Promise",
+  "text",
+  "store",
+  "load",
+  "JSON",
+  "ALL_TOOLS",
+  "image",
+  "undefined",
+]);
+const memberCall = (node: ts.Node, name: string) =>
+  ts.isCallExpression(node) &&
+  !node.questionDotToken &&
+  ts.isPropertyAccessExpression(node.expression) &&
+  !node.expression.questionDotToken &&
+  node.expression.name.text === name
+    ? node
+    : undefined;
+const callbackParameter = (node: ts.Node | undefined) => {
+  if (!node || !ts.isArrowFunction(node) || node.parameters.length !== 1)
+    return undefined;
+  const parameter = node.parameters[0]!;
+  return ts.isIdentifier(parameter.name) &&
+    !diagnosticBindings.has(parameter.name.text) &&
+    !parameter.initializer &&
+    !parameter.dotDotDotToken
+    ? parameter.name.text
+    : undefined;
+};
+
+// ALL_TOOLS contains only native name/description strings. Admit its explicit
+// read-only filter/map summary; never treat that separate array as process data.
+const toolDirectorySummary = (statement: ts.Statement) => {
+  if (!ts.isExpressionStatement(statement)) return false;
+  const print = statement.expression;
+  if (
+    !ts.isCallExpression(print) ||
+    !ts.isIdentifier(print.expression) ||
+    print.expression.text !== "text" ||
+    print.arguments.length !== 1
+  )
+    return false;
+  const map = memberCall(print.arguments[0]!, "map");
+  if (!map || map.arguments.length !== 1) return false;
+  const mapper = map.arguments[0]!;
+  const mappedParameter = callbackParameter(mapper);
+  if (!mappedParameter || !ts.isArrowFunction(mapper)) return false;
+  const filter = memberCall(
+    (map.expression as ts.PropertyAccessExpression).expression,
+    "filter",
+  );
+  if (!filter || filter.arguments.length !== 1) return false;
+  const origin = (filter.expression as ts.PropertyAccessExpression).expression;
+  const predicate = filter.arguments[0]!;
+  const filteredParameter = callbackParameter(predicate);
+  if (
+    !ts.isIdentifier(origin) ||
+    origin.text !== "ALL_TOOLS" ||
+    !filteredParameter ||
+    !ts.isArrowFunction(predicate)
+  )
+    return false;
+  const string = (node: ts.Expression, parameter: string): boolean => {
+    if (ts.isStringLiteralLike(node)) return true;
+    if (ts.isPropertyAccessExpression(node))
+      return (
+        ts.isIdentifier(node.expression) &&
+        node.expression.text === parameter &&
+        ["name", "description"].includes(node.name.text)
+      );
+    if (
+      ts.isBinaryExpression(node) &&
+      node.operatorToken.kind === ts.SyntaxKind.PlusToken
+    )
+      return string(node.left, parameter) && string(node.right, parameter);
+    const slice = memberCall(node, "slice");
+    return (
+      !!slice &&
+      string(
+        (slice.expression as ts.PropertyAccessExpression).expression,
+        parameter,
+      ) &&
+      slice.arguments.length === 2 &&
+      slice.arguments.every(
+        (value) =>
+          ts.isNumericLiteral(value) &&
+          Number.isSafeInteger(Number(value.text)) &&
+          Number(value.text) >= 0,
+      )
+    );
+  };
+  const condition = (node: ts.ConciseBody): boolean => {
+    if (ts.isParenthesizedExpression(node)) return condition(node.expression);
+    if (
+      ts.isBinaryExpression(node) &&
+      [
+        ts.SyntaxKind.AmpersandAmpersandToken,
+        ts.SyntaxKind.BarBarToken,
+      ].includes(node.operatorToken.kind)
+    )
+      return condition(node.left) && condition(node.right);
+    if (
+      ts.isPrefixUnaryExpression(node) &&
+      node.operator === ts.SyntaxKind.ExclamationToken
+    )
+      return condition(node.operand);
+    const test = memberCall(node, "test");
+    if (test)
+      return (
+        ts.isRegularExpressionLiteral(
+          (test.expression as ts.PropertyAccessExpression).expression,
+        ) &&
+        test.arguments.length === 1 &&
+        string(test.arguments[0]!, filteredParameter)
+      );
+    const includes = memberCall(node, "includes");
+    return (
+      !!includes &&
+      includes.arguments.length === 1 &&
+      ts.isStringLiteral(includes.arguments[0]!) &&
+      string(
+        (includes.expression as ts.PropertyAccessExpression).expression,
+        filteredParameter,
+      )
+    );
+  };
+  const body = ts.isParenthesizedExpression(mapper.body)
+    ? mapper.body.expression
+    : mapper.body;
+  return (
+    condition(predicate.body) &&
+    ts.isObjectLiteralExpression(body) &&
+    body.properties.length === 2 &&
+    body.properties.every(
+      (property) =>
+        ts.isPropertyAssignment(property) &&
+        ts.isIdentifier(property.name) &&
+        ["name", "description"].includes(property.name.text) &&
+        string(property.initializer, mappedParameter),
+    ) &&
+    new Set(body.properties.map((property) => property.name!.getText()))
+      .size === 2
+  );
+};
+
+// A guarded JSON-lines copy may retain diagnostic authoring context after the
+// original results are forwarded. It cannot write or print a process result.
+const passiveBatchJsonCopy = (
+  statement: ts.Statement,
+  binding: string,
+  operations: Array<NativeOperation | null>,
+) => {
+  if (
+    !ts.isIfStatement(statement) ||
+    statement.elseStatement ||
+    !ts.isBlock(statement.thenStatement)
+  )
+    return false;
+  const condition = statement.expression;
+  if (
+    !ts.isBinaryExpression(condition) ||
+    condition.operatorToken.kind !== ts.SyntaxKind.EqualsEqualsEqualsToken ||
+    !ts.isStringLiteral(condition.right) ||
+    condition.right.text !== "fulfilled" ||
+    !ts.isPropertyAccessExpression(condition.left) ||
+    condition.left.name.text !== "status"
+  )
+    return false;
+  const result = condition.left.expression;
+  if (
+    !ts.isElementAccessExpression(result) ||
+    !ts.isIdentifier(result.expression) ||
+    result.expression.text !== binding ||
+    !ts.isNumericLiteral(result.argumentExpression)
+  )
+    return false;
+  const index = Number(result.argumentExpression.text);
+  if (!Number.isSafeInteger(index) || index < 0 || !operations[index])
+    return false;
+  const [declaration, copy] = statement.thenStatement.statements;
+  if (
+    statement.thenStatement.statements.length !== 2 ||
+    !declaration ||
+    !ts.isVariableStatement(declaration) ||
+    !(declaration.declarationList.flags & ts.NodeFlags.Const) ||
+    declaration.declarationList.declarations.length !== 1
+  )
+    return false;
+  const variable = declaration.declarationList.declarations[0]!;
+  if (
+    !ts.isIdentifier(variable.name) ||
+    variable.name.text === binding ||
+    diagnosticBindings.has(variable.name.text) ||
+    !variable.initializer
+  )
+    return false;
+  const filter = memberCall(variable.initializer, "filter");
+  if (!filter || filter.arguments.length !== 1) return false;
+  const split = memberCall(
+    (filter.expression as ts.PropertyAccessExpression).expression,
+    "split",
+  );
+  if (
+    !split ||
+    split.arguments.length !== 1 ||
+    !ts.isStringLiteral(split.arguments[0]!) ||
+    split.arguments[0]!.text !== "\n"
+  )
+    return false;
+  const output = (split.expression as ts.PropertyAccessExpression).expression;
+  if (
+    !ts.isPropertyAccessExpression(output) ||
+    output.name.text !== "output" ||
+    !ts.isPropertyAccessExpression(output.expression) ||
+    output.expression.name.text !== "value" ||
+    output.expression.expression.getText() !== result.getText()
+  )
+    return false;
+  const predicate = filter.arguments[0]!;
+  const parameter = callbackParameter(predicate);
+  if (!parameter || !ts.isArrowFunction(predicate)) return false;
+  const starts = memberCall(predicate.body, "startsWith");
+  if (
+    !starts ||
+    starts.arguments.length !== 1 ||
+    !ts.isStringLiteral(starts.arguments[0]!) ||
+    starts.arguments[0]!.text !== "{" ||
+    !ts.isIdentifier(
+      (starts.expression as ts.PropertyAccessExpression).expression,
+    ) ||
+    (
+      (starts.expression as ts.PropertyAccessExpression)
+        .expression as ts.Identifier
+    ).text !== parameter
+  )
+    return false;
+  if (
+    !copy ||
+    !ts.isExpressionStatement(copy) ||
+    !ts.isCallExpression(copy.expression) ||
+    !ts.isIdentifier(copy.expression.expression) ||
+    copy.expression.expression.text !== "store" ||
+    copy.expression.arguments.length !== 2 ||
+    !ts.isStringLiteral(copy.expression.arguments[0]!)
+  )
+    return false;
+  const map = memberCall(copy.expression.arguments[1]!, "map");
+  if (
+    !map ||
+    map.arguments.length !== 1 ||
+    !ts.isIdentifier(
+      (map.expression as ts.PropertyAccessExpression).expression,
+    ) ||
+    (
+      (map.expression as ts.PropertyAccessExpression)
+        .expression as ts.Identifier
+    ).text !== variable.name.text
+  )
+    return false;
+  const mapper = map.arguments[0]!;
+  const mappedParameter = callbackParameter(mapper);
+  if (!mappedParameter || !ts.isArrowFunction(mapper)) return false;
+  const parse = memberCall(mapper.body, "parse");
+  return (
+    !!parse &&
+    ts.isIdentifier(
+      (parse.expression as ts.PropertyAccessExpression).expression,
+    ) &&
+    (
+      (parse.expression as ts.PropertyAccessExpression)
+        .expression as ts.Identifier
+    ).text === "JSON" &&
+    parse.arguments.length === 1 &&
+    ts.isIdentifier(parse.arguments[0]!) &&
+    parse.arguments[0]!.text === mappedParameter
+  );
+};
+
+const indexedNativeOriginals = new WeakMap<
+  NativeTrace,
+  {
+    input: Readonly<CodexUiInput>;
+    checksum: string;
+  }
+>();
+
+const restorableDiagnostic = (operation: NativeOperation | null) =>
+  operation?.kind === "exec" &&
+  typeof operation.command === "string" &&
+  (/^cat \.agents\/skills\/(?:axmorf-video|remotion-best-practices)\/[\w/-]+\.md$/u.test(
+    operation.command,
+  ) ||
+    operation.command === "npm run project:create -- --schema" ||
+    /^npm run project:(?:create|revise):context -- --project [a-z0-9]+(?:-[a-z0-9]+)*$/u.test(
+      operation.command,
+    ) ||
+    /^npm run catalog:query -- --kind asset --tag [a-z0-9][a-z0-9-]*$/u.test(
+      operation.command,
+    ) ||
+    /^node \.agents\/skills\/axmorf-video\/scripts\/native-probe\.mjs create --count [1-4]$/u.test(
+      operation.command,
+    ));
+
+// Display truncation can omit or splice adjacent diagnostic envelopes. Only
+// the complete original Root UI can restore them, with exact command, cwd,
+// process lifetime, terminal and lossless stdout. Public mutations stay closed.
+const originalIndexedDiagnostic = (
+  trace: NativeTrace,
+  callId: string,
+  timestamp: number,
+  operation: NativeOperation | null,
+) => {
+  const original = indexedNativeOriginals.get(trace);
+  const fail =
+    "Truncated native batch needs complete original diagnostic UI evidence";
+  assert.ok(original && operation?.kind === "exec" && operation.command, fail);
+  assert.equal(original.checksum, nativeProjectionChecksum(trace), fail);
+  const command = operation.command;
+  assert.ok(restorableDiagnostic(operation), fail);
+  const call = trace.calls.get(callId)!;
+  const record = trace.records[call.index]!;
+  const payload = object(record.payload);
+  const turnId =
+    payload.turn_id ??
+    object(payload.internal_chat_message_metadata_passthrough).turn_id;
+  assert.ok(typeof turnId === "string" && turnId.length > 0, fail);
+  const launched = time(record.timestamp);
+  const cwd = operation.cwd ?? original.input.workspace;
+  assert.equal(cwd, original.input.workspace, fail);
+  const rows = original.input.rpc
+    .trim()
+    .split("\n")
+    .map((line) => object(JSON.parse(line)));
+  const entries = rows.map((row, index) => ({
+    row,
+    index,
+    params: object(row.params),
+    item: object(object(row.params).item),
+  }));
+  const starts = entries.filter(
+    ({ row, params, item }) =>
+      row.method === "item/started" &&
+      item.type === "commandExecution" &&
+      params.threadId === original.input.sessionId &&
+      params.turnId === turnId &&
+      item.cwd === cwd &&
+      shellBody(String(item.command)) === command &&
+      Number(params.startedAtMs) >= launched &&
+      Number(params.startedAtMs) <= timestamp,
+  );
+  assert.equal(starts.length, 1, fail);
+  const start = starts[0]!;
+  const ends = entries.filter(
+    ({ row, item }) =>
+      row.method === "item/completed" && item.id === start.item.id,
+  );
+  assert.equal(ends.length, 1, fail);
+  const end = ends[0]!;
+  const processId = z.string().min(1).parse(end.item.processId);
+  assert.ok(
+    start.item.processId == null || String(start.item.processId) === processId,
+    fail,
+  );
+  assert.equal(
+    entries.filter(
+      ({ row, item }) =>
+        row.method === "item/completed" && item.processId === processId,
+    ).length,
+    1,
+    fail,
+  );
+  for (const entry of [start, end]) {
+    assert.equal(entry.params.threadId, original.input.sessionId, fail);
+    assert.equal(entry.params.turnId, turnId, fail);
+    assert.equal(entry.item.type, "commandExecution", fail);
+    assert.equal(entry.item.cwd, cwd, fail);
+    assert.equal(shellBody(String(entry.item.command)), command, fail);
+  }
+  const began = z.number().finite().parse(start.params.startedAtMs);
+  const ended = z.number().finite().parse(end.params.completedAtMs);
+  assert.ok(
+    start.index < end.index &&
+      launched <= began &&
+      began <= ended &&
+      ended <= timestamp,
+    fail,
+  );
+  const exitCode = z.number().int().parse(end.item.exitCode);
+  assert.equal(start.item.status, "inProgress", fail);
+  assert.equal(end.item.status, exitCode === 0 ? "completed" : "failed", fail);
+  const stdout = z.string().parse(end.item.aggregatedOutput);
+  assert.ok(!truncated.test(stdout), fail);
+  const deltas = entries.filter(
+    ({ row, params }) =>
+      row.method === "item/commandExecution/outputDelta" &&
+      params.itemId === start.item.id,
+  );
+  for (const delta of deltas) {
+    assert.ok(start.index < delta.index && delta.index < end.index, fail);
+    assert.equal(delta.params.threadId, original.input.sessionId, fail);
+    assert.equal(delta.params.turnId, turnId, fail);
+  }
+  // Short native commands may publish their entire buffered stdout atomically
+  // in item/completed. If streaming occurred, every byte must still match.
+  if (deltas.length)
+    assert.equal(
+      deltas.map(({ params }) => z.string().parse(params.delta)).join(""),
+      stdout,
+      fail,
+    );
+  return { exit_code: exitCode, output: stdout };
+};
+
 // Indexed allSettled envelopes preserve separate native invocations. Prove the
 // forwarding code before using an index; stdout cannot supply that identity.
 const indexedBatchResult = (
   call: { name: string; arguments: string },
   texts: string[],
+  origin?: {
+    trace: NativeTrace;
+    callId: string;
+    timestamp: number;
+    outputIndex: number;
+  },
 ) => {
-  const rows = texts.flatMap((value): Row[] => {
+  const rows = texts.flatMap((value): Array<Row | unknown[]> => {
     const parse = (text: string) => {
       try {
-        return object(JSON.parse(text));
+        const parsed = JSON.parse(text);
+        return Array.isArray(parsed) ? parsed : object(parsed);
       } catch {
         return undefined;
       }
@@ -1346,20 +1821,19 @@ const indexedBatchResult = (
           return row ? [row] : [];
         });
   });
-  const envelopes = rows.filter((row) => "index" in row || "result" in row);
+  const envelopes = rows.filter(
+    (row): row is Row =>
+      !Array.isArray(row) && ("index" in row || "result" in row),
+  );
   if (!envelopes.length) return null;
-  const fail =
-    "Indexed native results need their unchanged original batch forwarding";
+  const fail = `Indexed native results need their unchanged original batch forwarding (${origin?.callId ?? "unknown"})`;
   assert.ok(
-    rows.length === envelopes.length &&
-      texts.every(
-        (value) =>
-          !/^Script\b/u.test(value) ||
-          (value.includes("Output:\n") &&
-            !value
-              .slice(value.indexOf("Output:\n") + "Output:\n".length)
-              .trim()),
-      ),
+    texts.every(
+      (value) =>
+        !/^Script\b/u.test(value) ||
+        (value.includes("Output:\n") &&
+          !value.slice(value.indexOf("Output:\n") + "Output:\n".length).trim()),
+    ),
     fail,
   );
   let input: Row;
@@ -1374,10 +1848,9 @@ const indexedBatchResult = (
     ts.ScriptTarget.Latest,
     true,
   );
-  const [declaration, loop, copy] = source.statements;
+  const [declaration, loop, ...tails] = source.statements;
   assert.ok(
-    /(?:^|[._])exec$/u.test(call.name) &&
-      (source.statements.length === 2 || source.statements.length === 3),
+    /(?:^|[._])exec$/u.test(call.name) && source.statements.length >= 2,
     fail,
   );
   assert.ok(
@@ -1395,24 +1868,7 @@ const indexedBatchResult = (
     fail,
   );
   const binding = variable.name.text;
-  assert.ok(
-    !["tools", "Promise", "text", "store", "undefined"].includes(binding),
-    fail,
-  );
-  // A final built-in store may retain the original array, without rebinding
-  // helpers, creating aliases, or changing the forwarded results.
-  if (copy)
-    assert.ok(
-      ts.isExpressionStatement(copy) &&
-        ts.isCallExpression(copy.expression) &&
-        ts.isIdentifier(copy.expression.expression) &&
-        copy.expression.expression.text === "store" &&
-        copy.expression.arguments.length === 2 &&
-        ts.isStringLiteral(copy.expression.arguments[0]!) &&
-        ts.isIdentifier(copy.expression.arguments[1]!) &&
-        copy.expression.arguments[1].text === binding,
-      fail,
-    );
+  assert.ok(!diagnosticBindings.has(binding), fail);
   const batch = variable.initializer.expression;
   assert.ok(
     ts.isCallExpression(batch) &&
@@ -1424,7 +1880,8 @@ const indexedBatchResult = (
       ts.isArrayLiteralExpression(batch.arguments[0]!),
     fail,
   );
-  const operations = batch.arguments[0].elements.map((entry) => {
+  const batchEntries = batch.arguments[0].elements;
+  const operations = batchEntries.map((entry) => {
     assert.ok(
       ts.isCallExpression(entry) &&
         ts.isPropertyAccessExpression(entry.expression) &&
@@ -1441,6 +1898,62 @@ const indexedBatchResult = (
     assert.ok(operations.length <= 1, fail);
     return operations[0] ?? null;
   });
+  let directorySummaries = 0;
+  assert.ok(
+    tails.every((statement) => {
+      if (toolDirectorySummary(statement)) {
+        directorySummaries++;
+        return true;
+      }
+      if (passiveBatchJsonCopy(statement, binding, operations)) return true;
+      return (
+        ts.isExpressionStatement(statement) &&
+        ts.isCallExpression(statement.expression) &&
+        ts.isIdentifier(statement.expression.expression) &&
+        statement.expression.expression.text === "store" &&
+        statement.expression.arguments.length === 2 &&
+        ts.isStringLiteral(statement.expression.arguments[0]!) &&
+        ((ts.isIdentifier(statement.expression.arguments[1]!) &&
+          statement.expression.arguments[1]!.text === binding) ||
+          (ts.isElementAccessExpression(statement.expression.arguments[1]!) &&
+            ts.isIdentifier(statement.expression.arguments[1]!.expression) &&
+            statement.expression.arguments[1]!.expression.text === binding &&
+            ts.isNumericLiteral(
+              statement.expression.arguments[1]!.argumentExpression,
+            ) &&
+            Number.isSafeInteger(
+              Number(
+                statement.expression.arguments[1]!.argumentExpression.text,
+              ),
+            ) &&
+            Number(
+              statement.expression.arguments[1]!.argumentExpression.text,
+            ) >= 0 &&
+            Number(statement.expression.arguments[1]!.argumentExpression.text) <
+              operations.length))
+      );
+    }),
+    fail,
+  );
+  const summaries = rows.filter(
+    (row) => Array.isArray(row) || !envelopes.includes(row),
+  );
+  assert.ok(
+    summaries.length === directorySummaries &&
+      summaries.every(
+        (row) =>
+          Array.isArray(row) &&
+          row.every(
+            (entry) =>
+              entry &&
+              typeof entry === "object" &&
+              Object.keys(entry).sort().join(",") === "description,name" &&
+              typeof object(entry).name === "string" &&
+              typeof object(entry).description === "string",
+          ),
+      ),
+    fail,
+  );
   assert.ok(
     loop &&
       ts.isForStatement(loop) &&
@@ -1459,11 +1972,7 @@ const indexedBatchResult = (
     fail,
   );
   const index = iterator.name.text;
-  assert.ok(
-    index !== binding &&
-      !["tools", "Promise", "text", "store", "undefined"].includes(index),
-    fail,
-  );
+  assert.ok(index !== binding && !diagnosticBindings.has(index), fail);
   const isIndex = (node: ts.Node | undefined) =>
     Boolean(node && ts.isIdentifier(node) && node.text === index);
   const condition = loop.condition;
@@ -1485,18 +1994,130 @@ const indexedBatchResult = (
       isIndex(loop.incrementor.operand),
     fail,
   );
+  let imageAlias: string | undefined;
   const forwarded = (node: ts.Node | undefined) =>
     Boolean(
       node &&
-      ts.isElementAccessExpression(node) &&
-      ts.isIdentifier(node.expression) &&
-      node.expression.text === binding &&
-      isIndex(node.argumentExpression),
+      ((ts.isElementAccessExpression(node) &&
+        ts.isIdentifier(node.expression) &&
+        node.expression.text === binding &&
+        isIndex(node.argumentExpression)) ||
+        (ts.isIdentifier(node) && node.text === imageAlias)),
     );
   const statements = ts.isBlock(loop.statement)
     ? [...loop.statement.statements]
     : [loop.statement];
-  const print = statements.pop();
+  let print = statements.pop();
+  const imageIndices = new Set<number>();
+  if (print && ts.isIfStatement(print) && statements.length === 1) {
+    const aliasStatement = statements[0]!;
+    assert.ok(
+      ts.isVariableStatement(aliasStatement) &&
+        aliasStatement.declarationList.flags & ts.NodeFlags.Const &&
+        aliasStatement.declarationList.declarations.length === 1,
+      fail,
+    );
+    const alias = aliasStatement.declarationList.declarations[0]!;
+    assert.ok(
+      ts.isIdentifier(alias.name) &&
+        !diagnosticBindings.has(alias.name.text) &&
+        ![binding, index].includes(alias.name.text) &&
+        forwarded(alias.initializer),
+      fail,
+    );
+    imageAlias = alias.name.text;
+    const branch = print;
+    const condition = branch.expression;
+    assert.ok(
+      ts.isBinaryExpression(condition) &&
+        condition.operatorToken.kind ===
+          ts.SyntaxKind.AmpersandAmpersandToken &&
+        ts.isBinaryExpression(condition.left) &&
+        condition.left.operatorToken.kind ===
+          ts.SyntaxKind.EqualsEqualsEqualsToken &&
+        ts.isPropertyAccessExpression(condition.left.left) &&
+        condition.left.left.name.text === "status" &&
+        forwarded(condition.left.left.expression) &&
+        ts.isStringLiteral(condition.left.right) &&
+        condition.left.right.text === "fulfilled",
+      fail,
+    );
+    const imagesAt = (node: ts.Expression): boolean => {
+      if (ts.isParenthesizedExpression(node)) return imagesAt(node.expression);
+      if (!ts.isBinaryExpression(node)) return false;
+      if (node.operatorToken.kind === ts.SyntaxKind.BarBarToken)
+        return imagesAt(node.left) && imagesAt(node.right);
+      if (
+        node.operatorToken.kind !== ts.SyntaxKind.EqualsEqualsEqualsToken ||
+        !isIndex(node.left) ||
+        !ts.isNumericLiteral(node.right)
+      )
+        return false;
+      const at = Number(node.right.text);
+      const entry = batchEntries[at];
+      if (
+        !Number.isSafeInteger(at) ||
+        at < 0 ||
+        imageIndices.has(at) ||
+        !entry ||
+        !ts.isCallExpression(entry) ||
+        !ts.isPropertyAccessExpression(entry.expression) ||
+        entry.expression.name.text !== "view_image" ||
+        operations[at] !== null
+      )
+        return false;
+      imageIndices.add(at);
+      return true;
+    };
+    assert.ok(imagesAt(condition.right) && imageIndices.size > 0, fail);
+    const emit = branch.thenStatement;
+    assert.ok(
+      ts.isExpressionStatement(emit) &&
+        ts.isCallExpression(emit.expression) &&
+        ts.isIdentifier(emit.expression.expression) &&
+        emit.expression.expression.text === "image" &&
+        emit.expression.arguments.length === 1,
+      fail,
+    );
+    const value = emit.expression.arguments[0]!;
+    assert.ok(
+      ts.isPropertyAccessExpression(value) &&
+        value.name.text === "image_url" &&
+        ts.isPropertyAccessExpression(value.expression) &&
+        value.expression.name.text === "value" &&
+        forwarded(value.expression.expression),
+      fail,
+    );
+    assert.ok(origin, fail);
+    const raw = object(
+      origin.trace.records[origin.outputIndex]!.payload,
+    ).output;
+    const images = (Array.isArray(raw) ? raw : []).filter(
+      (block) => object(block).type === "input_image",
+    );
+    assert.equal(images.length, imageIndices.size, fail);
+    for (const block of images) {
+      const match =
+        /^data:image\/(png|jpeg);base64,([a-zA-Z0-9+/]+={0,2})$/u.exec(
+          String(object(block).image_url),
+        );
+      assert.ok(match, fail);
+      const bytes = Buffer.from(match[2]!, "base64");
+      assert.ok(
+        match[1] === "png"
+          ? bytes.length > 24 &&
+              bytes
+                .subarray(0, 8)
+                .equals(Buffer.from("89504e470d0a1a0a", "hex"))
+          : bytes.length > 4 &&
+              bytes.subarray(0, 3).equals(Buffer.from("ffd8ff", "hex")) &&
+              bytes.subarray(-2).equals(Buffer.from("ffd9", "hex")),
+        fail,
+      );
+    }
+    statements.pop();
+    print = branch.elseStatement;
+  }
   assert.ok(
     print &&
       ts.isExpressionStatement(print) &&
@@ -1590,17 +2211,78 @@ const indexedBatchResult = (
     }),
     fail,
   );
+  const expectedIndices = operations.flatMap((_, at) =>
+    imageIndices.has(at) ? [] : [at],
+  );
+  const innerTruncated = envelopes.some((row) => {
+    const at = Number(row[indexField]);
+    const value = object(object(row.result).value);
+    return (
+      restorableDiagnostic(operations[at] ?? null) &&
+      typeof value.output === "string" &&
+      truncated.test(value.output)
+    );
+  });
+  if (envelopes.length < expectedIndices.length || innerTruncated) {
+    assert.ok(
+      origin &&
+        (innerTruncated ||
+          texts.some((value) =>
+            /^Warning: truncated output \(original token count: \d+\)\nTotal output lines: \d+\n\n/u.test(
+              value,
+            ),
+          )),
+      fail,
+    );
+    const indices = envelopes.map((row) => row[indexField]);
+    assert.ok(
+      indices.every(
+        (index) =>
+          typeof index === "number" &&
+          Number.isSafeInteger(index) &&
+          index >= 0 &&
+          index < operations.length,
+      ) &&
+        new Set(indices).size === indices.length &&
+        indices.every(
+          (index, i) => i === 0 || Number(index) > Number(indices[i - 1]),
+        ),
+      fail,
+    );
+    for (let index = 0; index < operations.length; index++) {
+      if (imageIndices.has(index)) continue;
+      const existing = envelopes.findIndex((row) => row[indexField] === index);
+      if (existing >= 0 && !restorableDiagnostic(operations[index]!)) continue;
+      const value = originalIndexedDiagnostic(
+        origin.trace,
+        origin.callId,
+        origin.timestamp,
+        operations[index]!,
+      );
+      const restored = {
+        [indexField]: index,
+        result: { status: "fulfilled", value },
+      };
+      if (existing >= 0) envelopes[existing] = restored;
+      else envelopes.push(restored);
+    }
+    envelopes.sort(
+      (left, right) => Number(left[indexField]) - Number(right[indexField]),
+    );
+  }
   assert.equal(
     envelopes.length,
-    operations.length,
+    expectedIndices.length,
     "Native batch result set is incomplete or duplicated",
   );
   assert.deepEqual(
     envelopes.map((row) => row[indexField]),
-    operations.map((_, index) => index),
+    expectedIndices,
     "Native batch result indices differ from their original invocations",
   );
-  const wrappers = envelopes.map((row, index) => {
+  const wrappers = operations.map((_, index) => {
+    if (imageIndices.has(index)) return {};
+    const row = envelopes.find((row) => row[indexField] === index)!;
     assert.deepEqual(Object.keys(row).sort(), [indexField, "result"].sort());
     const result = object(row.result);
     assert.equal(
@@ -2258,6 +2940,31 @@ const synchronousInvocations = (
       conditions.add(condition.left.expression);
       group = group.slice(0, -1);
     }
+    const patchBoundary = group.findIndex((node, index) => {
+      if (
+        index < 2 ||
+        !ts.isExpressionStatement(node) ||
+        !ts.isCallExpression(node.expression) ||
+        !ts.isIdentifier(node.expression.expression) ||
+        node.expression.expression.text !== "text" ||
+        node.expression.arguments.length !== 1 ||
+        !ts.isAwaitExpression(node.expression.arguments[0]!)
+      )
+        return false;
+      const patch = node.expression.arguments[0].expression;
+      return (
+        ts.isCallExpression(patch) &&
+        ts.isPropertyAccessExpression(patch.expression) &&
+        ts.isIdentifier(patch.expression.expression) &&
+        patch.expression.expression.text === "tools" &&
+        patch.expression.name.text === "apply_patch" &&
+        patch.arguments.length === 1 &&
+        ts.isStringLiteral(patch.arguments[0]!)
+      );
+    });
+    // Literal patches are independent tool diagnostics, outside the immutable
+    // launch/print region. The outer authoring validator still checks them.
+    if (patchBoundary >= 0) group = group.slice(0, patchBoundary);
     const fragment = ts.createSourceFile(
       "native-sync-forwarding.ts",
       group.map((node) => node.getText(source)).join("\n"),
@@ -2370,7 +3077,10 @@ const synchronousInvocations = (
         ts.isPropertyAssignment(property)
           ? !ts.isComputedPropertyName(property.name) &&
             !!read(property.initializer)
-          : ts.isShorthandPropertyAssignment(property) && !!read(property.name),
+          : ts.isSpreadAssignment(property)
+            ? !!read(property.expression)
+            : ts.isShorthandPropertyAssignment(property) &&
+              !!read(property.name),
       )
         ? "object"
         : undefined;
@@ -2393,6 +3103,16 @@ const synchronousInvocations = (
           (left === "string" || right === "string")
           ? "string"
           : "scalar"
+        : undefined;
+    }
+    if (ts.isConditionalExpression(node)) {
+      const condition = read(node.condition);
+      const whenTrue = read(node.whenTrue);
+      const whenFalse = read(node.whenFalse);
+      return condition && whenTrue && whenFalse
+        ? whenTrue === whenFalse
+          ? whenTrue
+          : "data"
         : undefined;
     }
     if (!ts.isCallExpression(node)) return undefined;
@@ -2518,7 +3238,8 @@ const synchronousInvocations = (
           node.parent.parent.arguments.length === 1 &&
           ts.isExpressionStatement(node.parent.parent.parent) &&
           node.parent.parent.parent.parent === source &&
-          node.end <= regions[0]!.start;
+          (node.end <= regions[0]!.start ||
+            ts.isStringLiteral(node.arguments[0]!));
         if (!direct && !patch && !data(node)) valid = false;
       }
     }
@@ -3276,7 +3997,9 @@ const readOnlyDiagnostic = (call: { name: string; arguments: string }) => {
       bindings.set(name.text, {
         initializer,
         projected,
-        ...(parameterScope ? { parameterScopes: new Set([parameterScope]) } : {}),
+        ...(parameterScope
+          ? { parameterScopes: new Set([parameterScope]) }
+          : {}),
       });
     } else {
       for (const element of name.elements)
@@ -3542,7 +4265,7 @@ const readOnlyDiagnostic = (call: { name: string; arguments: string }) => {
     }
     const receiver = read(callee.expression);
     if (
-      callee.name.text === "map" &&
+      ["map", "filter"].includes(callee.name.text) &&
       (receiver === "data" || receiver === "array") &&
       args.length === 1 &&
       ts.isArrowFunction(args[0]!) &&
@@ -3553,6 +4276,19 @@ const readOnlyDiagnostic = (call: { name: string; arguments: string }) => {
     if (!args.every((value) => read(value))) return undefined;
     if (callee.name.text === "join" && receiver === "array" && args.length <= 1)
       return "string";
+    if (
+      callee.name.text === "split" &&
+      receiver === "string" &&
+      args.length <= 2
+    )
+      return "array";
+    if (
+      callee.name.text === "startsWith" &&
+      (receiver === "string" || receiver === "data") &&
+      args.length >= 1 &&
+      args.length <= 2
+    )
+      return "scalar";
     const storedOutput =
       receiver === "data" &&
       ts.isPropertyAccessExpression(callee.expression) &&
@@ -3710,6 +4446,33 @@ const unchangedNativeForwarding = (
     node.expression.arguments.length === 1
       ? node.expression.arguments[0]
       : undefined;
+  // Direct text(await exec) has the same immutable forwarding as a const
+  // launch plus text(binding). Give the existing authoring proof that region;
+  // pure tool metadata and patch returns remain separate diagnostics.
+  const direct = source.statements.findIndex((node) =>
+    literalCall(printed(node)),
+  );
+  const syntheticBinding = "__nativeForwardedResult";
+  if (
+    direct >= 0 &&
+    operations.length === 1 &&
+    operations[0]!.kind === "exec" &&
+    !source.getText().includes(syntheticBinding)
+  ) {
+    const normalized = source.statements
+      .flatMap((node, index) =>
+        toolDirectorySummary(node)
+          ? []
+          : index === direct
+            ? [
+                `const ${syntheticBinding}=${printed(node)!.getText(source)};text(${syntheticBinding});`,
+              ]
+            : [node.getText(source)],
+      )
+      .join("\n");
+    if (synchronousInvocations({ name: "exec", arguments: normalized }, cwd))
+      return true;
+  }
   if (literalCall(printed(source.statements.at(-1)))) {
     const prefix = source.statements
       .slice(0, -1)
@@ -3717,9 +4480,9 @@ const unchangedNativeForwarding = (
       .join("\n");
     return readOnlyDiagnostic({ name: "exec", arguments: prefix });
   }
-  // Legacy wait forwarding serializes one unchanged literal empty wait. Its
-  // declaration and print are the entire cell, so no alias can mutate it.
-  if (source.statements.length !== 2) return false;
+  // One literal launch/wait can retain passive JSON copies before its unchanged
+  // print. No alias, mutable exec binding, or other statement is admitted.
+  if (source.statements.length < 2) return false;
   const statement = source.statements[0]!;
   if (
     !ts.isVariableStatement(statement) ||
@@ -3727,7 +4490,7 @@ const unchangedNativeForwarding = (
   )
     return false;
   const binding = statement.declarationList.declarations[0]!;
-  const value = printed(source.statements[1]);
+  const value = printed(source.statements.at(-1));
   if (
     !ts.isIdentifier(binding.name) ||
     [
@@ -3743,13 +4506,30 @@ const unchangedNativeForwarding = (
       "undefined",
     ].includes(binding.name.text) ||
     operations.length !== 1 ||
-    operations[0]!.kind !== "process" ||
+    !["exec", "process"].includes(operations[0]!.kind) ||
+    (operations[0]!.kind === "exec" &&
+      !(statement.declarationList.flags & ts.NodeFlags.Const)) ||
     !literalCall(binding.initializer) ||
     !value
   )
     return false;
   const original = (node: ts.Node) =>
     ts.isIdentifier(node) && node.text === binding.name.getText(source);
+  if (
+    !source.statements
+      .slice(1, -1)
+      .every(
+        (node) =>
+          ts.isExpressionStatement(node) &&
+          ts.isCallExpression(node.expression) &&
+          ts.isIdentifier(node.expression.expression) &&
+          node.expression.expression.text === "store" &&
+          node.expression.arguments.length === 2 &&
+          ts.isStringLiteral(node.expression.arguments[0]!) &&
+          original(node.expression.arguments[1]!),
+      )
+  )
+    return false;
   return (
     original(value) ||
     (ts.isCallExpression(value) &&
@@ -4080,6 +4860,8 @@ const proveSynchronousInvocations = (
   }
   if (priorProcesses.length) {
     const provisional = { ...trace };
+    const indexed = indexedNativeOriginals.get(trace);
+    if (indexed) indexedNativeOriginals.set(provisional, indexed);
     unstartedOuterProofs.set(provisional, unstartedOuterProofs.get(trace)!);
     rememberSynchronousProofs(provisional, new Map(proofs));
     const original = commandOrigins(provisional);
@@ -4461,7 +5243,10 @@ function commandOrigins(trace: ReturnType<typeof nativeTrace>) {
               "Production process waits must be read-only",
             );
             const original = processes.get(operation.handle ?? "");
-            assert.ok(original, "Native wait has no original process handle");
+            assert.ok(
+              original,
+              `Native wait has no original process handle (${output.callId}, ${operation.handle})`,
+            );
             originCallId = original;
           }
           owner = { originCallId, invocationCallId: output.callId, operation };
@@ -4517,6 +5302,12 @@ function commandOrigins(trace: ReturnType<typeof nativeTrace>) {
       const batchResult = indexedBatchResult(
         trace.calls.get(owner.invocationCallId)!,
         texts,
+        {
+          trace,
+          callId: owner.invocationCallId,
+          timestamp: output.timestamp,
+          outputIndex: output.index,
+        },
       );
       if (batchResult) owner.operation = batchResult.operation;
       const joinedWrappers =
@@ -4777,6 +5568,10 @@ export function authenticateCodexCommands(
     .map((line) => object(JSON.parse(line)));
   const failedOuter = proveUnstartedOuterFailures(trace, input, rows);
   unstartedOuterProofs.set(trace, failedOuter.proofs);
+  indexedNativeOriginals.set(trace, {
+    input: Object.freeze({ ...input }),
+    checksum: nativeProjectionChecksum(trace),
+  });
   const synchronous = proveSynchronousInvocations(trace, input, rows);
   rememberSynchronousProofs(trace, synchronous);
   const native = commandOrigins(trace);
@@ -4848,7 +5643,7 @@ export function authenticateCodexCommands(
       assert.ok(
         "indexedBatch" in result ||
           unchangedNativeForwarding(call, input.workspace),
-        "Native source needs its unchanged literal forwarding",
+        `Native source needs its unchanged literal forwarding (${callId})`,
       );
       forwarding.add(callId);
     }
@@ -5357,6 +6152,10 @@ export function authenticateCodexCommands(
     "Native UI must retain every produced attempt with its original native result",
   );
   const authenticated = { ...trace, outputs };
+  indexedNativeOriginals.set(authenticated, {
+    input: Object.freeze({ ...input }),
+    checksum: nativeProjectionChecksum(authenticated),
+  });
   unstartedOuterProofs.set(authenticated, failedOuter.proofs);
   rememberSynchronousProofs(authenticated, synchronous, true);
   return {

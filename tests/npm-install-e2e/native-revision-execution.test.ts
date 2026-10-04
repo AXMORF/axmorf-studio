@@ -1682,6 +1682,508 @@ for (let i=0;i<results.length;i++) text({index:i,result:results[i]});`;
   }
 });
 
+test("indexed native forwarding retains a separate read-only tool directory summary", () => {
+  const batch = `const results=await Promise.allSettled([
+tools.exec_command({cmd:"npm run doctor",workdir:"/workspace"}),
+tools.exec_command({cmd:"cat guides.md",workdir:"/workspace"})
+]);for(let i=0;i<results.length;i++)text({index:i,result:results[i]});`;
+  const summaries = [
+    `text(ALL_TOOLS.filter(x=>/search|native|agent|skill/i.test(x.name+" "+x.description)).map(x=>({name:x.name,description:x.description.slice(0,180)})));`,
+    `text(ALL_TOOLS.filter(x=>/agent|child|parallel|delegate|session|release|close/i.test(x.name)&&!x.name.includes("codex_apps")).map(x=>({name:x.name,description:x.description})));`,
+  ];
+  const metadata = [
+    { name: "exec_command", description: "Native command tool" },
+  ];
+  const fixture = (summary: string) => {
+    const launch = tool("directory-batch", 1, {});
+    launch[0]!.payload.name = "functions.exec";
+    launch[0]!.payload.input = `${batch}\n${summary}`;
+    launch[1]!.payload.output = [
+      { type: "input_text", text: "Script completed\nOutput:\n" },
+      ...[
+        { session_id: 14226, output: "doctor is running" },
+        { exit_code: 0, output: "complete guides" },
+      ].map((value, index) => ({
+        type: "input_text",
+        text: JSON.stringify({ index, result: { status: "fulfilled", value } }),
+      })),
+      { type: "input_text", text: JSON.stringify(metadata) },
+    ];
+    return [
+      {
+        type: "session_meta",
+        timestamp: at(0),
+        payload: { id: "parent", cwd: "/workspace" },
+      },
+      ...launch,
+      ...nativeTool(
+        "directory-doctor-return",
+        2,
+        "functions.write_stdin",
+        { session_id: 14226, chars: "" },
+        JSON.stringify({ exit_code: 0, output: "doctor completed" }),
+      ),
+    ];
+  };
+  const audit = (rows: Row[]) =>
+    authenticateCodexCommands(nativeTrace("codex", text(rows)), {
+      rpc: "{}",
+      sessionId: "parent",
+      workspace: "/workspace",
+    }).trace;
+  for (const summary of summaries) {
+    const rows = fixture(summary);
+    const proved = audit(rows);
+    assert.deepEqual(proved.records, nativeTrace("codex", text(rows)).records);
+    assert.deepEqual(proved.outputs[0]!.objects, [
+      { session_id: 14226, output: "doctor is running" },
+    ]);
+  }
+  for (const summary of [
+    summaries[0]!.replace("ALL_TOOLS", 'load("hidden")'),
+    summaries[0]!.replace('x.name+" "+x.description', 'load("hidden")()'),
+    summaries[0]!.replace(
+      "description:x.description.slice(0,180)",
+      'description:tools.exec_command({cmd:"hidden"})',
+    ),
+    summaries[0]!.replace(
+      "description:x.description.slice(0,180)",
+      'status:"project-production-complete"',
+    ),
+    `${summaries[0]}\nresults[0]=load("forged");`,
+    `${summaries[0]}\nconst tools=load("hidden");`,
+    summaries[0]!.replace(".slice(0,180)", '.slice(load("hidden")(),180)'),
+  ])
+    assert.throws(
+      () => audit(fixture(summary)),
+      /Indexed native results/u,
+      summary,
+    );
+  const forged = fixture(summaries[0]!);
+  (forged[2]!.payload.output as Array<{ text: string }>).at(-1)!.text =
+    JSON.stringify([
+      {
+        name: "exec_command",
+        description: "Native command tool",
+        status: "project-production-complete",
+      },
+    ]);
+  assert.throws(() => audit(forged), /Indexed native results/u);
+});
+
+test("indexed forwarding permits a passive JSON-line copy of its original native output", () => {
+  const batch = `const results=await Promise.allSettled([
+tools.exec_command({cmd:"npm run doctor",workdir:"/workspace"}),
+tools.exec_command({cmd:"cat guides.md",workdir:"/workspace"})
+]);for(let i=0;i<results.length;i++){store("item-"+i,results[i]);text({index:i,result:results[i]});}`;
+  const copy = `if(results[0].status==="fulfilled"){
+const lines=results[0].value.output.split("\\n").filter(x=>x.startsWith("{"));
+store("parsed-lines",lines.map(x=>JSON.parse(x)));
+}`;
+  const fixture = (suffix: string) => {
+    const launch = tool("parsed-batch", 1, {});
+    launch[0]!.payload.name = "functions.exec";
+    launch[0]!.payload.input = `${batch}\n${suffix}`;
+    launch[1]!.payload.output = [
+      { type: "input_text", text: "Script completed\nOutput:\n" },
+      ...[
+        { session_id: 14226, output: "doctor is running" },
+        { exit_code: 0, output: "complete guides" },
+      ].map((value, index) => ({
+        type: "input_text",
+        text: JSON.stringify({ index, result: { status: "fulfilled", value } }),
+      })),
+    ];
+    return [
+      {
+        type: "session_meta",
+        timestamp: at(0),
+        payload: { id: "parent", cwd: "/workspace" },
+      },
+      ...launch,
+      ...nativeTool(
+        "parsed-doctor-return",
+        2,
+        "functions.write_stdin",
+        { session_id: 14226, chars: "" },
+        JSON.stringify({ exit_code: 0, output: "doctor completed" }),
+      ),
+    ];
+  };
+  const audit = (rows: Row[]) =>
+    authenticateCodexCommands(nativeTrace("codex", text(rows)), {
+      rpc: "{}",
+      sessionId: "parent",
+      workspace: "/workspace",
+    }).trace;
+  const proved = audit(fixture(copy));
+  assert.deepEqual(proved.outputs, audit(fixture("")).outputs);
+  for (const invalid of [
+    copy.replace("results[0].value.output", "another[0].value.output"),
+    copy.replace(
+      "results[0].value.output",
+      'results[0].value.output=load("forged")',
+    ),
+    copy.replace('x.startsWith("{")', 'tools.exec_command({cmd:"hidden"})'),
+    copy.replace("JSON.parse(x)", 'JSON.parse(x,load("hidden"))'),
+    copy.replace('store("parsed-lines"', 'load("hidden")("parsed-lines"'),
+    copy.replace("const lines=", "const JSON="),
+    copy.replace('status==="fulfilled"', 'status="fulfilled"'),
+    `${copy}\ntext({index:0,result:load("forged")});`,
+  ])
+    assert.throws(
+      () => audit(fixture(invalid)),
+      /Indexed native results/u,
+      invalid,
+    );
+});
+
+test("display-omitted diagnostic envelopes need their complete original native UI terminal", () => {
+  const commands = [
+    "cat .agents/skills/axmorf-video/references/production-workflow.md",
+    "cat .agents/skills/axmorf-video/references/host-execution-and-recovery.md",
+    "npm run doctor",
+  ];
+  const stdout = ["first guide", "complete second guide", "doctor ready"];
+  const source = `const results=await Promise.allSettled([
+${commands.map((cmd) => `tools.exec_command(${JSON.stringify({ cmd, workdir: "/workspace" })})`).join(",\n")}
+]);for(let i=0;i<results.length;i++)text({index:i,result:results[i]});`;
+  const launch = tool("omitted-guide", 1, {});
+  launch[0]!.payload.name = "functions.exec";
+  launch[0]!.payload.input = source;
+  launch[0]!.payload.internal_chat_message_metadata_passthrough = {
+    turn_id: "root-turn",
+  };
+  launch[1]!.timestamp = at(2);
+  launch[1]!.payload.output = [
+    { type: "input_text", text: "Script completed\nOutput:\n" },
+    {
+      type: "input_text",
+      text: `Warning: truncated output (original token count: 10000)\nTotal output lines: 3\n\n${[0, 2].map((index) => JSON.stringify({ index, result: { status: "fulfilled", value: { exit_code: 0, output: stdout[index] } } })).join("\n")}`,
+    },
+  ];
+  const rows: Row[] = [
+    {
+      type: "session_meta",
+      timestamp: at(0),
+      payload: { id: "parent", cwd: "/workspace" },
+    },
+    ...launch,
+  ];
+  const ui = commands.flatMap((command, index) => {
+    const item = {
+      type: "commandExecution",
+      id: `item-${index}`,
+      processId: `process-${index}`,
+      command,
+      cwd: "/workspace",
+      status: "inProgress",
+    };
+    return [
+      {
+        method: "item/started",
+        params: {
+          threadId: "parent",
+          turnId: "root-turn",
+          startedAtMs: Date.parse(at(1.1 + index / 10)),
+          item,
+        },
+      },
+      {
+        method: "item/completed",
+        params: {
+          threadId: "parent",
+          turnId: "root-turn",
+          completedAtMs: Date.parse(at(1.15 + index / 10)),
+          item: {
+            ...item,
+            status: "completed",
+            exitCode: 0,
+            aggregatedOutput: stdout[index],
+          },
+        },
+      },
+    ];
+  });
+  const audit = (records = rows, packets: unknown[] = ui) =>
+    authenticateCodexCommands(nativeTrace("codex", text(records)), {
+      rpc: packets.map((row) => JSON.stringify(row)).join("\n"),
+      sessionId: "parent",
+      workspace: "/workspace",
+    }).trace;
+  const actual = audit();
+  assert.deepEqual(actual.records, nativeTrace("codex", text(rows)).records);
+  assert.ok(
+    actual.outputs[0]!.objects.some(
+      (value) => value.exit_code === 0 && value.output === stdout[0],
+    ),
+  );
+  const spliced = structuredClone(rows);
+  const splicedBlocks = spliced[2]!.payload.output as Array<{ text: string }>;
+  splicedBlocks[1]!.text = splicedBlocks[1]!.text.replace(
+    stdout[0]!,
+    "first and third stdout spliced by native display",
+  );
+  assert.deepEqual(audit(spliced).outputs, actual.outputs);
+  for (const command of [
+    "npm run project:create -- --schema",
+    "npm run project:create:context -- --project story",
+    "npm run project:revise:context -- --project story",
+    "node .agents/skills/axmorf-video/scripts/native-probe.mjs create --count 4",
+    "npm run catalog:query -- --kind asset --tag motion-sync",
+  ]) {
+    const records = structuredClone(rows);
+    records[1]!.payload.input = source.replace(commands[0]!, command);
+    const packets = structuredClone(ui);
+    packets[0]!.params.item.command = command;
+    packets[1]!.params.item.command = command;
+    assert.deepEqual(audit(records, packets).outputs, actual.outputs);
+  }
+  const innerOnly = structuredClone(rows);
+  const innerBlocks = innerOnly[2]!.payload.output as Array<{ text: string }>;
+  innerBlocks[1]!.text = [0, 1, 2]
+    .map((index) =>
+      JSON.stringify({
+        index,
+        result: {
+          status: "fulfilled",
+          value: {
+            exit_code: 0,
+            output:
+              index === 0
+                ? "Warning: truncated output (original token count: 10000)\nTotal output lines: 1\n\n…100 tokens truncated…"
+                : stdout[index],
+          },
+        },
+      }),
+    )
+    .join("\n");
+  assert.deepEqual(audit(innerOnly).outputs, actual.outputs);
+  assert.throws(() => audit(rows, []));
+  for (const change of [
+    (packets: typeof ui) => {
+      packets.splice(3, 1);
+    },
+    (packets: typeof ui) => {
+      packets.push(structuredClone(packets[3]!));
+    },
+    (packets: typeof ui) => {
+      packets[3]!.params.threadId = "another-root";
+    },
+    (packets: typeof ui) => {
+      packets[3]!.params.turnId = "another-turn";
+    },
+    (packets: typeof ui) => {
+      packets[3]!.params.item.cwd = "/another-workspace";
+    },
+    (packets: typeof ui) => {
+      packets[3]!.params.item.command = "cat different.md";
+    },
+    (packets: typeof ui) => {
+      packets[3]!.params.completedAtMs = Date.parse(at(3));
+    },
+    (packets: typeof ui) => {
+      packets[3]!.params.item.processId = "changed-process";
+    },
+  ]) {
+    const packets = structuredClone(ui);
+    change(packets);
+    assert.throws(() => audit(rows, packets));
+  }
+  const noMarker = structuredClone(rows);
+  const blocks = noMarker[2]!.payload.output as Array<{ text: string }>;
+  blocks[1]!.text = blocks[1]!.text.slice(blocks[1]!.text.indexOf("\n\n") + 2);
+  assert.throws(() => audit(noMarker), /Indexed native results/u);
+  const hiddenMutation = structuredClone(rows);
+  hiddenMutation[1]!.payload.input = source.replace(
+    commands[1]!,
+    "npm run project:produce:prepare -- --project story",
+  );
+  assert.throws(() => audit(hiddenMutation), /original diagnostic UI/u);
+  const delta = {
+    method: "item/commandExecution/outputDelta",
+    params: {
+      threadId: "parent",
+      turnId: "root-turn",
+      itemId: "item-1",
+      delta: "partial",
+    },
+  };
+  const partial = structuredClone(ui);
+  partial.splice(3, 0, delta as never);
+  assert.throws(() => audit(rows, partial), /original diagnostic UI/u);
+});
+
+test("indexed image results stay diagnostic beside their separately forwarded command", () => {
+  const source = `const results=await Promise.allSettled([
+tools.exec_command({cmd:"cat publish.json",workdir:"/workspace"}),
+tools.view_image({path:"/workspace/cover-4x3.png"}),
+tools.view_image({path:"/workspace/cover-3x4.png"}),
+tools.exec_command({cmd:"npm run doctor",workdir:"/workspace"})
+]);for(let i=0;i<results.length;i++){
+const r=results[i];
+if(r.status==="fulfilled"&&(i===1||i===2))image(r.value.image_url);
+else text({index:i,result:r});
+}store("reviewInitial",results[3]);`;
+  const launch = tool("image-forwarding", 1, {});
+  launch[0]!.payload.name = "functions.exec";
+  launch[0]!.payload.input = source;
+  const png =
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aWQAAAABJRU5ErkJggg==";
+  const blocks = [
+    { type: "input_text", text: "Script completed\nOutput:\n" },
+    {
+      type: "input_text",
+      text: JSON.stringify({
+        index: 0,
+        result: {
+          status: "fulfilled",
+          value: { exit_code: 0, output: "publish metadata" },
+        },
+      }),
+    },
+    { type: "input_image", image_url: png },
+    { type: "input_image", image_url: png },
+    {
+      type: "input_text",
+      text: JSON.stringify({
+        index: 3,
+        result: {
+          status: "fulfilled",
+          value: { session_id: 456, output: "doctor pending" },
+        },
+      }),
+    },
+  ];
+  launch[1]!.payload.output = blocks;
+  const rows: Row[] = [
+    {
+      type: "session_meta",
+      timestamp: at(0),
+      payload: { id: "parent", cwd: "/workspace" },
+    },
+    ...launch,
+    ...nativeTool(
+      "image-doctor-return",
+      2,
+      "functions.write_stdin",
+      { session_id: 456, chars: "" },
+      JSON.stringify({ exit_code: 0, output: "doctor ready" }),
+    ),
+  ];
+  const audit = (value = rows) =>
+    authenticateCodexCommands(nativeTrace("codex", text(value)), {
+      rpc: "{}",
+      sessionId: "parent",
+      workspace: "/workspace",
+    }).trace;
+  const actual = audit();
+  assert.deepEqual(actual.records, nativeTrace("codex", text(rows)).records);
+  assert.deepEqual(actual.outputs[0]!.objects, [
+    { session_id: 456, output: "doctor pending" },
+  ]);
+  for (const invalid of [
+    source.replace("const r=results[i]", "let r=results[i]"),
+    source.replace("const r=results[i]", 'const r=load("forged")'),
+    source.replace("image(r.value.image_url)", 'image(load("forged"))'),
+    source.replace("i===1||i===2", "i===0||i===2"),
+    source.replace(
+      'store("reviewInitial",results[3])',
+      'store(load("key"),results[3])',
+    ),
+    source.replace(
+      'store("reviewInitial",results[3])',
+      'store("reviewInitial",results[3]=load("forged"))',
+    ),
+  ]) {
+    const changed = structuredClone(rows);
+    changed[1]!.payload.input = invalid;
+    assert.throws(() => audit(changed));
+  }
+  for (const change of [
+    (value: typeof blocks) => {
+      value.splice(2, 1);
+    },
+    (value: typeof blocks) => {
+      value[2]!.image_url = "data:image/png;base64,/9j/";
+    },
+    (value: typeof blocks) => {
+      value[2]!.image_url = png.replace("image/png", "image/jpeg");
+    },
+  ]) {
+    const changed = structuredClone(rows);
+    change(changed[2]!.payload.output as typeof blocks);
+    assert.throws(() => audit(changed));
+  }
+});
+
+test("one immutable literal native result can be stored before its unchanged print", () => {
+  const source = `const r=await tools.exec_command({cmd:"cat guide.md",workdir:"/workspace"});store("captured",r);text(r);`;
+  const launch = tool("stored-result", 1, {});
+  launch[0]!.payload.name = "functions.exec";
+  launch[0]!.payload.input = source;
+  launch[1]!.payload.output = [
+    { type: "input_text", text: "Script completed\nOutput:\n" },
+    {
+      type: "input_text",
+      text: JSON.stringify({ exit_code: 0, output: "original guide" }),
+    },
+  ];
+  const rows: Row[] = [
+    {
+      type: "session_meta",
+      timestamp: at(0),
+      payload: { id: "parent", cwd: "/workspace" },
+    },
+    ...launch,
+  ];
+  const audit = (value = rows) =>
+    authenticateCodexCommands(nativeTrace("codex", text(value)), {
+      rpc: "{}",
+      sessionId: "parent",
+      workspace: "/workspace",
+    }).trace;
+  assert.deepEqual(audit().records, nativeTrace("codex", text(rows)).records);
+  const direct = `text(await tools.exec_command({cmd:"cat guide.md",workdir:"/workspace"}));`;
+  const patch = `text(await tools.apply_patch("*** Begin Patch\\n*** Add File: /workspace/input.json\\n+{}\\n*** End Patch"));`;
+  const metadata = `text(ALL_TOOLS.filter(x=>/native/i.test(x.name)).map(x=>({name:x.name,description:x.description})));`;
+  const authoring = `const c=load("context")[0];const input={scenes:c.scenes.map(scene=>scene.meaningId==="target"?{...scene,brief:scene.brief+" delta"}:scene)};store("input",input);text(await tools.apply_patch("*** Begin Patch\\n*** Add File: /workspace/input.json\\n"+JSON.stringify(input,null,2).split("\\n").map(line=>"+"+line).join("\\n")+"\\n*** End Patch"));`;
+  for (const input of [
+    patch + direct,
+    direct + patch,
+    metadata + direct,
+    authoring + direct,
+  ]) {
+    const changed = structuredClone(rows);
+    changed[1]!.payload.input = input;
+    assert.deepEqual(
+      audit(changed).records,
+      nativeTrace("codex", text(changed)).records,
+    );
+  }
+  for (const invalid of [
+    source.replace("const r=", "let r="),
+    source.replace('store("captured",r)', 'store(load("key"),r)'),
+    source.replace('store("captured",r)', 'store("captured",r=load("forged"))'),
+    source.replace(
+      'store("captured",r)',
+      'const alias=r;store("captured",alias)',
+    ),
+    source.replace("text(r)", 'r.output="forged";text(r)'),
+    `const store=load("hidden");${source}`,
+    authoring.replace("...scene", '...load("hidden")()') + direct,
+    patch.replace(
+      'tools.apply_patch("',
+      'tools.apply_patch(load("hidden")()+"',
+    ) + direct,
+    metadata.replace("x.name", 'load("hidden")()') + direct,
+  ]) {
+    const changed = structuredClone(rows);
+    changed[1]!.payload.input = invalid;
+    assert.throws(() => audit(changed));
+  }
+});
+
 test("shorthand batch counters retain each pending result and its later failure before a fresh successful doctor", async (context) => {
   const source = `const results=await Promise.allSettled([
 tools.exec_command({cmd:"cat guides.md",workdir:"/workspace"}),
@@ -3554,10 +4056,28 @@ if(pos>=0){const parsed=JSON.parse(combined.slice(pos));store("prepareStructured
     '{const parsed=JSON.parse(combined.slice(pos));store("prepareStructured",parsed);}',
     'store("prepareStructured",JSON.parse(combined.slice(pos)));',
   );
+  const buffered = captures
+    .replace(
+      'text(r);\nconst captures=[r];store("prepareCaptures",captures);',
+      'let captures=[r];store("prepareCaptures",captures);text(r);',
+    )
+    .replace(
+      'text(r);captures.push(r);store("prepareCaptures",captures);',
+      'captures.push(r);store("prepareCaptures",captures);text(r);',
+    );
+  const linesProjection = `
+const raw=captures.map(x=>x.output).join("");
+const structured=raw.split("\\n").filter(x=>x.startsWith("{")).map(x=>JSON.parse(x));
+store("prepareStructured",structured);`;
+  const directLinesProjection = `
+store("prepareStructured",captures.map(x=>x.output).join("").split("\\n").filter(x=>x.startsWith("{")).map(x=>JSON.parse(x)));`;
   for (const input of [
     captures,
     captures + projection,
     captures + directProjection,
+    buffered,
+    buffered + linesProjection,
+    captures + directLinesProjection,
   ]) {
     const changed = structuredClone(rows);
     changed.find(
@@ -3593,6 +4113,24 @@ if(pos>=0){const parsed=JSON.parse(combined.slice(pos));store("prepareStructured
     captures +
       projection.replace('store("prepareStructured",parsed)', "text(parsed)"),
     `const JSON=foreign;\n${captures}${projection}`,
+    buffered.replace("captures.push(r)", "captures.push(r);r=another"),
+    buffered.replace(
+      'store("prepareCaptures",captures);text(r)',
+      'store("prepareCaptures",captures);',
+    ),
+    buffered +
+      linesProjection.replace("x=>JSON.parse(x)", "x=>JSON.parse(r.output)"),
+    buffered + linesProjection.replace("x=>x.output", "x=>x.output()"),
+    buffered +
+      linesProjection.replace(
+        'store("prepareStructured",structured)',
+        "text(structured)",
+      ),
+    captures +
+      directLinesProjection.replace(
+        'store("prepareStructured",',
+        'store(load("key"),',
+      ),
   ]) {
     const changed = structuredClone(rows);
     changed.find(

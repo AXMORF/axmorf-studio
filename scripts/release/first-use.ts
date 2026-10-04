@@ -1090,6 +1090,10 @@ export async function record(
 }
 
 type VerificationPurpose = "publication" | "historical-diagnostic";
+export type NativeVerificationScope = {
+  requiredHosts?: Array<"codex" | "hermes">;
+  currentNative?: boolean;
+};
 
 function verifyCombined(
   value: unknown,
@@ -1097,23 +1101,26 @@ function verifyCombined(
   creator: PackageContent,
   method: "npm-exec-candidate" | "npm-create-public-registry",
   purpose: VerificationPurpose,
+  scope: NativeVerificationScope = {},
 ) {
-  // The maintainer separately approved Codex-only acceptance for 0.1.15 and
-  // 0.1.16. Every other release retains the two-host gate.
-  const requiredHosts =
-    runtime.version === "0.1.15" || runtime.version === "0.1.16"
-      ? (["codex"] as const)
-      : (["codex", "hermes"] as const);
+  // Host scope comes from the reviewed change plan, never the version number.
+  const requiredHosts = z
+    .array(Host)
+    .min(1)
+    .max(2)
+    .parse(scope.requiredHosts ?? ["codex"]);
+  assert.equal(new Set(requiredHosts).size, requiredHosts.length);
   const receipt = z
     .object({
       schemaVersion: z.literal(1),
-      hosts: z.array(HostReceiptSchema).length(requiredHosts.length),
+      hosts: z.array(HostReceiptSchema).min(requiredHosts.length).max(2),
     })
     .strict()
     .parse(value);
-  assert.deepEqual(
-    receipt.hosts.map((host) => host.host).sort(),
-    requiredHosts,
+  const actualHosts = receipt.hosts.map((host) => host.host);
+  assert.ok(
+    new Set(actualHosts).size === actualHosts.length &&
+      requiredHosts.every((host) => actualHosts.includes(host)),
     "This release requires its exact Agent host acceptance set",
   );
   assert.equal(runtime.name, "@axmorf/studio");
@@ -1136,9 +1143,10 @@ function verifyCombined(
       );
     }
     const needsInline =
-      requiresHermesInline(runtime.version, host.host) ||
-      (requiresCodexInline(runtime.version, host.host) &&
-        host.inlineExecution !== undefined);
+      !scope.currentNative &&
+      (requiresHermesInline(runtime.version, host.host) ||
+        (requiresCodexInline(runtime.version, host.host) &&
+          host.inlineExecution !== undefined));
     if (needsInline) {
       assert.ok(
         host.inlineExecution,
@@ -1178,7 +1186,7 @@ function verifyCombined(
       method,
       "Candidate and public-registry receipts cannot substitute for each other",
     );
-    if (requiresSupervision(runtime.version)) {
+    if (scope.currentNative || requiresSupervision(runtime.version)) {
       assert.ok(
         host.supervision,
         "This release requires native supervision acceptance",
@@ -1209,13 +1217,16 @@ function verifyCombined(
       { runtime: packageSummary(runtime), creator: packageSummary(creator) },
       "First-use evidence does not match these release candidates",
     );
-    if (!needsInline && requiresNativeExecution(runtime.version)) {
+    if (
+      !needsInline &&
+      (scope.currentNative || requiresNativeExecution(runtime.version))
+    ) {
       assert.ok(
         host.nativeExecution,
-        "This release requires actual bounded native child execution on both hosts",
+        "This scope requires actual bounded native child execution",
       );
       const execution = host.nativeExecution;
-      if (requiresFourWayExecution(runtime.version))
+      if (scope.currentNative || requiresFourWayExecution(runtime.version))
         assertFourWayExecution(execution);
       assert.equal(execution.productionChildCount, execution.dirtyTaskCount);
       assert.equal(
@@ -1295,7 +1306,7 @@ function verifyCombined(
       ? { publicationEligible: false as const }
       : {}),
     version: runtime.version,
-    hosts: [...requiredHosts],
+    hosts: [...actualHosts].sort(),
     runtimeFingerprint: runtime.fingerprint,
     creatorFingerprint: creator.fingerprint,
   };
@@ -1305,6 +1316,7 @@ export function verifyReceipt(
   value: unknown,
   runtime: PackageContent,
   creator: PackageContent,
+  scope: NativeVerificationScope = {},
 ) {
   return verifyCombined(
     value,
@@ -1312,6 +1324,7 @@ export function verifyReceipt(
     creator,
     "npm-exec-candidate",
     "publication",
+    scope,
   );
 }
 

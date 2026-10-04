@@ -1,0 +1,308 @@
+{
+  "schemaVersion": 1,
+  "status": "bgm-implementation-verified-publication-pending",
+  "version": "0.1.17",
+  "implementationCommit": "87ae0071893ef83e31b11567fef9558c6318dfa2",
+  "scaffoldGuideCommit": "d72adf491a9a5cbe8c2a739ef817e222c0ab6724",
+  "repositoryVerification": {
+    "command": [
+      "npm",
+      "run",
+      "check"
+    ],
+    "node": "24.15.0",
+    "sourceBefore": "92c56c1f0b71cf0166c458618bb82f6246b9028c562a936fa0747ed37eb44dcf",
+    "exitCode": 0,
+    "seconds": 337.52,
+    "sourceAfter": "92c56c1f0b71cf0166c458618bb82f6246b9028c562a936fa0747ed37eb44dcf",
+    "sourceUnchanged": true,
+    "metrics": {
+      "tests": 1196,
+      "pass": 1196,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0
+    },
+    "scaffoldGuideFollowup": {
+      "tests": 14,
+      "pass": 14,
+      "fail": 0
+    },
+    "latestCheck": {
+      "command": [
+        "npm",
+        "run",
+        "check"
+      ],
+      "sourceCommit": "f9c8b251b41891c556b7e343a08d6082d507d78f",
+      "exitCode": 0,
+      "metrics": {
+        "tests": 1200,
+        "pass": 1200,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0
+      },
+      "testRunnerDurationMs": 256279.919246,
+      "completeLogChecksum": "sha256:b7bc8ebaf7b5ce069336d3c22239fefec73d75269e673a7618379e0c4eaae473"
+    },
+    "finalCheck": {
+      "command": [
+        "npm",
+        "run",
+        "check"
+      ],
+      "node": "24.15.0",
+      "exitCode": 0,
+      "metrics": {
+        "tests": 1212,
+        "pass": 1212,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0
+      },
+      "testRunnerDurationMs": 168919.38213,
+      "completeLogChecksum": "sha256:f1c10994b9be04ba51a690dc923a739d7f2a4149fb50ff33275f880f2e782f74",
+      "releaseSourceChecksums": {
+        "scripts/release/native-execution.ts": "a0fdd5389433bb8d84d204d8f080091636b9befaf9321456fc79867c5eb82006",
+        "scripts/release/first-use.ts": "0be8a42d4dc2a83a4ceb5c55d9b737d6e864173ebf54fe1bbfb495e6144f3a9d",
+        "scripts/release/release-gate.ts": "8a8c8b46052539dc2a93926e50dbfcd76fa0c83383919e216043fc07bdc39f75",
+        ".github/workflows/npm-publish.yml": "e36cbfcd7766d88675c16b3efc8025d67eb8d7c9600da4845f7ea6be642695a7",
+        "tests/npm-install-e2e/native-revision-execution.test.ts": "c4a6515b3890482b4287efde3f985fc07f421c1fd4fd8a48869c77263528346a",
+        "tests/npm-install-e2e/first-use-release.test.ts": "b5065f6039d3a92b6368f44052cbacbf59dc7a6f3575accf099cf0af690fcf41",
+        "tests/npm-install-e2e/release-gate.test.ts": "5cf0e5a53ad6134c913a22aac2d7b50f8e3b7514a5f32d8bd9bc6fc6ec427944"
+      },
+      "packagesTypecheckExitCode": 0,
+      "packagesBuildExitCode": 0,
+      "focusedReleaseAndBgmTests": 153,
+      "focusedLintExitCode": 0,
+      "focusedTypecheckExitCode": 0,
+      "scopeNote": "Literal full check preceded the final minimal-render workflow selection; workflow/test-only follow-up and actual runtime render passed afterwards, CI rechecks the exact tagged source."
+    },
+    "minimalRenderWorkflowFollowup": {
+      "tests": 32,
+      "pass": 32,
+      "fail": 0,
+      "lintExitCode": 0,
+      "workflowYamlAndShellParse": "pass",
+      "runtimeRender": {
+        "schemaVersion": 1,
+        "status": "pass",
+        "compositionId": "DefaultIntroPreview",
+        "checksum": "sha256:1be9f94f4211df493fd6cce8858616fdd2502452b84a64c27fc3d45f956905c1",
+        "width": 1080,
+        "height": 1920,
+        "fps": 30,
+        "durationInFrames": 60,
+        "audioCodec": "aac",
+        "audioChannels": 2,
+        "eofDecode": true
+      },
+      "fullDecodeExitCode": 0,
+      "workflowChecksum": "sha256:9517a000fefb3a8a7798321856817612f40cb4b70fb09ed5804a9449bf0619a4",
+      "testChecksum": "sha256:e3bc1cc8874361c63e25cdd962af8d82872345228e21f3846615783e8a1ff30c",
+      "npmAuditVulnerabilities": 0
+    }
+  },
+  "runtimeAudioProof": {
+    "status": "complete-runtime-audio-proof-passed",
+    "durationSeconds": 38,
+    "fps": 30,
+    "frames": 1140,
+    "musicGain": 0.15,
+    "loop": {
+      "sourceDurationSeconds": 32.54238095238095,
+      "playbackFrames": 976,
+      "playbackRate": 1.0002781030444965,
+      "rateAdjustmentPercent": 0.02781030444964916,
+      "firstAndRepeatedHead": {
+        "0": {
+          "correlation": 0.9999478758499809,
+          "rmsRatio": 1.0025546747214977
+        },
+        "0.04": {
+          "correlation": 0.9999999949224087,
+          "rmsRatio": 1.0000023216935827
+        },
+        "0.5": {
+          "correlation": 0.9999992898064846,
+          "rmsRatio": 1.0000082741874743
+        },
+        "2": {
+          "correlation": 0.9999972267586383,
+          "rmsRatio": 0.9998967111116315
+        }
+      }
+    },
+    "bgmSourceComparisons": {
+      "lead": {
+        "correlation": 0.9985856878608078,
+        "rmsRatio": 0.9975252101454509
+      },
+      "unvoiced-intro": {
+        "correlation": 0.9985109354952989,
+        "rmsRatio": 0.9977367192803578
+      },
+      "first-scene": {
+        "correlation": 0.9990045528308281,
+        "rmsRatio": 0.9980654729033209
+      },
+      "scene-cut": {
+        "correlation": 0.9990858115047179,
+        "rmsRatio": 0.9996212496236209
+      },
+      "unvoiced-outro": {
+        "correlation": 0.9990713005647336,
+        "rmsRatio": 0.997634251666966
+      },
+      "tail": {
+        "correlation": 0.9991637388277141,
+        "rmsRatio": 0.9978794587331101
+      }
+    },
+    "independentVoiceAndEffectMix": {
+      "first-voice": {
+        "correlation": 0.9999716206056098,
+        "rmsRatio": 0.9995049387946221
+      },
+      "first-effect": {
+        "correlation": 0.9999561422998207,
+        "rmsRatio": 0.9988541543602865
+      },
+      "second-voice": {
+        "correlation": 0.9999749211749481,
+        "rmsRatio": 0.9987579738279796
+      },
+      "second-effect": {
+        "correlation": 0.9999714466070574,
+        "rmsRatio": 0.998819962669098
+      },
+      "loop-mix": {
+        "correlation": 0.99999518470844,
+        "rmsRatio": 0.9999311705223725
+      }
+    },
+    "mixPeakDbfs": -4.817067854054423,
+    "aacPrimingSamplesPerChannel": 2048,
+    "media": {
+      "bgm-final": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 480,
+            "height": 270,
+            "r_frame_rate": "30/1",
+            "nb_frames": "1140",
+            "side_data_list": [
+              {}
+            ]
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "48000",
+            "channels": 2,
+            "r_frame_rate": "0/0",
+            "nb_frames": "1784"
+          }
+        ]
+      },
+      "mix-final": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 480,
+            "height": 270,
+            "r_frame_rate": "30/1",
+            "nb_frames": "1140",
+            "side_data_list": [
+              {}
+            ]
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "48000",
+            "channels": 2,
+            "r_frame_rate": "0/0",
+            "nb_frames": "1784"
+          }
+        ]
+      }
+    },
+    "eofDecode": "both complete MP4s passed",
+    "listening": "not performed; these are programmatic checks",
+    "formalProductionDelivery": "not claimed; isolated complete runtime render",
+    "sha256": {
+      "bgm-final": "c19c5250fc87d9855b13bb4b7915ebd6b746d2b6510fa041f01ca8df7497c39f",
+      "mix-final": "39771c9cb798dd3bb16f51fa02a1dba3bbc08e2df1378840fd6becc6912cc93c"
+    }
+  },
+  "candidatePrivacy": {
+    "checks": [
+      {
+        "file": "axmorf-studio-0.1.17.tgz",
+        "sha256": "d012bd7a46827977e8414a91ae964d3e85e1eb13afb5e13c7984c08027b2d409",
+        "files": 290,
+        "privateMusicExcluded": true
+      },
+      {
+        "file": "create-axmorf-studio-0.1.17.tgz",
+        "sha256": "071840c1dde93ffc2a9a01c310d0202e6e395b604e6a8164cb0a84ce921029f8",
+        "files": 41,
+        "privateMusicExcluded": true
+      }
+    ]
+  },
+  "releaseGate": {
+    "codexCandidate": "verified",
+    "hermesCandidate": "verified",
+    "npmPublication": "not-started",
+    "policy": "change-scoped-layered-release",
+    "requiredHosts": [
+      "codex",
+      "hermes"
+    ],
+    "scopeReason": "Production/scaffold changes and actual Hermes native recorder compatibility changes",
+    "candidateVerifier": "release-gate-passed",
+    "nativeRunDurationsMinutes": {
+      "codex": 44.95,
+      "hermes": 57.72
+    }
+  },
+  "scopeNotes": [
+    "Full runtime render proof is separate from the native first-use production gate.",
+    "Private loop audio and producer settings are not public npm package contents.",
+    "Whole-mix subjective listening has not been performed."
+  ],
+  "releaseControllerVerification": {
+    "workspaceIdentityCommit": "3049657afa507ad64ffb715a77cfdb928e2d137f",
+    "nativeProtocolCommit": "f9c8b251b41891c556b7e343a08d6082d507d78f",
+    "focusedChecks": {
+      "tests": 105,
+      "pass": 105,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0
+    },
+    "lintExitCode": 0,
+    "typecheckExitCode": 0,
+    "originalNativeRecordsUnchanged": true,
+    "candidatePackageContentsUnchanged": true,
+    "serializedOutputReadCommit": "eeaff192f8e1b695db390df891efb257a9f10ea4",
+    "diagnosticCallbackScopeCommit": "65f0bc437faebdc8430fd4d80446c2b4aefed5ec",
+    "finalForwardingFocusedChecks": {
+      "tests": 110,
+      "pass": 110,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0
+    }
+  }
+}

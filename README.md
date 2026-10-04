@@ -197,7 +197,7 @@ artifacts、attempts、revision candidates、render output 和 Delivery；这些
 - [Project revision](docs/guides/PROJECT_REVISION.md)：安全修改已有作品
 - [视觉叙事](docs/guides/VISUAL_NARRATIVE_QUALITY.md)：视觉机制、连续主体、预览与验证边界
 - [本地交付](docs/guides/LOCAL_DELIVERY.md)：四文件 Delivery 结构与验证
-- [首次用户发布验收](docs/guides/FIRST_USE_RELEASE_GATE.md)：候选包双 Agent 验收与发布后复验
+- [首次用户发布验收](docs/guides/FIRST_USE_RELEASE_GATE.md)：按变更分层校验、必要原生首用与发布后安装复验
 - [当前实现状态](docs/ITERATION_STATUS.md)：已实现能力和验收事实
 
 README 只负责产品入口和快速开始；精确 contracts、当前状态与操作顺序以上述 active 文档和生成 Workspace 中当前版本的

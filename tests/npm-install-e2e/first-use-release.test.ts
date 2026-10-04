@@ -175,7 +175,11 @@ test("release evidence binds both hosts, exact candidates, prompts and complete 
   );
   const missingHost = evidence();
   missingHost.hosts.pop();
-  assert.throws(() => verifyReceipt(missingHost, runtime, creator));
+  assert.throws(() =>
+    verifyReceipt(missingHost, runtime, creator, {
+      requiredHosts: ["codex", "hermes"],
+    }),
+  );
   const duplicateHost = evidence();
   duplicateHost.hosts[1]!.host = "codex";
   assert.throws(
@@ -560,15 +564,21 @@ test("package fingerprint ignores archive metadata but binds actual packed files
   );
 });
 
-test("publication verifies first-use candidates before publishing either package", async () => {
+test("publication verifies scoped exact candidates before publishing either package", async () => {
   const workflow = await readFile(".github/workflows/npm-publish.yml", "utf8");
   assert.match(
     workflow,
-    /test -f "docs\/evidence\/v\$\{root_version\}-first-use\.json"/u,
+    /test -f "docs\/evidence\/v\$\{root_version\}-release-plan\.json"/u,
   );
   assert.ok(
-    workflow.indexOf("first-use.ts verify") <
+    workflow.indexOf("release-gate.ts verify") <
       workflow.indexOf('npm publish "$tarball"'),
+  );
+  assert.match(workflow, /if \[\[ "\$NATIVE_FIRST_USE" == "true" \]\]/u);
+  assert.match(workflow, /remotion render src\/index\.ts DefaultIntroPreview/u);
+  assert.match(
+    workflow,
+    /create-axmorf-studio workspace --yes --runtime-package/u,
   );
 });
 

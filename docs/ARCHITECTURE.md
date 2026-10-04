@@ -27,6 +27,11 @@ create input 可选 `backgroundMusic`：省略继承，auto 按当前 brief 匹�
 create-time 本地化冻结 checksum/license/Project-owned bytes；一个 composition-scope 音轨覆盖首尾和 lead/tail，抑制 Scene 的第二条音乐，
 音效仍按独立 anchor 混音。旧 narrated-content/content Plan 不改语义，空曲库返回 unavailable 和空 Project 音轨。
 
+发布控制器独立于生产 runtime：`scripts/release/release-gate.ts` 由已审核 release plan 与 baseline tag diff
+决定普通或 native scope；两包内容 fingerprint 始终复验。production/合同/scaffold 变更要求主宿主原生首用，
+第二宿主只按实际兼容性变更或明确全验收请求加入。CI 始终保留 type/lint/build、回归、全新安装及最小实际渲染。
+既有可信 npm Actions 执行发布；规则和原生日志不进入公开包。见[发布门禁](guides/FIRST_USE_RELEASE_GATE.md)。
+
 ## 1. 模块与依赖方向
 
 ```text
