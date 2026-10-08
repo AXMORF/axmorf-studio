@@ -7,6 +7,10 @@ import {
 } from "./narrative-baseline";
 import { Sha256DigestSchema, StoryIdSchema } from "./primitives";
 import { RenderSpecSchema, type RenderSpec } from "./render";
+import {
+  TIMING_ALGORITHM_ID,
+  VISUAL_TIMING_ALGORITHM_ID,
+} from "./semantic-timing";
 
 export const NARRATIVE_AUTO_CHECK_VERSION = "narrative-auto-check-v4" as const;
 
@@ -66,7 +70,7 @@ const NarrativeAutoCheckFailureReasonSchema = z
 const NarrativeAutoCheckItemSchema = z
   .object({
     checkId: z.enum(NARRATIVE_AUTO_CHECK_IDS),
-    status: z.enum(["pass", "fail"]),
+    status: z.enum(["pass", "fail", "not-applicable"]),
     evidenceIds: z.array(z.enum(NARRATIVE_AUTO_CHECK_EVIDENCE_IDS)).readonly(),
     failureReasons: z.array(NarrativeAutoCheckFailureReasonSchema).readonly(),
   })
@@ -120,6 +124,9 @@ const NarrativeAutoCheckReportInputObject = z
     storyId: StoryIdSchema,
     level: z.literal("narrative"),
     aggregateStatus: z.enum(["pass", "fail"]),
+    timingAlgorithmId: z
+      .enum([TIMING_ALGORITHM_ID, VISUAL_TIMING_ALGORITHM_ID])
+      .optional(),
     inputIdentity: NarrativeAutoCheckInputIdentitySchema,
     evidenceRefs: z
       .array(NarrativeAutoCheckEvidenceRefSchema)
@@ -172,6 +179,7 @@ const addReportIssues = (
   report: ReportInputShape,
   context: z.RefinementCtx,
 ) => {
+  const isVisual = report.timingAlgorithmId === VISUAL_TIMING_ALGORITHM_ID;
   const expectedPaths = expectedEvidencePaths({
     storyId: report.storyId,
     sealedNarrationFingerprint: report.inputIdentity.sealedNarrationFingerprint,
@@ -203,9 +211,14 @@ const addReportIssues = (
         path: ["checks", index, "checkId"],
       });
     }
+    const expectedEvidence =
+      isVisual && check.checkId === "sealed-narration"
+        ? ["sealed-manifest"]
+        : isVisual && check.checkId === "baseline-evidence"
+          ? []
+          : EXPECTED_CHECK_EVIDENCE[check.checkId];
     if (
-      JSON.stringify(check.evidenceIds) !==
-      JSON.stringify(EXPECTED_CHECK_EVIDENCE[check.checkId])
+      JSON.stringify(check.evidenceIds) !== JSON.stringify(expectedEvidence)
     ) {
       context.addIssue({
         code: "custom",
@@ -213,7 +226,30 @@ const addReportIssues = (
         path: ["checks", index, "evidenceIds"],
       });
     }
-    if (check.status === "pass" && check.failureReasons.length !== 0) {
+    if (
+      check.status === "not-applicable" &&
+      !(isVisual && check.checkId === "baseline-evidence")
+    ) {
+      context.addIssue({
+        code: "custom",
+        message:
+          "Only the narrated baseline evidence is inapplicable to authored-frame timing.",
+        path: ["checks", index, "status"],
+      });
+    }
+    if (
+      isVisual &&
+      check.checkId === "baseline-evidence" &&
+      check.status !== "not-applicable"
+    ) {
+      context.addIssue({
+        code: "custom",
+        message:
+          "Authored-frame timing does not claim the narrated baseline evidence check.",
+        path: ["checks", index, "status"],
+      });
+    }
+    if (check.status !== "fail" && check.failureReasons.length !== 0) {
       context.addIssue({
         code: "custom",
         message: "Passing AutoCheck items cannot contain failure reasons.",
@@ -229,14 +265,57 @@ const addReportIssues = (
     }
   });
 
+  const absentIdentities = isVisual
+    ? new Set([
+        "generationInputFingerprint",
+        "sealedNarrationFingerprint",
+        "masteredNarrationFingerprint",
+        "baselineEvidenceFingerprint",
+      ])
+    : new Set<string>();
+  const absentEvidence = isVisual
+    ? new Set(["complete-wav", "baseline-receipt"])
+    : new Set<string>();
+  if (isVisual) {
+    for (const [key, value] of Object.entries(report.inputIdentity)) {
+      if (absentIdentities.has(key) && value !== null) {
+        context.addIssue({
+          code: "custom",
+          message:
+            "Visual timing cannot claim narration or narrated baseline evidence identities.",
+          path: ["inputIdentity", key],
+        });
+      }
+    }
+    report.evidenceRefs.forEach((reference, index) => {
+      if (
+        absentEvidence.has(reference.evidenceId) &&
+        reference.checksum !== null
+      ) {
+        context.addIssue({
+          code: "custom",
+          message:
+            "Visual timing cannot claim PCM or narrated baseline evidence bytes.",
+          path: ["evidenceRefs", index, "checksum"],
+        });
+      }
+    });
+  }
   const everyCheckPassed = report.checks.every(
-    (check) => check.status === "pass",
+    (check) =>
+      check.status === "pass" ||
+      (isVisual &&
+        check.checkId === "baseline-evidence" &&
+        check.status === "not-applicable"),
   );
-  const everyIdentityPresent = Object.values(report.inputIdentity).every(
-    (value) => value !== null,
+  const everyIdentityPresent = Object.entries(report.inputIdentity).every(
+    ([key, value]) =>
+      absentIdentities.has(key) ? value === null : value !== null,
   );
-  const everyEvidencePresent = report.evidenceRefs.every(
-    (reference) => reference.checksum !== null,
+  const everyEvidencePresent = report.evidenceRefs.every((reference) =>
+    absentEvidence.has(reference.evidenceId)
+      ? reference.checksum === null
+      : reference.checksum !== null,
   );
   const canPass =
     everyCheckPassed && everyIdentityPresent && everyEvidencePresent;

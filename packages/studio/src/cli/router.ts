@@ -123,6 +123,7 @@ const routeProject = async (input: CliCommandInput, runners: CliRunners) => {
       "describe",
       "finalize",
       "check",
+      "preview",
       "commit",
       "fail",
       "file-read",

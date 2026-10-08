@@ -1,0 +1,228 @@
+{
+  "schemaVersion": 1,
+  "status": "published-registry-and-installation-verified",
+  "version": "0.1.17",
+  "verifiedAt": "2026-10-04T20:55:10.185Z",
+  "sourceCommit": "3b2a01ce1f27ac8761e123722c090fba0bccd289",
+  "tag": "v0.1.17",
+  "tagMovedAfterPublication": false,
+  "workflow": {
+    "path": ".github/workflows/npm-publish.yml",
+    "url": "https://github.com/AXMORF/axmorf-studio/actions/runs/37231367445",
+    "runId": 37231367445,
+    "attempt": 1,
+    "conclusion": "success",
+    "startedAt": "2026-10-04T20:15:03Z",
+    "completedAt": "2026-10-04T20:27:28Z"
+  },
+  "packages": [
+    {
+      "role": "runtime",
+      "version": "0.1.17",
+      "files": 290,
+      "fingerprint": "sha256:cc16b4d3498dba79d1473f73e0e9b039b65ce61a5e86291919cbeca79d515a27",
+      "name": "@axmorf/studio",
+      "latest": "0.1.17",
+      "npmUrl": "https://www.npmjs.com/package/@axmorf/studio/v/0.1.17",
+      "tarball": "https://registry.npmjs.org/@axmorf/studio/-/studio-0.1.17.tgz",
+      "integrity": "sha512-0CHTzAebkQovsQr8vzjwhARGeVXc6Fk916QNpgbpEuimzEnR3uiLDHsO/p+wDgR7t7bECtJyhcw7tjvDUa8QTA==",
+      "tarballChecksum": "sha256:d012bd7a46827977e8414a91ae964d3e85e1eb13afb5e13c7984c08027b2d409",
+      "registryIntegrityMatchesExactCiTarball": true,
+      "candidateContentsMatchPublishedPackage": true,
+      "privateMusicAndSettingsIncluded": false
+    },
+    {
+      "role": "creator",
+      "version": "0.1.17",
+      "files": 41,
+      "fingerprint": "sha256:b391c03631e34e3c64cfaa2c5e4c82de299a89e0e85a2c26bb89aa2118845a43",
+      "name": "create-axmorf-studio",
+      "latest": "0.1.17",
+      "npmUrl": "https://www.npmjs.com/package/create-axmorf-studio/v/0.1.17",
+      "tarball": "https://registry.npmjs.org/create-axmorf-studio/-/create-axmorf-studio-0.1.17.tgz",
+      "integrity": "sha512-OYL9whs05UDLnzvOi/sg1+pVFw5mGmCrFXHU5EChjepWzyL+KKUpygBY5x9CikZlr41n5TAvtK1S4Yahh8surQ==",
+      "tarballChecksum": "sha256:071840c1dde93ffc2a9a01c310d0202e6e395b604e6a8164cb0a84ce921029f8",
+      "registryIntegrityMatchesExactCiTarball": true,
+      "candidateContentsMatchPublishedPackage": true,
+      "privateMusicAndSettingsIncluded": false
+    }
+  ],
+  "officialProvenance": {
+    "status": "pass",
+    "sourceCommit": "3b2a01ce1f27ac8761e123722c090fba0bccd289",
+    "tag": "v0.1.17",
+    "workflow": ".github/workflows/npm-publish.yml",
+    "runId": 37231367445,
+    "bothSubjectsMatchExactTarballs": true,
+    "verificationScope": "Official registry SLSA statements parsed and matched to package bytes, source, tag and workflow; no independent Sigstore signature verification claimed.",
+    "evidenceChecksum": "sha256:98976f88e813f0a8f9d2bc4b40f0179ba5aecb79b391e640e496298202518bb7"
+  },
+  "checks": {
+    "localLiteralFullCheck": {
+      "tests": 1212,
+      "pass": 1212,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0
+    },
+    "ci": {
+      "node": "24.16.0",
+      "scopedTests": {
+        "tests": 153,
+        "pass": 153,
+        "fail": 0,
+        "skipped": 0
+      },
+      "completeRepositoryTests": {
+        "tests": 1212,
+        "pass": 1211,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 1,
+        "skipReason": "Darwin sandbox process inspection reports the real spawnSync EPERM; platform-specific test on Linux"
+      },
+      "completeLogChecksum": "sha256:a6515558a0381dde989f4b78db234a4acb6f37bea726f9ab6f37a24acde352f7",
+      "packageTypecheckBuildAudit": "pass",
+      "sourceTypecheckLintBuild": "pass",
+      "minimalRealRender": {
+        "schemaVersion": 1,
+        "status": "pass",
+        "compositionId": "DefaultIntroPreview",
+        "checksum": "sha256:55d3f4fc336ea393ebdf7d2bf35f78c7592177f57d1d2ca72a727bd0be2fc2f8",
+        "width": 1080,
+        "height": 1920,
+        "fps": 30,
+        "durationInFrames": 60,
+        "audioCodec": "aac",
+        "audioChannels": 2,
+        "eofDecode": true
+      },
+      "freshExternalWorkspaceAndDoctor": "pass",
+      "reviewedPlanAndExactNativeReceipts": "pass"
+    },
+    "postPublicationPublicLockIdentityFollowup": {
+      "tests": 33,
+      "pass": 33,
+      "fail": 0,
+      "skipped": 0,
+      "lintExitCode": 0,
+      "typecheckExitCode": 0,
+      "scope": "Accept only the exact Darwin /tmp to /private/tmp package-owner alias; preserve raw lock bytes and all public package source checks.",
+      "publishedPackageContentsChanged": false,
+      "testLogChecksum": "sha256:481174e539b30a560b647b1bb06dc8469e4d90233b22c8caa2ccde131ca472ad"
+    }
+  },
+  "candidateNativeAcceptance": {
+    "receipt": "v0.1.17-first-use.json",
+    "releasePlan": "v0.1.17-release-plan.json",
+    "requiredHosts": [
+      "codex",
+      "hermes"
+    ],
+    "bothRecordsStrictlyVerified": true,
+    "fourWayBoundOverlapMs": {
+      "codex": 262227,
+      "hermes": 379863
+    },
+    "originalFailedAndSupersededRunsRetained": true
+  },
+  "publicInstallation": {
+    "method": "npm-create-public-registry",
+    "anonymousOfficialRegistry": true,
+    "freshCacheAndEmptyNpmrc": true,
+    "runtimeFiles": 290,
+    "creatorFiles": 41,
+    "generatedGuides": 12,
+    "snapshotChecksum": "sha256:e05cd8179aed79d3028d342d2d4c69551be7da50a8a5717ec6ffbf2bf78ebf81",
+    "originalLockChecksumsUnchanged": true,
+    "exactOfficialTarballIntegrity": true,
+    "allPackageFilesAndGuidesReverified": true,
+    "doctor": {
+      "status": "workspace-ready",
+      "workspaceVersion": 1,
+      "checks": {
+        "layout": "pass",
+        "runtimeResources": "pass",
+        "remotionCli": "pass",
+        "browserRender": "pass",
+        "producerConfig": "pass",
+        "resourceCatalog": "pass"
+      }
+    },
+    "verificationEvidenceChecksum": "sha256:6ddf81c6e7cd87f645c714e177711c2321b636ed384894429644501b9a8f562f",
+    "publicNativeVideoRun": false,
+    "earlierFailures": {
+      "transportDisconnectedAttempt": "incomplete log and staging retained; no completed snapshot",
+      "creatorLockAliasAttempt": "install/bootstrap/doctor completed; strict lock rejection retained; no fabricated snapshot",
+      "laterIndependentFreshInstallation": "strict original lock and package verification passed"
+    }
+  },
+  "productionWorkspace": {
+    "runtimeVersion": "0.1.17",
+    "runtimeFiles": 290,
+    "runtimeFingerprint": "sha256:cc16b4d3498dba79d1473f73e0e9b039b65ce61a5e86291919cbeca79d515a27",
+    "allInstalledFilesMatchOfficialPackage": true,
+    "existingConfiguredRegistryMirrorPreserved": true,
+    "doctor": {
+      "status": "workspace-ready",
+      "workspaceVersion": 1,
+      "checks": {
+        "layout": "pass",
+        "runtimeResources": "pass",
+        "remotionCli": "pass",
+        "browserRender": "pass",
+        "producerConfig": "pass",
+        "resourceCatalog": "pass"
+      }
+    },
+    "backgroundMusic": {
+      "mode": "auto",
+      "volume": 0.15,
+      "approvedPrivateLoopCount": 5,
+      "contextStatus": "available",
+      "wholeCompositionContinuousLoop": true,
+      "narrationAndSceneEffectsIndependent": true,
+      "explicitMuteAndCustomOverride": true,
+      "missingMusicReportedHonestly": true
+    },
+    "preservation": {
+      "status": "production-upgrade-preservation-verified",
+      "runtimeVersion": "0.1.17",
+      "checkedFiles": 423,
+      "unchangedFiles": 419,
+      "protectedProjectFiles": 397,
+      "protectedDeliveryFiles": 14,
+      "protectedMusicFiles": 7,
+      "protectedAssetManifestFiles": 1,
+      "protectedInventoryUnchanged": true,
+      "packageOnlyApprovedChanges": true,
+      "otherDependenciesAndScriptsPreserved": true,
+      "unrelatedPrivateSettingsPreserved": true,
+      "privateConfigAndBackupMode": "0600",
+      "existingProjectsMigrated": false,
+      "unrelatedAutomaticVideoProjectModified": false
+    },
+    "runtimeEvidenceChecksum": "sha256:220a37e50c66ec16d9f985409a80a6aaf332247d000359d093b93b79f09063bc",
+    "preservationEvidenceChecksum": "sha256:6bda9107645e7531941c3f2b12ecdecf696f70567a137e447f55eec7abf1bfeb",
+    "privateConfigurationAndMusicPublished": false,
+    "newProjectCreatedForUpgrade": false,
+    "providerCallsForUpgrade": 0
+  },
+  "runtimeAudioVerification": {
+    "evidence": "v0.1.17-bgm-verification.json",
+    "durationSeconds": 38,
+    "frames": 1140,
+    "fps": 30,
+    "crossScenesLoopBoundaryVoicedAndUnvoicedWindows": "pass",
+    "independentNarrationAndSoundEffectsMix": "pass",
+    "completeH264AacStereoDecode": "pass",
+    "formalProductionDeliveryForAudioFixture": false,
+    "wholeMixSubjectiveListening": false
+  },
+  "remainingLimitations": [
+    "Whole-mix subjective listening was not performed.",
+    "No repeated public native video was generated after publication; verified candidate native runs bind the exact same released package contents.",
+    "Existing Projects are immutable and were not migrated to the new background-music policy.",
+    "Visual checks and successful delivery do not establish stable aesthetic quality across unseen topics."
+  ]
+}

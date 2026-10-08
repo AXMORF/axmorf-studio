@@ -1,6 +1,6 @@
 {
   "name": "axmorf-studio",
-  "version": "0.1.16",
+  "version": "0.1.18",
   "description": "Agent-first video production workspace and npm distribution for AXMORF Studio.",
   "repository": {
     "type": "git",
@@ -19,6 +19,8 @@
     },
     "fast-uri": "3.1.8",
     "nanoid": "3.3.18",
+    "postcss-selector-parser": "7.1.6",
+    "source-map-js": "1.2.2",
     "brace-expansion@1": "1.1.21",
     "brace-expansion@2": "2.1.7"
   },
@@ -141,6 +143,7 @@
     "project:task:describe": "node --import tsx scripts/project-production/cli.ts task-describe",
     "project:task:finalize": "node --import tsx scripts/project-production/cli.ts task-finalize",
     "project:task:check": "node --import tsx scripts/project-production/cli.ts task-check",
+    "project:task:preview": "node --import tsx scripts/project-production/cli.ts task-preview",
     "project:task:commit": "node --import tsx scripts/project-production/cli.ts task-commit",
     "project:task:fail": "node --import tsx scripts/project-production/cli.ts task-fail",
     "project:task:file-read": "node --import tsx scripts/project-production/cli.ts task-file-read",

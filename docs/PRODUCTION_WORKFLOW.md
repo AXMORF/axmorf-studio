@@ -74,6 +74,11 @@ boundary，task executors 与 runtime 不感知。
 
 新 Project 从 strict `ProjectCreateInput` 原子创建：
 
+创建前查看 context 的 `backgroundMusic`：从获批全局 loop 候选按主题选择 `backgroundMusic:{mode:"selected",resourceId,volume?}`，
+或省略以继承新 Workspace 的自动选曲。明确无背景音乐才用 null；旧自定义文件/禁用设置继续继承。
+创建后报告真实选曲或 unavailable 再进入 inspect/prepare。选中音乐冻结为一个完整 Composition 的连续音轨，
+包括首尾与 lead/tail；不在 Scene 中重复播放，镜头音效独立配合。用户私有曲库不随 npm 包发行。
+
 ```bash
 npm run project:create -- --project <storyId> --input <repository-relative-json>
 ```
@@ -110,6 +115,13 @@ StoryBeat 明确区分 narrated-scene 与 silent-scene。narrated beat 的 `ttsC
 units；缺省 sealed-narration 模式的 silent beat 只允许在首尾。显式 authored-frames 模式使用 silent scene-owner 正文的
 preset duration，不调用 TTS、不创建 CaptionCue/seal/master；fixed template-copy 仍只在首尾。
 `story.filmPlan` 固化全片意图，`story.visualScenes` 将相邻正文 Beat 分组为同一个 owner，省略时每 Beat 一个 Scene。
+
+StoryBeat 区分 narrated-scene、visual-scene 与 silent-scene。正文选择纯 narrated 或纯 visual，暂不混排。
+narrated beat 的 `ttsChunks` 是 Agent-authored atomic units；visual beat 的 `durationInFrames` 是明确的
+正整数帧预算，使用 `authored-frames-v1` 时序，旁白 source、sealed/mastered manifest 为 JSON null，
+segments/captions 为空且 preparation 零 provider。silent beat 只允许在首尾，使用固定
+frame/template/sound，不创建 TTS、CaptionCue 或 sealed segment。无旁白并不删除一个 narrated 项目的音轨；
+Scene 的对象状态、短文案、事件锚点与阅读停留共同表达含义，readability 回收字幕预留区。
 外部媒体必须先经 `project:asset:import` 本地化为 Project-owned、runtime-approved asset，只有 manifest ID
 和校验后的 bytes fingerprint 进入 Revision/task inputs。
 
@@ -128,7 +140,11 @@ npm run project:revise -- --project <storyId> --input <repository-relative-json>
 
 context 在返回 editable authoring 前同时复验 current `baseRevisionId` 与 exact-four-file
 `baseDeliveryBuildId`。revision 无 `--schema`，validate 只接受 `--input`；先核 installed public `ProjectRevisionInputSchema`。
-strict patch 只开放 authored sections，并保持正文 meaningId/order 与 boundary Scenes。局部 Scene 排版只改完整
+strict patch 只开放 authored sections，并保持正文 meaningId/order 与 boundary Scene 身份及 immutable source。`boundaryScenes`
+可以选择已有模板的受检播放区间，fixed task 同步派生时序、shot/anchor、源音轨裁剪；`sound` 只调整既有音乐的增益与
+首尾淡入淡出，保持媒体、身份、loop/scope。运行时升级使 current tuple 失配时先正式复验现稿交付，不能绕过 context。
+仅在 artifact missing 且完整 owning Scene task input 未变时，planner 可冻结已验证的 current source 为 bound priorSource，
+executor 仍需重新 finalization/check/commit；它不是 artifact hit，也不允许读取历史或其他 Scene。局部 Scene 排版只改完整
 `patch.scenes` 列表中的目标 Scene brief，不顺手改全局 VisualStyle/GlobalVisual/Story/TTS；没有 Cover-only patch API。
 candidateId 由 canonical input 确定；候选在 `.producer-revisions/<storyId>/<candidateId>/` 隔离 source/public/
 narration/work/attempt/out/delivery。相同完整 input/base bytes 只读 current，stale base、未知文件、symlink、special
@@ -408,3 +424,11 @@ Browser preparation, real-render readiness, bounded media processes and explicit
 [Workspace reliability](guides/WORKSPACE_RELIABILITY.md). Process ownership and logs are diagnostic-only; read-only inspection remains zero-write.
 
 `npm run project:scene:review -- --project <storyId> --motion` exports whole Scenes, boundary clips and available action windows, including cause/result/reading-hold samples. `revision-feedback.json` scopes observed defects to meaningId/actionId/frame ranges; it is diagnostic feedback, not accepted revision input or approval. Read `project:revise:context`, then use the strict isolated revision workflow; preserve sealed narration and unaffected assets. Source-plan annotations are explicitly current-source references, not attested statements about the delivered animation. Watch actual clips and compare their visible causal actions; numeric motion, static stills and generated evidence never certify aesthetics or listening. Formal release checks remain unchanged.
+
+## npm 工程发布
+
+完成源码与文档对齐、适用检查和 commit/push 后，用不可变版本 tag 触发现有 npm publish Actions。
+按[分层发布门禁](guides/FIRST_USE_RELEASE_GATE.md)审核相对已发布 baseline 的实际 diff；普通发布不重复
+从头制作视频，production/执行合同/scaffold 重大变更要求完整原生首用，第二宿主只由对应兼容性变更或明确请求决定。
+所有发布仍验证精确包内容、源码、type/lint/build、受影响回归、全新安装及最小真实渲染。Actions 成功后须复验
+registry latest、完整安装包、准确源码 SHA 和公共全新安装。原生制作证据与安装 smoke 范围分别报告。

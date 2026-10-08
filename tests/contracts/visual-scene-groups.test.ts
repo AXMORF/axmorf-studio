@@ -3,7 +3,13 @@ import test from "node:test";
 import {
   StorySpecSchema,
   resolveStorySceneGroups,
+  aggregateSceneStoryBeat,
+  aggregateSceneTimingBeat,
+  generateVisualSemanticTiming,
+  RenderSpecSchema,
 } from "@axmorf/studio/contracts";
+
+import { validRenderSpec } from "../fixtures/narrative";
 
 const beats = ["opening", "mechanism", "result"].map((meaningId) => ({
   kind: "narrated-scene" as const,
@@ -58,4 +64,40 @@ test("visual ownership rejects gaps, overlaps, reorder and unknown identities", 
     }).success,
     false,
   );
+});
+
+test("published visual-scene frame timing supports one continuous owner without merging semantic identities", () => {
+  const visual = StorySpecSchema.parse({
+    ...story,
+    beats: beats.map((beat, index) => ({
+      kind: "visual-scene",
+      meaningId: beat.meaningId,
+      narrativePurpose: beat.narrativePurpose,
+      durationInFrames: [60, 90, 120][index],
+    })),
+    visualScenes: [{ meaningIds: beats.map(({ meaningId }) => meaningId) }],
+  });
+  const timing = generateVisualSemanticTiming({
+    story: visual,
+    render: RenderSpecSchema.parse({
+      ...validRenderSpec,
+      leadInFrames: 0,
+      tailFrames: 0,
+    }),
+  });
+  const group = resolveStorySceneGroups(visual)[0];
+  const owner = aggregateSceneStoryBeat(group.beats);
+  assert.equal(owner.kind, "visual-scene");
+  if (owner.kind !== "visual-scene") throw new Error("Visual owner missing");
+  assert.equal(owner.durationInFrames, 270);
+  const window = aggregateSceneTimingBeat(
+    timing.storyBeats,
+    group.beats.map(({ meaningId }) => meaningId),
+    owner,
+  );
+  assert.equal(window.meaningId, "opening");
+  assert.equal(window.endFrame - window.startFrame, 270);
+  assert.equal(timing.algorithmId, "authored-frames-v1");
+  assert.equal(timing.storyBeats.length, 3);
+  assert.deepEqual(timing.captionCues, []);
 });

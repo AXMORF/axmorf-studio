@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ProjectBackgroundMusicSelectionSchema } from "./background-music";
 
 import { AuthoringRequirementSchema } from "./authoring-requirements";
 import {
@@ -24,6 +25,7 @@ import {
   StoryTimingSourceSchema,
   StoryVisualAuthoringShape,
   addStoryVisualOwnershipIssues,
+  VisualStoryBeatSchema,
 } from "./story";
 import { VisualStyleArtDirectionSchema } from "./visual-style";
 import { VisualThemeSelectionSchema } from "./visual-theme";
@@ -121,6 +123,7 @@ export const ProjectCreateSilentBeatSchema = z
 
 export const ProjectCreateBeatSchema = z.discriminatedUnion("kind", [
   ProjectCreateNarratedBeatSchema,
+  VisualStoryBeatSchema,
   ProjectCreateSilentBeatSchema,
 ]);
 
@@ -166,6 +169,17 @@ export const ProjectCreateStorySchema = z
       context.addIssue({
         code: "custom",
         message: "Project create TTS chunk IDs must be globally unique.",
+        path: ["beats"],
+      });
+    }
+    if (
+      story.beats.some((beat) => beat.kind === "visual-scene") &&
+      story.beats.some((beat) => beat.kind === "narrated-scene")
+    ) {
+      context.addIssue({
+        code: "custom",
+        message:
+          "Narrated and visual content Scenes cannot be mixed in one Story; choose one timing authority.",
         path: ["beats"],
       });
     }
@@ -339,6 +353,7 @@ const ProjectCreateInputObject = z.object({
   publishing: AuthoredPublishingIntentSchema,
   production: ProductionChoicesSchema,
   sceneTemplates: SceneTemplateSelectionsSchema.optional(),
+  backgroundMusic: ProjectBackgroundMusicSelectionSchema.optional(),
 });
 
 export const ProjectCreateInputSchema = ProjectCreateInputObject.strict()

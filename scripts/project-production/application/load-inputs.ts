@@ -30,7 +30,9 @@ import {
   computeRenderSpecFingerprint,
   computeStoryFingerprint,
   computeVisualStyleFingerprint,
+  computeNoNarrationFingerprint,
   createFingerprint,
+  isVisualStory,
   serializeCanonicalJson,
   validateSceneProductionBrief,
   validateStoryResourcePool,
@@ -143,6 +145,7 @@ export const loadProjectProductionInputs = async ({
       : snapshotWorkspaceConfiguration({ rootDir: scope.shared.runtimeRoot }),
   ]);
   const brief = VideoBriefSchema.parse(briefFile.raw);
+  const visualStory = isVisualStory(story);
   if (
     priorSourceIndex?.scenes.some(
       ({ meaningId }) =>
@@ -159,7 +162,7 @@ export const loadProjectProductionInputs = async ({
     throw new Error(
       "Scene prior source index contains an unknown or fixed template Scene.",
     );
-  const narration = NarrationSpecSchema.parse(narrationFile.raw);
+  const narration = NarrationSpecSchema.nullable().parse(narrationFile.raw);
   const render = RenderSpecSchema.parse(renderFile.raw);
   const sound = ProjectSoundPlanSchema.parse(soundFile.raw);
   const visualStyle = VisualStyleSpecSchema.parse(styleFile.raw);
@@ -169,11 +172,13 @@ export const loadProjectProductionInputs = async ({
   const sealedNarration =
     sealedFile === null
       ? null
-      : SealedNarrationManifestSchema.parse(sealedFile.raw);
+      : SealedNarrationManifestSchema.nullable().parse(sealedFile.raw);
   const masteredNarration =
     masteredFile === null
       ? null
-      : MasteredNarrationManifestSchema.parse(masteredFile.raw);
+      : MasteredNarrationManifestSchema.nullable().parse(masteredFile.raw);
+  if (visualStory && (sealedNarration !== null || masteredNarration !== null))
+    throw new Error("Visual production cannot contain narration artifacts.");
   const originalityBaseline = SceneOriginalityBaselineSchema.parse(
     originalityBaselineFile.raw,
   );
@@ -477,20 +482,57 @@ export const loadProjectProductionInputs = async ({
       },
     } as const;
   });
-  const generationFingerprint = fingerprint("revision-narration-generation", {
-    story: story.beats.map((beat) =>
-      beat.kind === "narrated-scene"
-        ? { meaningId: beat.meaningId, ttsChunks: beat.ttsChunks }
-        : { meaningId: beat.meaningId, preset: beat.preset.presetFingerprint },
-    ),
-    narration,
-    sealedNarrationFingerprint:
-      sealedNarration?.sealedNarrationFingerprint ?? null,
-    completeAudioChecksum: sealedNarration?.completeAudio.checksum ?? null,
-    masteredNarrationFingerprint:
-      masteredNarration?.masteredNarrationFingerprint ?? null,
-    masteredAudioChecksum: masteredNarration?.outputAudio.checksum ?? null,
-  });
+  let generationFingerprint;
+  if (visualStory) {
+    generationFingerprint = computeNoNarrationFingerprint();
+  } else if (authoredFrames) {
+    generationFingerprint = fingerprint("revision-narration-generation", {
+      story: story.beats.map((beat) =>
+        beat.kind === "narrated-scene"
+          ? { meaningId: beat.meaningId, ttsChunks: beat.ttsChunks }
+          : beat.kind === "silent-scene"
+            ? {
+                meaningId: beat.meaningId,
+                preset: beat.preset.presetFingerprint,
+              }
+            : {
+                meaningId: beat.meaningId,
+                durationInFrames: beat.durationInFrames,
+              },
+      ),
+      narration,
+      sealedNarrationFingerprint:
+        sealedNarration?.sealedNarrationFingerprint ?? null,
+      completeAudioChecksum: sealedNarration?.completeAudio.checksum ?? null,
+      masteredNarrationFingerprint:
+        masteredNarration?.masteredNarrationFingerprint ?? null,
+      masteredAudioChecksum: masteredNarration?.outputAudio.checksum ?? null,
+    });
+  } else {
+    if (sealedNarration === null || masteredNarration === null) {
+      throw new Error("Narrated production inputs require sealed audio.");
+    }
+    generationFingerprint = fingerprint("revision-narration-generation", {
+      story: story.beats.map((beat) => {
+        if (beat.kind === "narrated-scene") {
+          return { meaningId: beat.meaningId, ttsChunks: beat.ttsChunks };
+        }
+        if (beat.kind === "silent-scene") {
+          return {
+            meaningId: beat.meaningId,
+            preset: beat.preset.presetFingerprint,
+          };
+        }
+        throw new Error("Narrated production contains visual timing.");
+      }),
+      narration,
+      sealedNarrationFingerprint: sealedNarration.sealedNarrationFingerprint,
+      completeAudioChecksum: sealedNarration.completeAudio.checksum,
+      masteredNarrationFingerprint:
+        masteredNarration.masteredNarrationFingerprint,
+      masteredAudioChecksum: masteredNarration.outputAudio.checksum,
+    });
+  }
   return {
     projectId,
     projectRoot,
@@ -518,7 +560,9 @@ export const loadProjectProductionInputs = async ({
     originalityBaseline,
     fingerprints: {
       story: fingerprint("revision-story", story),
-      narration: fingerprint("revision-narration", narration),
+      narration: visualStory
+        ? computeNoNarrationFingerprint()
+        : fingerprint("revision-narration", narration),
       render: fingerprint("revision-render", render),
       visualStyle: fingerprint("revision-visual-style", visualStyle),
       publishingIntent: fingerprint("revision-publishing", publishingIntent),

@@ -26,7 +26,7 @@ preserving unaffected source, layout, motion, sound and resources. Output paths 
 lineage bytes exactly; finalize recomputes fresh derived fields. Never redraw the whole Scene for a local correction or
 read base snapshot paths, other Scenes, history, or another executor workspace. If absent, create from the current brief
 and do not claim preservation of existing source.
-For a new Scene without prior source, design a visible opening, meaning-driven change, and result aligned with narration. The Renderer in the task contract is
+For a new Scene without prior source, design a visible opening, meaning-driven change, and result aligned with narration or authored visual events. The Renderer in the task contract is
 an API scaffold and must be replaced; its unchanged source fails the Scene checker.
 For new authoring, stage one clear focal subject per shot, keep it recognizable across changes in scale or viewpoint, and make the final state
 show the Beat's consequence. Leave visual breathing room for Composition-owned captions.
@@ -82,7 +82,8 @@ Before the first command, briefly tell the user the plan. Report inherited bound
    attempt-bound bind command before any task read/write. Continue only after
    `task-worker-bound`; consume immutable `task.json`, `inputs/context.json`, and
    `inputs/task-contract.json` through the returned capability.
-8. The assigned executor writes only contract-declared Agent/Agent-draft outputs and uses its exact returned
+8. The shared-workspace Scene executor uses its exact bound `commands.preview` before commit: render the same validated outputs, inspect causal actions and reading holds, and repair only the owning declared outputs. Controller-IO previews are explicitly unavailable. Preview is diagnostic and does not replace final boundary/music review.
+   The assigned executor writes only contract-declared Agent/Agent-draft outputs and uses its exact returned
    describe/finalize/check/commit/failure commands; the Root is that executor only in inline mode.
    With `controller-io`, the executor uses only returned strict file-read/file-write commands.
 9. For review before delivery, first wait for every worker terminal completion and run `npm run project:preview -- --project

@@ -11,6 +11,7 @@ import {
 } from "../../config/producer-config";
 
 import { getSceneTemplateDefinition } from "../../../packages/studio/src/remotion/capabilities/scene-templates/registry";
+import { backgroundMusicCandidates } from "../domain/background-music";
 
 /** Project creation guidance only exposes public authoring choices, never TTS connections. */
 export const inspectProjectCreateContext = async ({
@@ -48,9 +49,41 @@ export const inspectProjectCreateContext = async ({
       descriptor.status === "approved" &&
       descriptor.allowedUse === "runtime-approved",
   );
-  const exampleResources = capabilities
-    .filter(({ descriptor }) => descriptor.id === "capability.camera")
+  const soundResources = catalog.entries.filter(
+    ({ descriptor }) =>
+      descriptor.kind === "asset" &&
+      descriptor.assetKind === "audio" &&
+      descriptor.status === "approved" &&
+      descriptor.allowedUse === "runtime-approved" &&
+      descriptor.license.verificationStatus === "verified" &&
+      (descriptor.mediaRole === "sound-effect" ||
+        descriptor.mediaRole === "background-music"),
+  );
+  const exampleSoundResources = soundResources
+    .filter(({ descriptor }) =>
+      [
+        "asset.axmorf.sfx.whoosh-sweep-v1",
+        "asset.axmorf.sfx.snap-lock-v1",
+        "asset.axmorf.sfx.confirm-chime-v1",
+      ].includes(descriptor.id),
+    )
     .map(({ descriptor }) => descriptor.id);
+  const configuredMusic =
+    config.audioDefaults === undefined
+      ? { mode: "auto" as const, volume: 0.15 }
+      : config.audioDefaults.globalBgm;
+  const musicCandidates = backgroundMusicCandidates(
+    catalog.entries.map(({ descriptor }) => descriptor),
+    configuredMusic !== null && "mode" in configuredMusic
+      ? configuredMusic.resourceIds
+      : undefined,
+  );
+  const exampleResources = [
+    ...capabilities
+      .filter(({ descriptor }) => descriptor.id === "capability.camera")
+      .map(({ descriptor }) => descriptor.id),
+    ...exampleSoundResources,
+  ].sort();
   const style =
     styleProfiles.find(
       ({ styleProfileId }) => styleProfileId === "editorial-tech",
@@ -219,6 +252,105 @@ export const inspectProjectCreateContext = async ({
     leadInFrames: example.render.leadInFrames,
     tailFrames: example.render.tailFrames,
   });
+  const visualTitle = "证据如何改变判断";
+  const visualTargetSeconds = Math.max(
+    example.brief.targetDurationSeconds,
+    Math.ceil(durationBudget.boundarySeconds + 2),
+  );
+  const visualContentFrames =
+    visualTargetSeconds * config.renderDefaults.fps -
+    Math.round(durationBudget.boundarySeconds * config.renderDefaults.fps) -
+    example.render.leadInFrames -
+    example.render.tailFrames;
+  const initialJudgmentFrames = Math.floor(visualContentFrames / 2);
+  const visualFirst = ProjectCreateInputSchema.parse({
+    ...example,
+    brief: {
+      ...example.brief,
+      title: visualTitle,
+      sourceMaterial: "用一次可见的证据对照，说明新的证据如何纠正先前判断。",
+      targetDurationSeconds: visualTargetSeconds,
+      deliveryConstraints: ["无旁白；用可观察的动作解释判断如何被证据改变。"],
+    },
+    story: {
+      schemaVersion: 3,
+      storyId,
+      title: visualTitle,
+      beats: [
+        {
+          kind: "visual-scene",
+          meaningId: "initial-judgment",
+          narrativePurpose: "先让观众看见缺少证据时形成的暂定判断。",
+          durationInFrames: initialJudgmentFrames,
+        },
+        {
+          kind: "visual-scene",
+          meaningId: "evidence-update",
+          narrativePurpose: "让证据进入对照过程，并使同一判断发生可见的改变。",
+          durationInFrames: visualContentFrames - initialJudgmentFrames,
+        },
+      ],
+    },
+    visualStyle: {
+      ...example.visualStyle,
+      artDirection: {
+        medium: "二维证据流与可变的判断节点",
+        palette: "遵循 theme 的背景、文字与强调角色",
+        lighting: "平面清晰光照，层次只服务于证据与判断的关系",
+        texture: "清晰边缘与细线连接",
+        compositionGrammar:
+          "先看线索全貌，再放大判断成为主角；证据到来时以对照关系接管画面，保留同一主体",
+        motionLanguage:
+          "线索聚合成判断，再由证据拆开、对照与重组；动作有快慢，读完结果后继续推进",
+        typography:
+          "短主张可以大幅占据画面；状态标签次之，文字与图形共同表达证据对照",
+      },
+      continuityRules: ["两段承接同一判断节点，证据进入后才改变其状态。"],
+      forbiddenTreatments: ["不要用无关闪光、粒子或整屏文案代替证据对照。"],
+    },
+    scenes: [
+      {
+        meaningId: "initial-judgment",
+        visualIntent:
+          "少量线索聚到一个判断节点，节点形成暂定结果，但证据入口仍为空。",
+        compositionIntent:
+          "从线索全貌切近到暂定判断，让判断放大成为主角；证据入口随后进入焦点，不把整段锁在一个小节点上。",
+        motionIntent:
+          "线索沿可追踪路径聚合成暂定判断；短暂读取后，判断向证据入口移动，为下一步对照蓄势。粒子可表示这些线索，不作无关填充。",
+        soundIntent:
+          "从 soundResources 中选已批准且在本 Scene allowlist 的音效：聚合扫动对齐声势中心，判断落位对齐起音；只强调有意义的事件，连续 Project BGM 由 create 的选曲结果确认。",
+        continuityBrief:
+          "同一判断节点、线索连接和空缺的证据入口延续到下一 Scene。",
+        outgoingHandoff: { subject: "同一暂定判断节点、线索连接及其证据入口" },
+        candidateResourceIds: exampleResources,
+        allowedSnapshotCards: [],
+      },
+      {
+        meaningId: "evidence-update",
+        visualIntent:
+          "外部证据到达同一判断节点，与原有线索对照，冲突的连接被修正。",
+        compositionIntent:
+          "承接同一判断，把证据与原线索放大到可读的近景；修正结果成为大字主张，再退回全貌看见关系已改变。",
+        motionIntent:
+          "证据进入并与线索比对，冲突的连接断开后重组；结果出现时短暂减速供阅读，主体仍可持续微动，不以长冻结填满时长。",
+        soundIntent:
+          "用已批准的落位或确认音效强调关系重组完成；startFrame 按音效起音或声势中心偏移对齐 syncAnchor，降低音量让主张清楚。Project BGM 由配置和顶层统一播放。",
+        continuityBrief:
+          "保留原有节点及其位置，只让证据造成的关系变化成为视觉焦点。",
+        candidateResourceIds: exampleResources,
+        allowedSnapshotCards: [],
+      },
+    ],
+    publishing: {
+      ...example.publishing,
+      description: "通过一次可见的证据对照，理解判断如何被修正。",
+      topics: ["证据", "判断", "推理", "思考", "学习", "认知"],
+      chapters: [
+        { meaningId: "initial-judgment", name: "暂定判断" },
+        { meaningId: "evidence-update", name: "证据修正" },
+      ],
+    },
+  });
   return {
     status: "project-create-context" as const,
     storyId,
@@ -229,7 +361,7 @@ export const inspectProjectCreateContext = async ({
       nextAction: "report-to-user-before-project-create",
       summary: `Render defaults: ${config.renderDefaults.width}x${config.renderDefaults.height}, ${config.renderDefaults.fps}fps, ${config.renderDefaults.locale}; boundary templates: intro=${config.sceneDefaults.introSceneTemplateId ?? "none"}, outro=${config.sceneDefaults.outroSceneTemplateId ?? "none"}; exampleTarget=${durationBudget.targetTotalSeconds}s, boundary=${durationBudget.boundarySeconds}s, availableNarrated=${durationBudget.availableNarratedSeconds}s.`,
       instruction:
-        "Adapt the example to the user's target. Put explicit size/orientation, frame-rate and locale requests in render.width/render.height/render.fps/render.locale; omit unspecified fields to inherit renderDefaults. A textual requirement alone does not override dimensions. Use fieldExamples.render for a landscape example, not as an unconditional default. Do not change saved settings for this one Project. Recalculate speech budget with the chosen fps, boundaries and lead/tail. Before running project:create, report the resolved dimensions/fps/locale, selected boundaries and adapted total-duration budget in an intermediate progress message, not a final answer. Then continue tool execution in the same turn: write the adapted input and run nextCommand. Do not stop after the report or wait for a user reply unless a material brief conflict or actual blocker prevents creation. The example target is not the user's target. CLI output is not that report; existing video authorization needs no new confirmation. This handoff is diagnostic only.",
+        "Adapt the example or fieldExamples.visualFirst to the user's target. Use visualFirst for an authored visual story without narration; its Scene durations are exact authored frames, with no TTS or fabricated captions. Put explicit size/orientation, frame-rate and locale requests in render.width/render.height/render.fps/render.locale; omit unspecified fields to inherit renderDefaults. A textual requirement alone does not override dimensions. Use fieldExamples.render for a landscape example, not as an unconditional default. Do not change saved settings for this one Project. Recalculate speech or visual-frame budget with the chosen fps, boundaries and lead/tail. Before running project:create, report the resolved dimensions/fps/locale, selected boundaries and adapted total-duration budget in an intermediate progress message, not a final answer. Then continue tool execution in the same turn: write the adapted input and run nextCommand. Do not stop after the report or wait for a user reply unless a material brief conflict or actual blocker prevents creation. The example target is not the user's target. CLI output is not that report; existing video authorization needs no new confirmation. This handoff is diagnostic only.",
     },
     publishingCollections: config.publishingCollections.map(({ id, name }) => ({
       id,
@@ -237,13 +369,56 @@ export const inspectProjectCreateContext = async ({
     })),
     styleProfiles,
     capabilities,
+    soundResources,
+    backgroundMusic: {
+      status:
+        configuredMusic === null
+          ? "disabled"
+          : "sourcePath" in configuredMusic
+            ? "configured"
+            : musicCandidates.length === 0
+              ? "unavailable"
+              : "available",
+      mode:
+        configuredMusic === null
+          ? "none"
+          : "sourcePath" in configuredMusic
+            ? "file"
+            : "auto",
+      volume: configuredMusic?.volume ?? 0.15,
+      candidates: musicCandidates.map(
+        ({ id, title, useCases, tags, media }) => ({
+          resourceId: id,
+          title,
+          useCases,
+          tags,
+          durationInSeconds: media?.durationInSeconds ?? null,
+        }),
+      ),
+      reason:
+        configuredMusic === null
+          ? "Background music explicitly disabled."
+          : "sourcePath" in configuredMusic
+            ? "Configured local file will be localized at creation."
+            : musicCandidates.length === 0
+              ? "No approved global loop background music is available; new Projects have no BGM."
+              : "Select a suitable approved loop using backgroundMusic, or let automatic selection match the brief.",
+    },
+    soundDefaults: {
+      backgroundMusicConfigured: config.audioDefaults?.globalBgm != null,
+      backgroundMusicVolume: config.audioDefaults?.globalBgm?.volume ?? null,
+    },
     example,
     fieldExamples: {
       render: { ...example.render, width: 1920, height: 1080 },
+      visualFirst,
+      backgroundMusic: { mode: "auto", volume: 0.15 },
+      "backgroundMusic.disabled": null,
       "production.additionalRequirements": [AUTHORING_REQUIREMENT_EXAMPLE],
     },
     guidance: [
       "Adapt example to the requested brief; do not submit it unchanged as the user's video.",
+      "Use fieldExamples.visualFirst when the requested explanation should be carried by visuals without narration. Choose either visual-scene content with durationInFrames or narrated-scene content with ttsChunks; keep inherited silent boundaries separate. Do not create empty spoken chunks or silent narration audio for a visual story.",
       "Evaluate current capabilities and their authoring guides before choosing self-authored implementations. Match the story's camera, data, typography, media and motion needs to concrete APIs; put selected capability IDs in the Story pool and each relevant Scene candidateResourceIds. Empty selections remain valid when no capability fits; describe the reason in the visual intent.",
       "Resolve each render field from the explicit user request first, otherwise renderDefaults. Convert an orientation/aspect-ratio request to concrete width and height in render; do not leave it only in brief.deliveryConstraints or production.additionalRequirements. Unspecified fields stay omitted, and saved settings remain unchanged. Verify the returned frozen render against the request before production.",
       "The example's paper map and light point are illustrative. Choose a different subject and visual metaphor when the user's story calls for one; do not repeat the example's motif across unrelated videos.",
@@ -251,7 +426,12 @@ export const inspectProjectCreateContext = async ({
       "durationBudget describes this example with inherited boundary templates. Recalculate available narration time when changing the requested total duration, render lead/tail or selected boundaries; include speech and pauses in that budget.",
       "Omit sceneTemplates to inherit settings. Set both fields explicitly only when the user selected or disabled boundary Scenes.",
       "Keep Story beats and scene briefs in the same meaningId order. visualScenes explicitly groups consecutive content Beats into one owning renderer; omit it for individual Scenes. Narrated publishing chapters cover content Beats in order; authored-frames may use an empty chapter list or complete content coverage. Each narrated ttsChunk is an object with chunkId and ttsText.",
+      "Keep Story content beats, scenes and publishing chapters in the same meaningId order. Each narrated ttsChunk is an object with chunkId and ttsText; each visual Scene authors durationInFrames at the resolved render fps.",
       "For each narrated Scene, turn narrativePurpose into a visible subject, an observable change and a resulting state. Make the scene's compositionIntent and motionIntent describe what the viewer sees at the relevant narration cue; avoid generic diagrams, decorative motion and text that merely repeats the narration.",
+      "For each visual Scene, choose the visible mechanism that explains narrativePurpose: what the subject does, what causes a change, and which resulting state the viewer can understand. Author enough frames for anticipation, the meaningful change and reading the result; reuse the same subject across related Scenes through outgoingHandoff. Choose SVG, Canvas, spatial geometry or approved media according to the idea; the example's evidence-flow subject is illustrative, not a template for other topics.",
+      "Plan the attention hierarchy and rhythm in the existing compositionIntent/motionIntent fields: what fills the frame, what becomes a close-up, and when the next fact takes over. A short key claim may be a large visual subject. Purposeful particles, trajectories, masks, morphs and color masses may represent the idea or carry its transition; choose them for the subject rather than applying an effect recipe to every topic. Reading holds should match text complexity, not consume the remaining Scene budget.",
+      "Use soundResources for independently anchored Scene effects. Choose one suitable approved loop from backgroundMusic.candidates by the topic, energy and mood: set backgroundMusic:{mode:'selected',resourceId,volume} in the create input. Omit backgroundMusic to inherit audioDefaults.globalBgm (automatic for new Workspaces); automatic selection matches the current brief and freezes one Project-local track. Use backgroundMusic:null only for an explicit no-music request. The selected loop plays continuously across the entire composition, including unvoiced boundaries and lead/tail, while Scene effects remain independent. Project music suppresses Scene background-music tracks to avoid stacking two scores. Missing loop resources are reported as unavailable, never as enabled music; suggest registering an approved loop or proceed with that explicit limitation. Naming music in a brief or Scene allowlist alone does not enable it. Diagnostics never expose private configured paths. Review music, voice when used, and effects together in the final video; an isolated Scene preview excludes Project BGM.",
+      "Visual-first duration is the sum of authored content frames, inherited boundary frames and render lead/tail divided by the chosen fps. Recalculate durationInFrames when the target or fps changes; the narration durationBudget is not a measurement of visual content.",
       "The JSON Schema describes shape; project:create also validates cross-field semantics, caption budget and current Catalog choices.",
     ],
     nextCommand: `npm run project:create -- --project ${storyId} --input inputs/${storyId}.json`,

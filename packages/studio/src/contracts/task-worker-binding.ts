@@ -76,6 +76,9 @@ export const TaskWorkerBindingSchema = z
         describe: BoundCommandSchema,
         finalize: BoundCommandSchema,
         check: BoundCommandSchema,
+        // A preview is read-only evidence outside the task workspace. Controller
+        // transport does not acquire filesystem access through this command.
+        preview: BoundCommandSchema.nullable().default(null),
         commit: BoundCommandSchema,
         taskFailure: BoundCommandSchema,
         fixedFailure: BoundCommandSchema,

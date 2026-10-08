@@ -44,6 +44,8 @@ const APPLICATION_OVERRIDES = Object.freeze({
   "brace-expansion@1": "1.1.21",
   "brace-expansion@2": "2.1.7",
   nanoid: "3.3.18",
+  "postcss-selector-parser": "7.1.6",
+  "source-map-js": "1.2.2",
 });
 
 const SCRIPTS = Object.freeze({
@@ -72,6 +74,7 @@ const SCRIPTS = Object.freeze({
   "project:task:describe": "axmorf project task describe",
   "project:task:finalize": "axmorf project task finalize",
   "project:task:check": "axmorf project task check",
+  "project:task:preview": "axmorf project task preview",
   "project:task:commit": "axmorf project task commit",
   "project:task:fail": "axmorf project task fail",
   "project:task:file-read": "axmorf project task file-read",
@@ -166,7 +169,7 @@ export const createSafeProducerConfig = () => {
       introSceneTemplateId: "axmorf-brand-reveal-v1",
       outroSceneTemplateId: "axmorf-source-follow-v1",
     },
-    audioDefaults: { globalBgm: null },
+    audioDefaults: { globalBgm: { mode: "auto", volume: 0.15 } },
     publishingCollections: [
       {
         id: "default",

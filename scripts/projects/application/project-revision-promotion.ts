@@ -188,12 +188,12 @@ const assertDirectoryChain = async ({
   }
 };
 
-const sameTree = (left: TreeSnapshot, right: TreeSnapshot) =>
+const sameTree = (left: TreeSnapshot | null, right: TreeSnapshot | null) =>
   serializeCanonicalJson(left) === serializeCanonicalJson(right);
 
 const assertSameTree = (
-  actual: TreeSnapshot,
-  expected: TreeSnapshot,
+  actual: TreeSnapshot | null,
+  expected: TreeSnapshot | null,
   label: string,
 ) => {
   if (!sameTree(actual, expected)) {

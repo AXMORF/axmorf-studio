@@ -30,7 +30,8 @@ Explicit user dimensions/orientation, fps and locale override settings through c
 `render.width/height/fps/locale`; omit unspecified fields to inherit defaults. Convert orientation to concrete
 dimensions, not just a textual constraint. Do not change saved settings for one video. Check the returned
 `render` against the request before inspect or provider preparation.
-For each narrated Scene, author a visible subject, initial state, narration-timed change, and readable result. Use
+For no-narration requests use the complete `visualFirst` context example: visual-scene authored frames, causal object changes, short text and reading holds. Preparation creates no TTS. Keep ordinary narration available; do not remove a narrated clip audio track to claim visual-first.
+For each content Scene, author a visible subject, initial state, narration-timed change, and readable result. Use
 composition and shot relationships to express cause and consequence instead of generic diagrams or decorative motion.
 
 Plan the complete film in `story.filmPlan`; group consecutive content Beats with `story.visualScenes` when they share

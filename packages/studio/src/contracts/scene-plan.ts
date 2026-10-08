@@ -308,8 +308,33 @@ const SceneSoundContributionSchema = z
     ]),
     durationInFrames: PositiveIntegerSchema,
     volume: z.number().finite().min(0).max(1),
+    sourceStartFrame: NonNegativeIntegerSchema.optional(),
+    fadeInFrames: NonNegativeIntegerSchema.optional(),
+    fadeOutFrames: NonNegativeIntegerSchema.optional(),
   })
   .strict()
+  .superRefine((contribution, context) => {
+    for (const field of ["fadeInFrames", "fadeOutFrames"] as const) {
+      if ((contribution[field] ?? 0) > contribution.durationInFrames) {
+        context.addIssue({
+          code: "custom",
+          message: "Sound fades cannot exceed the contribution duration.",
+          path: [field],
+        });
+      }
+    }
+    if (
+      !Number.isSafeInteger(
+        (contribution.sourceStartFrame ?? 0) + contribution.durationInFrames,
+      )
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Sound source range must use safe integer frame boundaries.",
+        path: ["sourceStartFrame"],
+      });
+    }
+  })
   .readonly();
 
 const SoundPlanInputSchema = z

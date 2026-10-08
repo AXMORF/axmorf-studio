@@ -33,6 +33,7 @@ test("Scene sound resolves current selected local audio and exact anchor ranges"
       startFrame: 56,
       endFrame: 68,
       volume: 0.5,
+      role: "sound-effect",
     },
   ]);
   for (const descriptor of [
@@ -53,6 +54,63 @@ test("Scene sound resolves current selected local audio and exact anchor ranges"
       }),
     );
   }
+});
+
+test("Scene sound preserves the source trim and fades through package resolution and shared playback", () => {
+  const fixture = createSoundRuntimeFixture();
+  const sound = buildSceneSoundPlan({
+    ...fixture.sound,
+    contributions: [
+      {
+        ...fixture.sound.contributions[0],
+        timing: { kind: "explicit", sceneLocalFrame: 0 },
+        durationInFrames: 75,
+        sourceStartFrame: 165,
+        fadeInFrames: 8,
+        fadeOutFrames: 15,
+      },
+    ],
+  });
+  const scenePackage = buildScenePackage({
+    ...fixture,
+    sound,
+    selectedResources: [
+      ...fixture.selectedResources,
+      { selected: fixture.selected, descriptor: fixture.descriptor },
+    ],
+  });
+  const projection = resolveSceneSound({
+    scenePackage,
+    soundPlan: sound,
+    syncAnchors: fixture.anchors,
+    resources: [{ selected: fixture.selected, descriptor: fixture.descriptor }],
+  });
+  assert.deepEqual(projection.contributions[0], {
+    contributionId: "pulse",
+    resourceId: fixture.descriptor.id,
+    publicPath: fixture.descriptor.localPath,
+    checksum: fixture.descriptor.checksum,
+    startFrame: 0,
+    endFrame: 75,
+    volume: 0.5,
+    role: "sound-effect",
+    sourceStartFrame: 165,
+    fadeInFrames: 8,
+    fadeOutFrames: 15,
+  });
+  assert.notEqual(
+    projection.sceneSoundProjectionFingerprint,
+    fixture.projection.sceneSoundProjectionFingerprint,
+  );
+  const element = SceneSoundContribution({ projection });
+  assert.ok(isValidElement<{ children: ReactNode }>(element));
+  const child = Children.toArray(element.props.children)[0];
+  assert.ok(isValidElement<{ contribution: Record<string, number> }>(child));
+  assert.equal(child.props.contribution.startFrame, 20);
+  assert.equal(child.props.contribution.endFrame, 95);
+  assert.equal(child.props.contribution.sourceStartFrame, 165);
+  assert.equal(child.props.contribution.fadeInFrames, 8);
+  assert.equal(child.props.contribution.fadeOutFrames, 15);
 });
 
 test("Scene sound never clamps cue ranges and empty plans mount no audio", () => {

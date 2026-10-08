@@ -2,8 +2,11 @@ import { z } from "zod";
 
 import type { VideoBrief } from "./brief";
 import type { RenderSpec } from "./render";
-import type { SemanticTiming } from "./semantic-timing";
-import type { StorySpec } from "./story";
+import {
+  generateVisualSemanticTiming,
+  type SemanticTiming,
+} from "./semantic-timing";
+import { isVisualStory, type StorySpec } from "./story";
 
 const FramesSchema = z.number().int().nonnegative().safe();
 const SecondsSchema = z.number().finite().nonnegative();
@@ -15,7 +18,13 @@ export const DurationBudgetSchema = z
     boundarySeconds: SecondsSchema,
     leadAndTailSeconds: SecondsSchema,
     availableNarratedSeconds: SecondsSchema,
-    budgetState: z.enum(["narration-budget-available", "no-narration-budget"]),
+    availableVisualSeconds: SecondsSchema.optional(),
+    budgetState: z.enum([
+      "narration-budget-available",
+      "no-narration-budget",
+      "visual-budget-available",
+      "no-visual-budget",
+    ]),
     actualTotalSeconds: SecondsSchema.nullable(),
     deltaSeconds: z.number().finite().nullable(),
     measurement: z.enum([
@@ -23,6 +32,7 @@ export const DurationBudgetSchema = z
       "sealed-semantic-timing",
       "not-yet-materialized",
       "authored-frame-timing",
+      "authored-semantic-timing",
     ]),
     comparison: z.enum([
       "not-yet-measured",
@@ -109,6 +119,10 @@ export const buildProjectDurationBudget = ({
   readonly timing?: SemanticTiming;
 }): DurationBudget => {
   const authoredFrames = story.timingSource === "authored-frames";
+  const visual = isVisualStory(story);
+  const currentTiming =
+    timing ??
+    (visual ? generateVisualSemanticTiming({ story, render }) : undefined);
   const budget = buildDurationBudget({
     targetDurationSeconds: brief.targetDurationSeconds,
     fps: render.fps,
@@ -123,21 +137,38 @@ export const buildProjectDurationBudget = ({
     ),
     leadInFrames: render.leadInFrames,
     tailFrames: render.tailFrames,
-    ...(timing === undefined
+    ...(currentTiming === undefined
       ? {}
-      : { actualDurationInFrames: timing.durationInFrames }),
+      : { actualDurationInFrames: currentTiming.durationInFrames }),
   });
-  if (!authoredFrames) return budget;
+  if (authoredFrames) {
+    return DurationBudgetSchema.parse({
+      ...budget,
+      availableNarratedSeconds: 0,
+      budgetState: "no-narration-budget",
+      measurement:
+        timing === undefined ? "not-yet-materialized" : "authored-frame-timing",
+      guidance: [
+        "Authored-frame Stories contain no narration. Visual content duration follows the declared per-Beat frame counts.",
+        "The total includes fixed boundary templates and render lead-in/tail. The target is advisory and never truncates authored content.",
+        "Duration changes require a Project revision; do not edit live authoring or an active attempt.",
+      ],
+    });
+  }
+  if (!visual) return budget;
   return DurationBudgetSchema.parse({
     ...budget,
     availableNarratedSeconds: 0,
-    budgetState: "no-narration-budget",
-    measurement:
-      timing === undefined ? "not-yet-materialized" : "authored-frame-timing",
+    availableVisualSeconds: budget.availableNarratedSeconds,
+    budgetState:
+      budget.availableNarratedSeconds > 0
+        ? "visual-budget-available"
+        : "no-visual-budget",
+    measurement: "authored-semantic-timing",
     guidance: [
-      "Authored-frame Stories contain no narration. Visual content duration follows the declared per-Beat frame counts.",
-      "The total includes fixed boundary templates and render lead-in/tail. The target is advisory and never truncates authored content.",
-      "Duration changes require a Project revision; do not edit live authoring or an active attempt.",
+      "The authored frame durations include visual content, silent boundaries and render lead-in/tail; no voice or PCM estimate is required.",
+      "Plan key text reading time, explanatory state changes and deliberate pauses inside each visual Scene duration.",
+      "If the authored total differs from the target, report the exact deviation and revise Scene durations explicitly; do not truncate content or create silent narration.",
     ],
   });
 };

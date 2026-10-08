@@ -1,0 +1,602 @@
+{
+  "schemaVersion": 1,
+  "hosts": [
+    {
+      "schemaVersion": 1,
+      "host": "codex",
+      "model": "gpt-6.1-sol",
+      "sessionId": "01a10825-8006-7210-b5ea-600014c5ef1a",
+      "environment": {
+        "platform": "darwin",
+        "arch": "x64",
+        "node": "v24.15.0"
+      },
+      "startedAt": "2026-10-04T18:20:37.753568Z",
+      "endedAt": "2026-10-04T19:05:34.749859Z",
+      "packages": {
+        "runtime": {
+          "name": "@axmorf/studio",
+          "version": "0.1.17",
+          "fingerprint": "sha256:cc16b4d3498dba79d1473f73e0e9b039b65ce61a5e86291919cbeca79d515a27",
+          "fileCount": 290
+        },
+        "creator": {
+          "name": "create-axmorf-studio",
+          "version": "0.1.17",
+          "fingerprint": "sha256:b391c03631e34e3c64cfaa2c5e4c82de299a89e0e85a2c26bb89aa2118845a43",
+          "fileCount": 41
+        }
+      },
+      "prompt": "制作一条约 30 秒、横屏 960×540、30 fps、无旁白的中文短片，主题是“先做十分钟”。用三段解释：把大目标改成十分钟内的具体动作；把行动接在已有习惯之后；在日历上记录一次完成。用书、便签、铅笔、计时器和茶杯的动作与关系变化解释，暖色手绘，文字少而清楚。开头的引入融入第一段，结尾的总结融入最后一段，不使用品牌开场和收尾模板。请完成视频和两张封面。\n",
+      "promptChecksum": "sha256:3ca3a0014e4722c4c8009d830f54ed7d09fd847a1e7fb1e51b9ce8ecda2a7dd6",
+      "transcriptChecksum": "sha256:c2d2683b9911c81f3b10cbe066a40df7c286ebfc1e262c971a78b3d4134a1ff5",
+      "runChecksum": "sha256:c94208b37a6e74137dc2e685c987d29287ab05385909ef1ca4bcb2694dba0930",
+      "snapshotChecksum": "sha256:1f778b452b2baa0db400722fc6727ca9ba7c06d108ad315f03c9557c90f8a694",
+      "creation": {
+        "method": "npm-exec-candidate",
+        "runtimeTarballChecksum": "sha256:d012bd7a46827977e8414a91ae964d3e85e1eb13afb5e13c7984c08027b2d409",
+        "creatorTarballChecksum": "sha256:071840c1dde93ffc2a9a01c310d0202e6e395b604e6a8164cb0a84ce921029f8",
+        "installLogChecksum": "sha256:9c9c74b55cf8d4bf9c32b728a411791e08141611551d589019800bfc6c975b68"
+      },
+      "sessionChecksum": null,
+      "transcriptAudit": {
+        "businessUserMessages": 1,
+        "toolCalls": 100,
+        "followUpMessages": 0,
+        "nativeCompletionMessages": 0
+      },
+      "unchangedPackageFiles": 290,
+      "nativeExecution": {
+        "mode": "subagents",
+        "workerTransport": "shared-workspace",
+        "modeSource": "builtin-default",
+        "concurrencySource": "builtin-default",
+        "requestedMaxConcurrency": 4,
+        "effectiveMaxConcurrency": 4,
+        "peakActiveChildren": 4,
+        "peakBoundTasks": 4,
+        "fourWayBoundOverlapMs": 262227,
+        "dirtyTaskCount": 6,
+        "productionChildCount": 6,
+        "probeChildCount": 8,
+        "refillAdmissions": 1,
+        "attemptId": "4aed0c79-0105-4c1f-8c30-6679f33d1f0e",
+        "childEvidence": [
+          {
+            "sessionId": "01a1082c-3806-7e50-bd2b-b1af279949b1",
+            "transcriptChecksum": "sha256:d1602d682d277b02d9fe30dd889a4343f58c1accf782045cb0fe6731b8af9c42",
+            "sessionChecksum": null,
+            "taskRevision": null,
+            "attemptId": "4aed0c79-0105-4c1f-8c30-6679f33d1f0e"
+          },
+          {
+            "sessionId": "01a1082c-4822-75a2-b60f-ed9091030f88",
+            "transcriptChecksum": "sha256:f757f20a7ff88ac1f15c11f45d4fe6c00d98c8499a2c6b8cc5db9a8045767ac8",
+            "sessionChecksum": null,
+            "taskRevision": null,
+            "attemptId": "4aed0c79-0105-4c1f-8c30-6679f33d1f0e"
+          },
+          {
+            "sessionId": "01a1082c-587a-7f70-a00b-d956b6ba3657",
+            "transcriptChecksum": "sha256:1067a2c3620a8838ce4d03bd784c627bf79f4e77384c55a293adc40391dd0c2c",
+            "sessionChecksum": null,
+            "taskRevision": null,
+            "attemptId": "4aed0c79-0105-4c1f-8c30-6679f33d1f0e"
+          },
+          {
+            "sessionId": "01a1082c-69e4-7340-8bb3-51a2fe2cb632",
+            "transcriptChecksum": "sha256:f788cc68c4768d9c6d9ed10d6c4a277ee300c29ab16ecdb8467454c63846d5dc",
+            "sessionChecksum": null,
+            "taskRevision": null,
+            "attemptId": "4aed0c79-0105-4c1f-8c30-6679f33d1f0e"
+          },
+          {
+            "sessionId": "01a10834-d987-7db0-97f6-99b5e5d09fec",
+            "transcriptChecksum": "sha256:6c06fb9b36658824c026684660b7da608dedf606129a57b64ab10bbf1c0c282c",
+            "sessionChecksum": null,
+            "taskRevision": "task-3fd36ab1ff8ae731e2ddf7992b8d59b80eb269a43ac8bfef62bcd3effbb2febb",
+            "attemptId": "4aed0c79-0105-4c1f-8c30-6679f33d1f0e"
+          },
+          {
+            "sessionId": "01a10834-f8a2-7b63-9de6-7ae8e228ba6e",
+            "transcriptChecksum": "sha256:3b8913938691b476823bb8375afd4ba3ad804c440e4651bd721c78f07999534e",
+            "sessionChecksum": null,
+            "taskRevision": "task-5d0ad1e515dcc6eb2582ec9afa447c0002b0f7f8ac8a0917c0d805842fa14df0",
+            "attemptId": "4aed0c79-0105-4c1f-8c30-6679f33d1f0e"
+          },
+          {
+            "sessionId": "01a10835-1559-7ed0-8797-beb7d496c094",
+            "transcriptChecksum": "sha256:156e499084263550e5ac9b62a0a7296083e5f968681888aef02783218406b136",
+            "sessionChecksum": null,
+            "taskRevision": "task-69ec61cc93b4bbf01e84e91609cca56817c664132cfc0c14bd81f1e0abd44b1f",
+            "attemptId": "4aed0c79-0105-4c1f-8c30-6679f33d1f0e"
+          },
+          {
+            "sessionId": "01a10835-320b-7bb1-b598-09347c337f5e",
+            "transcriptChecksum": "sha256:2f615c936d671cb3e16bcc0cea57391cb7070907f2b00f4f431f6816aa2e83f2",
+            "sessionChecksum": null,
+            "taskRevision": "task-96470a765b1ce7ea62465c386b9106d6d01cf34666da95123de3d5bc8db2f5d0",
+            "attemptId": "4aed0c79-0105-4c1f-8c30-6679f33d1f0e"
+          },
+          {
+            "sessionId": "01a10836-ff2e-7201-a27e-970fa4ae1770",
+            "transcriptChecksum": "sha256:5edf0836e9b4a30219ecc84a46d7b3bd5f5dab46999dd656184883d2019ec99d",
+            "sessionChecksum": null,
+            "taskRevision": "task-80dcca920e6e959c1d658cb2667102fe7e805a12d4b0e72d7867322a14e133a0",
+            "attemptId": "4aed0c79-0105-4c1f-8c30-6679f33d1f0e"
+          },
+          {
+            "sessionId": "01a10843-b94b-73e3-96df-e24d3a4d40f3",
+            "transcriptChecksum": "sha256:84a1d19348b9b2af617418c060fa06c3392f8c5aa8e8c0e5deea8ea2560846d4",
+            "sessionChecksum": null,
+            "taskRevision": null,
+            "attemptId": "44502f3a-7b4c-4d4c-932c-866cce2ef24f"
+          },
+          {
+            "sessionId": "01a10843-cb40-74b3-9985-a1975ae24765",
+            "transcriptChecksum": "sha256:e720740b3d0a0c2dba51537f87802da15af97999214d7f93d38b977daca4f9c8",
+            "sessionChecksum": null,
+            "taskRevision": null,
+            "attemptId": "44502f3a-7b4c-4d4c-932c-866cce2ef24f"
+          },
+          {
+            "sessionId": "01a10843-dc4d-79a1-a9ce-7e739648e81b",
+            "transcriptChecksum": "sha256:b59dca499e03fc0db70a2328d7376bafe826d4ecad552819614f9939645ef204",
+            "sessionChecksum": null,
+            "taskRevision": null,
+            "attemptId": "44502f3a-7b4c-4d4c-932c-866cce2ef24f"
+          },
+          {
+            "sessionId": "01a10843-eea5-77b0-90fb-227123f4ecae",
+            "transcriptChecksum": "sha256:4fdeb9f5e5bec9bceac7ff74806145afb4fc597459d8a68f98fad33a2509d5c5",
+            "sessionChecksum": null,
+            "taskRevision": null,
+            "attemptId": "44502f3a-7b4c-4d4c-932c-866cce2ef24f"
+          },
+          {
+            "sessionId": "01a10846-5563-7303-a155-165688526ec6",
+            "transcriptChecksum": "sha256:8370a273a090f6a19fefb2fc88ef944bbb54ffb3a5461aa7ff7fc4774d24a5f7",
+            "sessionChecksum": null,
+            "taskRevision": "task-6b13692a29a144323d500f3b2c2883bdee8d25166eb8107f57ef22a128eb1f03",
+            "attemptId": "44502f3a-7b4c-4d4c-932c-866cce2ef24f"
+          }
+        ],
+        "delegationChecksum": null,
+        "notificationFormatterChecksum": null,
+        "attempts": [
+          {
+            "attemptId": "4aed0c79-0105-4c1f-8c30-6679f33d1f0e",
+            "storyId": "first-ten-minutes",
+            "revisionId": "revision-c4fba3d11e2f634e9de6cf27986ab72133730a52f3163025a4f69f25a3750585",
+            "candidateId": null,
+            "base": null,
+            "deliveryBuildId": "delivery-823df499c1fb0b40e0a88b7e1270c34edf1e4ae16429dd97ee095284c8729486",
+            "workerTransport": "shared-workspace",
+            "modeSource": "builtin-default",
+            "concurrencySource": "builtin-default",
+            "requestedMaxConcurrency": 4,
+            "effectiveMaxConcurrency": 4,
+            "peakActiveChildren": 4,
+            "peakBoundTasks": 4,
+            "fourWayBoundOverlapMs": 262227,
+            "refillAdmissions": 1,
+            "dirtyTaskCount": 5,
+            "productionChildCount": 5,
+            "probeChildCount": 4,
+            "dirtyTaskRevisions": [
+              "task-3fd36ab1ff8ae731e2ddf7992b8d59b80eb269a43ac8bfef62bcd3effbb2febb",
+              "task-5d0ad1e515dcc6eb2582ec9afa447c0002b0f7f8ac8a0917c0d805842fa14df0",
+              "task-69ec61cc93b4bbf01e84e91609cca56817c664132cfc0c14bd81f1e0abd44b1f",
+              "task-80dcca920e6e959c1d658cb2667102fe7e805a12d4b0e72d7867322a14e133a0",
+              "task-96470a765b1ce7ea62465c386b9106d6d01cf34666da95123de3d5bc8db2f5d0"
+            ],
+            "childSessionIds": [
+              "01a1082c-3806-7e50-bd2b-b1af279949b1",
+              "01a1082c-4822-75a2-b60f-ed9091030f88",
+              "01a1082c-587a-7f70-a00b-d956b6ba3657",
+              "01a1082c-69e4-7340-8bb3-51a2fe2cb632",
+              "01a10834-d987-7db0-97f6-99b5e5d09fec",
+              "01a10834-f8a2-7b63-9de6-7ae8e228ba6e",
+              "01a10835-1559-7ed0-8797-beb7d496c094",
+              "01a10835-320b-7bb1-b598-09347c337f5e",
+              "01a10836-ff2e-7201-a27e-970fa4ae1770"
+            ]
+          },
+          {
+            "attemptId": "44502f3a-7b4c-4d4c-932c-866cce2ef24f",
+            "storyId": "first-ten-minutes",
+            "revisionId": "revision-f8b19815be78fabbc1b107176503726eac9441d3f6dbd111fa4cda861a5234a0",
+            "candidateId": "revision-candidate-601cab05412e75bc9e391d2c3e7783f7a32d7dbc250bdb70ceb012312ee3e9ee",
+            "base": {
+              "revisionId": "revision-c4fba3d11e2f634e9de6cf27986ab72133730a52f3163025a4f69f25a3750585",
+              "deliveryBuildId": "delivery-823df499c1fb0b40e0a88b7e1270c34edf1e4ae16429dd97ee095284c8729486"
+            },
+            "deliveryBuildId": "delivery-dc499181672da03edf3890ae821c7287826883726bb9949edc34f6f083c5bdf6",
+            "workerTransport": "shared-workspace",
+            "modeSource": "builtin-default",
+            "concurrencySource": "builtin-default",
+            "requestedMaxConcurrency": 4,
+            "effectiveMaxConcurrency": 4,
+            "peakActiveChildren": 3,
+            "peakBoundTasks": 1,
+            "fourWayBoundOverlapMs": 0,
+            "refillAdmissions": 0,
+            "dirtyTaskCount": 1,
+            "productionChildCount": 1,
+            "probeChildCount": 4,
+            "dirtyTaskRevisions": [
+              "task-6b13692a29a144323d500f3b2c2883bdee8d25166eb8107f57ef22a128eb1f03"
+            ],
+            "childSessionIds": [
+              "01a10843-b94b-73e3-96df-e24d3a4d40f3",
+              "01a10843-cb40-74b3-9985-a1975ae24765",
+              "01a10843-dc4d-79a1-a9ce-7e739648e81b",
+              "01a10843-eea5-77b0-90fb-227123f4ecae",
+              "01a10846-5563-7303-a155-165688526ec6"
+            ]
+          }
+        ],
+        "uiEvidence": {
+          "checksum": "sha256:062a36d787e5730a8e3d58bfddb481b705df734c1065e4dcd961370a6f308674",
+          "sessionId": "01a10825-8006-7210-b5ea-600014c5ef1a",
+          "commandResults": 3
+        }
+      },
+      "supervision": {
+        "schemaVersion": 1,
+        "source": "codex",
+        "reportedBeforeCreate": true,
+        "reportedBeforePrepare": true,
+        "continuationCalls": 2,
+        "pollingCalls": 0,
+        "asyncBatches": 0,
+        "completedAsyncBatches": 0,
+        "attempts": [
+          {
+            "attemptId": "4aed0c79-0105-4c1f-8c30-6679f33d1f0e",
+            "storyId": "first-ten-minutes",
+            "revisionId": "revision-c4fba3d11e2f634e9de6cf27986ab72133730a52f3163025a4f69f25a3750585",
+            "candidateId": null,
+            "base": null,
+            "deliveryBuildId": "delivery-823df499c1fb0b40e0a88b7e1270c34edf1e4ae16429dd97ee095284c8729486",
+            "reportedBeforePrepare": true,
+            "continuationCalls": 1
+          },
+          {
+            "attemptId": "44502f3a-7b4c-4d4c-932c-866cce2ef24f",
+            "storyId": "first-ten-minutes",
+            "revisionId": "revision-f8b19815be78fabbc1b107176503726eac9441d3f6dbd111fa4cda861a5234a0",
+            "candidateId": "revision-candidate-601cab05412e75bc9e391d2c3e7783f7a32d7dbc250bdb70ceb012312ee3e9ee",
+            "base": {
+              "revisionId": "revision-c4fba3d11e2f634e9de6cf27986ab72133730a52f3163025a4f69f25a3750585",
+              "deliveryBuildId": "delivery-823df499c1fb0b40e0a88b7e1270c34edf1e4ae16429dd97ee095284c8729486"
+            },
+            "deliveryBuildId": "delivery-dc499181672da03edf3890ae821c7287826883726bb9949edc34f6f083c5bdf6",
+            "reportedBeforePrepare": true,
+            "continuationCalls": 1
+          }
+        ]
+      },
+      "unchangedGuideFiles": 12,
+      "finalCheck": {
+        "status": "project-final-check",
+        "storyId": "first-ten-minutes",
+        "aggregateStatus": "pass",
+        "deliveryBuildId": "delivery-dc499181672da03edf3890ae821c7287826883726bb9949edc34f6f083c5bdf6",
+        "checks": [
+          {
+            "checkId": "artifacts",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "delivery",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "revision",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "artifact-set",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "delivery-build",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "audio-channels",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "snapshot",
+            "status": "pass",
+            "code": null,
+            "message": null
+          }
+        ],
+        "schemaVersion": 1,
+        "level": "final",
+        "scope": "current-production",
+        "revisionId": "revision-f8b19815be78fabbc1b107176503726eac9441d3f6dbd111fa4cda861a5234a0",
+        "artifactSetFingerprint": "sha256:8819cfbf888a0b1f1bdb0eee62f6bae753cd555892d1d15ef69f69a320681379"
+      },
+      "delivery": {
+        "storyId": "first-ten-minutes",
+        "deliveryBuildId": "delivery-dc499181672da03edf3890ae821c7287826883726bb9949edc34f6f083c5bdf6",
+        "files": {
+          "video.mp4": {
+            "checksum": "sha256:ff854800cd8bc58de8a27973e3951799ec0160dacdf4db32b71db6e07919e461",
+            "sizeBytes": 2681591
+          },
+          "cover-4x3.png": {
+            "checksum": "sha256:636f14a919fec4cddf66df78d6d291459e9287ecc7257fb80c85579b96f5b104",
+            "sizeBytes": 321586
+          },
+          "cover-3x4.png": {
+            "checksum": "sha256:c3b60acd208396fd91511f926f6fd7ddc6d864eec1c857f360fe1f29a40387ad",
+            "sizeBytes": 307430
+          },
+          "publish.json": {
+            "checksum": "sha256:2e9892bf5f69aed7cd38d608a4dbe932a39625f94d37f45fe99e27b5fa912575",
+            "sizeBytes": 2194
+          }
+        },
+        "video": {
+          "codec": "h264",
+          "audioCodec": "aac",
+          "audioChannels": 2,
+          "width": 960,
+          "height": 540,
+          "fps": 30,
+          "frameCount": 900
+        },
+        "decodedFiles": [
+          "video.mp4",
+          "cover-4x3.png",
+          "cover-3x4.png"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "host": "hermes",
+      "model": "gpt-6.1-sol",
+      "sessionId": "20261005_000859_44c7ce",
+      "environment": {
+        "platform": "darwin",
+        "arch": "x64",
+        "node": "v24.15.0"
+      },
+      "startedAt": "2026-10-04T16:09:07.647838Z",
+      "endedAt": "2026-10-04T17:06:50.746372Z",
+      "packages": {
+        "runtime": {
+          "name": "@axmorf/studio",
+          "version": "0.1.17",
+          "fingerprint": "sha256:cc16b4d3498dba79d1473f73e0e9b039b65ce61a5e86291919cbeca79d515a27",
+          "fileCount": 290
+        },
+        "creator": {
+          "name": "create-axmorf-studio",
+          "version": "0.1.17",
+          "fingerprint": "sha256:b391c03631e34e3c64cfaa2c5e4c82de299a89e0e85a2c26bb89aa2118845a43",
+          "fileCount": 41
+        }
+      },
+      "prompt": "制作一条横屏 960×540、30 fps、无旁白的中文科普视频，主题是“今天的一小步”。用三段说明：大目标如何让人不知从哪开始；改成十分钟内可完成的具体动作；接在已有习惯之后并记录一次完成。画面用书、便签、铅笔、计时器、茶杯和日历的关系变化解释，文字简短、温暖清晰，保留开场与收尾。请完成视频和两张封面。\n",
+      "promptChecksum": "sha256:3c93a48c1842da6cf62c5d7b84d5e6ecf616161c6a81f4b8d7f9c455f06066c3",
+      "transcriptChecksum": "sha256:fc9ce1d37959deda18f8a730fd09b3ec1cb0d8e89c3f80e69941b23bd893d9ab",
+      "runChecksum": "sha256:7e7e98cb54e5cc49baffb0efdfad967c24c77c2734c894e55364deea9e1cd101",
+      "snapshotChecksum": "sha256:85f1fc4738656d96bca6a47b6e76d7d2f6d3670ecb6ab8c45dca97c503d4741a",
+      "creation": {
+        "method": "npm-exec-candidate",
+        "runtimeTarballChecksum": "sha256:d012bd7a46827977e8414a91ae964d3e85e1eb13afb5e13c7984c08027b2d409",
+        "creatorTarballChecksum": "sha256:071840c1dde93ffc2a9a01c310d0202e6e395b604e6a8164cb0a84ce921029f8",
+        "installLogChecksum": "sha256:16ffb33e185bebe893ab0bddadf360b99db1f2dfa69d2328de6873e936f34d33"
+      },
+      "sessionChecksum": "sha256:2c721c387d58bd0a5f109d75f33190b5bb6bee68b696071d03e13a468b045e20",
+      "transcriptAudit": {
+        "businessUserMessages": 1,
+        "toolCalls": 73,
+        "followUpMessages": 0,
+        "nativeCompletionMessages": 3
+      },
+      "unchangedPackageFiles": 290,
+      "nativeExecution": {
+        "mode": "subagents",
+        "workerTransport": "shared-workspace",
+        "modeSource": "builtin-default",
+        "concurrencySource": "builtin-default",
+        "requestedMaxConcurrency": 4,
+        "effectiveMaxConcurrency": 4,
+        "peakActiveChildren": 4,
+        "peakBoundTasks": 4,
+        "fourWayBoundOverlapMs": 379863.2019042969,
+        "dirtyTaskCount": 5,
+        "productionChildCount": 5,
+        "probeChildCount": 4,
+        "refillAdmissions": 1,
+        "attemptId": "0903deff-5d62-4c93-b81f-d2bbcd5e3724",
+        "childEvidence": [
+          {
+            "sessionId": "20261005_001104_a4bdd7",
+            "transcriptChecksum": "sha256:a2023beb9d52a67d961e32898584865c1378dddc538c39188b958079553595aa",
+            "sessionChecksum": "sha256:f0d8ed88e35ac4be5b57e9d923d18b0d49d1bd9c634ddfd5c9094262c17df56a",
+            "taskRevision": null
+          },
+          {
+            "sessionId": "20261005_001104_5de1cc",
+            "transcriptChecksum": "sha256:0cadf98cd500e3ac1a8fa7afdddd7b0ebb2c31c998239f90e9b881dae524da06",
+            "sessionChecksum": "sha256:a414bb7713488446fc1a348a9aec17784df7367fd9c8dca855ca6592fb790d3b",
+            "taskRevision": null
+          },
+          {
+            "sessionId": "20261005_001104_db3fbf",
+            "transcriptChecksum": "sha256:0951ee5c4aa887087566e60f3108d7488720ce5ea9c6caf45d32724655d8a26e",
+            "sessionChecksum": "sha256:17d32e07fbd4dc53e5ce64838f2c825573ab27a64b4f2d91d576f8b5591b9cf6",
+            "taskRevision": null
+          },
+          {
+            "sessionId": "20261005_001104_98380d",
+            "transcriptChecksum": "sha256:e320e191f2a28d7f07ebde338c26224bfdb9d01a10ca1ba325e0935ccea0c794",
+            "sessionChecksum": "sha256:a0a56faf66d53bc736d1699b796cff5096817f37793327f3aac047685f9e527b",
+            "taskRevision": null
+          },
+          {
+            "sessionId": "20261005_001904_c7e21a",
+            "transcriptChecksum": "sha256:0efe2b209bbbb8b841442fa27c4e502f1b41727c4971e3d119729715f8a82145",
+            "sessionChecksum": "sha256:35cf40003c329481440b9fef920a44d01f01e3a9f207fbdf6fe2179fb382fa2d",
+            "taskRevision": "task-76877ac489511064e0d91c436dec5829ad3af6858c30aba56a38ac1c5a804d25"
+          },
+          {
+            "sessionId": "20261005_001904_0e1ca6",
+            "transcriptChecksum": "sha256:d3306f3e4a51ba7c5b1011dfe08c9cc1556c2f8648306139008bef63d246f023",
+            "sessionChecksum": "sha256:fe36a7f263b0a644a8e4a708fb3a91e5c33299dcb0e880f809ad621f07de67d2",
+            "taskRevision": "task-c5d502fe56ce3115a85b8154a26ea7201d5a9a2cab64e8ef29831d7e953ae713"
+          },
+          {
+            "sessionId": "20261005_001904_a36946",
+            "transcriptChecksum": "sha256:4b4f6702043e65bffecdd94f48a897dedbaf5c279b74daaef615139d9007ff8a",
+            "sessionChecksum": "sha256:635f8d7b497db01a5c99a5c3ae7d1266c435e55a43d6e96c870a4d5b9b01abfa",
+            "taskRevision": "task-930c8b1c9014faefff5d88f34a435992073812ab24fe5091100df1a77e554717"
+          },
+          {
+            "sessionId": "20261005_001904_9713ce",
+            "transcriptChecksum": "sha256:c7abe5734565226fdef1f584064b420ee21ea0da5e21dad37a0f34b55496de19",
+            "sessionChecksum": "sha256:c69e1bae3055c7925679af56dbb3248f3e0e98b16fa16e78b33dfd3537c88dde",
+            "taskRevision": "task-3a670ae0502b736b881238dca782ff0cb5d791794841b7273f88862446808071"
+          },
+          {
+            "sessionId": "20261005_005244_3e9875",
+            "transcriptChecksum": "sha256:2f3b914c942469cb61fc4918640384639f52b56c6de510d89792ea7258a8e1c8",
+            "sessionChecksum": "sha256:f56db9c597fb61ac02d7a98b7b3cbed39d7180f2dedcb60d6e5c77c388f76eb7",
+            "taskRevision": "task-d79db888efc8b3e0bd4d1680caf3494306e8372a4e328fb91d5f903f7882acde"
+          }
+        ],
+        "delegationChecksum": "sha256:e3b4749d062e401857f9bcb146d0d5e3dd779ae5a1bb2577bdadae966809ef9c",
+        "notificationFormatterChecksum": "sha256:fa7219e7df360e95170cf1be6e132beb61b61f94a32da50d79a2bcf51e672799"
+      },
+      "supervision": {
+        "schemaVersion": 1,
+        "source": "tui",
+        "reportedBeforeCreate": true,
+        "reportedBeforePrepare": true,
+        "continuationCalls": 1,
+        "pollingCalls": 0,
+        "asyncBatches": 3,
+        "completedAsyncBatches": 3,
+        "uiEvidence": {
+          "checksum": "sha256:1869b1bee46e65625d566462974b41f09d11e06b001aa11ef851f562fcf07b72",
+          "sessionId": "e27cde96",
+          "toolCalls": 73,
+          "visibleReports": 7
+        }
+      },
+      "unchangedGuideFiles": 12,
+      "finalCheck": {
+        "status": "project-final-check",
+        "storyId": "today-one-small-step",
+        "aggregateStatus": "pass",
+        "deliveryBuildId": "delivery-e3264511a1bb068b230f2036184408cf3452ddf688bfaaabbf38ac9f4de7d700",
+        "checks": [
+          {
+            "checkId": "artifacts",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "delivery",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "revision",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "artifact-set",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "delivery-build",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "audio-channels",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "snapshot",
+            "status": "pass",
+            "code": null,
+            "message": null
+          }
+        ],
+        "schemaVersion": 1,
+        "level": "final",
+        "scope": "current-production",
+        "revisionId": "revision-a80086596ca16d0f744ed4228954c34e256c8ceed71877dafea87f561a0191d1",
+        "artifactSetFingerprint": "sha256:b93507baa512d1e7294ee931fa2618ad4a8f1a46100154d6d3bc98554e3c24ee"
+      },
+      "delivery": {
+        "storyId": "today-one-small-step",
+        "deliveryBuildId": "delivery-e3264511a1bb068b230f2036184408cf3452ddf688bfaaabbf38ac9f4de7d700",
+        "files": {
+          "video.mp4": {
+            "checksum": "sha256:be5bbbe082f4729273875c9e2bba4cd3005a5a4db4ed5908453817ccb22d475f",
+            "sizeBytes": 3043056
+          },
+          "cover-4x3.png": {
+            "checksum": "sha256:3df0ea94c20230d913a42a734d3d99d9567f18cc252980231140e985bf4985c5",
+            "sizeBytes": 286528
+          },
+          "cover-3x4.png": {
+            "checksum": "sha256:366cae1cb429e5c57a8065154e8b17c213a96abdac0ed9475816c4abbd05917d",
+            "sizeBytes": 296484
+          },
+          "publish.json": {
+            "checksum": "sha256:a4d74113e51a557a781cb76053bf3f2fa74d4bcca6a06f67508f4e450934a6f0",
+            "sizeBytes": 2350
+          }
+        },
+        "video": {
+          "codec": "h264",
+          "audioCodec": "aac",
+          "audioChannels": 2,
+          "width": 960,
+          "height": 540,
+          "fps": 30,
+          "frameCount": 1380
+        },
+        "decodedFiles": [
+          "video.mp4",
+          "cover-4x3.png",
+          "cover-3x4.png"
+        ]
+      }
+    }
+  ]
+}

@@ -23,6 +23,7 @@ import { continueProjectProduction } from "./application/continue-production";
 import { buildCurrentProductionPlan } from "./application/build-current-plan";
 import { checkTaskByKind } from "./application/check-task";
 import { finalizeAgentTaskWorkspace } from "./application/finalize-agent-task";
+import { previewBoundSceneTask } from "./application/task-preview";
 import { reportCliFailure } from "../../packages/studio/src/cli/failure";
 import { inspectProjectProduction } from "./application/inspect-production";
 import { prepareProjectProduction } from "./application/prepare-production";
@@ -69,6 +70,7 @@ type Context = Readonly<{
   assertTaskBinding?: typeof assertTaskWorkerBinding;
   assertFailureAuthority?: typeof assertTaskWorkerFailureAuthority;
   finalizeTask?: typeof finalizeAgentTaskWorkspace;
+  previewTask?: typeof previewBoundSceneTask;
   readTaskFile?: typeof readTaskWorkerFile;
   writeTaskFile?: typeof writeTaskWorkerFile;
   attemptRecoveryDependencies?: AttemptRecoveryDependencies;
@@ -475,6 +477,19 @@ export const runProjectProductionCli = async (
     };
     context.stdout(JSON.stringify(output));
     return output;
+  }
+  if (command === "task-preview") {
+    const scope = await taskCommandScope(args, context.rootDir);
+    const input = await resolvedBoundTaskInput(args, scope);
+    const transport = workerTransportOption(args, "--transport");
+    if (transport === undefined) throw new Error("Missing --transport value.");
+    const result = await (context.previewTask ?? previewBoundSceneTask)({
+      ...input,
+      runtimeRootDir: scope.shared.runtimeRoot,
+      transport,
+    });
+    context.stdout(JSON.stringify(result));
+    return result;
   }
   if (command === "task-commit") {
     const scope = await taskCommandScope(args, context.rootDir);

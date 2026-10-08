@@ -27,7 +27,7 @@ export type GenerationInput = z.infer<typeof GenerationInputSchema>;
 
 export const buildGenerationInput = (
   story: StorySpec,
-  narration: NarrationSpec,
+  narration: NarrationSpec | null,
 ): GenerationInput =>
   GenerationInputSchema.parse({
     schemaVersion: 3,
@@ -38,9 +38,17 @@ export const buildGenerationInput = (
 export const computeStoryFingerprint = (story: StorySpec) =>
   createFingerprint({ namespace: "story-spec", version: 3, value: story });
 
+/** Explicit absence of narration, independent of any provider or voice setting. */
+export const computeNoNarrationFingerprint = () =>
+  createFingerprint({
+    namespace: "no-narration",
+    version: 1,
+    value: { narration: null },
+  });
+
 export const computeGenerationInputFingerprint = (
   story: StorySpec,
-  narration: NarrationSpec,
+  narration: NarrationSpec | null,
 ) =>
   createFingerprint({
     namespace: "narration-generation-input",

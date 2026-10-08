@@ -8,8 +8,8 @@ artifacts, renders, revision candidates, and Deliveries stay in this directory a
 Open this workspace in an Agent that supports native subagents, file access, and npm commands, and describe the video you want. For example:
 
 ```text
-请制作一条约30秒的中文竖屏视频，介绍如何从一个小步骤开始行动。
-画面用一团交错路线代表难以下手的目标：开场让光点困在路口，旁白说到“一小步”时抽出一条清晰路线，结尾让光点走到第一个节点。每段都要有看得懂的主体、变化和结果；保持统一色彩与留白。
+请制作一条约75–90秒的中文竖屏视频，解释【主题】。
+先选能说明这个概念的视觉机制，再安排对象怎样随讲解改变、观众怎样看懂因果和结果。景别、技术和素材由主题决定；保持克制的色彩、清晰的焦点、留白和足够的阅读时间。
 要有旁白、字幕和动态图形，最后给我视频和封面。
 ```
 
@@ -31,6 +31,12 @@ npm run dev
 `npm run dev` starts the loopback-only Web control center and Remotion Studio. The Web interface owns configuration, diagnostics,
 production progress, and verified current Delivery views; Remotion Studio owns live Composition preview. Neither is the creative or
 completion authority.
+
+For an explicitly requested video without narration, the create context provides a `visualFirst` example with authored
+Scene durations. Convey the meaning through visible state changes and short copy. Narrated and visual content currently
+use separate Projects; removing audio from an existing narrated Project does not switch its mode.
+The local Skill routes optional shared SVG subjects and bound Scene previews. These support creation and targeted revision;
+mechanical validation does not establish visual quality, and a complete video still needs continuous review and listening.
 
 `npm run bootstrap` maintains package-owned shared media under `public/assets/axmorf-shared/` and registers it in the Resource
 Catalog. New Projects inherit the configured opening/closing templates unless the create input explicitly overrides them; the
@@ -58,6 +64,7 @@ executable before creation, `doctor`, and production. The real browser render ch
 | Review opening, middle, and final Scene frames | `npm run project:scene:review -- --project <story-id>`                                     |
 | Render a frozen draft from valid artifacts     | `npm run project:preview -- --project <story-id> [--candidate <candidate-id>]`             |
 | Review local reference cuts, motion and frames | `npm run reference:analyze -- --input public/<reference.mp4> [--threshold 0.3]`            |
+| Review complete Scenes and boundary motion     | `npm run project:scene:review -- --project <story-id> --motion`                            |
 | Verify the current delivered Project           | `npm run project:check -- --project <story-id> --level final`                              |
 
 For Project creation, revisions, production, recovery, and deletion, use the order in `AGENTS.md` and the Workspace-local
@@ -96,5 +103,8 @@ Delivery. It returns structured failure reasons and never writes legacy baseline
 Commit `package.json`, `package-lock.json`, this README, and any instruction customizations you intentionally want to share. Keep
 Project source, media, private config, provider credentials, voice profiles, production work, artifacts, attempts, output, Deliveries,
 and revision candidates local unless you deliberately establish a different policy.
+User-local music is separate from package-owned shared media. Select approved original loop audio rather than a processed
+preview. Keep music, Library identifiers and maintenance reports private. Retiring a preview never silently migrates existing
+Project media or sealed audio; inspect dependencies first and preserve recoverability when removal is authorized.
 
 新 Project 的 `visualStyle.theme` 可选 dark、light 或 background/primaryText/secondaryText/accent 四角色不透明六位 hex；默认 dark。系统在创建/修订前验证配色，Composition 的实际底色与正文、固定首尾共用主题。旧 Project 的 immutable 首尾不自动迁移。

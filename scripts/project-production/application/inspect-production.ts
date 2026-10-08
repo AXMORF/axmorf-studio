@@ -150,7 +150,10 @@ export const inspectProjectProduction = async (
         readiness.sourceState === "configured-authoring"
           ? narration.timingSource === "authored-frames"
             ? "prepare-timing"
-            : "prepare-narration"
+            : readiness.durationBudget?.measurement ===
+                "authored-semantic-timing"
+              ? "prepare-production"
+              : "prepare-narration"
           : "complete-authoring",
     });
   }

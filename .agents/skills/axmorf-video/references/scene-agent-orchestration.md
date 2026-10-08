@@ -1,4 +1,4 @@
-# Scene task executor
+# Scene executor
 
 创作 bind 后读 [创作指南](film-direction.md#scene-execution)；局部仅改 priorSource delta。
 
@@ -20,9 +20,14 @@ task-input.generated.json 由 fixed materialization 投影；Renderer 限 SceneV
 scene.priorSource 冻结源码/声明；比新旧 brief 只改 delta，其余保留；outputs 需新建。许可/lineage 原样、派生字段交 finalizer。不读 base snapshot；缺失从 brief 创建。
 多 Beat 局部修改比较 current/prior coveredBriefs；重组不授权读取或复制其他 Scene 的源码。
 
-sound-plan.json 限预制 sound-effect，按 description 卡点；完整音效须在 Scene 内，Renderer 不重复播放。禁止合成/下载音频。
+共享SVG依合同同绘、连续接近/离开并审阅。
 
-motionPlan v2 写目的/旁白时机；unsupported 须时序审查。
+编排全貌/近景/大字；语义粒子/形变引导转场，读停不填满时长。
+
+sound-plan.json 限预制 sound-effect，起音/声势中心对齐 syncAnchor；素材完整在 Scene 内，禁止合成/下载/重复播放。
+Scene preview 不含顶层 BGM，最终合审音乐/旁白/音效。
+
+motionPlan v2 写目的/事件时机；unsupported 须时序审查。
 
 originalityBaseline 冻结。
 
@@ -32,7 +37,7 @@ npm run project:task:check -- --task <taskRevision> --attempt <attemptId> --bind
 成功后运行：
 npm run project:task:commit -- --task <taskRevision> --attempt <attemptId> --binding <bindingId>
 
-停：taskFailureCommand 报 authored fault；spawnFailureCommand 限 Root transport，fixedFailureCommand 限 controller fault。
+停：taskFailureCommand 限 authored fault；spawnFailureCommand 限 Root transport；fixedFailureCommand 限 controller fault。
 ```
 
 `scene-template` fixed 产出 ArtifactAttestation，不由 Agent executor 创作，不绑定 originality baseline。

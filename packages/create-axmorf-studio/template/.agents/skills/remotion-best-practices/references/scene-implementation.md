@@ -75,3 +75,9 @@ and rule to correct the cause; do not add dummy typography to purely graphical c
 
 Source checks do not measure rendered contrast, clipping, or pacing. Choose readable foreground/background
 pairs and adequate spacing; when reviewing a render, inspect the text in its actual frame and background.
+
+## Preview before commit
+
+Use the exact shared-workspace bound `commands.preview` after the outputs pass validation. It renders the owning Scene with unchanged fps at reduced resolution and returns its source fingerprint. Inspect cause, visible change, result and label hold; for visual-only content check muted comprehension, for narrated content compare spoken timing. Amend only your declared outputs. Preview omits adjacent Scenes, GlobalVisual and project music, and cannot certify aesthetics or human listening.
+
+The optional public `resolveSceneActionTiming({shots, syncAnchors, actionId, sceneFrame})` consumes authored anticipation/change/reading-hold timing without prescribing geometry or easing. The optional Renderer `continuity` prop contains the exact frozen incoming/outgoing seam. Match the actual subject at the boundary; identity alone does not prove pixel continuity.

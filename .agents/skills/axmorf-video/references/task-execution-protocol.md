@@ -44,7 +44,11 @@ After binding:
 2. Write only outputs whose contract ownership permits Agent or Agent-draft content.
 3. Run the exact bound `describe`, `finalize`, and `check` commands. Finalize performs fixed derived projection and
    then the same task-kind validation; repair only `agent-output` issues and repeat.
-4. Commit through the exact bound command. Use `taskFailureCommand` only for unrecoverable authored output.
+4. For shared-workspace Scene tasks, use the exact bound `commands.preview` to render before commit.
+   It finalizes/checks and snapshots the same outputs; inspect actual action timing and reading holds, then amend
+   only your declared outputs. Preview fingerprints are diagnostics, not acceptance. Controller-IO has no preview
+   filesystem access. Report playback/listening limits and leave final seam/music review to the Root.
+5. Commit through the exact bound command. Use `taskFailureCommand` only for unrecoverable authored output.
 
 For a Scene revision, `scene.priorSource` in the bound context contains only the owning Scene's verified, frozen current
 base source graph and declarations. Compare its previous brief with `scene.brief`, preserve the existing implementation,

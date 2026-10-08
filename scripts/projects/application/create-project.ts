@@ -23,6 +23,8 @@ import {
   buildSceneProductionBrief,
   buildStoryResourcePool,
   computeVisualStyleFingerprint,
+  generateVisualSemanticTiming,
+  isVisualStory,
   serializeCanonicalJson,
   validateSceneProductionBrief,
   validateStoryResourcePool,
@@ -188,7 +190,7 @@ const synthesizePendingScenes = ({
         "Preserve the configured boundary Scene frame-driven motion exactly.",
       soundIntent: beat.preset.soundIntent,
       continuityBrief:
-        "Keep this configured boundary isolated from narrated Scene ownership.",
+        "Keep this configured boundary isolated from authored content Scene ownership.",
       candidateResourceIds: beat.preset.resourceIds,
       allowedSnapshotCards: [],
     } as const;
@@ -584,6 +586,8 @@ const prepareCreation = async ({
     prepared: sceneTemplates,
   });
   const story = sceneTemplates.story;
+  const visualStory = isVisualStory(story);
+  const currentDescriptors = await loadCatalogAuthorityDescriptors(rootDir);
   const baseManifest = ProjectAssetManifestSchema.parse(
     JSON.parse(
       await readFile(
@@ -592,19 +596,30 @@ const prepareCreation = async ({
       ),
     ),
   );
-  const sound = await prepareProjectSound({
+  const preparedSound = await prepareProjectSound({
     rootDir,
     projectId: storyId,
     config,
     baseAssetManifest: baseManifest,
+    backgroundMusic: input.backgroundMusic,
+    descriptors: currentDescriptors,
+    selectionText: [
+      input.brief.title,
+      input.brief.sourceMaterial,
+      input.visualStyle.styleProfileId,
+      ...input.story.beats.map(({ narrativePurpose }) => narrativePurpose),
+    ].join(" "),
   });
+  const sound = preparedSound;
   await commitProjectSound({ rootDir: stageRepositoryRoot, prepared: sound });
 
-  const narration = NarrationSpecSchema.parse({
-    schemaVersion: 2,
-    voiceProfileId: config.tts.defaultVoiceProfileId,
-    mode: "voice-clone",
-  });
+  const narration = visualStory
+    ? null
+    : NarrationSpecSchema.parse({
+        schemaVersion: 2,
+        voiceProfileId: config.tts.defaultVoiceProfileId,
+        mode: "voice-clone",
+      });
   const render = RenderSpecSchema.parse({
     schemaVersion: 1,
     compositionId: input.render.compositionId,
@@ -656,7 +671,6 @@ const prepareCreation = async ({
     ],
     readability: { edgeInsetPx: config.readability.edgeInsetPx },
   });
-  const currentDescriptors = await loadCatalogAuthorityDescriptors(rootDir);
   const baseDescriptors = currentDescriptors.filter(
     (descriptor) =>
       !descriptor.authority.repositoryPath.startsWith("src/projects/"),
@@ -750,6 +764,16 @@ const prepareCreation = async ({
     [`${projectRoot}/production/global-visual-brief.json`, globalVisual],
     [`${projectRoot}/${SCENE_ORIGINALITY_BASELINE_PATH}`, originalityBaseline],
     [`${projectRoot}/${PENDING_SCENE_AUTHORING_PATH}`, pending],
+    ...(visualStory
+      ? ([
+          [
+            `${projectRoot}/generated/semantic-timing.generated.json`,
+            generateVisualSemanticTiming({ story, render }),
+          ],
+          [`${projectRoot}/generated/sealed-narration.generated.json`, null],
+          [`${projectRoot}/generated/mastered-narration.generated.json`, null],
+        ] as const)
+      : []),
     [
       `${projectRoot}/generated/resource-catalog.generated.json`,
       projectCatalog,
@@ -796,6 +820,7 @@ const prepareCreation = async ({
     publishingIntentFingerprint: publishing.intentFingerprint,
     pendingAuthoringFingerprint: pending.authoringFingerprint,
     aggregateCatalogBytes,
+    backgroundMusic: sound.selection,
   } as const;
 };
 
@@ -866,7 +891,12 @@ export const createProject = async ({
     }
     const config = await readProducerConfig({ configPath });
     const globalBgm = config.audioDefaults?.globalBgm;
-    if (globalBgm !== undefined && globalBgm !== null) {
+    if (
+      input.backgroundMusic === undefined &&
+      globalBgm !== undefined &&
+      globalBgm !== null &&
+      "sourcePath" in globalBgm
+    ) {
       await readContainedRegularFile({
         rootDir,
         relativePath: globalBgm.sourcePath,
@@ -919,9 +949,12 @@ export const createProject = async ({
         sourceState: "configured-authoring",
         creationIdentity: current.creationIdentity,
         render: prepared.render,
+        backgroundMusic: prepared.backgroundMusic,
         writtenLogicalPaths: [],
         pendingAuthoringRequirements: [PENDING_SCENE_AUTHORING_PATH],
-        nextAction: "prepare-narration",
+        nextAction: isVisualStory(input.story)
+          ? "prepare-production"
+          : "prepare-narration",
       } as const;
     }
     await store.commit({
@@ -955,6 +988,7 @@ export const createProject = async ({
       sourceState: "configured-authoring",
       creationIdentity: prepared.receipt.creationIdentity,
       render: prepared.render,
+      backgroundMusic: prepared.backgroundMusic,
       writtenLogicalPaths: [
         ...prepared.receipt.files.map(({ logicalPath }) => logicalPath),
         `src/projects/${projectId}/${CREATION_RECEIPT_PATH}`,
@@ -962,7 +996,9 @@ export const createProject = async ({
         PROJECT_CREATE_CATALOG_PATH,
       ].sort((left, right) => left.localeCompare(right)),
       pendingAuthoringRequirements: [PENDING_SCENE_AUTHORING_PATH],
-      nextAction: "prepare-narration",
+      nextAction: isVisualStory(input.story)
+        ? "prepare-production"
+        : "prepare-narration",
       requirementsFingerprint: prepared.requirementsFingerprint,
       publishingIntentFingerprint: prepared.publishingIntentFingerprint,
       pendingAuthoringFingerprint: prepared.pendingAuthoringFingerprint,

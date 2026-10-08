@@ -13,7 +13,11 @@ import { runProjectCreateCli } from "../../scripts/projects/create";
 import {
   prepareProjectCreateFixture,
   projectCreateRuntimeResources,
+  validProjectCreateProducerConfig,
 } from "../fixtures/project-create";
+import { writeProducerConfig } from "../../scripts/config/producer-config";
+import { generateResourceCatalog } from "../../scripts/catalog/generate";
+import { readGeneratedResourceCatalog } from "../../scripts/catalog/project-files";
 
 test("create context supplies a usable example from current public choices without private data or writes", async (t) => {
   const fixture = await prepareProjectCreateFixture();
@@ -235,4 +239,131 @@ test("create help and input schema are read-only and require no configured provi
   assert.equal(schema.type, "object");
   assert.equal(schema.additionalProperties, false);
   assert.ok(schema.required.includes("story"));
+});
+
+test("create context includes a complete visual-first example with authored frame and boundary budgeting", async (context) => {
+  const fixture = await prepareProjectCreateFixture();
+  context.after(() => rm(fixture.rootDir, { recursive: true, force: true }));
+  const configBefore = await readFile(fixture.configPath);
+  const result = await inspectProjectCreateContext({
+    rootDir: fixture.rootDir,
+    storyId: "visual-explanation",
+    env: { RSP_PRODUCER_CONFIG: fixture.configPath },
+  });
+  const visual = ProjectCreateInputSchema.parse(
+    result.fieldExamples.visualFirst,
+  );
+  assert.ok(visual.story.beats.every((beat) => beat.kind === "visual-scene"));
+  assert.ok(
+    result.example.story.beats.every((beat) => beat.kind === "narrated-scene"),
+  );
+  assert.ok(visual.story.beats.every((beat) => !("ttsChunks" in beat)));
+  const frames = visual.story.beats.reduce(
+    (total, beat) =>
+      total + (beat.kind === "visual-scene" ? beat.durationInFrames : 0),
+    0,
+  );
+  assert.equal(
+    frames / result.renderDefaults.fps + result.durationBudget.boundarySeconds,
+    visual.brief.targetDurationSeconds,
+  );
+  assert.equal(Object.hasOwn(visual, "sceneTemplates"), false);
+  assert.equal(Object.hasOwn(visual.render, "fps"), false);
+  assert.match(result.agentHandoff.instruction, /fieldExamples\.visualFirst/u);
+  assert.match(result.guidance.join(" "), /visible mechanism/u);
+  assert.match(result.guidance.join(" "), /SVG, Canvas, spatial geometry/u);
+  assert.match(result.guidance.join(" "), /illustrative, not a template/u);
+  assert.deepEqual(await readFile(fixture.configPath), configBefore);
+  assert.deepEqual(await readdir(join(fixture.rootDir, "src/projects")), []);
+});
+
+test("create context exposes usable public sound choices and music readiness without disclosing configured paths", async (t) => {
+  const fixture = await prepareProjectCreateFixture();
+  t.after(() => rm(fixture.rootDir, { recursive: true, force: true }));
+  const catalog = await readGeneratedResourceCatalog(fixture.rootDir);
+  const { assets } = JSON.parse(
+    await readFile(
+      new URL(
+        "../../packages/studio/src/remotion/catalog/assets.manifest.json",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+  );
+  await generateResourceCatalog({
+    rootDir: fixture.rootDir,
+    mode: "write",
+    loadDescriptors: async () => [
+      ...catalog.entries.map(({ descriptor }) => descriptor),
+      ...assets,
+    ],
+  });
+  const inspect = () =>
+    inspectProjectCreateContext({
+      rootDir: fixture.rootDir,
+      storyId: "sound-directed-video",
+      env: { RSP_PRODUCER_CONFIG: fixture.configPath },
+    });
+  const unconfigured = await inspect();
+  assert.deepEqual(unconfigured.soundDefaults, {
+    backgroundMusicConfigured: false,
+    backgroundMusicVolume: null,
+  });
+  const snap = unconfigured.soundResources.find(
+    ({ descriptor }) => descriptor.id === "asset.axmorf.sfx.snap-lock-v1",
+  );
+  assert.ok(snap);
+  assert.match(snap.descriptor.description, /onset/u);
+  assert.ok(
+    unconfigured.fieldExamples.visualFirst.resources.allowedResourceIds.includes(
+      snap.descriptor.id,
+    ),
+  );
+  assert.ok(
+    unconfigured.fieldExamples.visualFirst.scenes.every(
+      ({ candidateResourceIds }) =>
+        candidateResourceIds.includes(snap.descriptor.id),
+    ),
+  );
+  assert.ok(
+    unconfigured.soundResources.some(
+      ({ descriptor }) =>
+        descriptor.kind === "asset" &&
+        descriptor.mediaRole === "background-music",
+    ),
+  );
+  assert.ok(
+    unconfigured.soundResources.every(
+      ({ descriptor }) =>
+        descriptor.kind === "asset" &&
+        descriptor.assetKind === "audio" &&
+        descriptor.status === "approved" &&
+        descriptor.allowedUse === "runtime-approved" &&
+        descriptor.license.verificationStatus === "verified",
+    ),
+  );
+  await writeProducerConfig({
+    configPath: fixture.configPath,
+    value: {
+      ...validProjectCreateProducerConfig,
+      audioDefaults: {
+        globalBgm: {
+          sourcePath: "private/undisclosed-music.wav",
+          volume: 0.18,
+        },
+      },
+    },
+  });
+  const before = await readFile(fixture.configPath);
+  const configured = await inspect();
+  assert.deepEqual(configured.soundDefaults, {
+    backgroundMusicConfigured: true,
+    backgroundMusicVolume: 0.18,
+  });
+  assert.doesNotMatch(
+    JSON.stringify(configured),
+    /undisclosed-music|visible-editable-token|referenceAudioPath/u,
+  );
+  assert.deepEqual(await readFile(fixture.configPath), before);
+  assert.deepEqual(await readdir(join(fixture.rootDir, "src/projects")), []);
 });

@@ -45,7 +45,15 @@ export type NarrationCliContext = {
 export type NarrationCliResult =
   | { readonly command: "generate"; readonly result: NarrationGenerationResult }
   | { readonly command: "seal"; readonly result: M2NarrationCheckResult }
-  | { readonly command: "check"; readonly result: M2NarrationCheckResult };
+  | { readonly command: "check"; readonly result: M2NarrationCheckResult }
+  | {
+      readonly command: "generate" | "seal" | "check";
+      readonly result: Readonly<{
+        status: "narration-not-applicable";
+        storyId: string;
+        providerCalls: 0;
+      }>;
+    };
 
 export const createDefaultGenerationDependencies: NarrationCliContext["createGenerationDependencies"] =
   async ({ rootDir, configPath, narration }) => {
@@ -129,6 +137,15 @@ export const runCli = async (
       throw new Error(
         "Authored-frame Stories do not use narration generation; run project:produce:prepare.",
       );
+    if (projectSource.narration === null)
+      return printResult(context, {
+        command,
+        result: {
+          status: "narration-not-applicable",
+          storyId: projectSource.story.storyId,
+          providerCalls: 0,
+        },
+      });
     const configPath = await resolveProducerConfigPathFromEnvironment(context);
     const dependencies = await context.createGenerationDependencies({
       rootDir: context.rootDir,
@@ -158,6 +175,15 @@ export const runCli = async (
       throw new Error(
         "Authored-frame Stories have no narration seal; run project:produce:prepare.",
       );
+    if (projectSource.narration === null)
+      return printResult(context, {
+        command,
+        result: {
+          status: "narration-not-applicable",
+          storyId: projectSource.story.storyId,
+          providerCalls: 0,
+        },
+      });
     const generationInputFingerprint = computeGenerationInputFingerprint(
       projectSource.story,
       projectSource.narration,
@@ -198,6 +224,15 @@ export const runCli = async (
     rootDir: context.rootDir,
     projectId,
   });
+  if (projectSource.narration === null)
+    return printResult(context, {
+      command,
+      result: {
+        status: "narration-not-applicable",
+        storyId: projectSource.story.storyId,
+        providerCalls: 0,
+      },
+    });
   context.stderr(
     `Checking sealed narration for ${projectSource.story.storyId}.`,
   );

@@ -16,16 +16,19 @@ import {
 } from "../../../contracts/resource-catalog";
 import { createFingerprint } from "../../../contracts/fingerprint";
 import type { Sha256Digest } from "../../../contracts/primitives";
+import type { SoundPlaybackOptions } from "../sound-design/audio-playback";
 
-export type SceneSoundContributionValue = Readonly<{
-  contributionId: string;
-  resourceId: string;
-  publicPath: string;
-  checksum: Sha256Digest;
-  startFrame: number;
-  endFrame: number;
-  volume: number;
-}>;
+export type SceneSoundContributionValue = SoundPlaybackOptions &
+  Readonly<{
+    contributionId: string;
+    resourceId: string;
+    publicPath: string;
+    checksum: Sha256Digest;
+    startFrame: number;
+    endFrame: number;
+    volume: number;
+    role?: "sound-effect" | "background-music";
+  }>;
 
 export type SceneSoundProjection = Readonly<{
   schemaVersion: 1;
@@ -153,7 +156,10 @@ export const resolveSceneSound = ({
     startFrame,
     endFrame,
     volume,
-  }: {
+    sourceStartFrame,
+    fadeInFrames,
+    fadeOutFrames,
+  }: SoundPlaybackOptions & {
     readonly contributionId: string;
     readonly selected: SelectedResourceRef;
     readonly startFrame: number;
@@ -185,6 +191,10 @@ export const resolveSceneSound = ({
       startFrame,
       endFrame,
       volume,
+      role: selected.role as "sound-effect" | "background-music",
+      ...(sourceStartFrame === undefined ? {} : { sourceStartFrame }),
+      ...(fadeInFrames === undefined ? {} : { fadeInFrames }),
+      ...(fadeOutFrames === undefined ? {} : { fadeOutFrames }),
     };
   };
   const resolvedContributions = resolveSceneSoundContributions({
@@ -206,6 +216,15 @@ export const resolveSceneSound = ({
         startFrame: frames.startFrame,
         endFrame: frames.endFrame,
         volume: contribution.volume,
+        ...(contribution.sourceStartFrame === undefined
+          ? {}
+          : { sourceStartFrame: contribution.sourceStartFrame }),
+        ...(contribution.fadeInFrames === undefined
+          ? {}
+          : { fadeInFrames: contribution.fadeInFrames }),
+        ...(contribution.fadeOutFrames === undefined
+          ? {}
+          : { fadeOutFrames: contribution.fadeOutFrames }),
       });
     });
   const identity = {

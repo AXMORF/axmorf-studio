@@ -13,7 +13,12 @@ export const General = ({ config, update }: EditorProps) => {
   const isCommonSize = COMMON_RENDER_SIZES.some(
     (size) => renderSizeValue(size) === selectedSize,
   );
-  const bgm = config.audioDefaults?.globalBgm ?? null;
+  const bgm =
+    config.audioDefaults === undefined
+      ? { mode: "auto" as const, volume: 0.15 }
+      : config.audioDefaults.globalBgm;
+  const musicMode =
+    bgm === null ? "none" : "sourcePath" in bgm ? "file" : "auto";
   return (
     <>
       <Section
@@ -83,33 +88,55 @@ export const General = ({ config, update }: EditorProps) => {
       <Section
         eyebrow="AUDIO / DEFAULT"
         title="全局 BGM"
-        description="保存本地 BGM 默认值；文件位置以仓库根目录为起点，不接受绝对路径。"
+        description="新作品默认从已批准的循环音乐中选一首，整片连续播放。没有可用曲目时会明确报告；单个作品可覆盖默认值。"
       >
         <FieldRow>
-          <Field
-            label="BGM 文件"
-            hint="例如 public/audio/default-bgm.mp3；留空表示不配置"
-          >
-            <input
-              value={bgm?.sourcePath ?? ""}
-              placeholder="public/audio/default-bgm.mp3"
+          <Field label="选曲方式">
+            <select
+              value={musicMode}
               onChange={(event) =>
                 update((draft) => {
-                  const sourcePath = event.target.value;
+                  const volume = draft.audioDefaults?.globalBgm?.volume ?? 0.15;
                   draft.audioDefaults = {
                     globalBgm:
-                      sourcePath === ""
+                      event.target.value === "none"
                         ? null
-                        : {
-                            sourcePath,
-                            volume:
-                              draft.audioDefaults?.globalBgm?.volume ?? 0.15,
-                          },
+                        : event.target.value === "auto"
+                          ? { mode: "auto", volume }
+                          : { sourcePath: "", volume },
                   };
                 })
               }
-            />
+            >
+              <option value="auto">自动从循环音乐库选曲</option>
+              <option value="file">使用指定本地文件</option>
+              <option value="none">不使用全局配乐</option>
+            </select>
           </Field>
+          {musicMode === "file" ? (
+            <Field
+              label="BGM 文件"
+              hint="例如 public/audio/default-bgm.mp3；使用 Workspace 相对路径"
+            >
+              <input
+                value={
+                  bgm !== null && "sourcePath" in bgm ? bgm.sourcePath : ""
+                }
+                placeholder="public/audio/default-bgm.mp3"
+                onChange={(event) =>
+                  update((draft) => {
+                    const sourcePath = event.target.value;
+                    draft.audioDefaults = {
+                      globalBgm: {
+                        sourcePath,
+                        volume: draft.audioDefaults?.globalBgm?.volume ?? 0.15,
+                      },
+                    };
+                  })
+                }
+              />
+            </Field>
+          ) : null}
           <Field label="BGM 音量" hint="线性音量，0 为静音，1 为原始音量">
             <input
               type="number"

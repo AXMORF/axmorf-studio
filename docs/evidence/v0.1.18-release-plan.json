@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "version": "0.1.18",
+  "baseTag": "v0.1.17",
+  "primaryHost": "codex",
+  "fullAcceptance": false,
+  "compatibilityChanges": [],
+  "regressionTests": [
+    "tests/config/project-background-music.test.ts",
+    "tests/config/project-create-context.test.ts",
+    "tests/config/project-create.test.ts",
+    "tests/config/project-visual-create.test.ts",
+    "tests/contracts/authored-frame-timing.test.ts",
+    "tests/contracts/grouped-scene-task.test.ts",
+    "tests/contracts/project-revision.test.ts",
+    "tests/contracts/publishing-intent.test.ts",
+    "tests/contracts/scene-continuity-visual-readability.test.ts",
+    "tests/contracts/scene-continuity-visual.test.ts",
+    "tests/contracts/scene-continuity.test.ts",
+    "tests/contracts/scene-readability.test.ts",
+    "tests/contracts/visual-scene-groups.test.ts",
+    "tests/contracts/visual-story.test.ts",
+    "tests/docs/video-production-skill.test.ts",
+    "tests/narration/authored-frame-preparation.test.ts",
+    "tests/npm-install-e2e/first-use-release.test.ts",
+    "tests/npm-install-e2e/native-revision-execution.test.ts",
+    "tests/npm-install-e2e/release-gate.test.ts",
+    "tests/npm-install-e2e/scaffold-contract.test.ts",
+    "tests/npm-install-e2e/supervision.test.ts",
+    "tests/package-boundary/cli-router.test.ts",
+    "tests/package-boundary/manifests.test.ts",
+    "tests/project-check/authored-source-health.test.ts",
+    "tests/project-check/visual-project.test.ts",
+    "tests/project-preview/media.test.ts",
+    "tests/project-preview/preview.test.ts",
+    "tests/project-preview/projection.test.ts",
+    "tests/project-production/authored-continuity.test.ts",
+    "tests/project-production/cli.test.ts",
+    "tests/project-production/continue-production.test.ts",
+    "tests/project-production/convergence.test.ts",
+    "tests/project-production/fixed-task.test.ts",
+    "tests/project-production/media-audio.test.ts",
+    "tests/project-production/media.test.ts",
+    "tests/project-production/project-scaffold.test.ts",
+    "tests/project-production/revision-planner.test.ts",
+    "tests/project-production/scene-handoff-consumption.test.ts",
+    "tests/project-production/scene-review.test.ts",
+    "tests/project-production/scene-task.test.ts",
+    "tests/project-production/task-execution-contract.test.ts",
+    "tests/project-production/task-preview.test.ts",
+    "tests/project-production/visual-timing.test.ts",
+    "tests/projects/project-revision-authoring.test.ts",
+    "tests/projects/project-revision-candidate-store.test.ts",
+    "tests/projects/project-revision-promotion.test.ts",
+    "tests/projects/scene-prior-source.test.ts",
+    "tests/reference-analysis/analyze.test.ts",
+    "tests/reference-analysis/domain.test.ts",
+    "tests/reference-analysis/motion.test.ts",
+    "tests/reference-analysis/png.test.ts",
+    "tests/renderer-registry/renderer-registry.test.ts",
+    "tests/runtime/continuous-motion.test.ts",
+    "tests/runtime/continuous-world-proof.test.ts",
+    "tests/runtime/narration-audio-track.test.tsx",
+    "tests/runtime/scene-action-timing.test.ts",
+    "tests/runtime/scene-continuity-visual.test.tsx",
+    "tests/runtime/scene-templates-source-credits.test.tsx",
+    "tests/runtime/scene-templates.test.tsx",
+    "tests/runtime/scene-viewport.test.tsx",
+    "tests/runtime/sound-design-track.test.tsx",
+    "tests/runtime/story-beat-transition.test.tsx",
+    "tests/runtime/story-visual-track.test.tsx",
+    "tests/runtime/visual-narrative-core.test.tsx",
+    "tests/scene-package/continuity.test.ts",
+    "tests/scene-package/generate.test.ts"
+  ],
+  "packages": {
+    "runtimeFingerprint": "sha256:656652b7014debe53e56d5c71341235a7d504bfe4372f1b6dd234c879bd70ee0",
+    "creatorFingerprint": "sha256:678633868cdc1be57dc203a13cbdae7025551c382fa60f752261017af88860d4"
+  },
+  "reviewedAcceptanceReuse": {
+    "approvedVersion": "0.1.18",
+    "reason": "Maintainer explicitly authorized commit, push and publication using the reviewed videos, then approved merging 0.1.17 with affected verification. Retain prior acceptance at its original identity; fresh merged-package native first use, exact-four concurrency and listening are unverified.",
+    "evidence": [
+      {
+        "path": "docs/evidence/v0.1.17-first-use.json",
+        "checksum": "sha256:53da8ba60d6499fe964b16e29fdfbd16ec016a85b104482a0ccf22b00ff72eba"
+      },
+      {
+        "path": "docs/evidence/2026-10-08-continuous-video-acceptance.md",
+        "checksum": "sha256:4a05680e7b6498bafd63e05fa57d09838194cf154892a21ce476043e22974ea1"
+      },
+      {
+        "path": "docs/evidence/2026-10-08-creative-video-skill.md",
+        "checksum": "sha256:c6432730dabca1316e998a27980d382ce0ff32ac8978d632db36114e77e472c0"
+      },
+      {
+        "path": "docs/evidence/v0.1.18-release-review.md",
+        "checksum": "sha256:c4e0d2f5f292ec59c837825c2bb20b03af2af5c979e540c40191dc62fce4bafd"
+      }
+    ]
+  }
+}

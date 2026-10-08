@@ -29,6 +29,8 @@ import {
   validStorySpec,
 } from "../fixtures/narrative";
 
+import { createAuthoredGroupedRuntimeFixture } from "../fixtures/scene/authored-grouped";
+
 const timing = generateSemanticTiming({
   story: StorySpecSchema.parse(validStorySpec),
   narration: NarrationSpecSchema.parse(validNarrationSpec),
@@ -78,6 +80,41 @@ test("Scene review rejects a delivery with stale chapter timing", () => {
     }),
   );
   assert.throws(() => planSceneReview(timing, { ...delivery, frameCount: 1 }));
+});
+
+test("Scene review accepts authored content chapters and still rejects stale starts", () => {
+  const { semanticTiming: authored } = createAuthoredGroupedRuntimeFixture();
+  const published = {
+    storyId: authored.storyId,
+    fps: authored.fps,
+    frameCount: authored.durationInFrames,
+    publishing: {
+      chapters: authored.storyBeats.map(({ meaningId, startFrame }) => ({
+        meaningId,
+        startFrame,
+      })),
+    },
+  };
+  assert.equal(planSceneReview(authored, published).scenes.length, 2);
+  assert.equal(
+    planSceneReview(authored, { ...published, publishing: { chapters: [] } })
+      .scenes.length,
+    2,
+  );
+  assert.throws(
+    () =>
+      planSceneReview(authored, {
+        ...published,
+        publishing: {
+          chapters: published.publishing.chapters.map((chapter, index) =>
+            index === 1
+              ? { ...chapter, startFrame: chapter.startFrame + 1 }
+              : chapter,
+          ),
+        },
+      }),
+    /stale/u,
+  );
 });
 
 test("Scene review CLI requires an exact Project argument", () => {

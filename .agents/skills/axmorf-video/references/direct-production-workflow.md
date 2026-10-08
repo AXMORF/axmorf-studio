@@ -12,15 +12,15 @@ strict input 用仓库相对路径；省略 `sceneTemplates` 继承 ProducerConf
 npm run project:create -- --project <storyId> --input <repository-relative-json>
 ```
 
-Create 原子保留 silent/narrated 语义并冻结 Scene baseline。legacy 缺失时 inspect 前须用户授权零 provider、持锁迁移：
+Create 保留 silent/narrated/visual 语义，冻结 Scene baseline。legacy 缺失时 inspect 前须用户授权零 provider、持锁迁移：
 
 ```bash
 npm run project:originality:freeze -- --project <storyId>
 ```
 
 不伪造 baseline。先写全片 filmPlan，再将连续正文 meaningIds 按 visualScenes 分组；所有 Beat 的 brief 仍保留。
-一个分组一个 owning task/source graph，sceneFrame 跨内部 Beat 不重置。纯动效显式 timingSource=authored-frames，
-正文 silent scene-owner preset 帧数为 authority，没有 provider/seal/master/captions；首尾模板仍独立。
+一个分组一个 owning task/source graph，sceneFrame 不在 Beat 边界重置。纯动效用 visual-scene/帧数/null 旁白，
+或显式 authored-frames/silent scene-owner/preset 帧；均无 provider/旁白/字幕，首尾模板独立。
 Root 预定跨 owner 的 `outgoingHandoff.subject`；v1 给 `trackedState`。child 对照
 `continuity.handoffs`；scene-owner 可交接，fixed 不连续，仅组尾定义外部接缝。
 

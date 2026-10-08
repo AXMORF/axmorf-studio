@@ -36,6 +36,7 @@ import {
   assertProjectRevisionOwnedPath,
   type ProjectRevisionProductionScope,
 } from "../../project-production/application/production-scope";
+import { isVisualStory } from "@axmorf/studio/contracts";
 import { readContainedRegularFile } from "../adapters/project-create-store";
 
 export type ProjectRevisionBaseDirectories = Readonly<
@@ -113,7 +114,10 @@ const inspectSnapshotRootChain = async ({
     const state = await pathState(current);
     if (state === null) {
       if (!allowAbsent || current === repositoryRoot) {
-        throw new Error(`Project revision snapshot root is missing: ${root}.`);
+        throw Object.assign(
+          new Error(`Project revision snapshot root is missing: ${root}.`),
+          { code: "ENOENT" },
+        );
       }
       return { identities, missingPath: current } as const;
     }
@@ -186,7 +190,10 @@ export const allowsAbsentProjectRevisionNarrationRoot = async ({
       "Project revision narration presence Story identity is stale.",
     );
   }
-  return story.timingSource === "authored-frames";
+  return (
+    story.timingSource === "authored-frames" ||
+    (await sourceHasNoNarration(sourceRoot))
+  );
 };
 
 export const ensureProjectRevisionContainedDirectory = async ({
@@ -570,6 +577,77 @@ export const copyProjectRevisionSnapshotRoot = async ({
   }
   await assertSnapshotRootChainUnchanged(sourceChain);
   return snapshot;
+};
+
+const sourceHasNoNarration = async (sourceRoot: string) => {
+  let narrationBytes: Uint8Array;
+  try {
+    narrationBytes = await readContainedRegularFile({
+      rootDir: sourceRoot,
+      relativePath: "narration.json",
+      label: "Project revision narration source",
+    });
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return false;
+    throw error;
+  }
+  if (JSON.parse(new TextDecoder().decode(narrationBytes)) !== null)
+    return false;
+  const story = StorySpecSchema.parse(
+    JSON.parse(
+      new TextDecoder().decode(
+        await readContainedRegularFile({
+          rootDir: sourceRoot,
+          relativePath: "story.json",
+          label: "Project revision Story source",
+        }),
+      ),
+    ),
+  );
+  if (!isVisualStory(story) && story.timingSource !== "authored-frames") {
+    throw new Error("Null narration requires visual Project content.");
+  }
+  return true;
+};
+
+export const inspectProjectRevisionNarrationTree = async ({
+  rootDir,
+  sourceRoot,
+  narrationRoot,
+}: {
+  readonly rootDir: string;
+  readonly sourceRoot: string;
+  readonly narrationRoot: string;
+}) => {
+  const fromRoot = relative(resolve(rootDir), resolve(narrationRoot));
+  if (
+    fromRoot === "" ||
+    fromRoot === ".." ||
+    fromRoot.startsWith(`..${sep}`) ||
+    isAbsolute(fromRoot)
+  ) {
+    throw new Error("Revision narration workspace escapes its fixed root.");
+  }
+  await assertRealDirectory(rootDir, "Project revision repository root");
+  let parent = resolve(rootDir);
+  for (const segment of relative(parent, dirname(narrationRoot))
+    .split(sep)
+    .filter(Boolean)) {
+    parent = join(parent, segment);
+    const state = await pathState(parent);
+    if (state !== null && (state.isSymbolicLink() || !state.isDirectory())) {
+      throw new Error(
+        "Project revision narration parent must be a real directory.",
+      );
+    }
+  }
+  if (
+    (await pathState(narrationRoot)) === null &&
+    (await sourceHasNoNarration(sourceRoot))
+  ) {
+    return null;
+  }
+  return inspectProjectRevisionRegularTree(narrationRoot);
 };
 
 const assertExactNames = (

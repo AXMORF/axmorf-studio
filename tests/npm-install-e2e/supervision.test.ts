@@ -56,8 +56,16 @@ const trace = () => {
     {
       command: "npm run project:produce:continue -- --project story",
       background: true,
+      notify: true,
     },
-    { status: "started" },
+    {
+      output: "Background process started",
+      session_id: "proc_fixture",
+      pid: 321,
+      exit_code: 0,
+      error: null,
+      notify_on_complete: true,
+    },
   );
   say("制作已启动，等待子任务和固定交付流程完成。");
   rows.push({
@@ -66,8 +74,13 @@ const trace = () => {
   });
   call(
     "process_manage",
-    { action: "wait", session_id: "proc", timeout: 180 },
-    { status: "project-production-complete" },
+    { action: "wait", session_id: "proc_fixture", timeout: 180 },
+    {
+      status: "exited",
+      command: "npm run project:produce:continue -- --project story",
+      exit_code: 0,
+      output: JSON.stringify({ status: "project-production-complete" }),
+    },
   );
   say("四文件已通过校验，视频完成。");
   return { rows, call };
@@ -198,19 +211,31 @@ test("Codex native code-mode execution distinguishes shell commands from search 
         return {
           type: "response_item",
           timestamp: index,
-          payload: command
-            ? {
-                type: "custom_tool_call",
-                name: "functions.exec",
-                call_id: call.id,
-                input: `text(await tools.exec_command(${JSON.stringify({ cmd: command })}));`,
-              }
-            : {
-                type: "function_call",
-                name: call.function.name,
-                call_id: call.id,
-                arguments: call.function.arguments,
-              },
+          payload:
+            call.function.name === "process_manage"
+              ? {
+                  type: "function_call",
+                  name: "write_stdin",
+                  call_id: call.id,
+                  arguments: JSON.stringify({
+                    session_id: input.session_id,
+                    chars: "",
+                    yield_time_ms: 60000,
+                  }),
+                }
+              : command
+                ? {
+                    type: "custom_tool_call",
+                    name: "functions.exec",
+                    call_id: call.id,
+                    input: `text(await tools.exec_command(${JSON.stringify({ cmd: command })}));`,
+                  }
+                : {
+                    type: "function_call",
+                    name: call.function.name,
+                    call_id: call.id,
+                    arguments: call.function.arguments,
+                  },
         };
       });
     }
@@ -223,7 +248,11 @@ test("Codex native code-mode execution distinguishes shell commands from search 
             ? {
                 type: "custom_tool_call_output",
                 call_id: row.tool_call_id,
-                output: row.content,
+                output:
+                  JSON.parse(String(row.content)).output ===
+                  "Background process started"
+                    ? JSON.stringify({ session_id: "proc_fixture", output: "" })
+                    : row.content,
               }
             : {
                 type: "message",
@@ -265,24 +294,40 @@ for (const [name, args, message] of [
   ],
   [
     "process_manage",
-    { action: "poll", session_id: "proc" },
+    { action: "poll", session_id: "proc_fixture" },
     /original handle/u,
   ],
   [
     "process_manage",
-    { action: "wait", session_id: "proc", timeout: 1 },
+    { action: "wait", session_id: "proc_fixture", timeout: 1 },
     /long native/u,
   ],
 ] as const) {
   test(`supervision rejects ${name} ${JSON.stringify(args)}`, () => {
     const { rows, call } = trace();
-    call(name, args, {});
+    if (name === "process_manage" && args.action === "wait") {
+      const wait = rows
+        .flatMap(
+          (row) =>
+            (row.tool_calls ?? []) as Array<{
+              function: { name: string; arguments: string };
+            }>,
+        )
+        .find((call) => call.function.name === "process_manage")!;
+      wait.function.arguments = JSON.stringify(args);
+    } else {
+      call(name, args, {});
+    }
     assert.throws(() => audit(rows), message);
   });
 }
 
-const uiTrace = () => {
-  const { rows } = trace();
+const uiTrace = (withEmptyTool = false) => {
+  const { rows, call } = trace();
+  if (withEmptyTool) {
+    call("skills_list", {}, { skills: [] });
+    rows.splice(1, 0, ...rows.splice(-2));
+  }
   const rpc: Record<string, unknown>[] = [
     {
       jsonrpc: "2.0",
@@ -351,6 +396,39 @@ test("TUI UI-only interim reports are bound to native calls without changing the
   const before = JSON.stringify(input.rows);
   assert.ok(auditUi(input).uiEvidence?.checksum.startsWith("sha256:"));
   assert.equal(JSON.stringify(input.rows), before);
+});
+test("TUI omission of empty start arguments still binds the original no-argument call", () => {
+  const input = uiTrace(true);
+  const start = input.rpc.find(
+    (row) =>
+      (row.params as { type?: string; payload?: { name?: string } })?.type ===
+        "tool.start" &&
+      (row.params as { payload?: { name?: string } }).payload?.name ===
+        "skills_list",
+  )!;
+  const payload = (start.params as { payload: Record<string, unknown> })
+    .payload;
+  delete payload.args;
+  const before = JSON.stringify(input.rows);
+  assert.equal(auditUi(input).continuationCalls, 1);
+  assert.equal(JSON.stringify(input.rows), before);
+  for (const supplied of [null, [], { changed: true }]) {
+    payload.args = supplied;
+    assert.throws(() => auditUi(input), /TUI tool arguments differ/u);
+  }
+  delete payload.args;
+  const call = input.rows
+    .flatMap(
+      (row) =>
+        (row.tool_calls ?? []) as Array<{
+          function: { name: string; arguments: string };
+        }>,
+    )
+    .find((call) => call.function.name === "skills_list")!;
+  for (const original of ['{"parameter":"value"}', "[]", "null"]) {
+    call.function.arguments = original;
+    assert.throws(() => auditUi(input), /TUI tool arguments differ/u);
+  }
 });
 for (const mutation of [
   "session",
@@ -431,85 +509,108 @@ test("TUI native tool_call bridge authenticates its actual UI name and inner arg
   assert.throws(() => auditUi(input), /arguments differ from native DB/u);
 });
 
-test("TUI vision result binds native text and retains the image in raw UI evidence", () => {
-  const input = uiTrace();
-  const callId = "vision-call";
-  const visionArgs = { path: "/frame.png", question: "Review frame" };
-  const text = "Visible frame review";
-  const result = {
-    _multimodal: true,
-    content: [
-      { type: "text", text },
-      { type: "image_url", image_url: { url: "data:image/jpeg;base64,/9j/" } },
-    ],
-  };
-  const dbIndex = input.rows.findIndex((row) =>
-    String(row.content).startsWith("四文件"),
-  );
-  input.rows.splice(
-    dbIndex,
-    0,
-    {
-      role: "assistant",
-      tool_calls: [
+for (const format of ["jpeg", "png"] as const)
+  test(`TUI vision result binds native text and retains the ${format} image in raw UI evidence`, () => {
+    const input = uiTrace();
+    const callId = "vision-call";
+    const visionArgs = { path: "/frame.png", question: "Review frame" };
+    const text = "Visible frame review";
+    const result = {
+      _multimodal: true,
+      content: [
+        { type: "text", text },
         {
-          id: callId,
-          function: {
-            name: "vision_analyze",
-            arguments: JSON.stringify(visionArgs),
+          type: "image_url",
+          image_url: {
+            url:
+              format === "jpeg"
+                ? "data:image/jpeg;base64,/9j/"
+                : "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aWQAAAABJRU5ErkJggg==",
           },
         },
       ],
-    },
-    {
-      role: "tool",
-      timestamp: 1,
-      tool_call_id: callId,
-      tool_name: "vision_analyze",
-      content: `${text}\n[screenshot]`,
-    },
-  );
-  const uiIndex = input.rpc.findIndex(
-    (row) =>
-      (row.params as { type?: string } | undefined)?.type ===
-      "message.complete",
-  );
-  input.rpc.splice(
-    uiIndex,
-    0,
-    {
-      jsonrpc: "2.0",
-      method: "event",
-      params: {
-        type: "tool.start",
-        session_id: "ui",
-        payload: { tool_id: callId, name: "vision_analyze", args: visionArgs },
+    };
+    const dbIndex = input.rows.findIndex((row) =>
+      String(row.content).startsWith("四文件"),
+    );
+    input.rows.splice(
+      dbIndex,
+      0,
+      {
+        role: "assistant",
+        tool_calls: [
+          {
+            id: callId,
+            function: {
+              name: "vision_analyze",
+              arguments: JSON.stringify(visionArgs),
+            },
+          },
+        ],
       },
-    },
-    {
-      jsonrpc: "2.0",
-      method: "event",
-      params: {
-        type: "tool.complete",
-        session_id: "ui",
-        payload: {
-          tool_id: callId,
-          name: "vision_analyze",
-          args: visionArgs,
-          result,
+      {
+        role: "tool",
+        timestamp: 1,
+        tool_call_id: callId,
+        tool_name: "vision_analyze",
+        content: `${text}\n[screenshot]`,
+      },
+    );
+    const uiIndex = input.rpc.findIndex(
+      (row) =>
+        (row.params as { type?: string } | undefined)?.type ===
+        "message.complete",
+    );
+    input.rpc.splice(
+      uiIndex,
+      0,
+      {
+        jsonrpc: "2.0",
+        method: "event",
+        params: {
+          type: "tool.start",
+          session_id: "ui",
+          payload: {
+            tool_id: callId,
+            name: "vision_analyze",
+            args: visionArgs,
+          },
         },
       },
-    },
-  );
-  let sequence = 0;
-  for (const row of input.rpc) {
-    if (row.method === "event")
-      (row.params as Record<string, unknown>).seq = ++sequence;
-  }
-  assert.equal(auditUi(input).continuationCalls, 1);
-  result.content[0]!.text = "Changed frame review";
-  assert.throws(() => auditUi(input), /vision text differs/u);
-});
+      {
+        jsonrpc: "2.0",
+        method: "event",
+        params: {
+          type: "tool.complete",
+          session_id: "ui",
+          payload: {
+            tool_id: callId,
+            name: "vision_analyze",
+            args: visionArgs,
+            result,
+          },
+        },
+      },
+    );
+    let sequence = 0;
+    for (const row of input.rpc) {
+      if (row.method === "event")
+        (row.params as Record<string, unknown>).seq = ++sequence;
+    }
+    assert.equal(auditUi(input).continuationCalls, 1);
+    const originalImage = result.content[1]!.image_url!.url;
+    for (const invalid of [
+      "data:image/png;base64,/9j/",
+      "data:image/jpeg;base64,iVBORw0KGgo=",
+      "data:image/gif;base64,R0lGODlhAQABAIAAAA==",
+    ]) {
+      result.content[1]!.image_url!.url = invalid;
+      assert.throws(() => auditUi(input));
+    }
+    result.content[1]!.image_url!.url = originalImage;
+    result.content[0]!.text = "Changed frame review";
+    assert.throws(() => auditUi(input), /vision text differs/u);
+  });
 
 test("explicit inline supervision preserves reports and fixed continuation without delegation", () => {
   const rows = trace().rows.filter(

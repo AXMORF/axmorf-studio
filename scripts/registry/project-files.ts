@@ -179,7 +179,7 @@ export const loadProjectRegistrationEntry = async ({
   const sealedNarration =
     projectSource.story.timingSource === "authored-frames"
       ? null
-      : SealedNarrationManifestSchema.parse(
+      : SealedNarrationManifestSchema.nullable().parse(
           await readJson(
             join(projectDirectory, "generated/sealed-narration.generated.json"),
           ),

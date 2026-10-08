@@ -30,7 +30,7 @@ const createExpectedGeneration = ({
   providerAttemptFingerprint,
 }: {
   readonly story: StorySpec;
-  readonly narration: NarrationSpec;
+  readonly narration: NarrationSpec | null;
   readonly providerAttemptFingerprint: string;
 }): NarrationGenerationExpected => {
   const generationInputFingerprint = computeGenerationInputFingerprint(
@@ -68,7 +68,7 @@ export const runNarrationGeneration = async ({
 }: {
   readonly rootDir: string;
   readonly story: StorySpec;
-  readonly narration: NarrationSpec;
+  readonly narration: NarrationSpec | null;
   readonly providerAttemptFingerprint: string;
   readonly generateChunk: ChunkAudioGenerator;
   readonly normalizePcm: PcmNormalizer;
@@ -77,6 +77,9 @@ export const runNarrationGeneration = async ({
     throw new Error(
       "Authored-frame Stories do not generate narration; prepare their fixed frame timing.",
     );
+  if (narration === null) {
+    throw new Error("Visual Stories do not generate narration.");
+  }
   const expected = createExpectedGeneration({
     story,
     narration,

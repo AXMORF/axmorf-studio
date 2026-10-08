@@ -15,6 +15,7 @@ import test from "node:test";
 
 import {
   MAX_TASK_WORKER_FILE_BYTES,
+  TASK_EXECUTION_CONTRACT_VERSION,
   TaskExecutionContractSchema,
   buildProducerPlan,
   buildProducerTaskSpec,
@@ -51,7 +52,7 @@ const sha = (character: string) =>
 const fixture = async (rootDir: string, contextBytes = "{}\n") => {
   const contract = TaskExecutionContractSchema.parse({
     schemaVersion: 1,
-    contractVersion: "agent-task-execution-contract-v1",
+    contractVersion: TASK_EXECUTION_CONTRACT_VERSION,
     taskKind: "cover-owner",
     purpose: "Author one fixture output.",
     workflow: ["Bind, author, finalize, check, and commit."],
@@ -183,6 +184,7 @@ test("task bind is zero-write, attempt-bound, and exposes transport-specific aut
   });
   assert.equal(shared.status, "task-worker-bound");
   assert.equal(shared.workspace.directFilesystemAccess, true);
+  assert.equal(shared.commands.preview, null);
   for (const [key, script] of [
     ["describe", "describe"],
     ["finalize", "finalize"],
@@ -215,6 +217,7 @@ test("task bind is zero-write, attempt-bound, and exposes transport-specific aut
     transport: "controller-io",
   });
   assert.equal(controller.workspace.directFilesystemAccess, false);
+  assert.equal(controller.commands.preview, null);
   assert.deepEqual(
     await readdir(current.workspace, { recursive: true }),
     before,

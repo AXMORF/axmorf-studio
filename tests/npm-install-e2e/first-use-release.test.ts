@@ -11,7 +11,8 @@ import {
   writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { basename, dirname, join } from "node:path";
+import { basename, dirname, join, relative } from "node:path";
+import { realpathSync } from "node:fs";
 import test from "node:test";
 import { build } from "esbuild";
 import {
@@ -19,6 +20,7 @@ import {
   auditHermesSession,
   assertHermesRunIdentity,
   assertEmptyWorkspace,
+  assertWorkspaceIdentity,
   create,
   createPublic,
   verifyPublicReceipt,
@@ -54,6 +56,29 @@ const runtime: PackageContent = {
   files: [file],
 };
 const creator: PackageContent = { ...runtime, name: "create-axmorf-studio" };
+
+test("release recorder binds physical Workspace identity across host path aliases", async (context) => {
+  const root = await mkdtemp(join(tmpdir(), "axmorf-workspace-identity-"));
+  context.after(() => rm(root, { recursive: true, force: true }));
+  const original = join(root, "workspace");
+  const alias = join(root, "alias");
+  const other = join(root, "other");
+  await mkdir(original);
+  await mkdir(other);
+  await writeFile(join(original, "same-file"), "same bytes");
+  await writeFile(join(other, "same-file"), "same bytes");
+  await symlink(original, alias, "dir");
+  await assertWorkspaceIdentity(original, alias);
+  await assertWorkspaceIdentity(alias, original);
+  await assert.rejects(
+    () => assertWorkspaceIdentity(original, other),
+    /Native run Workspace differs from its pre-run snapshot/u,
+  );
+  await assert.rejects(
+    () => assertWorkspaceIdentity(join(root, "missing"), original),
+    /ENOENT/u,
+  );
+});
 
 test("Hermes run identity aliases must all agree with the native DB", () => {
   assertHermesRunIdentity({ sessionId: "native" }, "native");
@@ -151,7 +176,11 @@ test("release evidence binds both hosts, exact candidates, prompts and complete 
   );
   const missingHost = evidence();
   missingHost.hosts.pop();
-  assert.throws(() => verifyReceipt(missingHost, runtime, creator));
+  assert.throws(() =>
+    verifyReceipt(missingHost, runtime, creator, {
+      requiredHosts: ["codex", "hermes"],
+    }),
+  );
   const duplicateHost = evidence();
   duplicateHost.hosts[1]!.host = "codex";
   assert.throws(
@@ -536,15 +565,21 @@ test("package fingerprint ignores archive metadata but binds actual packed files
   );
 });
 
-test("publication verifies first-use candidates before publishing either package", async () => {
+test("publication verifies scoped exact candidates before publishing either package", async () => {
   const workflow = await readFile(".github/workflows/npm-publish.yml", "utf8");
   assert.match(
     workflow,
-    /test -f "docs\/evidence\/v\$\{root_version\}-first-use\.json"/u,
+    /test -f "docs\/evidence\/v\$\{root_version\}-release-plan\.json"/u,
   );
   assert.ok(
-    workflow.indexOf("first-use.ts verify") <
+    workflow.indexOf("release-gate.ts verify") <
       workflow.indexOf('npm publish "$tarball"'),
+  );
+  assert.match(workflow, /if \[\[ "\$NATIVE_FIRST_USE" == "true" \]\]/u);
+  assert.match(workflow, /remotion render src\/index\.ts DefaultIntroPreview/u);
+  assert.match(
+    workflow,
+    /create-axmorf-studio workspace --yes --runtime-package/u,
   );
 });
 
@@ -1931,6 +1966,76 @@ test("public registry metadata, tar bytes and lock reject redirected or local pa
       ),
     );
 });
+
+test(
+  "public creator lock binds npm's Darwin tmp alias to the exact physical package owner",
+  { skip: process.platform !== "darwin" },
+  async (context) => {
+    const root = await mkdtemp("/tmp/axmorf-public-lock-alias-");
+    context.after(() => rm(root, { recursive: true, force: true }));
+    const name = "create-axmorf-studio" as const;
+    await mkdir(join(root, "node_modules", name), { recursive: true });
+    const physical = realpathSync(root);
+    assert.equal(physical, `/private${root}`);
+    const key = relative(root, join(physical, "node_modules", name));
+    const metadata = {
+      name,
+      version: "0.1.17",
+      tarball:
+        "https://registry.npmjs.org/create-axmorf-studio/-/create-axmorf-studio-0.1.17.tgz",
+      integrity: `sha512-${createHash("sha512").update("public creator").digest("base64")}`,
+    };
+    const entry = {
+      version: metadata.version,
+      resolved: metadata.tarball,
+      integrity: metadata.integrity,
+    };
+    const lock = { lockfileVersion: 3, packages: { [key]: entry } };
+    const path = join(root, "package-lock.json");
+    const frozen = JSON.stringify(lock);
+    assertPublicLock(lock, metadata, path);
+    assert.equal(JSON.stringify(lock), frozen);
+    assert.throws(() => assertPublicLock(lock, metadata));
+    assert.throws(() =>
+      assertPublicLock(
+        { ...lock, packages: { [key.replace(name, "foreign")]: entry } },
+        metadata,
+        path,
+      ),
+    );
+    assert.throws(
+      () =>
+        assertPublicLock(
+          {
+            ...lock,
+            packages: { [key]: entry, [`node_modules/${name}`]: entry },
+          },
+          metadata,
+          path,
+        ),
+      /ambiguous/u,
+    );
+    for (const override of [
+      { resolved: "file:local.tgz" },
+      { integrity: `sha512-${"A".repeat(86)}==` },
+      { version: "0.1.16" },
+      { link: true },
+    ])
+      assert.throws(() =>
+        assertPublicLock(
+          { ...lock, packages: { [key]: { ...entry, ...override } } },
+          metadata,
+          path,
+        ),
+      );
+    const other = await mkdtemp("/tmp/axmorf-public-lock-foreign-");
+    context.after(() => rm(other, { recursive: true, force: true }));
+    await mkdir(join(other, "node_modules", name), { recursive: true });
+    assert.throws(() =>
+      assertPublicLock(lock, metadata, join(other, "package-lock.json")),
+    );
+  },
+);
 
 test("public creation uses npm latest with fresh registry cache and distinct verifiable receipts", async (context) => {
   const root = await mkdtemp(join(tmpdir(), "axmorf-public-registry-"));

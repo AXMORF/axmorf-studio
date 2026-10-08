@@ -14,10 +14,13 @@ import {
   ProjectRevisionMaterializationRecordSchema,
   ProjectRevisionValidationResultSchema,
   ProjectSoundPlanSchema,
+  ProjectSceneTemplateInstantiationSchema,
   PublishingIntentSchema,
   RenderSpecSchema,
   ResourceCatalogSchema,
   SceneOriginalityBaselineSchema,
+  SceneTemplateInstanceSchema,
+  SemanticTimingSchema,
   SCENE_PRIOR_SOURCE_PATH,
   StoryResourcePoolSchema,
   StorySpecSchema,
@@ -30,9 +33,14 @@ import {
   buildPendingSceneAuthoring,
   buildPublishingIntent,
   buildStoryResourcePool,
+  buildProjectSceneTemplateInstantiation,
+  buildProjectSoundPlan,
+  buildSilentScenePreset,
+  computeStoryFingerprint,
   computeProjectRevisionAuthoringFingerprint,
   computeProjectRevisionCandidateId,
   computeVisualStyleFingerprint,
+  isVisualStory,
   serializeCanonicalJson,
   validateStoryResourcePool,
   type DeliveryPublish,
@@ -65,6 +73,9 @@ export const PROJECT_REVISION_MATERIALIZATION_PATH =
   "production/project-revision-candidate.json" as const;
 
 const PROJECT_CREATE_RECEIPT_PATH = "production/project-create.json" as const;
+type ProjectRevisionEditableAuthoring = ReturnType<
+  typeof ProjectRevisionEditableAuthoringSchema.parse
+>;
 
 const checksum = (bytes: Uint8Array | string) =>
   `sha256:${createHash("sha256").update(bytes).digest("hex")}` as const;
@@ -230,6 +241,7 @@ const contentBeats = (story: ReturnType<typeof StorySpecSchema.parse>) =>
   story.beats.filter(
     (beat) =>
       beat.kind === "narrated-scene" ||
+      beat.kind === "visual-scene" ||
       (story.timingSource === "authored-frames" &&
         beat.preset.implementation.kind === "scene-owner"),
   );
@@ -253,6 +265,39 @@ const editablePublishing = (
   collectionId: publishing.collection.id,
 });
 
+const editableBoundaryScenes = (
+  story: ReturnType<typeof StorySpecSchema.parse>,
+) =>
+  story.beats.flatMap<
+    NonNullable<ProjectRevisionEditableAuthoring["boundaryScenes"]>[number]
+  >((beat) => {
+    if (
+      beat.kind !== "silent-scene" ||
+      beat.preset.implementation.kind !== "template-copy"
+    )
+      return [];
+    const window = beat.preset.implementation.playbackWindow;
+    if (window === undefined) {
+      return [{ meaningId: beat.meaningId, playbackRange: null }];
+    }
+    const { sourceDurationInFrames: _sourceDuration, ...playbackRange } =
+      window;
+    void _sourceDuration;
+    return [{ meaningId: beat.meaningId, playbackRange }];
+  });
+
+const editableSound = (
+  sound: ReturnType<typeof ProjectSoundPlanSchema.parse>,
+) => ({
+  schemaVersion: sound.schemaVersion,
+  contractVersion: sound.contractVersion,
+  storyId: sound.storyId,
+  contributions: sound.contributions,
+  ...(sound.sceneMusicPolicy === undefined
+    ? {}
+    : { sceneMusicPolicy: sound.sceneMusicPolicy }),
+});
+
 const readEditableProject = async ({
   rootDir,
   storyId,
@@ -260,7 +305,7 @@ const readEditableProject = async ({
   readonly rootDir: string;
   readonly storyId: string;
 }) => {
-  const [brief, story, visualStyle, pending, globalVisual, publishing] =
+  const [brief, story, visualStyle, pending, globalVisual, publishing, sound] =
     await Promise.all([
       readProjectJson({
         rootDir,
@@ -298,6 +343,12 @@ const readEditableProject = async ({
         relativePath: "publishing-intent.json",
         label: "Revision PublishingIntent",
       }).then(PublishingIntentSchema.parse),
+      readProjectJson({
+        rootDir,
+        storyId,
+        relativePath: "sound.json",
+        label: "Revision ProjectSoundPlan",
+      }).then(ProjectSoundPlanSchema.parse),
     ]);
   const storyIds = [
     brief.storyId,
@@ -306,6 +357,7 @@ const readEditableProject = async ({
     pending.storyId,
     globalVisual.storyId,
     publishing.storyId,
+    sound.storyId,
   ];
   if (storyIds.some((candidate) => candidate !== storyId)) {
     throw new Error("Project revision authoring is cross-bound.");
@@ -318,10 +370,11 @@ const readEditableProject = async ({
   ) {
     throw new Error("Project revision pending Scene authoring is stale.");
   }
-  const narratedMeaningIds = new Set(
+  const contentMeaningIds = new Set(
     contentBeats(story).map(({ meaningId }) => meaningId),
   );
   const editable = ProjectRevisionEditableAuthoringSchema.parse({
+    boundaryScenes: editableBoundaryScenes(story),
     brief,
     story: {
       ...(story.timingSource === undefined
@@ -338,10 +391,11 @@ const readEditableProject = async ({
     },
     visualStyle: editableVisualStyle(visualStyle),
     scenes: pending.scenes.filter(({ meaningId }) =>
-      narratedMeaningIds.has(meaningId),
+      contentMeaningIds.has(meaningId),
     ),
     globalVisual: { visualIntent: globalVisual.visualIntent },
     publishing: editablePublishing(publishing),
+    sound: editableSound(sound),
   });
   return {
     brief,
@@ -350,6 +404,7 @@ const readEditableProject = async ({
     pending,
     globalVisual,
     publishing,
+    sound,
     editable,
   } as const;
 };
@@ -425,6 +480,9 @@ const readVerifiedRevisionState = async ({
     constraints: {
       sameProject: true,
       preserveNarratedMeaningIdsAndOrder: true,
+      ...(isVisualStory(project.story)
+        ? { preserveContentMeaningIdsAndOrder: true }
+        : {}),
       preserveBoundaryScenes: true,
       currentDeliveryRemainsUntilPromotion: true,
     },
@@ -522,6 +580,13 @@ const inspectProjectRevisionAuthoring = async ({
   }
   if (input.patch.story !== undefined) {
     if (
+      isVisualStory(input.patch.story) !== isVisualStory(state.project.story)
+    ) {
+      throw new Error(
+        "Project revision must preserve its visual or narrated content mode; create a new Project to change it.",
+      );
+    }
+    if (
       (input.patch.story.timingSource ?? "sealed-narration") !==
       (state.project.story.timingSource ?? "sealed-narration")
     ) {
@@ -541,6 +606,130 @@ const inspectProjectRevisionAuthoring = async ({
       actual: input.patch.scenes.map(({ meaningId }) => meaningId),
       label: "Project revision Scene authoring",
     });
+  }
+  if (input.patch.boundaryScenes !== undefined) {
+    assertMeaningOrder({
+      expected: (state.context.editable.boundaryScenes ?? []).map(
+        ({ meaningId }) => meaningId,
+      ),
+      actual: input.patch.boundaryScenes.map(({ meaningId }) => meaningId),
+      label: "Project revision boundary playback",
+    });
+    for (const { meaningId, playbackRange } of input.patch.boundaryScenes) {
+      const instance = SceneTemplateInstanceSchema.parse(
+        await readProjectJson({
+          rootDir,
+          storyId: input.storyId,
+          relativePath: `scenes/${meaningId}/scene-template-instance.json`,
+          label: "Revision immutable boundary instance",
+        }),
+      );
+      if (
+        instance.storyId !== input.storyId ||
+        instance.meaningId !== meaningId ||
+        (playbackRange !== null &&
+          playbackRange.endFrame > instance.durationInFrames)
+      ) {
+        throw new Error(
+          "Revision boundary playback exceeds its immutable source.",
+        );
+      }
+    }
+  }
+  if (input.patch.sound !== undefined) {
+    const next = input.patch.sound;
+    const current = state.project.sound;
+    const audioIdentity = (sound: typeof current | typeof next) => ({
+      storyId: sound.storyId,
+      sceneMusicPolicy: sound.sceneMusicPolicy ?? "preserve",
+      contributions: sound.contributions.map((contribution) => ({
+        contributionId: contribution.contributionId,
+        resourceId: contribution.resourceId,
+        descriptorFingerprint: contribution.descriptorFingerprint,
+        loop: contribution.loop,
+        playbackScope: contribution.playbackScope,
+      })),
+    });
+    if (
+      serializeCanonicalJson(audioIdentity(next)) !==
+      serializeCanonicalJson(audioIdentity(current))
+    ) {
+      throw new Error(
+        "Revision sound may change gain and fades of existing tracks only.",
+      );
+    }
+    const authoredStory = input.patch.story ?? state.context.editable.story;
+    const measuredTiming =
+      isVisualStory(authoredStory) || input.patch.story !== undefined
+        ? null
+        : SemanticTimingSchema.parse(
+            await readProjectJson({
+              rootDir,
+              storyId: input.storyId,
+              relativePath: "generated/semantic-timing.generated.json",
+              label: "Revision current measured sound window",
+            }),
+          );
+    const render = RenderSpecSchema.parse(
+      await readProjectJson({
+        rootDir,
+        storyId: input.storyId,
+        relativePath: "render.json",
+        label: "Revision RenderSpec",
+      }),
+    );
+    const boundaryFrames = state.project.story.beats.reduce((frames, beat) => {
+      if (beat.kind !== "silent-scene") return frames;
+      const authoredBoundary = input.patch.boundaryScenes?.find(
+        ({ meaningId }) => meaningId === beat.meaningId,
+      );
+      const range = authoredBoundary?.playbackRange;
+      const implementation = beat.preset.implementation;
+      const sourceDuration =
+        implementation.kind === "template-copy"
+          ? (implementation.playbackWindow?.sourceDurationInFrames ??
+            beat.preset.durationInFrames)
+          : beat.preset.durationInFrames;
+      return (
+        frames +
+        (authoredBoundary === undefined
+          ? beat.preset.durationInFrames
+          : range == null
+            ? sourceDuration
+            : range.endFrame - range.startFrame)
+      );
+    }, 0);
+    for (const track of next.contributions) {
+      const duration = isVisualStory(authoredStory)
+        ? (track.playbackScope === "composition"
+            ? render.leadInFrames + render.tailFrames + boundaryFrames
+            : 0) +
+          authoredStory.beats.reduce(
+            (frames, beat) =>
+              frames +
+              (beat.kind === "visual-scene" &&
+              (track.playbackScope === "content" ||
+                track.playbackScope === "composition")
+                ? beat.durationInFrames
+                : 0),
+            0,
+          )
+        : track.playbackScope === "composition"
+          ? measuredTiming?.durationInFrames
+          : measuredTiming?.storyBeats
+              .filter((beat) => beat.kind === "narrated-scene")
+              .reduce(
+                (frames, beat) => frames + beat.endFrame - beat.startFrame,
+                0,
+              );
+      if (
+        duration !== undefined &&
+        ((track.fadeInFrames ?? 0) > duration ||
+          (track.fadeOutFrames ?? 0) > duration)
+      ) {
+        throw new Error("Revision sound fades must fit the playback window.");
+      }
+    }
   }
   parseAuthoringInput(ProjectRevisionEditableAuthoringSchema, {
     ...state.context.editable,
@@ -629,6 +818,9 @@ const applyProjectRevisionPatch = async ({
   const revisedBeatByMeaning = new Map(
     authoredStory.beats.map((beat) => [beat.meaningId, beat] as const),
   );
+  const boundaryByMeaning = new Map(
+    input.patch.boundaryScenes?.map((scene) => [scene.meaningId, scene]),
+  );
   const story = StorySpecSchema.parse({
     schemaVersion: project.story.schemaVersion,
     storyId,
@@ -642,12 +834,44 @@ const applyProjectRevisionPatch = async ({
       ? {}
       : { visualScenes: authoredStory.visualScenes }),
     title: authoredStory.title,
-    beats: project.story.beats.map((beat) =>
-      beat.kind === "silent-scene" &&
-      beat.preset.implementation.kind === "template-copy"
-        ? beat
-        : (revisedBeatByMeaning.get(beat.meaningId) ?? beat),
-    ),
+    beats: project.story.beats.map((beat) => {
+      if (
+        beat.kind !== "silent-scene" ||
+        beat.preset.implementation.kind === "scene-owner"
+      ) {
+        return revisedBeatByMeaning.get(beat.meaningId) ?? beat;
+      }
+      const authored = boundaryByMeaning.get(beat.meaningId);
+      if (
+        authored === undefined ||
+        beat.preset.implementation.kind !== "template-copy"
+      ) {
+        return beat;
+      }
+      const { playbackWindow, ...implementation } = beat.preset.implementation;
+      const sourceDurationInFrames =
+        playbackWindow?.sourceDurationInFrames ?? beat.preset.durationInFrames;
+      const range = authored.playbackRange;
+      return {
+        ...beat,
+        preset: buildSilentScenePreset({
+          presetId: beat.preset.presetId,
+          visualIntent: beat.preset.visualIntent,
+          soundIntent: beat.preset.soundIntent,
+          resourceIds: beat.preset.resourceIds,
+          durationInFrames:
+            range === null
+              ? sourceDurationInFrames
+              : range.endFrame - range.startFrame,
+          implementation: {
+            ...implementation,
+            ...(range === null
+              ? {}
+              : { playbackWindow: { ...range, sourceDurationInFrames } }),
+          },
+        }),
+      };
+    }),
   });
   const authoredScenes = input.patch.scenes ?? project.editable.scenes;
   const revisedSceneByMeaning = new Map(
@@ -664,7 +888,7 @@ const applyProjectRevisionPatch = async ({
   const [
     narration,
     render,
-    sound,
+    currentSound,
     previousRequirements,
     previousPool,
     catalog,
@@ -674,7 +898,7 @@ const applyProjectRevisionPatch = async ({
       storyId,
       relativePath: "narration.json",
       label: "Revision NarrationSpec",
-    }).then(NarrationSpecSchema.parse),
+    }).then((value) => NarrationSpecSchema.nullable().parse(value)),
     readProjectJson({
       rootDir,
       storyId,
@@ -706,6 +930,10 @@ const applyProjectRevisionPatch = async ({
       label: "Revision ResourceCatalog",
     }).then(ResourceCatalogSchema.parse),
   ]);
+  const sound =
+    input.patch.sound === undefined
+      ? currentSound
+      : buildProjectSoundPlan(input.patch.sound);
   const brief = VideoBriefSchema.parse(input.patch.brief ?? project.brief);
   const sourceBytes = {
     brief: jsonBytes(brief),
@@ -776,15 +1004,17 @@ const applyProjectRevisionPatch = async ({
     publishingCollections: config.publishingCollections,
   });
   const editable = ProjectRevisionEditableAuthoringSchema.parse({
+    boundaryScenes: editableBoundaryScenes(story),
     brief,
     story: authoredStory,
     visualStyle: editableVisualStyle(visualStyle),
     scenes: authoredScenes,
     globalVisual: { visualIntent: globalVisual.visualIntent },
     publishing: editablePublishing(publishing),
+    sound: editableSound(sound),
   });
   // The staging tree is copied from the verified immutable base. Capture it
-  // before replacing authoring or removing a Scene whose narration changed.
+  // before replacing authoring or removing a Scene whose content timing changed.
   const priorSources = await freezeRevisionScenePriorSources({
     rootDir,
     runtimeRootDir,
@@ -794,6 +1024,7 @@ const applyProjectRevisionPatch = async ({
   const values = [
     ["brief.json", brief],
     ["story.json", story],
+    ["sound.json", sound],
     ["visual-style.json", visualStyle],
     ["publishing-intent.json", publishing],
     ["production/requirements.json", requirements],
@@ -818,12 +1049,59 @@ const applyProjectRevisionPatch = async ({
   });
   const storyChanged =
     serializeCanonicalJson(story) !== serializeCanonicalJson(project.story);
+  const contentStoryChanged =
+    serializeCanonicalJson(authoredStory) !==
+    serializeCanonicalJson(project.editable.story);
+  const instantiationPath = "production/scene-template-instantiation.json";
+  let updatedTemplateInstantiation = false;
+  if (storyChanged) {
+    try {
+      const previous = ProjectSceneTemplateInstantiationSchema.parse(
+        await readProjectJson({
+          rootDir,
+          storyId,
+          relativePath: instantiationPath,
+          label: "Revision immutable boundary selection",
+        }),
+      );
+      const selections = Object.fromEntries(
+        Object.entries(previous.selections).map(([position, selection]) => {
+          if (selection === null) return [position, null];
+          const beat = story.beats.find(
+            ({ meaningId }) => meaningId === selection.meaningId,
+          );
+          if (beat?.kind !== "silent-scene") {
+            throw new Error("Revision immutable boundary selection is stale.");
+          }
+          return [
+            position,
+            { ...selection, presetFingerprint: beat.preset.presetFingerprint },
+          ];
+        }),
+      );
+      await writeContainedJson({
+        rootDir,
+        relativePath: `src/projects/${storyId}/${instantiationPath}`,
+        value: buildProjectSceneTemplateInstantiation({
+          schemaVersion: previous.schemaVersion,
+          storyId,
+          selections,
+          materializedStoryFingerprint: computeStoryFingerprint(story),
+        }),
+      });
+      updatedTemplateInstantiation = true;
+    } catch (error) {
+      if (!isMissing(error)) throw error;
+    }
+  }
   const sceneAuthoringChanged = changedSections.some(
     (section) =>
       section === "brief" ||
       section === "scenes" ||
       section === "story" ||
-      section === "visualStyle",
+      section === "visualStyle" ||
+      section === "boundaryScenes" ||
+      section === "sound",
   );
   if (sceneAuthoringChanged) {
     await removeContainedIfPresent({
@@ -843,9 +1121,11 @@ const applyProjectRevisionPatch = async ({
       `src/projects/${storyId}/generated/scene-coverage.generated.json`,
       `src/projects/${storyId}/production-scene-runtime.generated.ts`,
       `src/projects/${storyId}/Composition.tsx`,
-      ...contentBeats(project.story).map(
-        ({ meaningId }) => `src/projects/${storyId}/scenes/${meaningId}`,
-      ),
+      ...(contentStoryChanged
+        ? contentBeats(project.story).map(
+            ({ meaningId }) => `src/projects/${storyId}/scenes/${meaningId}`,
+          )
+        : []),
     ]) {
       await removeContainedIfPresent({ rootDir, relativePath });
     }
@@ -865,6 +1145,9 @@ const applyProjectRevisionPatch = async ({
     `src/projects/${storyId}/sound.json`,
     `src/projects/${storyId}/story.json`,
     `src/projects/${storyId}/visual-style.json`,
+    ...(updatedTemplateInstantiation
+      ? [`src/projects/${storyId}/${instantiationPath}`]
+      : []),
     ...(priorSources === null
       ? []
       : [`src/projects/${storyId}/${SCENE_PRIOR_SOURCE_PATH}`]),

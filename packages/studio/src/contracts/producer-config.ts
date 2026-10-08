@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { AutomaticBackgroundMusicSchema } from "./background-music";
 
 import { createFingerprint } from "./fingerprint";
 import {
@@ -202,7 +203,10 @@ export const SpeechSdkProviderConfigSchema = z
         path: ["modelId"],
       });
     }
-    if (provider.vendor !== "minimax" && provider.connection.groupId !== undefined) {
+    if (
+      provider.vendor !== "minimax" &&
+      provider.connection.groupId !== undefined
+    ) {
       context.addIssue({
         code: "custom",
         message: "groupId is only supported by the SpeechSDK MiniMax factory.",
@@ -330,12 +334,16 @@ const ProducerConfigInputObject = z
     audioDefaults: z
       .object({
         globalBgm: z
-          .object({
-            sourcePath: RepositoryRelativeFilePathSchema,
-            volume: z.number().finite().min(0).max(1),
-          })
-          .strict()
-          .readonly()
+          .union([
+            AutomaticBackgroundMusicSchema,
+            z
+              .object({
+                sourcePath: RepositoryRelativeFilePathSchema,
+                volume: z.number().finite().min(0).max(1),
+              })
+              .strict()
+              .readonly(),
+          ])
           .nullable(),
       })
       .strict()
@@ -462,7 +470,5 @@ export type VoxcpmProviderConfig = z.infer<typeof VoxcpmProviderConfigSchema>;
 export type SpeechSdkProviderConfig = z.infer<
   typeof SpeechSdkProviderConfigSchema
 >;
-export type EdgeTtsProviderConfig = z.infer<
-  typeof EdgeTtsProviderConfigSchema
->;
+export type EdgeTtsProviderConfig = z.infer<typeof EdgeTtsProviderConfigSchema>;
 export type TtsProviderConfig = z.infer<typeof TtsProviderConfigSchema>;

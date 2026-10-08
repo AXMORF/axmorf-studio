@@ -59,6 +59,7 @@ const SceneReadabilityPolicyInputObject = z
     baseEdgeInsetPx: PositiveIntegerSchema.max(1000),
     edgeInsetPx: PositiveIntegerSchema,
     sceneBottomInsetPx: PositiveIntegerSchema,
+    captionMode: z.literal("none").optional(),
     typographyPolicy: z
       .object({ minFontSizePx: PositiveIntegerSchema })
       .strict()
@@ -122,11 +123,13 @@ const buildSceneReadabilityPolicyInput = ({
   height,
   edgeInsetPx: rawEdgeInsetPx,
   timingSource: rawTimingSource = "sealed-narration",
+  captionMode,
 }: {
   readonly width: number;
   readonly height: number;
   readonly edgeInsetPx: number;
   readonly timingSource?: StoryTimingSource;
+  readonly captionMode?: "none";
 }) => {
   const timingSource = StoryTimingSourceSchema.parse(rawTimingSource);
   const authoredFrames = timingSource === "authored-frames";
@@ -148,17 +151,19 @@ const buildSceneReadabilityPolicyInput = ({
       2 * captionFontSizePx * CAPTION_LINE_HEIGHT_NUMERATOR,
       CAPTION_LINE_HEIGHT_DENOMINATOR,
     ) + captionVerticalPaddingPx;
-  const sceneBottomInsetPx = authoredFrames
-    ? edgeInsetPx
-    : roundUpToMultiple(
-        captionBottomInsetPx + captionBoxHeightPx + captionGapPx,
-        10,
-      );
+  const sceneBottomInsetPx =
+    authoredFrames || captionMode === "none"
+      ? edgeInsetPx
+      : roundUpToMultiple(
+          captionBottomInsetPx + captionBoxHeightPx + captionGapPx,
+          10,
+        );
   return SceneReadabilityPolicyInputSchema.parse({
     schemaVersion: 1,
     policyId: SCENE_READABILITY_POLICY_ID,
     policyVersion: authoredFrames ? 2 : 1,
     ...(authoredFrames ? { captionBand: "none" } : {}),
+    ...(captionMode === undefined ? {} : { captionMode }),
     width: parsedWidth,
     height: parsedHeight,
     scale: {
@@ -168,6 +173,7 @@ const buildSceneReadabilityPolicyInput = ({
     baseEdgeInsetPx,
     edgeInsetPx,
     sceneBottomInsetPx,
+    ...(captionMode === undefined ? {} : { captionMode }),
     typographyPolicy: { minFontSizePx },
     captionPolicy: {
       displayUnitAlgorithmId: CAPTION_DISPLAY_UNIT_ALGORITHM_ID,
@@ -217,6 +223,9 @@ export const SceneReadabilityPolicySchema = z
       edgeInsetPx: policy.baseEdgeInsetPx,
       timingSource:
         policy.policyVersion === 2 ? "authored-frames" : "sealed-narration",
+      ...(policy.captionMode === undefined
+        ? {}
+        : { captionMode: policy.captionMode }),
     });
     const actual = { ...policy } as Record<string, unknown>;
     delete actual.policyFingerprint;
@@ -294,17 +303,20 @@ export const resolveSceneReadabilityPolicy = ({
   height,
   edgeInsetPx = 90,
   timingSource,
+  captionMode,
 }: {
   readonly width: number;
   readonly height: number;
   readonly edgeInsetPx?: number;
   readonly timingSource?: StoryTimingSource;
+  readonly captionMode?: "none";
 }) => {
   const input = buildSceneReadabilityPolicyInput({
     width,
     height,
     edgeInsetPx,
     timingSource,
+    captionMode,
   });
   return SceneReadabilityPolicySchema.parse({
     ...input,

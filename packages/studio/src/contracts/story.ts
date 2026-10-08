@@ -104,6 +104,64 @@ export const TemplateSceneSoundCueSchema = z
   .strict()
   .readonly();
 
+const TemplateScenePlaybackRangeObject = z
+  .object({
+    startFrame: NonNegativeIntegerSchema,
+    endFrame: PositiveIntegerSchema,
+    musicVolume: z.number().finite().min(0).max(1).optional(),
+    musicFadeInFrames: NonNegativeIntegerSchema.optional(),
+    musicFadeOutFrames: NonNegativeIntegerSchema.optional(),
+  })
+  .strict();
+
+const addPlaybackRangeIssues = (
+  range: z.infer<typeof TemplateScenePlaybackRangeObject>,
+  context: z.RefinementCtx,
+) => {
+  const duration = range.endFrame - range.startFrame;
+  if (duration <= 0) {
+    context.addIssue({
+      code: "custom",
+      message: "Template playback range must contain at least one frame.",
+      path: ["endFrame"],
+    });
+  }
+  for (const field of ["musicFadeInFrames", "musicFadeOutFrames"] as const) {
+    if ((range[field] ?? 0) > duration) {
+      context.addIssue({
+        code: "custom",
+        message: "Template music fades must fit the playback range.",
+        path: [field],
+      });
+    }
+  }
+};
+
+export const TemplateScenePlaybackRangeSchema =
+  TemplateScenePlaybackRangeObject.superRefine(
+    addPlaybackRangeIssues,
+  ).readonly();
+
+export const TemplateScenePlaybackWindowSchema =
+  TemplateScenePlaybackRangeObject.extend({
+    sourceDurationInFrames: PositiveIntegerSchema,
+  })
+    .superRefine((window, context) => {
+      addPlaybackRangeIssues(window, context);
+      if (window.endFrame > window.sourceDurationInFrames) {
+        context.addIssue({
+          code: "custom",
+          message: "Template playback must stay inside its immutable source.",
+          path: ["endFrame"],
+        });
+      }
+    })
+    .readonly();
+
+export type TemplateScenePlaybackRange = z.infer<
+  typeof TemplateScenePlaybackRangeSchema
+>;
+
 const SilentSceneImplementationSchema = z.discriminatedUnion("kind", [
   z
     .object({
@@ -113,6 +171,7 @@ const SilentSceneImplementationSchema = z.discriminatedUnion("kind", [
       instanceFingerprint: Sha256DigestSchema,
       rendererSourceFingerprint: Sha256DigestSchema,
       soundCues: z.array(TemplateSceneSoundCueSchema).max(16).readonly(),
+      playbackWindow: TemplateScenePlaybackWindowSchema.optional(),
     })
     .strict()
     .readonly(),
@@ -150,6 +209,17 @@ const SilentScenePresetInputSchema = z
       }
     });
     if (preset.implementation.kind === "template-copy") {
+      const window = preset.implementation.playbackWindow;
+      if (
+        window !== undefined &&
+        preset.durationInFrames !== window.endFrame - window.startFrame
+      ) {
+        context.addIssue({
+          code: "custom",
+          message: "Template preset duration must equal its playback range.",
+          path: ["durationInFrames"],
+        });
+      }
       const cueIds = new Set<string>();
       preset.implementation.soundCues.forEach((cue, index) => {
         if (cueIds.has(cue.cueId)) {
@@ -169,7 +239,8 @@ const SilentScenePresetInputSchema = z
         }
         if (
           cue.offsetFrames < 0 ||
-          cue.offsetFrames + cue.durationInFrames > preset.durationInFrames
+          cue.offsetFrames + cue.durationInFrames >
+            (window?.sourceDurationInFrames ?? preset.durationInFrames)
         ) {
           context.addIssue({
             code: "custom",
@@ -237,8 +308,19 @@ const SilentStoryBeatSchema = z
   .strict()
   .readonly();
 
+export const VisualStoryBeatSchema = z
+  .object({
+    kind: z.literal("visual-scene"),
+    meaningId: MeaningIdSchema,
+    narrativePurpose: NonEmptyTextSchema,
+    durationInFrames: PositiveIntegerSchema,
+  })
+  .strict()
+  .readonly();
+
 export const StoryBeatSchema = z.discriminatedUnion("kind", [
   NarratedStoryBeatSchema,
+  VisualStoryBeatSchema,
   SilentStoryBeatSchema,
 ]);
 
@@ -289,6 +371,7 @@ export const addStoryVisualOwnershipIssues = (
     .filter(
       (beat) =>
         beat.kind === "narrated-scene" ||
+        beat.kind === "visual-scene" ||
         (story.timingSource === "authored-frames" &&
           beat.preset?.implementation.kind === "scene-owner"),
     )
@@ -324,6 +407,7 @@ export const StorySpecSchema = z
     let narratedBeatCount = 0;
     let visualContentBeatCount = 0;
     const authoredFrames = story.timingSource === "authored-frames";
+    let visualBeatCount = 0;
 
     story.beats.forEach((beat, beatIndex) => {
       if (meaningIds.has(beat.meaningId)) {
@@ -353,6 +437,11 @@ export const StorySpecSchema = z
         return;
       }
 
+      if (beat.kind === "visual-scene") {
+        visualBeatCount += 1;
+        return;
+      }
+
       narratedBeatCount += 1;
       if (authoredFrames) {
         context.addIssue({
@@ -372,11 +461,35 @@ export const StorySpecSchema = z
         chunkIds.add(chunk.chunkId);
       });
     });
-    if (!authoredFrames && narratedBeatCount === 0) {
+    if (!authoredFrames && narratedBeatCount + visualBeatCount === 0) {
       context.addIssue({
         code: "custom",
-        message: "StorySpec requires at least one narrated content Scene.",
+        message:
+          "StorySpec requires at least one narrated or visual content Scene.",
         path: ["beats"],
+      });
+    }
+    if (narratedBeatCount > 0 && visualBeatCount > 0) {
+      context.addIssue({
+        code: "custom",
+        message:
+          "Narrated and visual content Scenes cannot be mixed in one Story; choose one timing authority.",
+        path: ["beats"],
+      });
+    }
+    if (authoredFrames && visualBeatCount > 0) {
+      context.addIssue({
+        code: "custom",
+        message:
+          "Explicit authored-frame Stories use scene-owner presets, not visual-scene Beats.",
+        path: ["beats"],
+      });
+    }
+    if (story.timingSource === "sealed-narration" && visualBeatCount > 0) {
+      context.addIssue({
+        code: "custom",
+        message: "Sealed narration timing cannot contain visual-scene Beats.",
+        path: ["timingSource"],
       });
     }
     if (authoredFrames && visualContentBeatCount === 0) {
@@ -409,6 +522,7 @@ export const isSceneOwnerBeat = (
     | undefined,
 ) =>
   beat?.kind === "narrated-scene" ||
+  beat?.kind === "visual-scene" ||
   (beat?.kind === "silent-scene" &&
     beat.preset?.implementation.kind === "scene-owner");
 
@@ -446,17 +560,17 @@ export const resolveStorySceneGroups = (
 };
 
 export const aggregateSceneTimingBeat = <
-  T extends {
+  T extends readonly {
     readonly kind: string;
     readonly meaningId: string;
     readonly startFrame: number;
     readonly endFrame: number;
-  },
+  }[],
 >(
-  timings: readonly T[],
+  timings: T,
   meaningIds: readonly string[],
   storyBeat?: StoryBeat,
-): T => {
+): T[number] => {
   const members = meaningIds.map((id) => {
     const beat = timings.find((item) => item.meaningId === id);
     if (beat === undefined)
@@ -480,12 +594,17 @@ export const aggregateSceneTimingBeat = <
       throw new Error(
         "Authored Scene timing requires its aggregated StoryBeat.",
       );
-    return {
-      ...members[0],
+    return Object.assign({}, members[0], {
       endFrame: members.at(-1)!.endFrame,
       presetFingerprint: storyBeat.preset.presetFingerprint,
       presetDurationInFrames: storyBeat.preset.durationInFrames,
-    };
+    });
+  }
+  if (members.length > 1 && members[0].kind === "visual-scene") {
+    return Object.assign({}, members[0], {
+      endFrame: members.at(-1)!.endFrame,
+      durationInFrames: members.at(-1)!.endFrame - members[0].startFrame,
+    });
   }
   return { ...members[0], endFrame: members.at(-1)!.endFrame };
 };
@@ -527,6 +646,19 @@ export const aggregateSceneStoryBeat = (
     };
   }
   if (
+    first.kind === "visual-scene" &&
+    beats.every((beat) => beat.kind === "visual-scene")
+  ) {
+    return {
+      ...first,
+      durationInFrames: beats.reduce(
+        (sum, beat) =>
+          sum + (beat.kind === "visual-scene" ? beat.durationInFrames : 0),
+        0,
+      ),
+    };
+  }
+  if (
     first.kind !== "narrated-scene" ||
     beats.some((beat) => beat.kind !== "narrated-scene")
   )
@@ -543,6 +675,10 @@ export const aggregateSceneStoryBeat = (
     ),
   };
 };
+export type VisualStoryBeat = z.infer<typeof VisualStoryBeatSchema>;
+
+export const isVisualStory = (story: Pick<StorySpec, "beats">): boolean =>
+  story.beats.some((beat) => beat.kind === "visual-scene");
 
 export const flattenTtsChunks = (story: StorySpec) =>
   story.beats.flatMap((beat) =>

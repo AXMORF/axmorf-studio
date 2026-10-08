@@ -18,14 +18,20 @@ import test from "node:test";
 import {
   AuthoringRequirementsSchema,
   AuthoringValidationError,
+  ProjectCreateInputSchema,
   ProjectRevisionInputSchema,
   ProjectRevisionMaterializationRecordSchema,
+  RenderSpecSchema,
   ScenePriorSourceIndexSchema,
   SCENE_PRIOR_SOURCE_PATH,
+  StorySpecSchema,
   VISUAL_THEME_PRESETS,
   buildDeliveryPublish,
   buildDeliveryPublishing,
   buildProductionRevision,
+  buildProjectSoundPlan,
+  computeStoryFingerprint,
+  ProjectSceneTemplateInstantiationSchema,
   buildNotApplicableFidelityReceipt,
   buildSceneSoundPlan,
   buildSceneSyncAnchors,
@@ -37,6 +43,8 @@ import {
   resolveSceneViewport,
   serializeCanonicalJson,
   createDeliveryBuildId,
+  computeNoNarrationFingerprint,
+  generateVisualSemanticTiming,
   type Sha256Digest,
 } from "@axmorf/studio/contracts";
 import {
@@ -50,6 +58,10 @@ import {
   validateProjectRevisionAuthoring,
   type ProjectRevisionStateDependencies,
 } from "../../scripts/projects/application/project-revision";
+import {
+  promoteProjectRevisionCandidate,
+  type ProjectRevisionPromotionDependencies,
+} from "../../scripts/projects/application/project-revision-promotion";
 import {
   parseProjectRevisionCreateArguments,
   parseProjectRevisionValidateArguments,
@@ -124,10 +136,13 @@ const acceptFixtureMedia: CurrentDeliveryInspectionDependencies = {
   }),
 };
 
-const writeCurrentDelivery = async (rootDir: string) => {
+const writeCurrentDelivery = async (
+  rootDir: string,
+  revisionId = revision.revisionId,
+) => {
   const identity = {
     storyId: validProjectCreateInput.storyId,
-    revisionId: revision.revisionId,
+    revisionId,
     artifactSetFingerprint: sha("5"),
     compositionId: validProjectCreateInput.render.compositionId,
     fps: 30,
@@ -329,6 +344,764 @@ const fixture = async (
   } as const;
   return { ...prepared, dependencies, input, publish } as const;
 };
+
+const visualFixture = async (context: {
+  after: (callback: () => Promise<void>) => void;
+}) => {
+  const prepared = await prepareProjectCreateFixture();
+  context.after(() => rm(prepared.rootDir, { recursive: true, force: true }));
+  const input = ProjectCreateInputSchema.parse({
+    ...validProjectCreateInput,
+    story: {
+      ...validProjectCreateInput.story,
+      beats: [
+        {
+          kind: "visual-scene",
+          meaningId: "opening",
+          narrativePurpose:
+            "Show the samples becoming stable frame boundaries.",
+          durationInFrames: 120,
+        },
+      ],
+    },
+    scenes: [
+      { ...validProjectCreateInput.scenes[0], soundIntent: "No narration." },
+    ],
+    sceneTemplates: {
+      introSceneTemplateId: "axmorf-brand-reveal-v1",
+      outroSceneTemplateId: "axmorf-source-follow-v1",
+    },
+  });
+  await writeFile(prepared.inputPath, JSON.stringify(input));
+  await createProject({
+    rootDir: prepared.rootDir,
+    projectId: input.storyId,
+    inputPath: prepared.inputPath,
+    env: { RSP_PRODUCER_CONFIG: prepared.configPath },
+    runtimeResources: prepared.runtimeResources,
+  });
+  const publish = await writeCurrentDelivery(prepared.rootDir);
+  const dependencies: ProjectRevisionStateDependencies = {
+    readCurrentRevision: async () => revision,
+    inspectDelivery: (deliveryInput) =>
+      inspectCurrentDelivery({
+        ...deliveryInput,
+        dependencies: acceptFixtureMedia,
+      }),
+  };
+  const revisionContext = await readProjectRevisionContext({
+    rootDir: prepared.rootDir,
+    projectId: input.storyId,
+    dependencies,
+  });
+  return { ...prepared, input, publish, dependencies, revisionContext };
+};
+
+const visualPromotionFixture = async (context: {
+  after: (callback: () => Promise<void>) => void;
+}) => {
+  const current = await visualFixture(context);
+  const storyId = current.input.storyId;
+  const created = await createProjectRevisionCandidate({
+    rootDir: current.rootDir,
+    projectId: storyId,
+    input: {
+      schemaVersion: 1,
+      contractVersion: "project-revision-input-v1",
+      storyId,
+      baseRevisionId: current.revisionContext.baseRevisionId,
+      baseDeliveryBuildId: current.revisionContext.baseDeliveryBuildId,
+      patch: {
+        story: {
+          ...current.revisionContext.editable.story,
+          beats: current.revisionContext.editable.story.beats.map((beat) => ({
+            ...beat,
+            durationInFrames: 180,
+          })),
+        },
+      },
+    },
+    env: { RSP_PRODUCER_CONFIG: current.configPath },
+    dependencies: current.dependencies,
+  });
+  const scope = createProjectRevisionProductionScope({
+    rootDir: current.rootDir,
+    storyId,
+    candidateId: created.candidateId,
+  });
+  const candidateRoot = join(scope.projectSourceRoot, storyId);
+  const candidateStory = StorySpecSchema.parse(
+    JSON.parse(await readFile(join(candidateRoot, "story.json"), "utf8")),
+  );
+  const render = RenderSpecSchema.parse(
+    JSON.parse(await readFile(join(candidateRoot, "render.json"), "utf8")),
+  );
+  await writeFile(
+    join(candidateRoot, "generated/semantic-timing.generated.json"),
+    serializeCanonicalJson(
+      generateVisualSemanticTiming({ story: candidateStory, render }),
+    ),
+  );
+  for (const name of ["sealed-narration", "mastered-narration"])
+    await writeFile(
+      join(candidateRoot, `generated/${name}.generated.json`),
+      "null\n",
+    );
+  const expectedRevisionId =
+    `revision-${"e".repeat(64)}` as typeof revision.revisionId;
+  const candidatePublish = await writeCurrentDelivery(
+    scope.isolatedRoot,
+    expectedRevisionId,
+  );
+  const promotionInput = {
+    rootDir: current.rootDir,
+    storyId,
+    candidateId: created.candidateId,
+    expectedRevisionId,
+    expectedDeliveryBuildId: candidatePublish.deliveryBuildId,
+  };
+  // Media and production revision reads are fixtures; create/revise/promotion
+  // and all filesystem safety, identity, source and rollback checks are real.
+  const promotionDependencies: ProjectRevisionPromotionDependencies = {
+    inspectDelivery: (deliveryInput) =>
+      inspectCurrentDelivery({
+        ...deliveryInput,
+        dependencies: acceptFixtureMedia,
+      }),
+    readCandidateRevision: async () => ({ revisionId: expectedRevisionId }),
+    readRevision: async ({ rootDir }) => {
+      const story = StorySpecSchema.parse(
+        JSON.parse(
+          await readFile(
+            join(rootDir, "src/projects", storyId, "story.json"),
+            "utf8",
+          ),
+        ),
+      );
+      const beat = story.beats.find(({ kind }) => kind === "visual-scene");
+      return {
+        revisionId:
+          beat?.kind === "visual-scene" && beat.durationInFrames === 180
+            ? expectedRevisionId
+            : revision.revisionId,
+      };
+    },
+  };
+  return {
+    ...current,
+    scope,
+    candidateRoot,
+    candidatePublish,
+    promotionInput,
+    promotionDependencies,
+  };
+};
+
+test("visual create to revision promotion retains absent narration and a repeat is read-only current", async (context) => {
+  const current = await visualPromotionFixture(context);
+  const promoted = await promoteProjectRevisionCandidate(
+    current.promotionInput,
+    current.promotionDependencies,
+  );
+  assert.equal(promoted.status, "project-revision-promoted");
+  const projectRoot = join(
+    current.rootDir,
+    "src/projects",
+    current.input.storyId,
+  );
+  assert.equal(
+    await readFile(join(projectRoot, "story.json"), "utf8"),
+    await readFile(join(current.candidateRoot, "story.json"), "utf8"),
+  );
+  assert.equal(
+    JSON.parse(await readFile(join(projectRoot, "narration.json"), "utf8")),
+    null,
+  );
+  assert.deepEqual(
+    await inspectCurrentDelivery({
+      rootDir: current.rootDir,
+      storyId: current.input.storyId,
+      dependencies: acceptFixtureMedia,
+    }),
+    current.candidatePublish,
+  );
+  for (const narrationRoot of [
+    join(current.rootDir, ".narration-work", current.input.storyId),
+    join(current.scope.narrationWorkRoot, current.input.storyId),
+  ])
+    await assert.rejects(access(narrationRoot), { code: "ENOENT" });
+  const storyBefore = await stat(join(projectRoot, "story.json"));
+  assert.equal(
+    (
+      await promoteProjectRevisionCandidate(
+        current.promotionInput,
+        current.promotionDependencies,
+      )
+    ).status,
+    "project-revision-current",
+  );
+  assert.equal(
+    (await stat(join(projectRoot, "story.json"))).mtimeMs,
+    storyBefore.mtimeMs,
+  );
+});
+
+for (const failureCheckpoint of [
+  "narration-installed",
+  "verification-complete",
+] as const) {
+  test(`visual promotion rolls back at ${failureCheckpoint} without introducing narration`, async (context) => {
+    const current = await visualPromotionFixture(context);
+    const projectRoot = join(
+      current.rootDir,
+      "src/projects",
+      current.input.storyId,
+    );
+    const liveStory = await readFile(join(projectRoot, "story.json"), "utf8");
+    await assert.rejects(
+      promoteProjectRevisionCandidate(current.promotionInput, {
+        ...current.promotionDependencies,
+        checkpoint: async (checkpoint) => {
+          if (checkpoint === failureCheckpoint)
+            throw new Error(`injected:${checkpoint}`);
+        },
+      }),
+      new RegExp(`injected:${failureCheckpoint}`, "u"),
+    );
+    assert.equal(
+      await readFile(join(projectRoot, "story.json"), "utf8"),
+      liveStory,
+    );
+    assert.deepEqual(
+      await inspectCurrentDelivery({
+        rootDir: current.rootDir,
+        storyId: current.input.storyId,
+        dependencies: acceptFixtureMedia,
+      }),
+      current.publish,
+    );
+    await assert.rejects(
+      access(join(current.rootDir, ".narration-work", current.input.storyId)),
+      { code: "ENOENT" },
+    );
+    await access(join(current.candidateRoot, "story.json"));
+  });
+}
+
+test("composition music revisions preserve score policy and validate fades against the whole video", async (context) => {
+  const current = await visualFixture(context);
+  const storyId = current.input.storyId;
+  const projectRoot = join(current.rootDir, "src/projects", storyId);
+  const baseSound = buildProjectSoundPlan({
+    storyId,
+    sceneMusicPolicy: "preserve",
+    contributions: [
+      {
+        contributionId: "music",
+        resourceId: `res-project-${storyId}-music`,
+        descriptorFingerprint: sha("8"),
+        volume: 0.15,
+        loop: true,
+        playbackScope: "composition",
+      },
+    ],
+  });
+  await writeFile(
+    join(projectRoot, "sound.json"),
+    `${serializeCanonicalJson(baseSound)}\n`,
+  );
+  const revisionContext = await readProjectRevisionContext({
+    rootDir: current.rootDir,
+    projectId: storyId,
+    dependencies: current.dependencies,
+  });
+  assert.equal(revisionContext.editable.sound?.sceneMusicPolicy, "preserve");
+  const duration = JSON.parse(
+    await readFile(
+      join(projectRoot, "generated/semantic-timing.generated.json"),
+      "utf8",
+    ),
+  ).durationInFrames;
+  const sound = {
+    ...revisionContext.editable.sound!,
+    contributions: baseSound.contributions.map((track) => ({
+      ...track,
+      fadeOutFrames: duration,
+    })),
+  };
+  const input = {
+    schemaVersion: 1,
+    contractVersion: "project-revision-input-v1",
+    storyId,
+    baseRevisionId: revisionContext.baseRevisionId,
+    baseDeliveryBuildId: revisionContext.baseDeliveryBuildId,
+    patch: { sound },
+  };
+  await validateProjectRevisionAuthoring({
+    rootDir: current.rootDir,
+    input,
+    dependencies: current.dependencies,
+  });
+  await assert.rejects(
+    validateProjectRevisionAuthoring({
+      rootDir: current.rootDir,
+      dependencies: current.dependencies,
+      input: {
+        ...input,
+        patch: { sound: { ...sound, sceneMusicPolicy: "mute" } },
+      },
+    }),
+    /gain and fades/u,
+  );
+  await assert.rejects(
+    validateProjectRevisionAuthoring({
+      rootDir: current.rootDir,
+      dependencies: current.dependencies,
+      input: {
+        ...input,
+        patch: {
+          sound: {
+            ...sound,
+            contributions: sound.contributions.map((track) => ({
+              ...track,
+              fadeOutFrames: duration + 1,
+            })),
+          },
+        },
+      },
+    }),
+    /playback window/u,
+  );
+});
+
+test("boundary and music revision retains immutable source bytes and isolates a 75-frame ending", async (context) => {
+  const current = await visualFixture(context);
+  const storyId = current.input.storyId;
+  const projectRoot = join(current.rootDir, "src/projects", storyId);
+  const originalStoryBytes = await readFile(
+    join(projectRoot, "story.json"),
+    "utf8",
+  );
+  const originalStory = StorySpecSchema.parse(JSON.parse(originalStoryBytes));
+  const originalInstance = await readFile(
+    join(
+      projectRoot,
+      "scenes/configured-outro-scene/scene-template-instance.json",
+    ),
+  );
+  const originalRenderer = await readFile(
+    join(projectRoot, "scenes/configured-outro-scene/Renderer.tsx"),
+  );
+  // State/media readers are injected in this authoring test; the audio identity is frozen as base input.
+  const baseSound = buildProjectSoundPlan({
+    storyId,
+    contributions: [
+      {
+        contributionId: "existing-music",
+        resourceId: `res-project-${storyId}-music`,
+        descriptorFingerprint: sha("8"),
+        volume: 0.16,
+        loop: true,
+        playbackScope: "content",
+      },
+    ],
+  });
+  await writeFile(
+    join(projectRoot, "sound.json"),
+    `${serializeCanonicalJson(baseSound)}\n`,
+  );
+  const revisionContext = await readProjectRevisionContext({
+    rootDir: current.rootDir,
+    projectId: storyId,
+    dependencies: current.dependencies,
+  });
+  const { soundPlanFingerprint: _baseFingerprint, ...soundInput } = baseSound;
+  void _baseFingerprint;
+  const input = ProjectRevisionInputSchema.parse({
+    schemaVersion: 1,
+    contractVersion: "project-revision-input-v1",
+    storyId,
+    baseRevisionId: revisionContext.baseRevisionId,
+    baseDeliveryBuildId: revisionContext.baseDeliveryBuildId,
+    patch: {
+      boundaryScenes: revisionContext.editable.boundaryScenes?.map((scene) => ({
+        ...scene,
+        playbackRange:
+          scene.meaningId === "configured-outro-scene"
+            ? {
+                startFrame: 165,
+                endFrame: 240,
+                musicVolume: 0.44,
+                musicFadeInFrames: 8,
+                musicFadeOutFrames: 15,
+              }
+            : scene.playbackRange,
+      })),
+      sound: {
+        ...soundInput,
+        contributions: soundInput.contributions.map((track) => ({
+          ...track,
+          volume: 0.44,
+          fadeInFrames: 10,
+          fadeOutFrames: 15,
+        })),
+      },
+    },
+  });
+  const created = await createProjectRevisionCandidate({
+    rootDir: current.rootDir,
+    projectId: storyId,
+    input,
+    env: { RSP_PRODUCER_CONFIG: current.configPath },
+    dependencies: current.dependencies,
+  });
+  const scope = createProjectRevisionProductionScope({
+    rootDir: current.rootDir,
+    storyId,
+    candidateId: created.candidateId,
+  });
+  const candidateRoot = join(scope.projectSourceRoot, storyId);
+  const revised = StorySpecSchema.parse(
+    JSON.parse(await readFile(join(candidateRoot, "story.json"), "utf8")),
+  );
+  assert.deepEqual(
+    revised.beats.filter((beat) => beat.kind !== "silent-scene"),
+    originalStory.beats.filter((beat) => beat.kind !== "silent-scene"),
+  );
+  const outro = revised.beats.at(-1);
+  assert.ok(outro?.kind === "silent-scene");
+  assert.equal(outro.preset.durationInFrames, 75);
+  assert.deepEqual(
+    await readFile(
+      join(
+        candidateRoot,
+        "scenes/configured-outro-scene/scene-template-instance.json",
+      ),
+    ),
+    originalInstance,
+  );
+  assert.deepEqual(
+    await readFile(
+      join(candidateRoot, "scenes/configured-outro-scene/Renderer.tsx"),
+    ),
+    originalRenderer,
+  );
+  const selection = ProjectSceneTemplateInstantiationSchema.parse(
+    JSON.parse(
+      await readFile(
+        join(candidateRoot, "production/scene-template-instantiation.json"),
+        "utf8",
+      ),
+    ),
+  );
+  assert.equal(
+    selection.materializedStoryFingerprint,
+    computeStoryFingerprint(revised),
+  );
+  assert.equal(
+    selection.selections.outro?.presetFingerprint,
+    outro.preset.presetFingerprint,
+  );
+  const revisedSound = JSON.parse(
+    await readFile(join(candidateRoot, "sound.json"), "utf8"),
+  );
+  assert.equal(revisedSound.contributions[0].volume, 0.44);
+  assert.equal(revisedSound.contributions[0].fadeInFrames, 10);
+  assert.equal(
+    await readFile(join(projectRoot, "story.json"), "utf8"),
+    originalStoryBytes,
+  );
+  assert.deepEqual(
+    JSON.parse(await readFile(join(projectRoot, "sound.json"), "utf8")),
+    baseSound,
+  );
+  await assert.rejects(
+    validateProjectRevisionAuthoring({
+      rootDir: current.rootDir,
+      dependencies: current.dependencies,
+      input: {
+        ...input,
+        patch: {
+          sound: {
+            ...input.patch.sound,
+            contributions: [
+              {
+                ...soundInput.contributions[0],
+                resourceId: "res-unowned-music",
+              },
+            ],
+          },
+        },
+      },
+    }),
+    /existing tracks only/u,
+  );
+  await assert.rejects(
+    validateProjectRevisionAuthoring({
+      rootDir: current.rootDir,
+      dependencies: current.dependencies,
+      input: {
+        ...input,
+        patch: {
+          boundaryScenes: input.patch.boundaryScenes?.map((scene) => ({
+            ...scene,
+            playbackRange: { startFrame: 165, endFrame: 241 },
+          })),
+        },
+      },
+    }),
+    /exceeds its immutable source/u,
+  );
+});
+
+test("visual revision exposes authored content and isolates duration changes while retaining null narration and boundaries", async (context) => {
+  const current = await visualFixture(context);
+  const storyId = current.input.storyId;
+  assert.equal(
+    current.revisionContext.constraints.preserveContentMeaningIdsAndOrder,
+    true,
+  );
+  assert.deepEqual(
+    current.revisionContext.editable.story.beats.map(({ kind, meaningId }) => [
+      kind,
+      meaningId,
+    ]),
+    [["visual-scene", "opening"]],
+  );
+  assert.deepEqual(
+    current.revisionContext.editable.scenes.map(({ meaningId }) => meaningId),
+    ["opening"],
+  );
+  const projectRoot = join(current.rootDir, "src/projects", storyId);
+  const liveStory = await readFile(join(projectRoot, "story.json"), "utf8");
+  const liveTiming = await readFile(
+    join(projectRoot, "generated/semantic-timing.generated.json"),
+    "utf8",
+  );
+  const nullNarration = await readFile(
+    join(projectRoot, "narration.json"),
+    "utf8",
+  );
+  const input = ProjectRevisionInputSchema.parse({
+    schemaVersion: 1,
+    contractVersion: "project-revision-input-v1",
+    storyId,
+    baseRevisionId: current.revisionContext.baseRevisionId,
+    baseDeliveryBuildId: current.revisionContext.baseDeliveryBuildId,
+    patch: {
+      story: {
+        ...current.revisionContext.editable.story,
+        beats: current.revisionContext.editable.story.beats.map((beat) => ({
+          ...beat,
+          durationInFrames: 180,
+        })),
+      },
+    },
+  });
+  const args = {
+    rootDir: current.rootDir,
+    projectId: storyId,
+    input,
+    env: { RSP_PRODUCER_CONFIG: current.configPath },
+    dependencies: current.dependencies,
+  };
+  const created = await createProjectRevisionCandidate(args);
+  assert.equal(created.storyChanged, true);
+  const scope = createProjectRevisionProductionScope({
+    rootDir: current.rootDir,
+    storyId,
+    candidateId: created.candidateId,
+  });
+  const candidateRoot = join(scope.projectSourceRoot, storyId);
+  const candidateStory = JSON.parse(
+    await readFile(join(candidateRoot, "story.json"), "utf8"),
+  );
+  assert.deepEqual(
+    candidateStory.beats.filter(
+      (beat: { kind: string }) => beat.kind === "silent-scene",
+    ),
+    JSON.parse(liveStory).beats.filter(
+      (beat: { kind: string }) => beat.kind === "silent-scene",
+    ),
+  );
+  assert.equal(candidateStory.beats[1].durationInFrames, 180);
+  assert.equal(
+    await readFile(join(candidateRoot, "narration.json"), "utf8"),
+    nullNarration,
+  );
+  const requirements = AuthoringRequirementsSchema.parse(
+    JSON.parse(
+      await readFile(
+        join(candidateRoot, "production/requirements.json"),
+        "utf8",
+      ),
+    ),
+  );
+  assert.equal(requirements.normalizedSummary.voiceProfileId, null);
+  assert.equal(requirements.readabilityPolicy.captionMode, "none");
+  assert.equal(
+    requirements.sourceBindings.narrationSpec.fingerprint,
+    computeNoNarrationFingerprint(),
+  );
+  assert.equal(
+    requirements.sourceBindings.narrationSpec.checksum,
+    checksum(nullNarration),
+  );
+  const materialization = ProjectRevisionMaterializationRecordSchema.parse(
+    JSON.parse(
+      await readFile(
+        join(candidateRoot, "production/project-revision-candidate.json"),
+        "utf8",
+      ),
+    ),
+  );
+  assert.equal(
+    materialization.authoringFiles.find(
+      ({ logicalPath }) =>
+        logicalPath === `src/projects/${storyId}/narration.json`,
+    )?.checksum,
+    checksum(nullNarration),
+  );
+  await assert.rejects(
+    access(join(candidateRoot, "generated/semantic-timing.generated.json")),
+    { code: "ENOENT" },
+  );
+  await assert.rejects(access(join(scope.narrationWorkRoot, storyId)), {
+    code: "ENOENT",
+  });
+  for (const boundary of ["configured-intro-scene", "configured-outro-scene"]) {
+    const instancePath = `scenes/${boundary}/scene-template-instance.json`;
+    assert.equal(
+      await readFile(join(candidateRoot, instancePath), "utf8"),
+      await readFile(join(projectRoot, instancePath), "utf8"),
+    );
+  }
+  assert.equal(
+    await readFile(join(projectRoot, "story.json"), "utf8"),
+    liveStory,
+  );
+  assert.equal(
+    await readFile(
+      join(projectRoot, "generated/semantic-timing.generated.json"),
+      "utf8",
+    ),
+    liveTiming,
+  );
+  assert.equal(
+    await readFile(join(projectRoot, "narration.json"), "utf8"),
+    nullNarration,
+  );
+  assert.deepEqual(
+    await inspectCurrentDelivery({
+      rootDir: current.rootDir,
+      storyId,
+      dependencies: acceptFixtureMedia,
+    }),
+    current.publish,
+  );
+  assert.equal(
+    (await createProjectRevisionCandidate(args)).candidateId,
+    created.candidateId,
+  );
+});
+
+test("visual local brief revision retains authored timing and uses only isolated authoring", async (context) => {
+  const current = await visualFixture(context);
+  const storyId = current.input.storyId;
+  const projectRoot = join(current.rootDir, "src/projects", storyId);
+  const livePending = await readFile(
+    join(projectRoot, "production/pending-scene-production-brief.json"),
+    "utf8",
+  );
+  const timing = await readFile(
+    join(projectRoot, "generated/semantic-timing.generated.json"),
+    "utf8",
+  );
+  const created = await createProjectRevisionCandidate({
+    rootDir: current.rootDir,
+    projectId: storyId,
+    input: {
+      schemaVersion: 1,
+      contractVersion: "project-revision-input-v1",
+      storyId,
+      baseRevisionId: current.revisionContext.baseRevisionId,
+      baseDeliveryBuildId: current.revisionContext.baseDeliveryBuildId,
+      patch: {
+        scenes: current.revisionContext.editable.scenes.map((scene) => ({
+          ...scene,
+          motionIntent:
+            "Hold the frame axis while samples resolve into boundaries, then let the result settle.",
+        })),
+      },
+    },
+    env: { RSP_PRODUCER_CONFIG: current.configPath },
+    dependencies: current.dependencies,
+  });
+  assert.equal(created.storyChanged, false);
+  const scope = createProjectRevisionProductionScope({
+    rootDir: current.rootDir,
+    storyId,
+    candidateId: created.candidateId,
+  });
+  const candidateRoot = join(scope.projectSourceRoot, storyId);
+  assert.equal(
+    await readFile(
+      join(candidateRoot, "generated/semantic-timing.generated.json"),
+      "utf8",
+    ),
+    timing,
+  );
+  assert.equal(
+    JSON.parse(await readFile(join(candidateRoot, "narration.json"), "utf8")),
+    null,
+  );
+  assert.equal(
+    await readFile(
+      join(projectRoot, "production/pending-scene-production-brief.json"),
+      "utf8",
+    ),
+    livePending,
+  );
+  await assert.rejects(
+    access(join(current.rootDir, ".producer-attempts", storyId)),
+    { code: "ENOENT" },
+  );
+});
+
+test("revision does not turn visual content into narration without voice authoring", async (context) => {
+  const current = await visualFixture(context);
+  const storyId = current.input.storyId;
+  await assert.rejects(
+    createProjectRevisionCandidate({
+      rootDir: current.rootDir,
+      projectId: storyId,
+      input: {
+        schemaVersion: 1,
+        contractVersion: "project-revision-input-v1",
+        storyId,
+        baseRevisionId: current.revisionContext.baseRevisionId,
+        baseDeliveryBuildId: current.revisionContext.baseDeliveryBuildId,
+        patch: { story: validProjectCreateInput.story },
+      },
+      env: { RSP_PRODUCER_CONFIG: current.configPath },
+      dependencies: current.dependencies,
+    }),
+    /preserve its visual or narrated content mode/u,
+  );
+  assert.equal(
+    JSON.parse(
+      await readFile(
+        join(current.rootDir, "src/projects", storyId, "narration.json"),
+        "utf8",
+      ),
+    ),
+    null,
+  );
+  await assert.rejects(
+    access(join(current.rootDir, ".project-revisions", storyId)),
+    { code: "ENOENT" },
+  );
+});
 
 test("candidate authoring freezes verified current Scene bytes before narration cleanup and attests the input", async (context) => {
   const current = await fixture(context);

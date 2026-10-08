@@ -63,29 +63,37 @@ export const checkNarrativeSourceHealth = async ({
     });
   }
 
-  const authoredFrames = projectSource.story.timingSource === "authored-frames";
-  if (authoredFrames) {
-    try {
-      await checkM2NarrationArtifacts({ rootDir, projectSource });
-    } catch (error) {
-      throw new Error("Authored-frame timing source is invalid.", {
-        cause: error,
-      });
-    }
-  } else {
-    let sealedNarration: SealedNarrationManifest;
-    let masteredNarration: MasteredNarrationManifest;
-    let semanticTiming: SemanticTiming;
-    try {
-      sealedNarration = await loadProjectCheckSealedNarration(
-        paths.sealedNarration,
-      );
-      masteredNarration = await loadProjectCheckMasteredNarration(
-        paths.masteredNarration,
-      );
-      semanticTiming = await loadProjectCheckSemanticTiming(
-        paths.semanticTiming,
-      );
+  const authoredFrames =
+    projectSource.story.timingSource === "authored-frames" ||
+    projectSource.narration === null;
+  let sealedNarration: SealedNarrationManifest | null;
+  let masteredNarration: MasteredNarrationManifest | null;
+  let semanticTiming: SemanticTiming;
+  try {
+    sealedNarration =
+      projectSource.story.timingSource === "authored-frames"
+        ? null
+        : await loadProjectCheckSealedNarration(paths.sealedNarration);
+    masteredNarration =
+      projectSource.story.timingSource === "authored-frames"
+        ? null
+        : await loadProjectCheckMasteredNarration(paths.masteredNarration);
+    semanticTiming = await loadProjectCheckSemanticTiming(paths.semanticTiming);
+    validateNarrativeArtifactBundle({
+      projectSource,
+      sealedNarration,
+      semanticTiming,
+    });
+    if (authoredFrames) {
+      if (masteredNarration !== null) {
+        throw new Error("Visual project must not retain mastered narration.");
+      }
+    } else {
+      if (sealedNarration === null || masteredNarration === null) {
+        throw new Error(
+          "Narrated project requires sealed and mastered narration.",
+        );
+      }
       const physicalCheckProjectSource = {
         ...projectSource,
         render: {
@@ -120,14 +128,14 @@ export const checkNarrativeSourceHealth = async ({
       ) {
         throw new Error("Mastered narration identity does not match its seal.");
       }
-      validateNarrativeArtifactBundle({
-        projectSource,
-        sealedNarration,
-        semanticTiming,
-      });
-    } catch (error) {
-      throw new Error("Sealed narration source is invalid.", { cause: error });
     }
+  } catch (error) {
+    throw new Error(
+      projectSource.story.timingSource === "authored-frames"
+        ? "Authored-frame timing source is invalid."
+        : "Sealed narration source is invalid.",
+      { cause: error },
+    );
   }
 
   try {
@@ -188,16 +196,20 @@ export const runNarrativeAutoCheck = async ({
     narrativeBaselineFingerprint: null,
     baselineEvidenceFingerprint: null,
   };
+  let timingAlgorithmId: "authored-frames-v1" | undefined;
   const mark = (
     checkId: NarrativeAutoCheckId,
-    status: "pass" | "fail",
+    status: NarrativeAutoCheckReportInput["checks"][number]["status"],
     error?: unknown,
   ) =>
-    checks.set(checkId, createNarrativeCheckItem({ checkId, status, error }));
+    checks.set(
+      checkId,
+      createNarrativeCheckItem({ checkId, status, error, timingAlgorithmId }),
+    );
 
   let projectSource: NarrativeProjectSource | undefined;
-  let sealedNarration: SealedNarrationManifest | undefined;
-  let masteredNarration: MasteredNarrationManifest | undefined;
+  let sealedNarration: SealedNarrationManifest | null | undefined;
+  let masteredNarration: MasteredNarrationManifest | null | undefined;
   let semanticTiming: SemanticTiming | undefined;
   let entry: ValidatedProjectRegistrationEntry | undefined;
 
@@ -207,6 +219,9 @@ export const runNarrativeAutoCheck = async ({
       projectId: paths.storyId,
     });
     projectSource = loaded.projectSource;
+    if (projectSource.narration === null) {
+      timingAlgorithmId = "authored-frames-v1";
+    }
     identity.storyFingerprint = computeStoryFingerprint(projectSource.story);
     identity.renderSpecFingerprint = computeRenderSpecFingerprint(
       projectSource.render,
@@ -226,69 +241,82 @@ export const runNarrativeAutoCheck = async ({
     masteredNarration = await loadProjectCheckMasteredNarration(
       paths.masteredNarration,
     );
-    identity.generationInputFingerprint =
-      sealedNarration.generationInputFingerprint;
-    identity.sealedNarrationFingerprint =
-      sealedNarration.sealedNarrationFingerprint;
-    identity.masteredNarrationFingerprint =
-      masteredNarration.masteredNarrationFingerprint;
     evidenceChecksums["sealed-manifest"] = await checksumFile(
       paths.sealedNarration,
     );
-    const persistedTimingForPhysicalCheck =
-      await loadProjectCheckSemanticTiming(paths.semanticTiming);
-    const physicalCheckProjectSource = {
-      ...projectSource,
-      render: {
-        ...projectSource.render,
-        fps: persistedTimingForPhysicalCheck.fps,
-        leadInFrames: persistedTimingForPhysicalCheck.leadInFrames,
-        tailFrames: persistedTimingForPhysicalCheck.tailFrames,
-      },
-    };
-    const m2 = await checkM2NarrationArtifacts({
-      rootDir,
-      projectSource: physicalCheckProjectSource,
-    });
-    const master = await checkMasteredNarrationArtifacts({
-      rootDir,
-      storyId: paths.storyId,
-      ...(runNarrativeBaselineEvidenceProcess === undefined
-        ? {}
-        : {
-            runProcess: async (command, args) => {
-              const result = await runNarrativeBaselineEvidenceProcess(
-                command,
-                args,
-              );
-              return {
-                exitCode: result.status,
-                stdout: Buffer.from(result.stdout),
-                stderr: Buffer.from(result.stderr),
-              };
-            },
-          }),
-    });
-    evidenceChecksums["complete-wav"] = await checksumFile(
-      `${rootDir}/${master.outputAudioPath}`,
-    );
-    if (
-      m2.generationInputFingerprint !==
-        sealedNarration.generationInputFingerprint ||
-      m2.sealedNarrationFingerprint !==
-        sealedNarration.sealedNarrationFingerprint ||
-      m2.completeAudioChecksum !== sealedNarration.completeAudio.checksum
-    ) {
-      throw new Error("M2 checker identity does not match sealed narration.");
-    }
-    if (
-      master.sealedNarrationFingerprint !==
-        sealedNarration.sealedNarrationFingerprint ||
-      master.masteredNarrationFingerprint !==
-        masteredNarration.masteredNarrationFingerprint ||
-      master.outputAudioChecksum !== masteredNarration.outputAudio.checksum
-    ) {
-      throw new Error("Mastered narration checker identity does not match.");
+    if (projectSource.narration === null) {
+      if (sealedNarration !== null || masteredNarration !== null) {
+        throw new Error(
+          "Visual project must not retain sealed or mastered narration.",
+        );
+      }
+    } else {
+      if (sealedNarration === null || masteredNarration === null) {
+        throw new Error(
+          "Narrated project requires sealed and mastered narration.",
+        );
+      }
+      identity.generationInputFingerprint =
+        sealedNarration.generationInputFingerprint;
+      identity.sealedNarrationFingerprint =
+        sealedNarration.sealedNarrationFingerprint;
+      identity.masteredNarrationFingerprint =
+        masteredNarration.masteredNarrationFingerprint;
+      const persistedTimingForPhysicalCheck =
+        await loadProjectCheckSemanticTiming(paths.semanticTiming);
+      const physicalCheckProjectSource = {
+        ...projectSource,
+        render: {
+          ...projectSource.render,
+          fps: persistedTimingForPhysicalCheck.fps,
+          leadInFrames: persistedTimingForPhysicalCheck.leadInFrames,
+          tailFrames: persistedTimingForPhysicalCheck.tailFrames,
+        },
+      };
+      const m2 = await checkM2NarrationArtifacts({
+        rootDir,
+        projectSource: physicalCheckProjectSource,
+      });
+      const master = await checkMasteredNarrationArtifacts({
+        rootDir,
+        storyId: paths.storyId,
+        ...(runNarrativeBaselineEvidenceProcess === undefined
+          ? {}
+          : {
+              runProcess: async (command, args) => {
+                const result = await runNarrativeBaselineEvidenceProcess(
+                  command,
+                  args,
+                );
+                return {
+                  exitCode: result.status,
+                  stdout: Buffer.from(result.stdout),
+                  stderr: Buffer.from(result.stderr),
+                };
+              },
+            }),
+      });
+      evidenceChecksums["complete-wav"] = await checksumFile(
+        `${rootDir}/${master.outputAudioPath}`,
+      );
+      if (
+        m2.generationInputFingerprint !==
+          sealedNarration.generationInputFingerprint ||
+        m2.sealedNarrationFingerprint !==
+          sealedNarration.sealedNarrationFingerprint ||
+        m2.completeAudioChecksum !== sealedNarration.completeAudio.checksum
+      ) {
+        throw new Error("M2 checker identity does not match sealed narration.");
+      }
+      if (
+        master.sealedNarrationFingerprint !==
+          sealedNarration.sealedNarrationFingerprint ||
+        master.masteredNarrationFingerprint !==
+          masteredNarration.masteredNarrationFingerprint ||
+        master.outputAudioChecksum !== masteredNarration.outputAudio.checksum
+      ) {
+        throw new Error("Mastered narration checker identity does not match.");
+      }
     }
     mark("sealed-narration", "pass");
   } catch (error) {
@@ -355,29 +383,40 @@ export const runNarrativeAutoCheck = async ({
   }
 
   try {
-    const receipt = await checkNarrativeBaselineEvidence({
-      rootDir,
-      storyId: paths.storyId,
-      runProcess: runNarrativeBaselineEvidenceProcess,
-    });
-    const persistedReceipt = await loadProjectCheckNarrativeBaselineReceipt(
-      paths.narrativeBaselineReceipt,
-    );
-    if (persistedReceipt.evidenceFingerprint !== receipt.evidenceFingerprint) {
-      throw failDependency("Narrative baseline evidence");
+    if (projectSource === undefined) {
+      throw failDependency("Source contracts");
     }
-    identity.baselineEvidenceFingerprint = receipt.evidenceFingerprint;
-    evidenceChecksums["baseline-receipt"] = await checksumFile(
-      paths.narrativeBaselineReceipt,
-    );
-    mark("baseline-evidence", "pass");
+    if (projectSource.narration === null) {
+      // This evidence proves narration/caption rendering only. Visual delivery
+      // media is verified independently by the same four-file delivery gate.
+      mark("baseline-evidence", "not-applicable");
+    } else {
+      const receipt = await checkNarrativeBaselineEvidence({
+        rootDir,
+        storyId: paths.storyId,
+        runProcess: runNarrativeBaselineEvidenceProcess,
+      });
+      const persistedReceipt = await loadProjectCheckNarrativeBaselineReceipt(
+        paths.narrativeBaselineReceipt,
+      );
+      if (
+        persistedReceipt.evidenceFingerprint !== receipt.evidenceFingerprint
+      ) {
+        throw failDependency("Narrative baseline evidence");
+      }
+      identity.baselineEvidenceFingerprint = receipt.evidenceFingerprint;
+      evidenceChecksums["baseline-receipt"] = await checksumFile(
+        paths.narrativeBaselineReceipt,
+      );
+      mark("baseline-evidence", "pass");
+    }
   } catch (error) {
     mark("baseline-evidence", "fail", error);
   }
 
   const orderedChecks = orderNarrativeCheckItems(checks);
   const aggregateStatus = orderedChecks.every(
-    (check) => check.status === "pass",
+    (check) => check.status !== "fail",
   )
     ? "pass"
     : "fail";
@@ -387,6 +426,7 @@ export const runNarrativeAutoCheck = async ({
     storyId: paths.storyId,
     level: "narrative",
     aggregateStatus,
+    ...(timingAlgorithmId === undefined ? {} : { timingAlgorithmId }),
     inputIdentity: identity,
     evidenceRefs: createNarrativeAutoCheckEvidenceRefs({
       storyId: paths.storyId,

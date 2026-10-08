@@ -21,6 +21,7 @@ import {
   StoryIdSchema,
   StorySpecSchema,
   VisualStyleSpecSchema,
+  isVisualStory,
   buildDeliveryPublishing,
   createFingerprint,
   deriveCoverCompositionBaseId,
@@ -526,7 +527,7 @@ export const prepareProjectAuthoringBuild = async ({
     storyId: projectId,
     meaningIds,
     runtimeInputFingerprint,
-    timingSource: story.timingSource,
+    timingSource: isVisualStory(story) ? "visual-frames" : story.timingSource,
   });
   await Promise.all([
     collectGlobalVisualSourceGraph({
@@ -540,7 +541,7 @@ export const prepareProjectAuthoringBuild = async ({
       storyId: projectId,
       compositionId: deriveCoverCompositionBaseId(projectId),
     }),
-    story.timingSource === "authored-frames"
+    story.timingSource === "authored-frames" || isVisualStory(story)
       ? Promise.resolve(null)
       : checkMasteredNarrationArtifacts({
           rootDir: contentRoot,
@@ -582,7 +583,7 @@ export const prepareProjectAuthoringBuild = async ({
       if (
         beat === undefined ||
         (story.timingSource !== "authored-frames" &&
-          beat.kind !== "narrated-scene")
+          beat.kind === "silent-scene")
       ) {
         throw new Error(
           "Publishing chapters are stale against SemanticTiming.",

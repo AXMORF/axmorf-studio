@@ -24,8 +24,22 @@ validators 判断一次生产是否真正完成。
 生产任务冻结选定资源和指南；校验会拒绝仅声明却未调用的能力，以及调用未声明的能力。自绘仍可使用，
 需要说明与现有 API 的适配理由；这些机械检查不代替成片审片。
 
+0.1.17 支持两种正文：`narrated-scene` 以实测旁白驱动字幕和动作；`visual-scene` 以明确的
+`durationInFrames` 驱动对象状态、短文案与音效，不调用 TTS。后者通过 create context 的 `visualFirst`
+示例选择，保留相同的正式生产与四文件交付流程。Scene worker 可用绑定返回的 `commands.preview`
+在提交前实际渲染和定向修正；最终的跨 Scene 衔接、音乐混音和完整审片仍需交付后 review。
+需要同一主体跨 Scene 保持外观时，可冻结自由 SVG handoff，由两侧消费同一绘制状态；
+Scene 内的因果动作、其他 SVG/Canvas/3D 仍自由创作。实际消费检查不代替连续播放审阅。
+create context 同时提供已核验许可的 `soundResources` 和不含私有路径的音乐配置状态。
+Scene 选择音效并对齐实际起音或声势中心；新 Project 默认从已批准的全局循环曲库选一首，冻结为 Project-local 资源，
+由顶层跨 Scene 连续播放到整片结束。可明确静音、指定获批曲目或继承自定义文件；缺曲会报告 unavailable。
+还可通过 strict revision 调整 immutable 首尾模板的播放区间及既有音乐增益/包络，不修改模板或旁白 bytes。
+该新增修订已有回归测试，正式整片 candidate 和听审尚待验证，见 [修订指南](docs/guides/PROJECT_REVISION.md)。
+这些能力已随两个官方 npm 包的 0.1.17 发布。发布及公共安装证据见
+[发布记录](docs/evidence/v0.1.17-publication.json)，具体样片与未验证范围见当前实现状态。
+
 当前源码的[连续视频创作升级](docs/guides/CONTINUOUS_VIDEO_AUTHORING.md)增加整片 filmPlan、多 Beat 共用 Scene、
-作者帧无旁白时间轴、共享世界/相机/语义事件以及正式渲染前冻结草稿。公开 npm 0.1.16 尚未包含本轮升级，
+作者帧无旁白时间轴、共享世界/相机/语义事件以及正式渲染前冻结草稿。公开 npm 0.1.17 尚未包含本轮升级，
 已安装 Workspace 始终以其 public schemas/生成指南为准；既有作品不会自动重组。
 
 ## 把这段提示词交给你的 Agent
@@ -72,6 +86,7 @@ AXMORF 不用操作系统 allowlist 预先阻止安装。Agent 可以准备声�
 视频 brief
   → 用户自有 Workspace
   → strict Project create / isolated revision candidate
+  → 本次宿主 capability 验证与 execution resolve
   → read-only inspect（readiness、成本、复用、blocker）
   → explicit prepare（唯一允许调用 provider 的入口）
   → Agent 创作 dirty Scenes / GlobalVisual / Covers
@@ -100,18 +115,22 @@ deliveries/<storyId>/publish.json
 | 同时打开控制中心与 Remotion Studio        | `npm run dev`                                                         |
 | 只打开 Web 控制中心                       | `npm run web`                                                         |
 | 只打开 Remotion Studio                    | `npm run preview`                                                     |
+| 读取创作示例与能力                        | `npm run project:create:context -- --project <story-id>`              |
 | 创建 Project                              | `npm run project:create -- --project <story-id> --input <input.json>` |
 | 只读检查生产计划                          | `npm run project:produce:inspect -- --project <story-id>`             |
 | 开始有成本的准备                          | `npm run project:produce:prepare -- --project <story-id>`             |
 | 交付后复核每个 Scene 的关键画面           | `npm run project:scene:review -- --project <story-id>`                |
 | 从有效 artifacts 生成审阅草稿（当前源码） | `npm run project:preview -- --project <story-id>`                     |
 | 本地参考视频切换/运动/帧证据（当前源码）  | `npm run reference:analyze -- --input public/<reference.mp4>`         |
+| 交付后审阅完整 Scene 与衔接               | `npm run project:scene:review -- --project <story-id> --motion`       |
 | 检查 Project                              | `npm run project:check -- --project <story-id>`                       |
 
 日常使用建议让 Agent 消费结构化输出和返回的 exact commands，不要手工拼接内部参数。完整顺序见
 [生产流程](docs/PRODUCTION_WORKFLOW.md) 和 [生产编排指南](docs/guides/PRODUCTION_ORCHESTRATION.md)。
 
 新建视频时，提示词明确指定的横竖屏、尺寸、帧率优先于配置；未指定字段继承配置，单次覆盖不改写长期默认值。
+worker 的提交前 Scene 预览使用 bind 返回的 exact `commands.preview`；完整动作与音乐仍需连续观看和听审。
+用户本地循环音乐与包内共享资源分开维护，选曲和试听退役规则见 [音效与音乐指南](docs/guides/SCENE_SOUND_EFFECTS.md)。
 
 <details>
 <summary>Agent / 高级生产命令参考</summary>
@@ -183,8 +202,9 @@ artifacts、attempts、revision candidates、render output 和 Delivery；这些
 - [生产流程](docs/PRODUCTION_WORKFLOW.md)：Project、Revision、Task、Artifact 与 Delivery 主链
 - [配置指南](docs/guides/PRODUCER_CONFIG.md)：TTS、render、readability、模板和发布集合
 - [Project revision](docs/guides/PROJECT_REVISION.md)：安全修改已有作品
+- [视觉叙事](docs/guides/VISUAL_NARRATIVE_QUALITY.md)：视觉机制、连续主体、预览与验证边界
 - [本地交付](docs/guides/LOCAL_DELIVERY.md)：四文件 Delivery 结构与验证
-- [首次用户发布验收](docs/guides/FIRST_USE_RELEASE_GATE.md)：候选包双 Agent 验收与发布后复验
+- [首次用户发布验收](docs/guides/FIRST_USE_RELEASE_GATE.md)：按变更分层校验、必要原生首用与发布后安装复验
 - [当前实现状态](docs/ITERATION_STATUS.md)：已实现能力和验收事实
 
 README 只负责产品入口和快速开始；精确 contracts、当前状态与操作顺序以上述 active 文档和生成 Workspace 中当前版本的

@@ -193,6 +193,7 @@ const sceneSoundProjections = scenes.map((scene) => resolveSceneSound({
 }));
 export const productionSoundDesignProjection = buildSoundDesignProjection({
   storyId: ${JSON.stringify(storyId)},
+  durationInFrames: semanticTiming.durationInFrames,
   coverage: productionSceneCoverage,
   storyBeatTimings,
   semanticTiming,
@@ -211,6 +212,7 @@ export const productionRendererPropsByMeaning: Readonly<Record<string, SceneRend
     fps: render.fps,
     storyBeat: task.storyBeat,
     ...(task.coveredBeats === undefined ? {} : {coveredBeats: task.coveredBeats}),
+    continuity: task.continuity.handoffs,
     sourceReferences: task.sourceReferences,
     timingBeat: task.timingBeat,
     visualStyle,
@@ -243,7 +245,10 @@ export const renderProjectAuthoringBuildScaffold = ({
 }: {
   readonly storyId: string;
   readonly runtimeInputFingerprint: string;
-  readonly timingSource?: "sealed-narration" | "authored-frames";
+  readonly timingSource?:
+    | "sealed-narration"
+    | "authored-frames"
+    | "visual-frames";
 }) => {
   const storyId = StoryIdSchema.parse(rawStoryId);
   const runtimeInputFingerprint = Sha256DigestSchema.parse(
@@ -281,13 +286,13 @@ const render = artifactBundle.projectSource.render;
 const timing = artifactBundle.semanticTiming;
 const globalVisualLayerPolicy = deriveGlobalVisualLayerPolicy(timing);
 const globalVisualPlan = GlobalVisualPlanSchema.parse(globalVisualPlanJson);
-if (storyId !== ${JSON.stringify(storyId)} || visualStyle.storyId !== storyId || render.fps !== timing.fps || requirements.readabilityPolicy.width !== render.width || requirements.readabilityPolicy.height !== render.height || globalVisualPlan.storyId !== storyId || globalVisualPlan.compositionId !== render.compositionId ${narrated ? "|| masteredNarration.storyId !== storyId || masteredNarration.sealedNarrationFingerprint !== sealedNarration.sealedNarrationFingerprint" : '|| projectSource.story.timingSource !== "authored-frames"'}) throw new Error("Project production Composition identity is stale.");
+if (storyId !== ${JSON.stringify(storyId)} || visualStyle.storyId !== storyId || render.fps !== timing.fps || requirements.readabilityPolicy.width !== render.width || requirements.readabilityPolicy.height !== render.height || globalVisualPlan.storyId !== storyId || globalVisualPlan.compositionId !== render.compositionId ${narrated ? "|| masteredNarration.storyId !== storyId || masteredNarration.sealedNarrationFingerprint !== sealedNarration.sealedNarrationFingerprint" : '|| (projectSource.story.timingSource !== "authored-frames" && !projectSource.story.beats.some(beat => beat.kind === "visual-scene"))'}) throw new Error("Project production Composition identity is stale.");
 ${narrated ? 'const completeAudioLocalPath = masteredNarration.outputAudio.localPath;\nif (!completeAudioLocalPath.startsWith("public/projects/" + storyId + "/narration-mastered/")) throw new Error("Mastered narration path is outside the Project.");' : ""}
 const ProductionGlobalVisualBaseLayer: GlobalVisualLayersComponent<typeof GlobalVisualBaseLayer> = GlobalVisualBaseLayer;
 const ProductionGlobalVisualDecorationLayers: GlobalVisualLayersComponent<typeof GlobalVisualDecorationLayers> = GlobalVisualDecorationLayers;
 const completeNarrationSrc = ${narrated ? 'staticFile(completeAudioLocalPath.slice("public/".length))' : "null"};
 export const productionNarrativeCompositionMetadata = {id: render.compositionId, fps: render.fps, width: render.width, height: render.height, durationInFrames: getStoryCompositionDurationInFrames(timing.durationInFrames), defaultProps: {projectId: storyId}} as const;
-export const createProductionNarrativeCoreProps = (input: unknown): NarrativeCoreProps => { const props = StoryCompositionPropsSchema.parse(input); if (props.projectId !== storyId) throw new Error("Composition only accepts its own Project."); return {src: completeNarrationSrc, narrationStartFrame: timing.narrationStartFrame, captionCues: timing.captionCues, safeAreaPx: requirements.readabilityPolicy.captionSafeAreaPx, readabilityPolicy: requirements.readabilityPolicy}; };
+export const createProductionNarrativeCoreProps = (input: unknown): NarrativeCoreProps => { const props = StoryCompositionPropsSchema.parse(input); if (props.projectId !== storyId) throw new Error("Composition only accepts its own Project."); const shared = {captionCues: timing.captionCues, safeAreaPx: requirements.readabilityPolicy.captionSafeAreaPx, readabilityPolicy: requirements.readabilityPolicy}; if (completeNarrationSrc === null) { if (timing.narrationStartFrame !== null || timing.captionCues.length !== 0) throw new Error("Visual-only Composition cannot own narration or captions."); return {...shared, src: null, narrationStartFrame: null}; } if (timing.narrationStartFrame === null) throw new Error("Narrated Composition requires its sealed audio start."); return {...shared, src: completeNarrationSrc, narrationStartFrame: timing.narrationStartFrame}; };
 const ${componentName}: FC<StoryCompositionProps> = (props) => {
   const decorationLayers = <Sequence from={globalVisualLayerPolicy.decorationFrameRange.startFrame} durationInFrames={globalVisualLayerPolicy.decorationFrameRange.endFrame - globalVisualLayerPolicy.decorationFrameRange.startFrame} layout="absolute-fill"><ProductionGlobalVisualDecorationLayers/></Sequence>;
   return <CompositionAssembly storyVisualTrack={<StoryVisualTrack projection={productionStoryVisualProjection} registry={productionRendererRegistry} rendererPropsByMeaning={productionRendererPropsByMeaning}/>} globalVisualBackgroundLayers={visualStyle.theme === undefined ? <ProductionGlobalVisualBaseLayer/> : <ThemedGlobalVisualBackground theme={visualStyle.theme}>{decorationLayers}</ThemedGlobalVisualBackground>} globalVisualLayers={visualStyle.theme === undefined ? decorationLayers : null} narrativeCore={<NarrativeCore {...createProductionNarrativeCoreProps(props)}/>} soundDesignTrack={<SoundDesignTrack projection={productionSoundDesignProjection}/>}/>;
@@ -307,7 +312,10 @@ export const ensureProjectAuthoringBuildScaffold = async ({
   readonly storyId: string;
   readonly meaningIds: readonly string[];
   readonly runtimeInputFingerprint: string;
-  readonly timingSource?: "sealed-narration" | "authored-frames";
+  readonly timingSource?:
+    | "sealed-narration"
+    | "authored-frames"
+    | "visual-frames";
 }) => {
   const projectRoot = join(
     rootDir,

@@ -34,7 +34,7 @@ const fixture = () => {
   const taskContractBytes = `${serializeCanonicalJson(
     TaskExecutionContractSchema.parse({
       schemaVersion: 1,
-      contractVersion: "agent-task-execution-contract-v1",
+      contractVersion: "agent-task-execution-contract-v2",
       taskKind: "cover-owner",
       purpose: "Author the reissue fixture Cover.",
       workflow: ["Bind and complete the fixture output."],

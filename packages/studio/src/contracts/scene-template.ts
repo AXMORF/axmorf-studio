@@ -8,7 +8,7 @@ import {
   StoryIdSchema,
 } from "./primitives";
 import { ResourceIdSchema } from "./resource-catalog";
-import { TemplateSceneSoundCueSchema } from "./story";
+import { TemplateSceneSoundCueSchema, type SilentScenePreset } from "./story";
 
 export const SceneTemplateIdSchema = z
   .string()
@@ -193,6 +193,48 @@ export const buildSceneTemplateInstance = (rawInput: unknown) => {
 };
 
 export type SceneTemplateInstance = z.infer<typeof SceneTemplateInstanceSchema>;
+
+/** Playback edits change the preset, never the copied source or its identity. */
+export const resolveTemplateScenePlayback = ({
+  instance,
+  preset,
+}: {
+  readonly instance: SceneTemplateInstance;
+  readonly preset: SilentScenePreset;
+}) => {
+  if (preset.implementation.kind !== "template-copy") {
+    throw new Error("Template playback requires a copied template.");
+  }
+  const window = preset.implementation.playbackWindow;
+  const startFrame = window?.startFrame ?? 0;
+  const endFrame = window?.endFrame ?? instance.durationInFrames;
+  if (
+    preset.implementation.instanceFingerprint !==
+      instance.instanceFingerprint ||
+    (window !== undefined &&
+      window.sourceDurationInFrames !== instance.durationInFrames) ||
+    startFrame < 0 ||
+    endFrame > instance.durationInFrames ||
+    endFrame - startFrame !== preset.durationInFrames
+  ) {
+    throw new Error(
+      "Template playback is stale against its immutable instance.",
+    );
+  }
+  return {
+    startFrame,
+    endFrame,
+    ...(window?.musicVolume === undefined
+      ? {}
+      : { musicVolume: window.musicVolume }),
+    ...(window?.musicFadeInFrames === undefined
+      ? {}
+      : { musicFadeInFrames: window.musicFadeInFrames }),
+    ...(window?.musicFadeOutFrames === undefined
+      ? {}
+      : { musicFadeOutFrames: window.musicFadeOutFrames }),
+  } as const;
+};
 
 const InstantiatedSceneSelectionSchema = z
   .object({

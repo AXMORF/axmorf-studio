@@ -32,6 +32,8 @@ import {
   createFinalMechanicalCheckV2Report,
   resolveStorySceneGroups,
   serializeCanonicalJson,
+  getStoryCompositionDurationInFrames,
+  validateNarrativeArtifactBundle,
   type FinalMechanicalCheckId,
   type FinalMechanicalCheckReportInput,
   type FinalMechanicalCheckV2Id,
@@ -63,6 +65,8 @@ import {
   getProjectCheckPaths,
   loadProjectCheckJson,
   loadProjectCheckSemanticTiming,
+  loadProjectCheckSealedNarration,
+  loadProjectCheckMasteredNarration,
   loadProjectCheckText,
 } from "./project-files";
 
@@ -725,6 +729,7 @@ export const loadCurrentFinalSceneBranch = async ({
     );
     const soundProjection = buildSoundDesignProjection({
       storyId: paths.storyId,
+      durationInFrames: semanticTiming.durationInFrames,
       coverage,
       storyBeatTimings: semanticTiming.storyBeats,
       semanticTiming,
@@ -900,9 +905,45 @@ export const loadCurrentFinalAssemblyBranch = async ({
         "final-assembly.generated.json",
       ),
     );
+    const paths = getProjectCheckPaths({ rootDir, projectId });
+    const { projectSource } = await loadNarrationProjectFiles({
+      rootDir,
+      projectId,
+    });
+    const authoredFrames =
+      projectSource.story.timingSource === "authored-frames";
+    const noNarration = authoredFrames || projectSource.narration === null;
+    const [semanticTiming, sealedNarration, masteredNarration] =
+      await Promise.all([
+        loadProjectCheckSemanticTiming(paths.semanticTiming),
+        authoredFrames
+          ? Promise.resolve(null)
+          : loadProjectCheckSealedNarration(paths.sealedNarration),
+        authoredFrames
+          ? Promise.resolve(null)
+          : loadProjectCheckMasteredNarration(paths.masteredNarration),
+      ]);
+    validateNarrativeArtifactBundle({
+      projectSource,
+      semanticTiming,
+      sealedNarration,
+    });
     if (
       globalVisual === null ||
       assembly.storyId !== projectId ||
+      assembly.compositionId !== projectSource.render.compositionId ||
+      assembly.fps !== projectSource.render.fps ||
+      assembly.width !== projectSource.render.width ||
+      assembly.height !== projectSource.render.height ||
+      assembly.durationInFrames !==
+        getStoryCompositionDurationInFrames(semanticTiming.durationInFrames) ||
+      assembly.semanticTimingFingerprint !== semanticTiming.fingerprint ||
+      assembly.sealedNarrationFingerprint !==
+        (sealedNarration?.sealedNarrationFingerprint ?? null) ||
+      (noNarration &&
+        (assembly.sealedNarrationChecksum !== null ||
+          masteredNarration !== null)) ||
+      (!noNarration && masteredNarration === null) ||
       assembly.globalVisualPlanFingerprint !== globalVisual.planFingerprint ||
       assemblyCatalog === null ||
       assembly.resourceCatalogFingerprint !==

@@ -119,6 +119,7 @@ test("package scripts have one honest resolve/inspect/prepare production surface
       describe: packageJson.scripts["project:task:describe"],
       finalize: packageJson.scripts["project:task:finalize"],
       check: packageJson.scripts["project:task:check"],
+      preview: packageJson.scripts["project:task:preview"],
       commit: packageJson.scripts["project:task:commit"],
       fail: packageJson.scripts["project:task:fail"],
       fileRead: packageJson.scripts["project:task:file-read"],
@@ -139,6 +140,8 @@ test("package scripts have one honest resolve/inspect/prepare production surface
       finalize:
         "node --import tsx scripts/project-production/cli.ts task-finalize",
       check: "node --import tsx scripts/project-production/cli.ts task-check",
+      preview:
+        "node --import tsx scripts/project-production/cli.ts task-preview",
       commit: "node --import tsx scripts/project-production/cli.ts task-commit",
       fail: "node --import tsx scripts/project-production/cli.ts task-fail",
       fileRead:
@@ -248,13 +251,17 @@ test("execution-resolve passes explicit user fields and runtime capacity once", 
 
 test("execution-resolve forwards fallback only when explicitly requested", async () => {
   const calls: unknown[] = [];
-  await runProjectProductionCli(["execution-resolve", "--allow-inline-fallback"], {
-    rootDir: "/fixture", stdout: () => undefined,
-    resolveAgentExecution: (async (input: unknown) => {
-      calls.push(input);
-      return { status: "ready", mode: "inline" };
-    }) as never,
-  });
+  await runProjectProductionCli(
+    ["execution-resolve", "--allow-inline-fallback"],
+    {
+      rootDir: "/fixture",
+      stdout: () => undefined,
+      resolveAgentExecution: (async (input: unknown) => {
+        calls.push(input);
+        return { status: "ready", mode: "inline" };
+      }) as never,
+    },
+  );
   assert.deepEqual(calls, [{ rootDir: "/fixture", allowInlineFallback: true }]);
 });
 

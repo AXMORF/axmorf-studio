@@ -61,6 +61,12 @@
 | project-revision-current | 同一 candidate expected tuple 已经是完整 current，重复 promotion 未重写 current bytes。 |
 | revision promotion | candidate exact-four Delivery 后，在 lock 内重验 live base 与 expected candidate Revision/Delivery，只受控替换 source/public/narration/delivery 并刷新 Registry/Catalog；失败完整 rollback。 |
 | template-copy Scene | create 时复制到 Project-local 的 immutable template instance，由 fixed task 产出 artifact。 |
+| template playback window | Story preset 中 fingerprint-covered 的 source-frame 播放区间，endFrame 不包含在内；不改变 immutable template bytes，null 恢复完整模板。 |
+| visual-scene | 通过可见对象、动作与短文案表达含义的正文 Beat；有明确 durationInFrames，无 ttsChunks。一 Story 暂不与 narrated 正文混排。 |
+| authored-frames-v1 | visual Story 的累计整数帧时序算法；sampleRate/narrationStartFrame 为 null、segments/captionCues 为空，包含边界与 lead/tail。 |
+| SceneContinuityVisual | 公开 runtime 组件，消费两侧任务共同冻结的可选自由 SVG handoff；共享主体绘制，不生成整场景或证明审美质量。 |
+| bound Scene preview | shared-workspace scene-owner 在 commit 前通过 exact binding 渲染 owning Scene 的诊断短片；不含相邻 Scene、GlobalVisual 或 Project BGM，不进入 Artifact/Delivery identity。 |
+| sound envelope | contribution-local 的可选首尾线性增益；循环音频沿完整 contribution 时间应用，不每圈重启，不修改 source bytes 或 narration。 |
 | scene-owner Scene | 需要一个 dirty Scene task executor 在独占 workspace 内创作的 Scene。 |
 | SceneViewport | Composition 拥有的 safe-area-local Scene 容器；把本地 `(0, 0)` 映射到内容安全区左上角，并只向 Renderer 暴露 `viewportWidth`/`viewportHeight`。 |
 | historical `.producer-runs` | 旧架构只读历史数据；current pipeline 不读取，只允许 Project 删除器按严格 ownership 清理。 |

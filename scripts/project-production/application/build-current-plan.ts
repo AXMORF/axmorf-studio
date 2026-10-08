@@ -10,7 +10,9 @@ import {
   SCENE_MOTION_REQUIREMENT_ID,
   buildProducerTaskSpec,
   createFingerprint,
+  computeNoNarrationFingerprint,
   deriveGlobalVisualLayerPolicy,
+  isVisualStory,
   serializeCanonicalJson,
   type ArtifactAttestation,
   type ProducerTaskSpec,
@@ -40,6 +42,7 @@ import {
   expectedTemplateSceneOutputSetFromPreparedFiles,
 } from "../domain/template-scene-output";
 import { loadProjectProductionInputs } from "./load-inputs";
+import { snapshotUnchangedCurrentScene } from "../../projects/application/scene-prior-source";
 import { buildCurrentProductionRevision } from "./current-revision";
 import {
   assertTaskExecutionContractMatchesTask,
@@ -510,6 +513,64 @@ export const buildAuthoredSemanticTimingTask = ({
   });
 };
 
+export const buildVisualSemanticTimingTask = ({
+  inputs,
+  revisionId,
+}: {
+  readonly inputs: LoadedInputs;
+  readonly revisionId: ProductionRevisionId;
+}) => {
+  if (!isVisualStory(inputs.story) || inputs.narration !== null) {
+    throw new Error("Authored frame timing requires a visual Story.");
+  }
+  return buildContextTask({
+    taskKind: "semantic-timing",
+    storyId: inputs.projectId,
+    semanticId: null,
+    revisionId,
+    inputFingerprints: [
+      { id: "story", fingerprint: inputs.fingerprints.story },
+      { id: "render", fingerprint: inputs.fingerprints.render },
+      { id: "narration", fingerprint: computeNoNarrationFingerprint() },
+    ],
+    outputs: [
+      "project/generated/mastered-narration.generated.json",
+      "project/generated/sealed-narration.generated.json",
+      "project/generated/semantic-timing.generated.json",
+    ],
+    validatorPolicyVersion: "visual-semantic-timing-validator-v1",
+    context: {
+      story: inputs.story,
+      render: inputs.render,
+      timingPolicy: "authored-frames-v1",
+    },
+  });
+};
+
+const buildVisualTimingTasks = async ({
+  rootDir,
+  inputs,
+  revisionId,
+}: {
+  readonly rootDir: string;
+  readonly inputs: LoadedInputs;
+  readonly revisionId: ProductionRevisionId;
+}) => {
+  const timing = buildVisualSemanticTimingTask({ inputs, revisionId });
+  const inspection = await inspect({ rootDir, task: timing.task });
+  return {
+    nodes: [
+      { task: timing.task, dependencyTaskRevisions: [] },
+    ] as ProducerTaskNode[],
+    timingTask: timing.task,
+    timingAttestation: inspection.attestation,
+    inspections: new Map([[timing.task.taskRevision, inspection]]),
+    subjects: new Map<string, DiagnosticSubject>([
+      [timing.task.taskRevision, { kind: "project", id: inputs.projectId }],
+    ]),
+  } as const;
+};
+
 export const buildAgentTasks = (
   inputs: LoadedInputs,
   revisionId: ProductionRevisionId,
@@ -809,7 +870,9 @@ export const buildCurrentProductionPlan = async ({
   const narration =
     suppliedNarration ??
     (await inspectNarrationCache({ rootDir, projectId, env, scope }));
-  const authoredFrames = inputs.story.timingSource === "authored-frames";
+  const authoredFrames =
+    inputs.story.timingSource === "authored-frames" ||
+    isVisualStory(inputs.story);
   if (!authoredFrames && narration.providerAttemptFingerprint == null) {
     throw new Error("Narration preparation identity is unavailable.");
   }
@@ -839,22 +902,28 @@ export const buildCurrentProductionPlan = async ({
           projectId,
         })
       : suppliedBaseline;
-  const fixed = await buildNarrationTasks({
-    rootDir,
-    inputs,
-    revisionId: revision.revisionId,
-    narration: {
-      providerAttemptFingerprint: authoredFrames
-        ? null
-        : (narration.providerAttemptFingerprint as Sha256Digest),
-      masteringPolicy: authoredFrames
-        ? null
-        : (narration.masteringPolicy ??
-          inputs.masteredNarration?.masteringPolicy ??
-          null),
-      sealedNarration: inputs.sealedNarration,
-    },
-  });
+  const fixed = isVisualStory(inputs.story)
+    ? await buildVisualTimingTasks({
+        rootDir,
+        inputs,
+        revisionId: revision.revisionId,
+      })
+    : await buildNarrationTasks({
+        rootDir,
+        inputs,
+        revisionId: revision.revisionId,
+        narration: {
+          providerAttemptFingerprint: authoredFrames
+            ? null
+            : (narration.providerAttemptFingerprint as Sha256Digest),
+          masteringPolicy: authoredFrames
+            ? null
+            : (narration.masteringPolicy ??
+              inputs.masteredNarration?.masteringPolicy ??
+              null),
+          sealedNarration: inputs.sealedNarration,
+        },
+      });
   const builtOwners = buildAgentTasks(inputs, revision.revisionId);
   const ownerNodes: ProducerTaskNode[] = [];
   const ownerInspections = new Map<string, ArtifactInspection>();
@@ -866,7 +935,8 @@ export const buildCurrentProductionPlan = async ({
       taskContractBytes: string | null;
     }>
   >();
-  for (const built of builtOwners) {
+  for (const initialBuilt of builtOwners) {
+    let built = initialBuilt;
     let task = built.task;
     if (task.taskKind === "scene-template") {
       if (task.semanticId === null)
@@ -878,7 +948,44 @@ export const buildCurrentProductionPlan = async ({
       });
       task = rebindTemplateTaskOutputs(task, Object.keys(templateFiles));
     }
-    ownerInspections.set(task.taskRevision, await inspect({ rootDir, task }));
+    let inspection = await inspect({ rootDir, task });
+    if (
+      task.taskKind === "scene-owner" &&
+      inspection.artifactState === "missing"
+    ) {
+      const scene = inputs.sceneInputs.find(
+        ({ meaningId }) => meaningId === task.semanticId,
+      );
+      if (scene !== undefined && scene.priorSource === undefined) {
+        const priorSource = await snapshotUnchangedCurrentScene({
+          rootDir: scope.isolatedRoot,
+          runtimeRootDir: scope.shared.runtimeRoot,
+          task: scene.taskInput,
+          brief: scene.brief,
+        });
+        if (priorSource !== null) {
+          const rebound = buildAgentTasks(
+            {
+              ...inputs,
+              sceneInputs: inputs.sceneInputs.map((entry) =>
+                entry === scene ? { ...entry, priorSource } : entry,
+              ),
+            },
+            revision.revisionId,
+          ).find(
+            ({ task: owner }) =>
+              owner.taskKind === "scene-owner" &&
+              owner.semanticId === task.semanticId,
+          );
+          if (rebound === undefined)
+            throw new Error("Current Scene source rebind lost its owner.");
+          built = rebound;
+          task = built.task;
+          inspection = await inspect({ rootDir, task });
+        }
+      }
+    }
+    ownerInspections.set(task.taskRevision, inspection);
     taskSeeds.set(task.taskRevision, {
       task,
       contextBytes: built.contextBytes,

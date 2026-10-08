@@ -26,6 +26,7 @@ import {
   ShotRecipeSelectionSchema,
   StoryIdSchema,
   TaskExecutionContractSchema,
+  TASK_EXECUTION_CONTRACT_VERSION,
   VISUAL_THEME_DECORATION_MAX_OPACITY,
   VisualThemeSchema,
   VisualStyleSpecSchema,
@@ -121,7 +122,7 @@ const createContract = (
 ) =>
   TaskExecutionContractSchema.parse({
     schemaVersion: 1,
-    contractVersion: "agent-task-execution-contract-v1",
+    contractVersion: TASK_EXECUTION_CONTRACT_VERSION,
     ...contract,
     immutableInputs,
     preflight: {
@@ -234,6 +235,9 @@ const buildSceneContract = (rawContext: unknown) => {
   }
   const shotId = `${taskInput.meaningId}-primary`;
   const handoffs = taskInput.continuity.handoffs;
+  const hasVisualHandoff = [handoffs?.incoming, handoffs?.outgoing].some(
+    (handoff) => handoff?.kind === "continuous" && handoff.visual !== undefined,
+  );
   const requiresMotion =
     taskInput.sceneRequirements.some(
       (rule) => rule.requirementId === SCENE_MOTION_REQUIREMENT_ID,
@@ -306,7 +310,8 @@ const buildSceneContract = (rawContext: unknown) => {
     semanticObjective: taskInput.storyBeat.narrativePurpose,
     subject: brief.visualIntent,
     primaryAction: brief.motionIntent,
-    causalLink: "The visible action makes the narrated causal link concrete.",
+    causalLink:
+      "The visible action makes the StoryBeat's causal link concrete.",
     primaryComposition: brief.compositionIntent,
     styleRealization: [
       visualStyle.artDirection.medium,
@@ -369,18 +374,22 @@ const buildSceneContract = (rawContext: unknown) => {
       "When taskInput.coveredBeats is present, this one renderer owns all listed semantic Beats. Use scene.coveredBriefs for each Beat's visual decisions; keep subjects and camera continuous across their boundaries. sceneFrame spans the complete group and never resets at an internal Beat. Split modules only within declared owning paths.",
       "Read the complete VisualStyle from inputs/context.json; when theme is present its background, primaryText, secondaryText, and accent roles are the shared color authority.",
       "Use scene.taskInput in inputs/context.json as immutable identity, timing, viewport, and allowlist authority.",
-      "Use scene.brief and scene.visualStyle for the actual visual, composition, motion, sound, and continuity decisions; scene.narrationCues are Scene-local frame ranges for narrated chunks.",
+      "Use scene.brief and scene.visualStyle for visual, composition, motion, sound, and continuity decisions. Narrated Scenes use scene.narrationCues as exact Scene-local spoken ranges. Visual Scenes have no narration or captions: show the meaning through evolving subjects and short readable labels within their authored frame budget.",
       "Evaluate scene.availableResources capability authoring guides before implementing equivalent behavior yourself. Use the exact public imports, parameters and examples when a capability fits; keep authored content specific to this StoryBeat. Record the chosen capabilities and concrete reasons for self-authored alternatives in visual-plan.json styleRealization.",
       "Before writing the renderer, decide what the viewer sees first, what visibly changes, and what final state makes the StoryBeat's causal point clear. Use one or more shots according to the meaning and duration, with purposeful entry, transformation, and result.",
-      "Choose a visual subject with a specific role in the idea. Show cause and consequence through staging, scale, movement, occlusion, or a change in spatial relationship; avoid generic shapes, ambient particles, and motion that only illustrates a keyword.",
-      "Give each shot one focal subject and a readable silhouette. Vary shot scale or viewpoint only when it clarifies a new fact, and preserve continuity of the subject across shots. Leave the Composition-owned caption area visually quiet.",
-      "Align meaningful visual changes to narrationCues and declare sync anchors for events used by shots or sound. Keep the plan, renderer, and visible result consistent; do not add motion only to fill time.",
+      "Choose a visual subject with a specific role in the idea. Show cause and consequence through staging, scale, movement, occlusion, or a change in spatial relationship. Geometry and particles can represent a meaningful subject, its aggregation, trajectory or transformation; avoid ambient filler and motion that only illustrates a keyword. Masks, morphs and effects remain free choices, not required recipes.",
+      "Give each shot one focal subject and a readable silhouette. Use wide views, close-ups and large short claims to direct attention and reveal a relationship or change; preserve the subject across reframing. Text can become a visual actor rather than staying a small label. Follow the brief's pace: alternate action with readable holds, and let the next meaningful event take over instead of filling the remaining budget with a static result. Leave the Composition-owned caption area visually quiet.",
+      "Align meaningful changes to narrationCues in narrated Scenes; in visual Scenes author event anchors from the cause, consequence and reading rhythm. Declare anchors used by shots or sound. The optional resolveSceneActionTiming public helper consumes action ranges, anchors and result holds; Renderer continuity contains the frozen seam. Keep plan, code and visible result consistent.",
+      ...(hasVisualHandoff
+        ? [
+            "The frozen continuous handoff includes visual: a shared declarative SVG drawing, not a template or a second Scene's source. Use this exact drawing for the incoming first frame or outgoing last frame. Bring your own subject into that state through causal movement, then preserve it at the seam; the next Scene begins there and evolves it. Keep unrelated labels or overlays from changing its visible state at the seam. Review the approach and departure, not only the endpoint.",
+          ]
+        : []),
       originalityInstruction,
-      "When scene.priorSource is absent, create this Scene from the current brief; no prior implementation was frozen, so do not claim preservation of existing source.",
-      "For a local revision, compare current coveredBriefs with priorSource.coveredBriefs when present. Preserve the owning source graph outside the requested delta; a change in grouping does not authorize reading or copying other Scene source.",
+      "When scene.priorSource is absent, create this Scene from the current brief; no prior implementation was frozen, so do not claim preservation of existing source. For a local revision, compare current coveredBriefs with priorSource.coveredBriefs when present. Preserve the owning source graph outside the requested delta; a change in grouping does not authorize reading or copying other Scene source.",
       "Replace the scaffold Renderer with StoryBeat-specific creative output and write every declared output. The scaffold is an API illustration, never a finished Scene.",
       "Run the deterministic task finalizer to bind identities, canonicalize JSON, and recompute derived fields.",
-      "Run the fixed task checker, correct only this workspace, then use the attempt-bound completion operation supplied by the caller.",
+      "Run the fixed checker and correct only this workspace. When the bound commands.preview is available, render the Scene before commit; compare real action playback with intent, label holds and narration where present, then repair the same declared outputs and preview again if needed. Report actual review limits; preview is evidence, never aesthetic approval or a replacement for final boundary/music review. Use the exact bound commit only after technical checks.",
     ],
     outputs: [
       sourceOutput({
@@ -393,7 +402,12 @@ const buildSceneContract = (rawContext: unknown) => {
             ? "Realize the explanatory intent in shots.motionPlan using content-appropriate frame-driven code: custom SVG, Canvas or supported 3D capabilities, composition and camera choices are allowed. Intent v2 prescribes no geometry, trajectories or components. Optional tracked v1 plans/data-motion-object bindings enable a limited DOM dependency probe. Unsupported probes mean temporal-review-required, never creative invalidity or automatic approval. Render and review low-cost action/boundary previews against the intent; preserve facts, readability and narration alignment."
             : "The runtime supplies the verified shot-plan.json. Realize its intent with authored frame-driven animation or optional selected capabilities. Tracked geometry is optional; a plan does not certify visible, semantic or aesthetic quality.",
           "Do not import or call useVideoConfig; the supplied SceneRendererProps own timing and viewport dimensions.",
-          "Show a readable subject, a visible meaning-driven change, and its result at narration-aligned frames; use scene.brief and scene.visualStyle rather than the scaffold imagery.",
+          "Show a readable subject, a visible meaning-driven change, and its result at narration-aligned or authored visual event frames. resolveSceneActionTiming({shots, syncAnchors, actionId, sceneFrame}) is an optional public helper returning anticipation/change/reading-hold progress; it leaves geometry and easing to you. Use the optional continuity prop to consume frozen incoming/outgoing seams.",
+          ...(hasVisualHandoff
+            ? [
+                "Import SceneContinuityVisual from @axmorf/studio/remotion. Render <SceneContinuityVisual handoff={continuity.incoming}/> or use continuity.outgoing when its kind is continuous. It draws the frozen visual in viewport coordinates with stable SVG IDs. At the matching first/last frame use a direct viewport child without transform or overflow-hidden ancestors; a Fragment root is one option. The checker compares actual DOM and perturbs the drawing to detect ignored input; markers do not prove consumption. Animate toward and away from that state with your own frame-driven geometry, not a one-frame swap. Browser effects and occlusion still require boundary review.",
+              ]
+            : []),
           "Keep the root transparent and do not own captions, narration, or GlobalVisual decoration.",
           "For themed Projects, use visualStyle.theme semantic roles for readable text and accents; Composition draws theme.background and Scene must not replace it with a full-frame surface.",
           "Keep visible text at the task viewport minimum font size with clear contrast against its actual background; pure layout and graphic containers do not need a font size.",
@@ -444,8 +458,8 @@ export default Renderer;
           "Cover the Scene with ordered, non-overlapping, meaning-local shots.",
           "Choose shot boundaries for semantic changes, including a result hold when duration permits; one continuous shot is valid for a short, clear Beat.",
           "Describe observable subject positions, actions, and changes in each shot; a theme word or a camera move alone is not a shot action.",
-          "New narrated Projects require an intent-first motionPlan v2: meaningful subjects, explanatory actions, narration alignment and continuity. Describe the intended visible change, not mandatory trajectories or components; custom action kinds and frame-driven animation are allowed. Tracked motionPlan v1 remains optional for reusable state interpolation and limited dependency checks.",
-          "Each action declares initialState, resultingState, explanatoryPurpose, shotId, objectIds, frameRange, syncAnchorId and readingHoldFrames. Align anchors to sealed narrationCues; make labels readable during holds. A reading hold need not freeze every decorative/object property in custom animation. Continuous transitions declare incoming/outgoing continuityId object handoffs; motivated cuts explain why. No mandatory camera movement or animation quota.",
+          "New content Scenes require an intent-first motionPlan v2: meaningful subjects, explanatory actions, event timing and continuity. Describe the intended visible change, not mandatory trajectories or components; custom action kinds and frame-driven animation are allowed. Tracked motionPlan v1 remains optional for reusable state interpolation and limited dependency checks.",
+          "Each action declares initialState, resultingState, explanatoryPurpose, shotId, objectIds, frameRange, syncAnchorId and readingHoldFrames. Narrated anchors follow sealed narrationCues; visual anchors follow authored causal events. Make labels readable during holds. A hold need not freeze every property. Continuous transitions declare incoming/outgoing continuityId object handoffs; motivated cuts explain why. No mandatory camera movement or animation quota.",
           "scene.taskInput.continuity.handoffs freezes the Root-owned incoming/outgoing seam. Match its outgoing kind and exact continuity IDs; bind each handoff to an authored object whose meaning equals the shared subject. Do not invent IDs or omit a promised incoming object. Realize the shared subject visibly; local object IDs and frame-driven implementation remain your choice. Tracked v1 continuous boundaries require frozen trackedState and exact first/last poses; without it use intent v2. Fixed template boundaries use motivated cuts.",
           "Keep shot order identical to visual-plan.json orderedShotIds.",
         ],
@@ -478,6 +492,7 @@ export default Renderer;
         owner: "agent-draft-fixed-finalize",
         instructions: [
           "Declare only allowlisted non-narration SoundContributions.",
+          "Read each selected sound-effect descriptor's timing guidance. Align the onset or swell center with its declared visible syncAnchor by offsetting startFrame; keep the complete media duration inside this Scene. Use volume and sparse accents to support the brief's motion and hierarchy, without competing with narration or Project BGM. Project BGM is owned by the Composition, never duplicate it in Scene source or sound-plan.json. Final mixed-audio review remains necessary; a Scene preview alone excludes Project BGM.",
         ],
         derivedFields: [
           "schemaVersion",
@@ -639,8 +654,8 @@ const buildGlobalVisualContract = (rawContext: unknown) => {
     taskKind: "global-visual-owner",
     purpose:
       theme === undefined
-        ? "Author visual-only full-composition base and narrated-window decoration layers without taking Scene or text ownership."
-        : "Author visual-only narrated-window decoration while Composition owns the full-composition theme.background.",
+        ? "Author visual-only full-composition base and content-window decoration layers without taking Scene or text ownership."
+        : "Author visual-only content-window decoration while Composition owns the full-composition theme.background.",
     workflow: [
       "Use Story, render, timing, layerPolicy, readability, resource pool, VisualStyle, and GlobalVisual brief from inputs/context.json.",
       theme === undefined
@@ -667,7 +682,7 @@ const buildGlobalVisualContract = (rawContext: unknown) => {
         instructions: [
           "Export exactly the zero-prop named components GlobalVisualBaseLayer and GlobalVisualDecorationLayers.",
           theme === undefined
-            ? "The base is mounted for the full Composition; decoration is mounted only for the narrated window and receives window-local frame zero."
+            ? "The base is mounted for the full Composition; decoration is mounted only for the content window and receives window-local frame zero."
             : `The themed base must directly return null without parameters, additional statements, helpers, or JSX, and is never mounted. Composition draws theme.background and composites all decoration behind Scenes in one fixed ${VISUAL_THEME_DECORATION_MAX_OPACITY * 100}% maximum opacity group. Use theme.secondaryText and theme.accent; author normal internal opacity and do not pre-apply the group limit a second time.`,
           "Directly import and call useCurrentFrame from remotion for decoration motion; do not shadow or proxy it.",
           "Each rendered JSX root must be intrinsic or Remotion AbsoluteFill and declare exactly one inline pointerEvents: none style property without spreads; a themed null base has no root.",

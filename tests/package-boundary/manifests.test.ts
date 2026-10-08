@@ -48,6 +48,8 @@ test("the private repository root owns exactly the two public npm packages", asy
     "brace-expansion@1": "1.1.21",
     "brace-expansion@2": "2.1.7",
     nanoid: "3.3.18",
+    "postcss-selector-parser": "7.1.6",
+    "source-map-js": "1.2.2",
   });
   assert.deepEqual(manifest.workspaces, [
     "packages/studio",

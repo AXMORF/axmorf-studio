@@ -63,6 +63,7 @@ export const hasValidPublishingChapterCoverage = ({
   const content = story.beats.filter(
     (beat) =>
       beat.kind === "narrated-scene" ||
+      beat.kind === "visual-scene" ||
       (story.timingSource === "authored-frames" &&
         beat.preset.implementation.kind === "scene-owner"),
   );

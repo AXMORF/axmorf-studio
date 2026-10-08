@@ -38,6 +38,87 @@ const {pathToFileURL} = require('node:url');
  };
  const Renderer = load('src/Renderer.tsx').default;
  if (typeof Renderer !== 'function') throw new Error('Unsupported Renderer export');
+ if (input.mode === 'continuity') {
+  const {SceneContinuityVisual} = modules.get('@axmorf/studio/remotion');
+  const {computeSceneContinuityVisualFingerprint} = modules.get('@axmorf/studio/contracts');
+  if (typeof SceneContinuityVisual !== 'function') throw new Error('Common visual helper is unavailable');
+  const contradiction = message => {throw new Error('Scene handoff visual contradiction: '+message);};
+  const tree = html => {
+   const roots=[], stack=[];
+   const tokens=/<!--[\s\S]*?-->|<\/?([a-zA-Z][\w:-]*)\b[^>]*>/g;
+   let match;
+   while ((match=tokens.exec(html))) {
+    if (match[0].startsWith('<!--')) continue;
+    if (match[0].startsWith('</')) {
+     const node=stack.pop();
+     if (!node || node.tag!==match[1]) throw new Error('Unbalanced boundary DOM');
+     node.end=tokens.lastIndex;
+     continue;
+    }
+    const attributes=Object.fromEntries([...match[0].matchAll(/\s([\w:-]+)="([^"]*)"/g)].map(m=>[m[1],m[2]]));
+    const node={tag:match[1],attributes,start:match.index,end:tokens.lastIndex,parent:stack.at(-1),children:[]};
+    (node.parent ? node.parent.children : roots).push(node);
+    if (!/^(?:img|input|br|hr|meta|link|area|source|wbr)$/i.test(node.tag) && !match[0].endsWith('/>')) stack.push(node);
+   }
+   if (stack.length) throw new Error('Unclosed boundary DOM');
+   return roots;
+  };
+  const nodes = roots => roots.flatMap(node=>[node,...nodes(node.children)]);
+  const identityTransform = value => value==='none' || /^(?:translate\(\s*0(?:[ ,]+0)?\s*\)|matrix\(\s*1[ ,]+0[ ,]+0[ ,]+1[ ,]+0[ ,]+0\s*\))$/.test(value);
+  const neutralAncestor = node => {
+   if (!['div','svg','g'].includes(node.tag)) return false;
+   for (const [name,value] of Object.entries(node.attributes)) {
+    if (name.startsWith('data-') || name==='xmlns') continue;
+    if (name==='transform' && identityTransform(value)) continue;
+    if (name==='viewBox' && value.trim().replace(/\s+/g,' ')==='0 0 '+input.props.viewportWidth+' '+input.props.viewportHeight) continue;
+    if (name==='width' && ['100%',String(input.props.viewportWidth)].includes(value)) continue;
+    if (name==='height' && ['100%',String(input.props.viewportHeight)].includes(value)) continue;
+    if (name!=='style') return false;
+    for (const entry of value.split(';').filter(Boolean)) {
+     const colon=entry.indexOf(':'), key=entry.slice(0,colon).trim(), val=entry.slice(colon+1).trim();
+     if (['position'].includes(key) && ['relative','absolute'].includes(val)) continue;
+     if (key==='width' && ['100%',input.props.viewportWidth+'px'].includes(val)) continue;
+     if (key==='height' && ['100%',input.props.viewportHeight+'px'].includes(val)) continue;
+     if (['inset','top','left','right','bottom','margin','padding'].includes(key) && /^(?:0|0px)$/.test(val)) continue;
+     if (key==='opacity' && val==='1') continue;
+     if (key==='transform' && identityTransform(val)) continue;
+     if (key==='pointer-events' && val==='none') continue;
+     if (key==='overflow' && val==='visible') continue;
+     if (key==='display' && val==='block') continue;
+     return false;
+    }
+   }
+   return true;
+  };
+  const drawing = (html,id) => {
+   if (/<style\b/i.test(html)) throw new Error('Boundary CSS requires browser review');
+   const matches=nodes(tree(html)).filter(n=>n.attributes['data-scene-continuity']===id);
+   if (matches.length!==1) contradiction('Expected exactly one boundary binding for '+id);
+   const node=matches[0];
+   for (let parent=node.parent;parent;parent=parent.parent) {
+    if (!neutralAncestor(parent)) contradiction('Transformed, hidden or non-viewport ancestor for '+id);
+   }
+   return html.slice(node.start,node.end).replace(/\sdata-[\w:-]+="[^"]*"/g,'');
+  };
+  const render = (frame,continuity=input.props.continuity) => renderToStaticMarkup(React.createElement(Renderer,{...input.props,sceneFrame:frame,continuity}));
+  const observations=[];
+  for (const direction of ['incoming','outgoing']) {
+   const handoff=input.props.continuity[direction];
+   if (!handoff || handoff.kind!=='continuous' || !handoff.visual) continue;
+   const frame=direction==='incoming' ? 0 : input.props.durationInFrames-1;
+   const actual=render(frame);
+   if (actual!==render(frame)) contradiction('Boundary renderer is not repeatable at frame '+frame);
+   const expected=renderToStaticMarkup(React.createElement(SceneContinuityVisual,{handoff}));
+   if (drawing(actual,handoff.continuityId)!==drawing(expected,handoff.continuityId)) contradiction('Actual drawing differs from frozen '+direction+' visual at frame '+frame);
+   const alternative={...handoff,visual:{schemaVersion:1,viewBox:handoff.visual.viewBox,elements:[{tag:'circle',attributes:{cx:37,cy:53,r:11,fill:'#ed28a6'}}]}};
+   const changed=render(frame,{...input.props.continuity,[direction]:alternative});
+   const alternativeExpected=renderToStaticMarkup(React.createElement(SceneContinuityVisual,{handoff:alternative}));
+   if (drawing(changed,handoff.continuityId)!==drawing(alternativeExpected,handoff.continuityId)) contradiction('Frozen visual is unused or partly ignored by '+direction+' binding');
+   observations.push({direction,continuityId:handoff.continuityId,frame,visualFingerprint:computeSceneContinuityVisualFingerprint(handoff.visual)});
+  }
+  process.stdout.write(JSON.stringify({status:'handoff-consumption-observed',verification:'verified-dom-boundary',reviewStatus:'needs-temporal-review',observations,scope:'Actual SSR boundary subtree matches and consumes the frozen common SVG drawing, with neutral viewport ancestors. Excludes browser CSS, occlusion, Canvas/3D paint, adjacent non-subject elements, semantic correctness and aesthetic approval.'})+'\n');
+  return;
+ }
  const plan = input.props.shots.motionPlan;
  const render = (frame, motionPlan=plan) => renderToStaticMarkup(React.createElement(Renderer, {...input.props, sceneFrame:frame, shots:{...input.props.shots,motionPlan}}));
  const objectMarkup = (html, id) => {

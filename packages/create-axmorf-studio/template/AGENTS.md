@@ -70,6 +70,9 @@ Revision commands have no `--schema`; validate accepts no `--project`. Read the 
 [authoring](.agents/skills/axmorf-video/references/authoring.md#existing-project-revision); use only supported fields.
 For a local Scene layout fix, change only that Scene's authoring in the full `patch.scenes` list; preserve unrelated Scenes,
 VisualStyle, GlobalVisual, Story and TTS. Do not invent a Cover-only patch API. Carry the candidate ID through production.
+If the installed schema supports boundary/music revisions, preserve the complete context lists and all immutable identities.
+Only choose existing template source frames or alter existing track gain/envelopes; do not admit new media or change sealed audio.
+Read the authoring reference for raw input shapes and runtime-upgrade base verification.
 The bound `scene.priorSource`, when present, is only the owning Scene's verified, frozen current base graph and declarations.
 Compare its previous brief with the current brief and apply the delta while preserving unaffected behavior and exact license/lineage
 bytes. It grants no access to base snapshot paths, other Scenes, history or another workspace. Without it, create from the current
@@ -107,8 +110,9 @@ transparent, and the Composition alone owns narration and captions.
 Plan the film concept/subject/camera/rhythm/sound in `story.filmPlan`, then group consecutive content Beats with
 `story.visualScenes`. One group has one task/path owner (its first meaningId), Renderer and ScenePackage; Coverage/timing
 remain per Beat. Keep world/camera and sceneFrame continuous inside a group. Missing grouping preserves single-Beat Scenes.
-Pure motion uses explicit `timingSource: "authored-frames"` and silent scene-owner presets; no provider, narration, captions,
-seal or mastered WAV. Fixed template-copy bookends stay separate. Read the installed schemas before using optional fields.
+Pure motion supports `visual-scene` durations with null narration, or explicit `timingSource: "authored-frames"` and silent
+scene-owner presets. Neither calls a provider or creates narration/captions. The published visual path keeps null seal/master
+records; explicit silent-owner timing creates neither file. Fixed bookends stay separate. Read the installed schemas.
 New authored-frame Projects use readability policyVersion 2 with captionBand none and symmetric safe insets; no empty
 caption band. Narrated and legacy frozen version 1 layouts stay unchanged. Revision preserves the frozen policy.
 
@@ -132,3 +136,5 @@ Root 优先整段转发 prepare/reissue 的 `workerPrompts`；进程工具返回
 prepare 原始结果或句柄遗失时报告阻塞，禁止从磁盘、日志或 child 消息重建派发及 continuation 命令。
 
 New Projects freeze `visualStyle.theme`: dark (default), light, or validated opaque hex roles background/primaryText/secondaryText/accent. Composition paints that background. Themed GlobalVisualBaseLayer must return null; Scene and boundary colors use the same theme. Legacy immutable boundaries are never silently migrated; incompatible theme revisions fail before mutation.
+
+Content can be narrated-scene with sealed PCM timing or visual-scene with authored frame timing, explicit null narration and zero TTS. Adapt create context visualFirst for a no-narration request; preserve both modes. Shared-workspace Scene workers may use their exact bound commands.preview before commit, without writing extra task files or treating it as aesthetic approval.

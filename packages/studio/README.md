@@ -1,5 +1,9 @@
 # @axmorf/studio
 
+New Workspaces can automatically select approved global loop music at Project creation, or explicitly select/disable a score.
+One top-level Project track spans the complete composition; Scene effects remain independent. Missing music is reported explicitly,
+and private user libraries remain outside the published package.
+
 The runtime, CLI, contracts, Remotion components, and local Web control center behind AXMORF Studio workspaces.
 
 [![npm](https://img.shields.io/npm/v/%40axmorf%2Fstudio)](https://www.npmjs.com/package/@axmorf/studio)
@@ -80,3 +84,8 @@ estimates, timestamped color frames and a local review page. Agent camera/semant
 these measurements. Analysis neither admits media into a Project nor certifies every cut or creative quality.
 Formal and draft video export share lossless PCM mixing and one AAC-to-MP4 encoding step, retaining encoder priming metadata
 and the original H.264 frames. Requested mono/stereo is applied during that single encode.
+Published 0.1.17 adds authored-frame visual content, licensed sound discovery, optional shared SVG continuity,
+public action timing and bound pre-commit Scene previews. It also adds narrow revisions for immutable template playback
+windows and existing music gain/envelopes. Inspect the installed
+public schemas and local instructions before use. Technical validation does not certify aesthetics, complete playback
+review or the subjective mix. User-local music and Library attachments are not bundled Workspace seed resources.

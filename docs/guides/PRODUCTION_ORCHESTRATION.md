@@ -111,6 +111,13 @@ output，并复验大小、parent/no-symlink 与 regular file。describe/finaliz
 binding。finalize 只投影 fixed derived fields 后运行同一 validator；`agent-output` issue 由同一 executor 修正。
 inline 模式下 Root 一次只处理一个 workspace。subagents 中不同 TaskRevision 使用全新 native child/session；
 已完成 child 不通过 follow-up/resume 接新任务。原 owning executor 只可在同任务 terminal 前修正输出。
+
+shared-workspace scene-owner 可在 commit 前使用成功 bind 返回的 exact `commands.preview`。
+固定预览 finalize/check 并快照 owning source/media，以不变 fps 和降低的分辨率实际渲染完整 Scene，复验 frames、
+EOF 和漂移；诊断产物不进入 task outputs、artifact 或 Delivery identity。worker 依据实际时序只改自己的声明输出。
+controller-io 不开放 preview 或额外 filesystem access。单 Scene clip 不含相邻 Scene、GlobalVisual、Project BGM，
+整片衔接与混音另审，详见 [CONTENT_MOTION_REVIEW.md](CONTENT_MOTION_REVIEW.md)。
+
 subagents 模式按 `effectiveMaxConcurrency` 维护 bounded pool；
 原生支持 wait-any 时完成即释放 slot 并补位；原生批量时每批不超过容量，同步调用返回或原生整批完成通知后提交下一批。
 两者都是真实 native children，不能用 shell 后台或新聊天模拟，也不轮询全部 child。真实 spawn/transport/permission failure 运行

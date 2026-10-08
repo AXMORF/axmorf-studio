@@ -10,7 +10,7 @@ and revision preserves the complete frozen policy.
 npm run project:create:context -- --project <storyId>
 ```
 
-It returns `example`, `fieldExamples`, `durationBudget`, current `styleProfiles` and capability API guides, publishing collections, render defaults and inherited boundary templates. Adapt
+It returns `example`, `fieldExamples`, `durationBudget`, current `styleProfiles`, capability API guides, licensed `soundResources`, redacted `soundDefaults`, `backgroundMusic` candidates/status, publishing collections, render defaults and inherited boundary templates. Adapt
 `example` to the user's brief and write only that object to `inputs/<storyId>.json`. Do not pass the enclosing context response to
 create. Never start with `{}` and discover fields by repeatedly invoking create. For exact field shapes:
 
@@ -35,7 +35,8 @@ Write `story.filmPlan` with concept, subject, cameraIntent, rhythmIntent and sou
 the task/path, Renderer and source graph. Every Beat still has a brief and independent timing/coverage. Missing grouping
 preserves individual Scenes; fixed template-copy boundaries cannot join a group. Keep world and camera continuous inside it.
 
-For pure motion, explicitly use `story.timingSource: "authored-frames"` and silent scene-owner Beats. Build each preset with
+Pure motion supports the published `visual-scene` duration path and explicit silent-owner frame authoring. For the latter,
+use `story.timingSource: "authored-frames"` and silent scene-owner Beats. Build each preset with
 the public `buildSilentScenePreset` from `@axmorf/studio/contracts`: presetId, durationInFrames, visualIntent, soundIntent,
 sorted resourceIds and `implementation: {kind: "scene-owner"}`. The Scene brief's visualIntent, soundIntent and
 candidateResourceIds must match that preset. Frame durations are authoritative; no TTS, PCM narration master or captions
@@ -59,15 +60,17 @@ its outgoing seam; internal Beat handoffs do not become external transitions. Fi
   through 120; locale is canonical BCP 47. Recalculate duration budget if fps changes. Before production, compare
   the successful create response `render` with the request; stop before provider calls on a mismatch.
 - Use lowercase hyphenated `storyId`. Use registered `styleProfileId` values (without the `style.` Catalog ID prefix).
-- Each narrated beat owns one `meaningId`, one Scene brief and one publishing chapter in the same order.
-- Write each narrated Scene as a visible causal sequence: identify the subject and its initial state, the action that changes it,
+- Each content beat owns one `meaningId`, one Scene brief and one publishing chapter in the same order.
+- For a no-narration request, adapt the complete `visualFirst` field example. A `visual-scene` uses `meaningId`, `narrativePurpose` and positive integer `durationInFrames`, with no TTS chunks. Pure visual Story timing is authored frames; narrator and sealed/mastered records are null, captions/segments empty and preparation zero provider. Keep short on-screen copy readable, show causal state changes and budget reading holds; do not strip audio from a narrated Project. One Story currently uses one content mode.
+- Write each content Scene as a visible causal sequence: identify the subject and its initial state, the action that changes it,
   and the resulting state the viewer should understand. Put concrete staging and focal hierarchy in `compositionIntent`, and
-  describe the timed visible action in `motionIntent`. Tie the change to the relevant `ttsChunk`; keep the visual subject consistent
+  describe the timed visible action in `motionIntent`. For narrated content tie the change to the relevant `ttsChunk`; for visual content use its authored event frames. Keep the visual subject consistent
   with `visualStyle` and `continuityBrief`. For longer narration, plan distinct framing or visible state changes at semantic
   turns, then hold the result briefly; camera drift alone does not add information. Keep text and chart labels readable after
-  camera scaling, use theme roles for every foreground, and reserve the caption region. A generic diagram or decorative movement is not a substitute for that sequence.
+  camera scaling, use theme roles for every foreground, and reserve the caption region when captions are present. A generic diagram or decorative movement is not a substitute for that sequence.
 - Before create, Root selects continuous seams: add `outgoingHandoff: { "subject": "the same subject and meaning across the boundary" }` to the preceding Scene owner's final Beat brief. Both isolated tasks receive the same immutable `scene.taskInput.continuity.handoffs` ID, subject and outgoing kind. Leave the field absent for a motivated cut; fixed template boundaries cannot promise continuous motion. Tracked v1 continuous seams also need a complete Root-authored `trackedState` boundary pose. Intent v2 leaves geometry and implementation free. Do not invent handoff IDs in workers or coordinate by reading another workspace.
 - New Scene owners freeze `scene-content-motion-v1`: use intent-first motionPlan v2 for subjects, explanatory actions, semantic anchors and reading holds. Narrated anchors use sealed narration; authored anchors use preset frames. Custom frame-driven SVG, Canvas and supported 3D are allowed. Tracked v1 and `ProducerMotionObject` are optional; their limited DOM dependency probe checks declared tracks without proving visibility or aesthetics. Intent-only and unsupported results require actual temporal review. Match frozen handoffs, explain deliberate holds/cuts and inspect real action/boundary previews; no camera quota or fixed metaphor. Fixed `scene-template` tasks retain canonical validation and are exempt from Agent content-motion checks.
+- For a shared SVG subject, Root may also author the optional `outgoingHandoff.visual` safe SVG tree and viewBox. Both tasks consume that frozen boundary drawing with public `SceneContinuityVisual`; keep its viewport ancestors neutral at the seam. Other geometry and frame-driven Canvas/3D remain free. Read the returned capability guide; declaring a subject alone does not ensure the same visible pose.
 - `ttsChunks` contains objects with `chunkId` and `ttsText`, not strings. Keep each within 72 caption display half-units; shorten or
   split by natural meaning when needed. Audio sample measurements determine actual duration.
 - The duration brief includes inherited intro/outro Scenes. Report their selection before create; do not silently disable them to
@@ -86,6 +89,7 @@ its outgoing seam; internal Beat handoffs do not become external transitions. Fi
 - Narration provider, voice and publishing defaults come from settings. Context deliberately omits connections and credentials.
 - Source assets must have Workspace ownership and validated manifests. Do not download random files to bypass asset admission.
 - For motion sound effects, query `npm run catalog:query -- --kind asset --tag motion-sync`. The bundled AXMORF effects are prebuilt audio, not a generation task. Put selected IDs in both resources.allowedResourceIds and the Scene candidateResourceIds; describe their visible action in soundIntent. At execution, select only availableResources and follow the descriptor's onset or swell-center timing hint in sound-plan.json. SoundDesignTrack owns playback; do not also mount the same audio in the Renderer.
+- Choose an approved loop from `backgroundMusic.candidates` by topic/energy/mood; set create input `backgroundMusic:{mode:"selected",resourceId,volume?}`. Omission inherits auto/file/null settings (new Workspaces default auto); auto matches the current brief. Explicit `backgroundMusic:null` disables all scores, retaining narration/effects. Report create's actual selection or unavailable state before preparation. A selected score is frozen Project-local and loops across the entire composition, including unvoiced boundaries and lead/tail; Scene effects stay independent and second Scene scores are suppressed. Catalog discovery alone never proves enabled BGM. Prefer approved loop masters over previews; private user music is separate from bundled media. Review the complete mix; task execution speed does not control music playback.
 
 Once the input is complete, execute its returned `nextCommand`. A successful `project-created` response is authoring only.
 For existing authoring, use `project:revise:context`, `project:revise:validate`, and `project:revise`; never overwrite the live Project.
@@ -104,7 +108,8 @@ Revision has no `--schema` flag. Read the installed public input schema, not pac
 node --input-type=module -e 'import {ProjectRevisionInputSchema} from "@axmorf/studio/contracts"; console.log(JSON.stringify(ProjectRevisionInputSchema.toJSONSchema({io:"input"}), null, 2));'
 ```
 
-Only `brief`, `story`, `visualStyle`, `scenes`, `globalVisual`, and `publishing` are patch sections.
+Current patch sections are `boundaryScenes`, `brief`, `globalVisual`, `publishing`, `scenes`, `sound`, `story`, and `visualStyle`.
+Use only fields supported by the installed schema. Preserve content meaningId/order and narrated/visual mode.
 For a local Scene layout correction, take `revisionContext` from the successful context result, select an existing
 `targetMeaningId`, and describe the observed correction in `revisedCompositionIntent`. Preserve the full Scene list and
 all other Scene fields:
@@ -138,6 +143,13 @@ delta using frozen priorSource. Changing compositionIntent does not require chan
 Explicit regrouping uses the full supported `patch.story`, preserving content meaningIds/order and the existing timingSource.
 Revision snapshots preserve present/absent owned roots. Authored timing may have no narration root; do not create a dummy
 directory. Promotion and rollback preserve absence. Source/public/delivery remain required; old v1 candidates fail closed.
+For boundary playback, copy the full context list and preserve identities/order. Author only `meaningId` and
+`playbackRange`: a source-frame `{startFrame, endFrame}` window (end exclusive), or null to restore the full immutable template.
+Optional `musicVolume`, `musicFadeInFrames`, `musicFadeOutFrames` inside the range affect only its background music.
+Do not submit derived duration/fingerprints or edit template bytes. `patch.sound` takes the full context ProjectSoundPlan;
+only existing volume/fadeInFrames/fadeOutFrames may change. Preserve track/resource IDs, descriptor fingerprints, order,
+loop and playbackScope. Revision admits no new media. A runtime policy upgrade may require formal unchanged-current
+production before a fresh revision context; never patch publish.json or sealed audio to bypass a stale base.
 
 ```bash
 npm run project:revise:validate -- --input <repository-relative-json>

@@ -6,6 +6,8 @@ import {
   buildProducerTaskSpec,
   computeGenerationInputFingerprint,
   createFingerprint,
+  generateVisualSemanticTiming,
+  isVisualStory,
   MasteredNarrationManifestSchema,
   NarrationPreparationReceiptSchema,
   SealedNarrationManifestSchema,
@@ -53,6 +55,7 @@ import {
 
 export type PreparedSealedNarrationInputs = Readonly<{
   timingSource?: "sealed-narration";
+  mode?: "narrated";
   providerAttemptFingerprint: Sha256Digest;
   masteringPolicy: MasteredNarrationManifest["masteringPolicy"];
   sealedNarration: SealedNarrationManifest;
@@ -72,6 +75,7 @@ export type PreparedSealedNarrationInputs = Readonly<{
 
 export type PreparedAuthoredFrameInputs = Readonly<{
   timingSource: "authored-frames";
+  mode?: "authored-frames";
   providerAttemptFingerprint: null;
   masteringPolicy: null;
   sealedNarration: null;
@@ -86,9 +90,27 @@ export type PreparedAuthoredFrameInputs = Readonly<{
   actualCost: Readonly<{ providerRequests: number; providerCacheHits: number }>;
 }>;
 
+export type PreparedVisualTimingInputs = Readonly<{
+  mode: "visual";
+  timingSource?: undefined;
+  providerAttemptFingerprint?: undefined;
+  masteringPolicy?: undefined;
+  sealedNarration: null;
+  masteredNarration: null;
+  semanticTiming: SemanticTiming;
+  sealedManifestBytes: Uint8Array;
+  masteredManifestBytes: Uint8Array;
+  semanticTimingBytes: Uint8Array;
+  actualCost: Readonly<{
+    providerRequests: 0;
+    providerCacheHits: 0;
+  }>;
+}>;
+
 export type PreparedNarrationInputs =
   | PreparedSealedNarrationInputs
-  | PreparedAuthoredFrameInputs;
+  | PreparedAuthoredFrameInputs
+  | PreparedVisualTimingInputs;
 
 export type PrepareNarration = (input: {
   readonly rootDir: string;
@@ -257,6 +279,47 @@ export const prepareNarrationInputs: PrepareNarration = async ({
       chunkAudioBytes: new Map(),
       actualCost: { providerRequests: 0, providerCacheHits: 0 },
     };
+  }
+  if (isVisualStory(projectSource.story)) {
+    if (projectSource.narration !== null) {
+      throw new Error("Visual production cannot configure narration.");
+    }
+    const semanticTiming = generateVisualSemanticTiming({
+      story: projectSource.story,
+      render: projectSource.render,
+    });
+    const generatedRoot = join(
+      contentRoot,
+      "src/projects",
+      projectId,
+      "generated",
+    );
+    // Null manifests are explicit source state for static Composition imports;
+    // no PCM, provider receipt or narration cache is manufactured for this mode.
+    for (const [file, value] of [
+      ["sealed-narration.generated.json", null],
+      ["mastered-narration.generated.json", null],
+      ["semantic-timing.generated.json", semanticTiming],
+    ] as const) {
+      await writeJsonAtomic({ destination: join(generatedRoot, file), value });
+    }
+    const encoder = new TextEncoder();
+    const nullBytes = encoder.encode(`${serializeCanonicalJson(null)}\n`);
+    return {
+      mode: "visual",
+      sealedNarration: null,
+      masteredNarration: null,
+      semanticTiming,
+      sealedManifestBytes: nullBytes,
+      masteredManifestBytes: nullBytes,
+      semanticTimingBytes: encoder.encode(
+        `${serializeCanonicalJson(semanticTiming)}\n`,
+      ),
+      actualCost: { providerRequests: 0, providerCacheHits: 0 },
+    };
+  }
+  if (projectSource.narration === null) {
+    throw new Error("Narrated production requires a NarrationSpec.");
   }
   const execution = await resolveProducerNarrationExecution({
     rootDir: scope.shared.runtimeRoot,
@@ -435,6 +498,7 @@ export const prepareNarrationInputs: PrepareNarration = async ({
     value: preparationReceipt,
   });
   return {
+    mode: "narrated",
     providerAttemptFingerprint: execution.snapshot.providerAttemptFingerprint,
     masteringPolicy: execution.snapshot.masteringPolicy,
     sealedNarration: sealed.value,

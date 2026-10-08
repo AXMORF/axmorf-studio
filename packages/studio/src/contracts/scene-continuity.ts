@@ -3,6 +3,7 @@ import { createFingerprint } from "./fingerprint";
 import { MeaningIdSchema, StoryIdSchema } from "./primitives";
 import { MotionObjectStateSchema, type SceneMotionPlan } from "./scene-motion";
 import { isSceneOwnerBeat, type SilentScenePreset } from "./story";
+import { SceneContinuityVisualSchema } from "./scene-continuity-visual";
 
 const Text = z.string().trim().min(1).max(1600);
 
@@ -11,11 +12,12 @@ export const SceneOutgoingHandoffSchema = z
   .object({
     subject: Text,
     trackedState: MotionObjectStateSchema.optional(),
+    visual: SceneContinuityVisualSchema.optional(),
   })
   .strict()
   .readonly();
 
-const ContinuousHandoffSchema = SceneOutgoingHandoffSchema.unwrap()
+export const SceneContinuousHandoffSchema = SceneOutgoingHandoffSchema.unwrap()
   .extend({
     kind: z.literal("continuous"),
     continuityId: z.string().regex(/^handoff-[0-9a-f]{64}$/u),
@@ -23,13 +25,16 @@ const ContinuousHandoffSchema = SceneOutgoingHandoffSchema.unwrap()
   })
   .strict()
   .readonly();
+export type SceneContinuousHandoff = z.infer<
+  typeof SceneContinuousHandoffSchema
+>;
 
 export const SceneContinuityContractSchema = z
   .object({
     contractVersion: z.literal("scene-continuity-v1"),
-    incoming: ContinuousHandoffSchema.nullable(),
+    incoming: SceneContinuousHandoffSchema.nullable(),
     outgoing: z.union([
-      ContinuousHandoffSchema,
+      SceneContinuousHandoffSchema,
       z
         .object({ kind: z.enum(["motivated-cut", "end"]), reason: Text })
         .strict()
@@ -58,7 +63,7 @@ export const computeSceneContinuityId = (
   }).slice("sha256:".length)}`;
 
 type Beat = Readonly<{
-  kind: "narrated-scene" | "silent-scene";
+  kind: "narrated-scene" | "visual-scene" | "silent-scene";
   meaningId: string;
   preset?: Pick<SilentScenePreset, "implementation">;
 }>;
@@ -97,7 +102,7 @@ export const buildSceneContinuityContract = ({
       throw new Error(
         "Continuous handoffs require two adjacent authored Scenes; fixed template boundaries cannot promise continuity.",
       );
-    return ContinuousHandoffSchema.parse({
+    return SceneContinuousHandoffSchema.parse({
       ...from.brief.outgoingHandoff,
       kind: "continuous",
       continuityId: computeSceneContinuityId(

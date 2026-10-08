@@ -27,7 +27,10 @@ import {
 import { buildResourceCatalog } from "../../scripts/catalog/domain";
 import { inspectArtifact } from "../../scripts/project-production/adapters/artifact-store";
 import { readTemplateSceneFilesForInspection } from "../../scripts/project-production/adapters/production-inspection";
-import { ensureTemplateSceneArtifact } from "../../scripts/project-production/application/template-scene-artifacts";
+import {
+  buildTemplateSceneArtifactFiles,
+  ensureTemplateSceneArtifact,
+} from "../../scripts/project-production/application/template-scene-artifacts";
 import { readTemplateSceneFiles } from "../../scripts/project-production/application/prepare-fixed-tasks";
 import {
   validNarrationSpec,
@@ -376,8 +379,21 @@ export default Renderer;
   );
 });
 
-for (const meaningId of ["configured-intro-scene", "configured-outro-scene"]) {
-  test(`shipped default ${meaningId} passes the complete fixed Scene artifact checker`, async (context) => {
+for (const [meaningId, playbackRange] of [
+  ["configured-intro-scene", undefined],
+  ["configured-outro-scene", undefined],
+  [
+    "configured-outro-scene",
+    {
+      startFrame: 165,
+      endFrame: 240,
+      musicVolume: 0.44,
+      musicFadeInFrames: 8,
+      musicFadeOutFrames: 15,
+    },
+  ],
+] as const) {
+  test(`shipped default ${meaningId}${playbackRange === undefined ? "" : " with a 75-frame playback range"} passes the complete fixed Scene artifact checker`, async (context) => {
     const fixture = await prepareProjectCreateFixture();
     const { rootDir } = fixture;
     context.after(() => rm(rootDir, { recursive: true, force: true }));
@@ -408,7 +424,7 @@ for (const meaningId of ["configured-intro-scene", "configured-outro-scene"]) {
       env: { RSP_PRODUCER_CONFIG: fixture.configPath },
       runtimeResources: fixture.runtimeResources,
     });
-    const story = StorySpecSchema.parse(
+    const sourceStory = StorySpecSchema.parse(
       JSON.parse(
         await readFile(
           join(rootDir, `src/projects/${storyId}/story.json`),
@@ -416,6 +432,37 @@ for (const meaningId of ["configured-intro-scene", "configured-outro-scene"]) {
         ),
       ),
     );
+    const story =
+      playbackRange === undefined
+        ? sourceStory
+        : StorySpecSchema.parse({
+            ...sourceStory,
+            beats: sourceStory.beats.map((entry) => {
+              if (
+                entry.kind !== "silent-scene" ||
+                entry.meaningId !== meaningId
+              )
+                return entry;
+              return {
+                ...entry,
+                preset: buildSilentScenePreset({
+                  presetId: entry.preset.presetId,
+                  visualIntent: entry.preset.visualIntent,
+                  soundIntent: entry.preset.soundIntent,
+                  resourceIds: entry.preset.resourceIds,
+                  durationInFrames:
+                    playbackRange.endFrame - playbackRange.startFrame,
+                  implementation: {
+                    ...entry.preset.implementation,
+                    playbackWindow: {
+                      ...playbackRange,
+                      sourceDurationInFrames: entry.preset.durationInFrames,
+                    },
+                  },
+                }),
+              };
+            }),
+          });
     const beat = story.beats.find((entry) => entry.meaningId === meaningId);
     assert.ok(beat?.kind === "silent-scene");
     const preset = beat.preset;
@@ -560,5 +607,37 @@ for (const meaningId of ["configured-intro-scene", "configured-outro-scene"]) {
         ),
       ),
     );
+    if (playbackRange !== undefined) {
+      const templateFiles = await readTemplateSceneFiles({
+        rootDir,
+        projectId: storyId,
+        meaningId,
+      });
+      const files = buildTemplateSceneArtifactFiles({
+        taskInput,
+        catalog,
+        templateFiles,
+      });
+      const sound = JSON.parse(String(files["src/sound-plan.json"]));
+      assert.equal(sound.sceneDurationInFrames, 75);
+      // This source fixture has no configured template audio; clipping must keep it silent.
+      assert.equal(sound.contributions.length, 0);
+      const shots = JSON.parse(String(files["src/shot-plan.json"]));
+      assert.equal(shots.shots.length, 1);
+      assert.deepEqual(shots.shots[0].primaryRange, {
+        startFrame: 0,
+        endFrame: 75,
+      });
+      assert.equal(
+        SceneTemplateInstanceSchema.parse(
+          JSON.parse(
+            new TextDecoder().decode(
+              files["src/scene-template-instance.json"] as Uint8Array,
+            ),
+          ),
+        ).instanceFingerprint,
+        instance.instanceFingerprint,
+      );
+    }
   });
 }

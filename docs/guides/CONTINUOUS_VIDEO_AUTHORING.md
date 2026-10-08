@@ -1,6 +1,6 @@
 # 连续视频创作
 
-本指南对应仓库当前源码的未发布升级；公开 npm 0.1.16 的能力仍以已安装 contracts/生成指南为准。
+本指南对应仓库当前源码的未发布升级；公开 npm 0.1.17 的能力仍以已安装 contracts/生成指南为准。
 保留一 Story 一个 Composition 和逐 Beat 的语义时间轴，同时用显式视觉分组决定 Renderer 所有权。
 
 ## 先设计整片，再决定视觉边界
@@ -40,16 +40,21 @@ Root 在 `project:create:context` 的完整输入中填写 `story.filmPlan`：
 
 ## 两种时间来源
 
-缺省 `timingSource` 是 sealed-narration：原子 `ttsChunks` 的实测 PCM samples 定义绝对时间。作者保留这些
+旁白 Story 缺省 `timingSource` 是 sealed-narration：原子 `ttsChunks` 的实测 PCM samples 定义绝对时间。作者保留这些
 不可变语义定位，允许画面动作跨 chunk/Beat 延续。只读 `coveredBeats` 和 Scene-local `narrationCues` 定位变化，
 不要重估语速、裁掉口播帧或在 Scene 内渲染字幕。
 
-纯动效显式指定 `story.timingSource: "authored-frames"`，正文使用 `silent-scene`、`scene-owner` preset。
+已发布的 `visual-scene` 以 `durationInFrames` 定义正文时间，narration/sealed/mastered 保持 JSON null，零 provider。
+它支持同样的 filmPlan/visualScenes 连续创作，沿用 `authored-frames-v1`，不自动转换已有作品。
+
+另一种纯动效路径显式指定 `story.timingSource: "authored-frames"`，正文使用 `silent-scene`、`scene-owner` preset。
 以公开 `buildSilentScenePreset` 构造包含 fingerprint 的输入；`preset.durationInFrames` 是正文 Beat 的帧数。
 所有正文都是这种 Beat，不能混入 narrated-scene。配置首尾 template-copy 可保留或按用户要求禁用，仍不参与正文分组。
 该分支没有 provider call、seal、mastered WAV 或字幕；`sampleRate`/`narrationStartFrame` 是 null。
 publishing.chapters 可为空；需要章节时仍逐正文 Beat 完整按序声明，固定首尾不进入章节。旁白分支继续要求完整章节。
-Project BGM 与 GlobalVisual decoration 使用正文范围，排除 fixed 首尾。交付保留 H.264/AAC，纯静音内容输出静音音轨。
+GlobalVisual decoration 只使用正文范围。新建 Project 的自动/选定 BGM 使用完整 Composition；
+显式 `content-window` 音轨仍排除 fixed 首尾，旧 `content`/`narrated-content` 范围保留。
+`backgroundMusic:null` 禁用配乐，音效与旁白独立。交付保留 H.264/AAC，纯静音内容输出静音音轨。
 
 Story `resources.allowedResourceIds` 是准入池；silent preset 的 `resourceIds` 则要求实际精确消费，不能把候选池
 全部冻结进去。先去重排序，再通过公开 builder 生成；对应 brief 的 candidateResourceIds 必须与 preset 一致。
@@ -62,7 +67,7 @@ safe-area inset，不再为空字幕留出底部区域。旁白模式继续使�
 新实例不替换既有 immutable template。几何预算与分页停留的具体边界见
 [能力目录](CAPABILITY_CATALOG.md#当前已迁入能力)，不能把文字未裁切当成阅读停留充分。
 
-跨 owner 的连续交接按实现所有权判断：narrated Scene 和 silent scene-owner 都可以使用 Root 冻结的
+跨 owner 的连续交接按实现所有权判断：narrated/visual Scene 和 silent scene-owner 都可以使用 Root 冻结的
 `outgoingHandoff`，不依赖是否有旁白。fixed template-copy 保持切换边界，最后一个正文 owner 不能承诺后续交接。
 多 Beat 分组只取组尾 handoff 建立外部接缝；组内 brief 仍完整保留，不另挂载 Renderer。
 

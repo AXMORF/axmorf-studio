@@ -21,6 +21,7 @@ import {
   SoundContribution,
   type SoundContributionValue,
 } from "./SoundContribution";
+import { validateSoundPlayback } from "./audio-playback";
 
 type SoundDesignEntry =
   | Readonly<{
@@ -46,6 +47,7 @@ export type SoundDesignProjection = Readonly<{
 
 export const buildSoundDesignProjection = (rawInput: {
   readonly storyId: unknown;
+  readonly durationInFrames?: number;
   readonly coverage: unknown;
   readonly storyBeatTimings: readonly Readonly<{
     meaningId: unknown;
@@ -187,18 +189,29 @@ export const buildSoundDesignProjection = (rawInput: {
         }
       : entry,
   );
+  const suppressSceneMusic =
+    projectSound?.sceneMusicPolicy === "mute" ||
+    (projectSound?.contributions.some(
+      ({ playbackScope }) => playbackScope === "composition",
+    ) ??
+      false);
   const sceneContributions = ownerOrder.flatMap((ownerId) => {
     const projection = projections.get(ownerId)!;
-    return projection.contributions.map((contribution) => ({
-      ...contribution,
-      contributionId: `${ownerId}:${contribution.contributionId}`,
-      startFrame: projection.beatStartFrame + contribution.startFrame,
-      endFrame: projection.beatStartFrame + contribution.endFrame,
-      loop: false,
-    }));
+    return projection.contributions
+      .filter(
+        (contribution) =>
+          !suppressSceneMusic || contribution.role !== "background-music",
+      )
+      .map((contribution) => ({
+        ...contribution,
+        contributionId: `${ownerId}:${contribution.contributionId}`,
+        startFrame: projection.beatStartFrame + contribution.startFrame,
+        endFrame: projection.beatStartFrame + contribution.endFrame,
+        loop: false,
+      }));
   });
   const narratedTimings = timings.filter(
-    ({ kind }) => kind === "narrated-scene",
+    ({ kind }) => kind === "narrated-scene" || kind === "visual-scene",
   );
   const firstNarrated = narratedTimings[0];
   const lastNarrated = narratedTimings.at(-1);
@@ -250,11 +263,41 @@ export const buildSoundDesignProjection = (rawInput: {
   }
   const projectContributions = (projectSound?.contributions ?? []).map(
     (contribution) => {
+      const compositionScope = contribution.playbackScope === "composition";
+      if (
+        compositionScope &&
+        (!Number.isSafeInteger(rawInput.durationInFrames) ||
+          rawInput.durationInFrames! <
+            (rawInput.storyBeatTimings.at(-1)?.endFrame as number))
+      ) {
+        throw new Error(
+          "Full-composition music requires the exact composition duration.",
+        );
+      }
+      const contentTimings = compositionScope
+        ? timings
+        : timings.filter(
+            ({ kind }) =>
+              kind === "narrated-scene" ||
+              (contribution.playbackScope === "content" &&
+                kind === "visual-scene"),
+          );
+      const firstContent = contentTimings[0];
+      const lastContent = contentTimings.at(-1);
+      const scopedRange =
+        contribution.playbackScope === "content-window"
+          ? contentFrameRange
+          : firstContent === undefined || lastContent === undefined
+            ? null
+            : {
+                startFrame: firstContent.startFrame,
+                endFrame: lastContent.endFrame,
+              };
       const resource = projectResources.find(
         ({ id }) => id === contribution.resourceId,
       );
       if (
-        contentFrameRange === null ||
+        (!compositionScope && scopedRange === null) ||
         resource === undefined ||
         resource.assetKind !== "audio" ||
         resource.mediaRole !== "background-music" ||
@@ -266,15 +309,29 @@ export const buildSoundDesignProjection = (rawInput: {
       ) {
         throw new Error("Project sound contribution is not runtime-approved.");
       }
+      const startFrame = compositionScope ? 0 : scopedRange!.startFrame;
+      const endFrame = compositionScope
+        ? rawInput.durationInFrames!
+        : scopedRange!.endFrame;
+      validateSoundPlayback(contribution, endFrame - startFrame);
       return {
         contributionId: `project:${contribution.contributionId}`,
         resourceId: resource.id,
         publicPath: resource.localPath,
         checksum: resource.checksum,
-        startFrame: contentFrameRange.startFrame,
-        endFrame: contentFrameRange.endFrame,
+        startFrame,
+        endFrame,
         volume: contribution.volume,
         loop: contribution.loop,
+        ...(contribution.loop && resource.media?.durationInSeconds !== undefined
+          ? { sourceDurationInSeconds: resource.media.durationInSeconds }
+          : {}),
+        ...(contribution.fadeInFrames === undefined
+          ? {}
+          : { fadeInFrames: contribution.fadeInFrames }),
+        ...(contribution.fadeOutFrames === undefined
+          ? {}
+          : { fadeOutFrames: contribution.fadeOutFrames }),
       };
     },
   );

@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "version": "0.1.17",
+  "baseTag": "v0.1.16",
+  "primaryHost": "codex",
+  "fullAcceptance": false,
+  "compatibilityChanges": [
+    {
+      "host": "hermes",
+      "paths": [
+        "scripts/release/native-execution.ts",
+        "scripts/release/supervision.ts"
+      ],
+      "reason": "Strictly authenticate actual Hermes TUI process admission, native empty-argument calls, vision MIME/signatures and asynchronous completion records."
+    }
+  ],
+  "regressionTests": [
+    "tests/config/project-background-music.test.ts",
+    "tests/config/project-create-context.test.ts",
+    "tests/runtime/scene-sound.test.tsx",
+    "tests/runtime/sound-design-track.test.tsx",
+    "tests/npm-install-e2e/first-use-release.test.ts",
+    "tests/npm-install-e2e/native-revision-execution.test.ts",
+    "tests/npm-install-e2e/supervision.test.ts",
+    "tests/npm-install-e2e/release-gate.test.ts",
+    "tests/npm-install-e2e/scaffold-contract.test.ts"
+  ],
+  "packages": {
+    "runtimeFingerprint": "sha256:cc16b4d3498dba79d1473f73e0e9b039b65ce61a5e86291919cbeca79d515a27",
+    "creatorFingerprint": "sha256:b391c03631e34e3c64cfaa2c5e4c82de299a89e0e85a2c26bb89aa2118845a43"
+  }
+}

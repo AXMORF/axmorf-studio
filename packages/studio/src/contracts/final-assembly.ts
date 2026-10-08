@@ -26,8 +26,8 @@ const FinalAssemblyInputObject = z
     durationInFrames: PositiveIntegerSchema,
     remotionVersion: z.string().regex(/^\d+\.\d+\.\d+$/),
     narrativeReportFingerprint: Sha256DigestSchema,
-    sealedNarrationChecksum: Sha256DigestSchema,
-    sealedNarrationFingerprint: Sha256DigestSchema,
+    sealedNarrationChecksum: Sha256DigestSchema.nullable(),
+    sealedNarrationFingerprint: Sha256DigestSchema.nullable(),
     semanticTimingFingerprint: Sha256DigestSchema,
     captionCuesFingerprint: Sha256DigestSchema,
     resourceCatalogFingerprint: Sha256DigestSchema,
@@ -48,6 +48,17 @@ const FinalAssemblyInputObject = z
   })
   .strict()
   .superRefine((plan, context) => {
+    if (
+      (plan.sealedNarrationChecksum === null) !==
+      (plan.sealedNarrationFingerprint === null)
+    ) {
+      context.addIssue({
+        code: "custom",
+        message:
+          "Sealed narration checksum and fingerprint must be present or absent together.",
+        path: ["sealedNarrationFingerprint"],
+      });
+    }
     const sorted = [...plan.scenePackageFingerprints].sort();
     plan.scenePackageFingerprints.forEach((fingerprint, index) => {
       if (fingerprint !== sorted[index]) {

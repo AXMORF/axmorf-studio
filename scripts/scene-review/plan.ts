@@ -1,4 +1,7 @@
-import type { SemanticTiming } from "@axmorf/studio/contracts";
+import {
+  AUTHORED_FRAME_TIMING_ALGORITHM_ID,
+  type SemanticTiming,
+} from "@axmorf/studio/contracts";
 
 type PublishedTimeline = Readonly<{
   storyId: string;
@@ -13,19 +16,28 @@ export const planSceneReview = (
   timing: SemanticTiming,
   delivery: PublishedTimeline,
 ) => {
-  const narrated = timing.storyBeats.filter(
-    (beat) => beat.kind === "narrated-scene",
+  const content = timing.storyBeats.filter(
+    (beat) =>
+      beat.kind !== "silent-scene" ||
+      (timing.algorithmId === AUTHORED_FRAME_TIMING_ALGORITHM_ID &&
+        beat.startFrame >= timing.contentFrameRange.startFrame &&
+        beat.endFrame <= timing.contentFrameRange.endFrame),
   );
+  const chapters = delivery.publishing.chapters;
+  const chaptersOmitted =
+    timing.algorithmId === AUTHORED_FRAME_TIMING_ALGORITHM_ID &&
+    chapters.length === 0;
   if (
     timing.storyId !== delivery.storyId ||
     timing.fps !== delivery.fps ||
     timing.durationInFrames !== delivery.frameCount ||
-    narrated.length !== delivery.publishing.chapters.length ||
-    narrated.some(
-      (beat, index) =>
-        beat.meaningId !== delivery.publishing.chapters[index]?.meaningId ||
-        beat.startFrame !== delivery.publishing.chapters[index]?.startFrame,
-    )
+    (!chaptersOmitted && content.length !== chapters.length) ||
+    (!chaptersOmitted &&
+      content.some(
+        (beat, index) =>
+          beat.meaningId !== chapters[index]?.meaningId ||
+          beat.startFrame !== chapters[index]?.startFrame,
+      ))
   ) {
     throw new Error("Current SemanticTiming is stale against the delivery.");
   }

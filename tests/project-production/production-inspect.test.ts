@@ -260,6 +260,7 @@ test("VoxCPM inspection reuses the prepared provider identity without reading pr
     rootDir: fixture.rootDir,
     projectId: "story-example",
   });
+  assert.ok(projectSource.narration !== null);
   const generatedRoot = join(
     fixture.rootDir,
     "src/projects/story-example/generated",

@@ -9,20 +9,20 @@ exact attempt-bound worker 走 [task protocol](references/task-execution-protoco
 
 ## Create the Project when needed
 
-已授权制作的汇报用进度消息，同轮继续工具；仅交付、blocker、用户暂停或已派发 native work 的等待可结束轮次。
+已授权制作同轮继续工具，以进度消息汇报；仅交付/blocker/暂停/native work 等待才结束。
 
-新片、整片改造和审片读 [film direction](references/film-direction.md)；依 context API guides 选能力或说明自绘。
+新片/改造/审片读 [film direction](references/film-direction.md)；按 context API guides 选能力或说明自绘。
 
-新建先用 `npm run project:create:context -- --project <storyId>`；按 `fieldExamples` 写要求对象。按 `durationBudget` 从总时长扣首尾/lead-tail，再预算正文；旁白实测偏差须报告。
+新建用 `npm run project:create:context -- --project <storyId>` 的完整 `fieldExamples`；按 `durationBudget` 扣首尾/lead-tail 预算正文，报告旁白实测偏差。
 尺寸/横竖屏、fps、locale 要求写入 `render.width/height/fps/locale`，其余继承；创建后核对 `render`，不改长期设置。
 
 读 [policy](policy.json)、[workflow](references/direct-production-workflow.md)、
 [Producer config](references/producer-config.md). 报告首尾 Scene 的继承、选择或禁用。
 User silence means inheritance：省略 `sceneTemplates`，never infer `null`；新建用 `project:create`，修改走隔离 revision。
-新建 `visualStyle.theme` 默认 dark，可选 light/四角色 hex；全片按主题取色，palette 文案不能覆盖主题。
+theme 默认 dark，可选 light/四角色 hex；全片按主题取色，palette 不覆盖主题。
 
 `story.filmPlan` 定整片意图，`visualScenes` 合组连续正文、保留逐 Beat 语义；按 film direction 定边界，fixed 首尾独立。
-核 installed schema，不自动重组。缺省 sealed-narration；纯动效显式 authored-frames + silent scene-owner preset 帧数，无 provider/旁白/字幕。
+核 installed schema，不自动重组。旁白用 sealed-narration；visual-scene 按帧/null 旁白，另可显式 authored-frames + silent scene-owner preset；无旁白均零 provider/字幕。
 
 `project:create` 冻结 originality baseline；legacy 缺失时必须显式 zero-provider `project:originality:freeze`，不伪造。
 修复 `authoring-validation-failed`：`caption-display-budget-exceeded` 时缩短或拆分 `ttsChunk`，每段最多 72 `caption-display-unit-v1` half-units；不降低 validator。
@@ -33,7 +33,7 @@ User silence means inheritance：省略 `sceneTemplates`，never infer `null`；
 
 Inspect 前仅看 current Agent's actually callable tools。同一 MCP 暴露 `get_provider_status`、`search_images`、
 `preview_images`、`acquire_image` 且 receipt 兼容 import 才启用；config, shell, another Agent's tools do not count。
-缺失时完整省略，不报错、不造 placeholder/DAG node。启用后先查 Catalog，再 `project:asset:import`；MCP 数据不进入 child、artifact、delivery 或 runtime。
+缺失时完整省略，不报错、不造 placeholder/DAG node。启用后先查 Catalog，再 `project:asset:import`；MCP 数据不进下游。
 
 ## Resolve Agent execution
 
@@ -59,7 +59,7 @@ unknown/0/未验/exact mismatch 在 prepare 前阻塞。不复用 resolver；只
 先按 [task protocol](references/task-execution-protocol.md) exact bind；task-worker-bound 前零读写，之后仅 declared outputs。
 TaskExecutionContract attempt-neutral；validated ArtifactAttestation/task-terminal events 才是 durable authority。
 
-Prepare 前按 host probe 保留可跨工具超时的原句柄；Codex 不丢 session/cell ID，部分 wait-any 不算整批完成。
+Prepare 前按 host probe 保留跨超时句柄；Codex 保留 session/cell ID，部分 wait-any 不算整批完成。
 
 Inline 一次一个 workspace；subagents 按 effectiveMaxConcurrency/native wait-any 或整批终态补位，不复用已完成 child。
 spawn/transport fault 用 Root spawnFailureCommand；immutable/controller fault 用 fixedFailureCommand。
@@ -71,7 +71,7 @@ spawn/transport fault 用 Root spawnFailureCommand；immutable/controller fault 
 
 ## Hand off to fixed continuation
 
-Root starts the exact `continuationCommand` once per attempt. 原进程阻塞等待/完成通知低 token 监督；普通超时只续等，不查日志/推理进度。fixed claim 一次，监听 immutable events。
+Root starts the exact `continuationCommand` once per attempt. 原进程阻塞等待/完成通知；普通超时只续等，不查日志/推理进度。fixed claim 一次，监听 immutable events。
 Task failure exits nonzero without converge; all-success converges exactly once; deadline 从 attempt 创建起一小时。
 错误通知才唤醒 Root 诊断并指导原 executor；不接管 workspace、不 direct converge、不重启当前 continuation。修复与恢复按下方 hardening。
 

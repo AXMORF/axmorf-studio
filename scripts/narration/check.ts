@@ -102,6 +102,10 @@ export const checkM2NarrationArtifacts = async ({
       completeAudioSampleFrameCount: null,
     };
   }
+  if (projectSource.narration === null)
+    throw new Error(
+      "Visual-only Projects have no PCM narration; check their authored timeline with project:check.",
+    );
   const manifest = await readManifest(rootDir, projectSource.story.storyId);
 
   const reconstructedParts: Buffer[] = [];

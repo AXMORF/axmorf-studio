@@ -103,6 +103,8 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
   未声明分组时每 Beat 单独成 Scene，既有作品不自动重组。全片 concept/subject/camera/rhythm/sound 写入 `story.filmPlan`。
   默认 sealed-narration 模式保留 narrated 正文和首尾 silent；显式 authored-frames 模式仅使用 silent scene-owner
   正文的 preset frame duration，不生成旁白/字幕或调用 TTS。fixed template-copy 仍只在首尾，不能加入正文分组。
+  保留已发布 visual-scene/durationInFrames 路径，其 narration/sealed/mastered 为 JSON null、零 provider；
+  narrated/visual/显式 authored-frames 正文模式不混用。
 - `project:create` 从 strict create input 原子创建 configured authoring，并将选定边界 Scene template
   源码与资源复制为 Project-local immutable instance；它不调用 provider、不生成媒体或生产 attempt。
 - 用户明确的尺寸/横竖屏、fps、locale 写入 create input 的 `render.width/height/fps/locale`，未指定字段继承配置；
@@ -120,6 +122,10 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
   先核 installed public `ProjectRevisionInputSchema` 可用字段；局部 Scene 排版只改完整 `patch.scenes` 的目标 Scene brief，
   不顺手改全局 VisualStyle/GlobalVisual/Story/TTS，不虚构 Cover-only API。候选隔离 source/public/
   narration/work/attempt/out/delivery；promote 前 current Project/Delivery 始终是 authority。
+  `patch.boundaryScenes` 只按 context 的完整 boundary meaningId/order 选择既有 immutable template 的受检播放区间，
+  保留源码/素材/身份；`patch.sound` 只改既有 track 的音量与首尾包络，不新增或替换媒体。运行时升级后先正式复验
+  current 交付再修订；artifact missing 且完整 Scene task input 未变时，planner 可冻结已复验的 owning current Scene，
+  供 bound executor 保留源码并重新 finalization/validation，不扫描历史或伪造 artifact hit。
 - `ttsChunks` 是 Agent 已确定的原子朗读单元。sealed PCM 实测 samples 是绝对时间 authority；frame
   boundary 统一为 `ceilDiv(cumulativeSamples × fps, sampleRate)`。Scene/transition 不吞 spoken frames。
 - create 与 revision validate/create 在 mutation 前执行 structured authoring validation；每个 authored
@@ -132,8 +138,10 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
 - 新 authored-frames Project 使用 readability policyVersion 2、captionBand none，四边保留安全 inset，不预留字幕带。
   旁白与既有 policyVersion 1 保持原几何/fingerprint；current validation/revision 保留完整 frozen policy，不自动迁移。
 - 新 Project 的 `VisualStyleSpec.theme` 固化已校验四角色配色，Composition 实际绘制 background；themed GlobalVisual base 必须直接返回 null，正文/首尾共用主题。旧 immutable 模板不静默迁移；不兼容主题在 create/revision 前置拒绝。
-- 旁白独占 narration track；非旁白声音都是独立 `SoundContribution`。Project BGM 只覆盖正文
-  content window，不进入 silent boundary Scenes。
+- 旁白独占 narration track；非旁白声音都是独立 `SoundContribution`。新 Project 的 BGM 在 create 时从已批准的全局
+  loop 音乐库自动选曲或按明确选择冻结，单个 contribution 覆盖完整 Composition（含首尾与 lead/tail），跨 Scene 不重启。
+  有整片 BGM 时抑制 Scene 的 background-music，保留独立音效；显式 `backgroundMusic:null` 抑制全部背景音乐。
+  缺曲必须报告 unavailable，不把资源发现当作播放成功；旧 Plan 的 narrated-content/content scope 保留，不自动迁移。
 - JSON/数据文件不包含 executable expression；renderer 由 composition-local static registry 绑定。
   render runtime 不调用 Agent、Skill、MCP、Git、网络或目录扫描。
 - 所有媒体都位于当前 Workspace `public/`、具有 manifest identity 并通过检查。render-critical motion

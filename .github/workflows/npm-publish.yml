@@ -7,6 +7,11 @@ on:
         description: Type the exact release tag, for example v0.1.0
         required: true
         type: string
+      reuse_reviewed_acceptance:
+        description: Optional exact tag approving the plan's documented prior acceptance reuse
+        required: false
+        default: ""
+        type: string
 
 permissions:
   contents: read
@@ -23,12 +28,14 @@ jobs:
     timeout-minutes: 120
     env:
       NPM_CONFIG_REGISTRY: https://registry.npmjs.org
+      AXMORF_RELEASE_NATIVE_REUSE_TAG: ${{ inputs.reuse_reviewed_acceptance }}
     steps:
       - name: Checkout exact release tag
         uses: actions/checkout@v6
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
+          fetch-depth: 0
 
       - name: Install exact Node.js
         uses: actions/setup-node@v6
@@ -51,19 +58,80 @@ jobs:
           test "$creator_version" = "$root_version"
           test "$GITHUB_REF_NAME" = "v$root_version"
           test "$CONFIRM_VERSION" = "$GITHUB_REF_NAME"
-          test -f "docs/evidence/v${root_version}-first-use.json"
+          test -f "docs/evidence/v${root_version}-release-plan.json"
 
       - name: Install exact dependencies
         run: npm ci
 
-      - name: Run repository and package gates
+      - name: Install media inspection tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes ffmpeg
+
+      - name: Resolve reviewed release scope
+        id: scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(node -p 'require("./package.json").version')"
+          node --import tsx scripts/release/release-gate.ts inspect "docs/evidence/v${version}-release-plan.json" >"$RUNNER_TEMP/release-scope.json"
+          echo "native_first_use=$(node -p 'require(process.argv[1]).freshNativeFirstUse' "$RUNNER_TEMP/release-scope.json")" >>"$GITHUB_OUTPUT"
+
+      - name: Run package gates and scoped regressions
         shell: bash
         run: |
           set -euo pipefail
           npm run packages:typecheck
           npm run packages:build
-          npm run check
+          version="$(node -p 'require("./package.json").version')"
+          node --import tsx scripts/release/release-gate.ts regressions "docs/evidence/v${version}-release-plan.json"
           npm audit --audit-level=low
+
+      - name: Run complete repository gates for major scope
+        if: steps.scope.outputs.native_first_use == 'true'
+        run: npm run check
+
+      - name: Run ordinary release source and build gates
+        if: steps.scope.outputs.native_first_use != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run typecheck
+          npm run lint
+          npm run docs:check-links
+          npm run scene-template-audio:check
+          npm run catalog:check
+          npm run registry:check
+          npm run config:build
+          npm run build
+          npm run check:host
+
+      - name: Render and decode minimal runtime evidence
+        shell: bash
+        env:
+          RUNTIME_RENDER_PATH: ${{ runner.temp }}/runtime-proof.mp4
+          RUNTIME_RENDER_FACTS: ${{ runner.temp }}/runtime-proof-facts.json
+          RUNTIME_RENDER_RECEIPT: ${{ runner.temp }}/runtime-render-evidence.json
+        run: |
+          set -euo pipefail
+          npm exec -- remotion render src/index.ts DefaultIntroPreview "$RUNTIME_RENDER_PATH" --codec=h264 --audio-codec=aac --log=error
+          ffmpeg -v error -i "$RUNTIME_RENDER_PATH" -f null -
+          ffprobe -v error -count_frames -show_streams -of json "$RUNTIME_RENDER_PATH" >"$RUNTIME_RENDER_FACTS"
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import {createHash} from 'node:crypto';
+          import {readFileSync,writeFileSync} from 'node:fs';
+          const {streams}=JSON.parse(readFileSync(process.env.RUNTIME_RENDER_FACTS,'utf8'));
+          const video=streams.filter(stream=>stream.codec_type==='video');
+          const audio=streams.filter(stream=>stream.codec_type==='audio');
+          assert.equal(video.length,1); assert.equal(audio.length,1);
+          assert.equal(video[0].codec_name,'h264'); assert.equal(audio[0].codec_name,'aac');
+          assert.equal(video[0].width,1080); assert.equal(video[0].height,1920);
+          assert.equal(video[0].r_frame_rate,'30/1'); assert.equal(video[0].nb_read_frames,'60');
+          assert.equal(audio[0].channels,2);
+          const checksum='sha256:'+createHash('sha256').update(readFileSync(process.env.RUNTIME_RENDER_PATH)).digest('hex');
+          writeFileSync(process.env.RUNTIME_RENDER_RECEIPT,JSON.stringify({schemaVersion:1,status:'pass',compositionId:'DefaultIntroPreview',checksum,width:1080,height:1920,fps:30,durationInFrames:60,audioCodec:'aac',audioChannels:2,eofDecode:true})+'\n');
+          JS
 
       - name: Pack exact release candidates
         id: pack
@@ -95,7 +163,7 @@ jobs:
             echo "creator_integrity=$creator_integrity"
           } >>"$GITHUB_OUTPUT"
 
-      - name: Verify current native first-use evidence against release candidates
+      - name: Create and validate a fresh external Workspace
         shell: bash
         env:
           RUNTIME_TARBALL: ${{ steps.pack.outputs.runtime_tarball }}
@@ -103,11 +171,37 @@ jobs:
           RELEASE_ROOT: ${{ runner.temp }}/axmorf-npm-release
         run: |
           set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/axmorf-npm-smoke"
+          cd "$RUNNER_TEMP/axmorf-npm-smoke"
+          npm exec --yes --package="$CREATOR_TARBALL" -- create-axmorf-studio workspace --yes --runtime-package "$RUNTIME_TARBALL"
+          cd workspace
+          ./node_modules/.bin/axmorf doctor | tee "$RELEASE_ROOT/workspace-doctor.json"
+          npm run compositions | tee "$RELEASE_ROOT/workspace-compositions.txt"
+          npm ls remotion @remotion/cli --json >"$RELEASE_ROOT/workspace-remotion-versions.json"
+          cp package-lock.json "$RELEASE_ROOT/workspace-package-lock.json"
+
+      - name: Verify scoped release evidence against exact candidates
+        shell: bash
+        env:
+          RUNTIME_TARBALL: ${{ steps.pack.outputs.runtime_tarball }}
+          CREATOR_TARBALL: ${{ steps.pack.outputs.creator_tarball }}
+          RELEASE_ROOT: ${{ runner.temp }}/axmorf-npm-release
+          NATIVE_FIRST_USE: ${{ steps.scope.outputs.native_first_use }}
+        run: |
+          set -euo pipefail
           version="$(node -p 'require("./package.json").version')"
-          receipt="docs/evidence/v${version}-first-use.json"
-          # verify enforces the current publication gate; historical serial diagnostics cannot authorize 0.1.16.
-          node --import tsx scripts/release/first-use.ts verify "$RUNTIME_TARBALL" "$CREATOR_TARBALL" "$receipt"
-          cp "$receipt" "$RELEASE_ROOT/first-use.json"
+          plan="docs/evidence/v${version}-release-plan.json"
+          evidence=()
+          if [[ "$NATIVE_FIRST_USE" == "true" ]]; then
+            receipt="docs/evidence/v${version}-first-use.json"
+            test -f "$receipt"
+            evidence=("$receipt")
+            cp "$receipt" "$RELEASE_ROOT/first-use.json"
+          fi
+          node --import tsx scripts/release/release-gate.ts verify "$plan" "$RUNTIME_TARBALL" "$CREATOR_TARBALL" "${evidence[@]}" | tee "$RELEASE_ROOT/release-verification.json"
+          cp "$plan" "$RELEASE_ROOT/release-plan.json"
+          cp "$RUNNER_TEMP/release-scope.json" "$RELEASE_ROOT/release-scope.json"
+          cp "$RUNNER_TEMP/runtime-render-evidence.json" "$RELEASE_ROOT/runtime-render-evidence.json"
 
       - name: Publish or verify exact package versions
         shell: bash

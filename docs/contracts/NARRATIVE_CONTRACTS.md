@@ -9,11 +9,11 @@
 
 - `brief.json` → `VideoBriefSchema`
 - `story.json` → `StorySpecSchema`
-- `narration.json` → `NarrationSpecSchema`
+- `narration.json` → `NarrationSpecSchema`，pure visual Story 为 JSON null
 - `render.json` → `RenderSpecSchema`
-- `generated/sealed-narration.generated.json` → `SealedNarrationManifestSchema`
+- `generated/sealed-narration.generated.json` → `SealedNarrationManifestSchema`，pure visual 为 JSON null
 - `generated/semantic-timing.generated.json` → `SemanticTimingSchema`
-- `generated/mastered-narration.generated.json` → `MasteredNarrationManifestSchema`
+- `generated/mastered-narration.generated.json` → `MasteredNarrationManifestSchema`，pure visual 为 JSON null
 - `generated/narration-preparation.generated.json` → `NarrationPreparationReceiptSchema`
 - `generated/narrative-baseline-evidence.generated.json` →
   `NarrativeBaselineEvidenceReceiptSchema`
@@ -21,6 +21,9 @@
 
 The first four files are authored source inputs; the `generated/` files are derived
 artifacts. All objects are strict and versioned by their executable schemas.
+Narration preparation applies to narrated Stories. Pure visual production binds the explicit absence of narration;
+it never creates a fake seal or provider task. Narrative Baseline evidence remains a maintainer diagnostic, not the
+current Workspace delivery completion authority.
 
 `VideoBrief.sourceReferences` 是最多 8 条的结构化资料引用，每条严格包含最长 160 字符的
 `title` 与最长 240 字符的 HTTP(S) `url`。显示合同会完整换行渲染这些合法值，不用省略号截断。
@@ -42,8 +45,9 @@ branch interprets old NarrationSpec v1. `narration-generation-input` is v3 and c
 `narrated-scene` chunks, so the clean-break
 contract cannot reuse a v1 generation identity.
 
-StorySpec v3 discriminates `narrated-scene` from `silent-scene`. Missing `timingSource` selects the existing
-`sealed-narration` branch, which requires at least one narrated Beat. In that branch, a silent Scene may appear only at a timeline boundary, carries no intro/outro role,
+StorySpec v3 discriminates narrated, visual and silent Scenes. A narrated Story with no explicit `timingSource`
+uses `sealed-narration`; a visual Story uses the published `visual-scene` frame durations with JSON-null narration.
+In those branches, a silent Scene may appear only at a timeline boundary, carries no intro/outro role,
 binds a fixed-duration preset and never synthesizes an empty TTS
 chunk, sealed segment, CaptionCue, narration file or caption text. `ttsChunks` are authored units and are
 never split mechanically. An explicit pause is declared by
@@ -55,7 +59,7 @@ sealed narration fingerprint.
 Explicit `timingSource: "authored-frames"` requires only silent scene-owner content Beats and optionally fixed
 template-copy bookends. Each preset duration is the timing authority. No provider, sealed/mastered narration,
 preparation receipt, WAV, CaptionCue or narration segment is created; `sampleRate` and `narrationStartFrame` are null.
-NarrationSpec remains configured metadata and does not create a provider request in this branch.
+NarrationSpec may remain configured metadata or be null; neither creates a provider request in this branch.
 
 Optional filmPlan freezes complete-film concept/subject/camera/rhythm/sound intent. Optional visualScenes exhaustively
 groups consecutive content meaningIds; the first member owns one task/source graph/package and one continuously mounted
@@ -68,6 +72,9 @@ the selected template source and assets into the Project, then binds the templat
 plus the exact local cue list. Production verifies frozen identity, copied checksums, resources, and ScenePackage
 bindings, then writes `template-copy` results directly without generic Scene checking, creative review, or an
 Agent owner.
+An optional preset playback range chooses source frames within the frozen template instance, with an exclusive end.
+Fixed projection clips/rebases shots, anchors and sound cues and preserves each cue's audio source offset.
+It does not edit copied source/media/license bytes. Full boundary identity/order remains fixed during revision.
 SceneTask v7 carries the exact `VideoBrief.sourceReferences` consumed by a copied credits Renderer, so changing
 visible credits invalidates the Scene task and all downstream identities. It also carries only Scene-specific
 requirements and a derived safe-area-local SceneViewport; the raw Composition readability policy, full-frame
@@ -145,9 +152,11 @@ canonical PCM, checksum, sealing, mastering, and cumulative-sample timing pipeli
 
 ## Semantic timing
 
-`SemanticTimingSchema` is a strict union of PCM and `authored-cumulative-frames-v1`. The authored branch accumulates
-declared preset frames plus RenderSpec lead/tail and has no audio-derived fields. Shared content range resolution excludes
-fixed bookends in either branch; BGM and GlobalVisual decoration use this range. It does not retime the PCM branch.
+`SemanticTimingSchema` preserves three strict algorithms: PCM, published `authored-frames-v1` visual Scene durations,
+and explicit `authored-cumulative-frames-v1` silent owner presets. Both authored branches accumulate their declared
+frames plus RenderSpec lead/tail without audio-derived fields. Shared content range resolution excludes fixed bookends
+for GlobalVisual decoration and explicit `content-window` tracks. New Project BGM uses the complete Composition;
+existing track scopes keep their original meaning. None of these paths retimes sealed PCM.
 
 `pcm-cumulative-ceil-v1` builds one cumulative integer sample timeline and applies
 `ceilDiv(samples × fps, sampleRate)` at shared boundaries with `BigInt`. CaptionCue is one-to-one with
@@ -155,6 +164,10 @@ TTSChunk. Explicit pauses have timing but no CaptionCue. RenderSpec timing field
 `leadInFrames`, and `tailFrames`. The current workflow combines sealed narrated sample frames with
 silent preset durations once, producing continuous intro → content → outro windows. `narrationStartFrame`
 is the absolute frame where the one complete narration WAV begins; lead/tail remain only blank padding.
+
+Pure visual Stories use `authored-frames-v1`, accumulating each content Beat's authored frames, boundary playback
+durations and lead/tail once. `sampleRate` and `narrationStartFrame` are null; `segments` and `captionCues` are empty.
+The authored timing and narration absence are independently fingerprinted and verified by the same production chain.
 
 ## ScenePackage Story Composition timeline
 
@@ -171,7 +184,25 @@ Project copy. The fixed Scene task validates and commits the instance without Ag
 cover content StoryBeats and use their absolute SemanticTiming start frames. Authored-frame films may explicitly omit
 chapters; otherwise complete ordered content coverage is required. Narrated films still require chapters.
 
-## Implemented commands
+## Sound playback
+
+Composition owns Project BGM, narration and Scene sound contributions. New Project music uses `playbackScope:"composition"`,
+one looping contribution from frame zero through the exact SemanticTiming duration, including unvoiced boundaries and lead/tail.
+Legacy `narrated-content` and `content` retain their narrower windows. A composition score suppresses Scene background-music,
+while effects remain independent; optional `sceneMusicPolicy:"mute"` suppresses Scene scores for an explicit no-music request.
+Create input `backgroundMusic` inherits when omitted, selects automatically with `{mode:"auto"}`, selects an approved global loop with
+`{mode:"selected",resourceId,volume?}`, or disables music with null. Automatic candidates are global approved licensed loop assets;
+creation freezes their Project-local bytes and original license. An empty library reports unavailable rather than enabled BGM.
+Optional `sourceStartFrame` selects an audio source offset; `fadeInFrames`/`fadeOutFrames` define contribution-local
+linear gain. Looping music uses the full contribution clock, so a fade does not restart each loop. Omitted optional
+fields preserve the previous canonical identity. Plans remain JSON data; playback uses static Remotion components.
+Strict revision can change only existing Project music gain/envelopes and immutable boundary playback windows/music,
+preserving track/resource identities, source bytes, loop and playbackScope. It cannot change sealed narration.
+
+## Maintainer diagnostics and public verification
+
+The following source-repository commands retain Narrative Baseline diagnostics. They are not required to invent
+legacy proof files in a generated Workspace and do not replace the formal production/delivery chain.
 
 ```bash
 npm test
@@ -203,3 +234,7 @@ descendants; timing RenderSpec changes leave sealed PCM valid but invalidate
 SemanticTiming and downstream identities; non-timing registration or Baseline changes leave sealed PCM
 and timing valid; media loss/corruption invalidates baseline evidence without rewriting upstream identities.
 The checker never repairs any of these artifacts.
+
+Generated Workspace `project:check -- --project <story-id> --level final` instead read-only verifies the current
+Revision, materialized artifacts and exact-four-file Delivery. It reports structured failure reasons and does not
+write baseline or auto-check evidence. Use the installed Workspace surface and [review model](../guides/REVIEW_MODEL.md).

@@ -90,11 +90,19 @@ export const runProducerEnvironmentDiagnostics = async ({
     },
   ];
   const bgm = config.audioDefaults?.globalBgm;
-  if (bgm === null || bgm === undefined) {
+  if (bgm === null) {
     checks.push({
       id: "global-bgm",
       status: "pass",
       summary: "未配置全局 BGM 预设。",
+      remediation: null,
+    });
+  } else if (bgm === undefined || "mode" in bgm) {
+    checks.push({
+      id: "global-bgm",
+      status: "pass",
+      summary:
+        "自动从已批准的循环音乐库选曲；没有可用音乐时制作结果会明确报告。",
       remediation: null,
     });
   } else {

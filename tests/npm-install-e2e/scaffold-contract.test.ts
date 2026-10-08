@@ -267,6 +267,8 @@ test("no-install creates a standalone, host-neutral workspace without claiming r
     "brace-expansion@1": "1.1.21",
     "brace-expansion@2": "2.1.7",
     nanoid: "3.3.18",
+    "postcss-selector-parser": "7.1.6",
+    "source-map-js": "1.2.2",
   });
   for (const version of [
     ...Object.values(manifest.dependencies),
@@ -307,6 +309,7 @@ test("no-install creates a standalone, host-neutral workspace without claiming r
       describe: manifest.scripts["project:task:describe"],
       finalize: manifest.scripts["project:task:finalize"],
       check: manifest.scripts["project:task:check"],
+      preview: manifest.scripts["project:task:preview"],
       commit: manifest.scripts["project:task:commit"],
       fail: manifest.scripts["project:task:fail"],
       fileRead: manifest.scripts["project:task:file-read"],
@@ -319,6 +322,7 @@ test("no-install creates a standalone, host-neutral workspace without claiming r
       describe: "axmorf project task describe",
       finalize: "axmorf project task finalize",
       check: "axmorf project task check",
+      preview: "axmorf project task preview",
       commit: "axmorf project task commit",
       fail: "axmorf project task fail",
       fileRead: "axmorf project task file-read",

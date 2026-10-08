@@ -2,6 +2,36 @@
 
 > 文档类型：架构 authority
 
+## 0.1.17 的视觉与音频扩展
+
+边界修订使用 Story preset 中可选、fingerprint-covered 的 template playback window：immutable instance 与 copied bytes 不变，
+fixed artifact 派生局部 shot/anchor 和音轨源起点，SceneSlot 保持实际 Beat Sequence 时长并偏移模板 source clock。
+Project/Scene 音轨可选首尾线性包络；循环 BGM 的包络延续到整条 contribution，不能每轮重置。
+正式 revision 只开放既有 template 区间与既有 track 的增益/包络。运行时升级后须正式重验 current delivery；
+missing artifact 的 owning Scene task input 完全不变时可冻结其已验证 current source 为 bound priorSource，
+保留既有画面后重新执行 validators 和提交，不能把 current source 当 artifact hit。
+
+无旁白正文沿同一 production 主链：`visual-scene` 的 authored frames 生成 `authored-frames-v1`
+SemanticTiming，旁白 source/两份 manifest 明确为 null，不创建 provider/narration tasks。Composition
+省略 NarrationAudioTrack，保留顶层 caption ownership；空 captions 回收字幕预留区。GlobalVisual 和
+新 Project BGM 使用完整 Composition 窗口，GlobalVisual decoration 仍使用正文窗口。Scene 可通过公开 action timing helper 消费计划，并接收冻结 continuity。
+可选 `outgoingHandoff.visual` 是自由 SVG 数据，与相邻任务共享同一 immutable seam；公开
+`SceneContinuityVisual` 只绘制该主体。声明进入 Scene input fingerprint，语义 handoff ID 保持原定义。
+有 visual 时独立检查首/末帧的实际 DOM、输入消费与 viewport 字号；没有 visual 的旧任务不改变。
+这些检查不证明浏览器遮挡、Canvas/3D paint、完整运动或审美质量，仍须实际边界审阅。
+绑定的 task preview 是独立诊断适配器：校验与快照 owning source 后实际渲染，不进入 artifact/delivery
+identity，也不扩展 worker 文件权限。详见[视觉叙事](guides/VISUAL_NARRATIVE_QUALITY.md)。
+create context 的 `soundResources` 只投影当前 Catalog 已批准、runtime-approved、许可 verified 的
+音效与音乐；`backgroundMusic` 另投影已核验的全局 loop 候选、自动/文件/禁用模式及缺曲状态，不暴露私有配置路径。
+create input 可选 `backgroundMusic`：省略继承，auto 按当前 brief 匹配候选，selected 指定 resourceId，null 明确关闭背景音乐。
+create-time 本地化冻结 checksum/license/Project-owned bytes；一个 composition-scope 音轨覆盖首尾和 lead/tail，抑制 Scene 的第二条音乐，
+音效仍按独立 anchor 混音。旧 narrated-content/content Plan 不改语义，空曲库返回 unavailable 和空 Project 音轨。
+
+发布控制器独立于生产 runtime：`scripts/release/release-gate.ts` 由已审核 release plan 与 baseline tag diff
+决定普通或 native scope；两包内容 fingerprint 始终复验。production/合同/scaffold 变更要求主宿主原生首用，
+第二宿主只按实际兼容性变更或明确全验收请求加入。CI 始终保留 type/lint/build、回归、全新安装及最小实际渲染。
+既有可信 npm Actions 执行发布；规则和原生日志不进入公开包。见[发布门禁](guides/FIRST_USE_RELEASE_GATE.md)。
+
 ## 1. 模块与依赖方向
 
 ```text
@@ -290,7 +320,7 @@ Project-local instance。
 
 意图优先 motionPlan v2 与可选 tracked v1 共用 Scene shot-plan/props；自绘代码不强制几何轨迹或组件。技术 task check/commit 单独报告 DOM 已验证、unsupported 或 intent-only，均仍需真实时间序列审查；不把 DOM 依赖当像素/美感证明。执行边界见 [内容动作审阅](guides/CONTENT_MOTION_REVIEW.md)。
 
-Root 可在 Scene brief 的 `outgoingHandoff` 冻结与下一 narrated Scene 共用的 subject；load-inputs 为两侧生成相同的
+Root 可在 Scene brief 的 `outgoingHandoff` 冻结与下一正文 Scene 共用的 subject；load-inputs 为两侧生成相同的
 `continuity.handoffs` 合同，seam identity 只由 Story 与相邻 meaning IDs 确定。tracked v1 另需 Root-authored
 边界 state，v2 不规定几何。shared Scene bundle validator 在提交与物化前核对 kind、ID、subject 和适用的 pose；
 Coverage 仍复验跨 Scene 衔接。未声明的 seam 使用 motivated cut，fixed template 边界禁止 continuous。

@@ -102,7 +102,7 @@ export const loadProjectPreviewProjection = async ({
     runtimePolicyManifest,
   });
   const preparationReceipt =
-    inputs.story.timingSource === "authored-frames"
+    inputs.story.timingSource === "authored-frames" || inputs.narration === null
       ? null
       : NarrationPreparationReceiptSchema.parse(
           (
@@ -144,7 +144,10 @@ export const loadProjectPreviewProjection = async ({
     rootDir,
     artifacts: ownerArtifacts,
   });
-  if (inputs.story.timingSource !== "authored-frames") {
+  if (
+    inputs.story.timingSource !== "authored-frames" &&
+    inputs.narration !== null
+  ) {
     await checkM2NarrationArtifacts({
       rootDir: scope.isolatedRoot,
       projectSource: {

@@ -11,6 +11,7 @@ import type {
 import type { StoryBeat } from "../../../contracts/story";
 import type { VideoSourceReference } from "../../../contracts/brief";
 import type { VisualStyleSpec } from "../../../contracts/visual-style";
+import type { SceneContinuityContract } from "../../../contracts/scene-continuity";
 
 export type ResolvedSceneVisualResource = Readonly<{
   resourceId: string;
@@ -35,6 +36,8 @@ export type SceneRendererProps = Readonly<{
       endFrame: number;
     }>;
   }>[];
+  /** The Root's frozen seam, shared by both isolated owners; custom rendering remains optional. */
+  continuity?: SceneContinuityContract;
   sourceReferences: readonly VideoSourceReference[];
   timingBeat: Readonly<{ startFrame: number; endFrame: number }>;
   visualStyle: VisualStyleSpec;

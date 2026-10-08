@@ -137,3 +137,76 @@ test("Scene sound contributions resolve anchor xor explicit frame without clamp 
     );
   }
 });
+
+test("Scene sound accepts overlapping bounded fades and rejects unsafe playback frame options", () => {
+  const { anchors, task } = createScenePlans();
+  const contribution = {
+    contributionId: "tail",
+    resource: {
+      schemaVersion: 1,
+      resourceId: "asset.proof-sfx",
+      kind: "asset",
+      role: "sound-effect",
+      descriptorFingerprint: sha("a"),
+      catalogFingerprint: task.resourceCatalogFingerprint,
+    },
+    timing: { kind: "explicit", sceneLocalFrame: 0 },
+    durationInFrames: 75,
+    volume: 0.5,
+  } as const;
+  const planInput = {
+    taskInputFingerprint: task.taskInputFingerprint,
+    meaningId: task.meaningId,
+    sceneDurationInFrames: 120,
+  };
+  const legacy = buildSceneSoundPlan({
+    ...planInput,
+    contributions: [contribution],
+  });
+  const plan = buildSceneSoundPlan({
+    ...planInput,
+    contributions: [
+      {
+        ...contribution,
+        sourceStartFrame: 165,
+        fadeInFrames: 75,
+        fadeOutFrames: 75,
+      },
+    ],
+  });
+  assert.notEqual(plan.soundPlanFingerprint, legacy.soundPlanFingerprint);
+  assert.equal(
+    Object.hasOwn(legacy.contributions[0], "sourceStartFrame"),
+    false,
+  );
+  assert.deepEqual(
+    resolveSceneSoundContributions({ soundPlan: plan, syncAnchors: anchors }),
+    [{ contributionId: "tail", startFrame: 0, endFrame: 75 }],
+  );
+  for (const field of [
+    "sourceStartFrame",
+    "fadeInFrames",
+    "fadeOutFrames",
+  ] as const) {
+    for (const value of [-1, 0.5, Number.NaN, Number.MAX_SAFE_INTEGER + 1]) {
+      assert.throws(() =>
+        buildSceneSoundPlan({
+          ...planInput,
+          contributions: [{ ...contribution, [field]: value }],
+        }),
+      );
+    }
+  }
+  for (const options of [
+    { fadeInFrames: 76 },
+    { fadeOutFrames: 76 },
+    { sourceStartFrame: Number.MAX_SAFE_INTEGER },
+  ]) {
+    assert.throws(() =>
+      buildSceneSoundPlan({
+        ...planInput,
+        contributions: [{ ...contribution, ...options }],
+      }),
+    );
+  }
+});

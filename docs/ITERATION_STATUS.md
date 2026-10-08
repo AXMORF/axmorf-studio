@@ -1,5 +1,22 @@
 # Iteration Status
 
+## 当前候选：0.1.18 合并与发布（2026-10-08，待发布）
+
+当前默认分支曾停在 0.1.16 的发布收口 `c3431f6`；0.1.17 标签与发布分支均保留，发布分支
+`axmorf/visual-narrative-quality` 的收口 `d323d69` 当时没有合回默认分支。本次将它与连续创作升级
+`c2bb058` 合并，保留已发布的 visual-scene、共享 SVG、bound preview、整片 BGM 与窄修订，接入
+filmPlan、连续多 Beat owner、作者帧 preset、冻结整片 preview 和 revision snapshot v2。
+
+两种无旁白时间轴保留各自合同，不静默迁移已有作品；新建默认 BGM 保留完整 Composition 范围，显式
+content-window 保持正文范围。scene-review 的 authored 非空章节误判已修复并新增防止错误报 stale 的回归。
+Skill 合并继续满足原有上下文预算，未提高 validator 或放宽 production gate。
+发布审计发现新披露的间接依赖漏洞，root 与 creator Workspace 将 postcss-selector-parser 固定为 7.1.6、
+source-map-js 固定为 1.2.2；Remotion 及直接依赖版本保持原值，补做审计、scaffold 与打包渲染检查。
+
+用户明确授权提交、推送和发布，并选择“完成合并并复验受影响部分”。本版本复用已观察成片与既有原生
+验收的原始证据，重新检查合并代码和新包；不声明新合并候选已通过完整独立原生首用、exact-four 并发或听审。
+发布完成与新包证据将在收口记录中另行确认。
+
 ## 当前源码：视频创作 Skill 经验沉淀（2026-10-08，未发布）
 
 项目内 axmorf-video policy v27（schemaVersion20）新增 film-direction reference，仓库与 creator 模板逐 byte 同步，
@@ -10,8 +27,8 @@ Root 与独立 Scene 入口均可发现。它保留整片因果设计、连续�
 
 已完成的58秒竖屏原创作品《一座城市，如何醒来》以7个作者帧 Beat/1个连续正文 owner 表达因果变化，
 零 provider/旁白/字幕；exact-four delivery 与记录中的7项final通过。抽样视觉、技术静音播放和音频事件测量
-保留各自范围，主观听审仍未评估。该片暴露的 scene-review authored 非空章节误判是已诊断、未修复的工具缺陷，
-不能把已有成片误报为失效。Skill 修改与验证范围见[创作经验记录](evidence/2026-10-08-creative-video-skill.md)。
+保留各自范围，主观听审仍未评估。该片暴露的 scene-review authored 非空章节误判当时尚未修复，
+现已在上方合并候选修复；原有成片仍有效。Skill 修改与验证范围见[创作经验记录](evidence/2026-10-08-creative-video-skill.md)。
 本轮53/53 focused、最后两项受影响指南复验、类型/scoped lint/Skill validator/格式与creator检查通过；
 pack dry-run含新增指南，199份active文档的370条本地链接/264处命令引用通过。未重复完整check或重新制作成片。
 本次不代表 npm 发布、独立首用或新的成片质量认证。
@@ -23,7 +40,8 @@ pack dry-run含新增指南，199份active文档的370条本地链接/264处命�
 fixed 首尾不合组，现有 Project 通过显式 revision 重组，不自动迁移。
 
 显式 authored-frames 以 silent scene-owner preset 帧数生成时间轴，零 provider/seal/mastered WAV/captions，
-BGM/GlobalVisual 使用正文窗口；旁白默认继续采用 sealed PCM samples。纯视觉章节可为空或完整按序。
+显式 content-window BGM 与 GlobalVisual 使用正文窗口；新建默认 BGM 使用完整 Composition。
+旁白默认继续采用 sealed PCM samples。纯视觉章节可为空或完整按序。
 新增世界相机、落定/跟随、点形变/收束与语义重定时纯函数；没有引入第二渲染引擎或复制 OneTake 实现。
 
 `project:preview` 在私有冻结 view 中投影有效 fixed/owner artifacts，保留布局/fps/帧数/声音并降低像素，
@@ -47,10 +65,85 @@ authored/grouped/stereo 草稿和 exact-four 交付，7项final检查通过；�
 独立普通提示首用、exact-four 并发发布门槛和主观听审未以该内部工程验收替代。
 下方 0.1.16 发布/首用证据只认证其当时冻结的包，不能认证本次源码新增能力。
 
-## 0.1.16 当前发布闭环（2026-10-03，两包发布与公共安装烟测通过）
+## 0.1.17 已发布（2026-10-04，公共安装与生产 Workspace 升级通过）
 
-当前 release worktree 基于 `7352dc9` 与原工作区73项已有修改，原分支、提交与文件 bytes 保持不变。
-当前 runtime/creator 均为 `0.1.16`，283/41文件，content fingerprints 为 `2f528b35…` / `5fc7408f…`。
+两个官方 npm 包的 `latest` 均已回读为 `0.1.17`。不可变 `v0.1.17` 指向
+`3b2a01ce1f27ac8761e123722c090fba0bccd289`；既有可信
+[Actions](https://github.com/AXMORF/axmorf-studio/actions/runs/37231367445) 成功。
+registry integrity、CI tarball 和两份原生候选的 290/41 文件内容完全一致，官方 provenance 将两包绑定到该源码、标签和工作流。
+见[发布记录](evidence/v0.1.17-publication.json)。
+
+已接通全局循环曲库、主题选曲、create-time Project-owned 冻结和整片连续 BGM；旁白与镜头音效独立。
+38 秒真实完整 runtime 渲染验证了跨场景、循环边界、有/无旁白窗口和混音，程序检查通过；未做整片主观听审。
+两份正式原生候选收据已严格复验：Codex 30 秒初稿及单 Scene revision/promotion，2 attempts/2 continuations，
+14 个原生 children、四路 bound 重叠 262227 ms；Hermes 46 秒、四路重叠 379863 ms、后续补位及四文件交付。
+对应 290/41 文件候选内容未变，原始日志及失败旧试次保留。见[收据](evidence/v0.1.17-first-use.json)与
+[BGM 证据](evidence/v0.1.17-bgm-verification.json)。
+
+用户明确批准[分层发布规则](guides/FIRST_USE_RELEASE_GATE.md)：普通发布保留源码/包完整性、type/lint/build、
+受影响回归、全新安装和最小真实渲染；production/执行协议/scaffold 重大变更要求完整主宿主原生首用。
+第二宿主由实际兼容性变更或明确全验收请求决定，不再按版本号强制。本版确有 production/scaffold 与
+Hermes 兼容性改动，复用已完成的两份有效证据，见[计划](evidence/v0.1.17-release-plan.json)。
+本地原始 `npm run check` 1212/1212 直接通过，零失败/跳过/取消；153 项 focused、type/lint、两包 build/type 与精确内容复验通过。
+最终最小渲染工作流选择另经 32 项回归与 lint 验证，实际公开 DefaultIntroPreview 的 60 帧 H.264/AAC、双声道及 EOF 通过，零漏洞审计通过。
+精确标签的 Linux CI 全量 1212 项中 1211 通过、1 项 Darwin 专属 sandbox 检查跳过，零失败/取消；153 项 scoped 全通过。
+已按要求先完成文档、检查、commit/push，再执行 Actions 发布。
+
+发布后实际匿名 `npm create axmorf-studio@latest` 在新目录完成：两包逐文件、12 份生成指南、官方 tarball integrity 和原始锁文件复验通过，doctor 六项通过。
+macOS npm creator 锁文件的 `/tmp` 与 `/private/tmp` 别名只在同一物理包目录确认后接受；33 项回归、type/lint 通过，原锁文件不改。
+断线和首次别名拒绝的安装试次保留，没有补造 snapshot。没有再运行公共包原生整片制作；正式候选双宿主收据仍认证精确发布内容。
+
+生产 Workspace 已升级至 `0.1.17`，保存的全局音乐模式为 auto、音量 0.15，只读 create context 实际返回五首已审核循环曲和 available 状态；bootstrap、doctor 通过。
+423 个升级前文件中 419 个摘要与完整 inventory 不变，变化仅限 package、lockfile 和两处制作指引；397 个 Project 文件、14 个交付文件、7 个曲库文件及资源 manifest 全部保留。
+私有配置仅修改全局 BGM，其他设置、依赖、脚本和已保存 npm mirror 保留；安装内容与官方包完全一致。旧 Project 不自动迁移。
+这些私有曲目与配置不进入公开 npm 包。整片混音主观听审仍未完成。
+
+## 0.1.17 视觉叙事能力与开发验证范围（2026-10-04）
+
+本轮在已发布 0.1.16 的源码基线上开发；既有 motionPlan v2、自绘 SVG/Canvas/3D、计划消费检查、素材复用和
+局部修订继续使用。新增 `visual-scene` 无旁白正文、authored frame timing、明确 null narration、零 provider
+preparation、same-mode 隔离 revision，以及绑定 Scene 的提交前真实预览。可选 action timing helper 连接动作/
+阅读停留与 renderer；Root 可冻结自由 SVG handoff，由相邻隔离任务通过 `SceneContinuityVisual` 消费，实际 DOM/
+输入扰动/有效字号检查拒绝受支持范围内的矛盾。它们不验证全部浏览器 paint、遮挡、Canvas/3D 或审美。
+
+create context 投影许可已核验的 `soundResources` 和不含私有路径的 BGM 配置状态。现有 brief/Scene contract
+指导按含义安排对象变化、注意力、景别、短主张、语义粒子与读停，并以实际起音/声势中心卡点；仍由 Agent 创作，
+没有自动导演、固定特效模板或审美评分。新 Workspace 默认 auto BGM：context 给出全局已批准 loop 候选，
+Agent 可按主题指定，也可由 create 根据 brief 自动匹配并冻结原许可/bytes。新音轨覆盖完整 Composition，
+抑制 Scene 第二首音乐并保留独立音效；可明确关闭或使用自定义文件，缺曲报告 unavailable，旧 Project 不迁移。
+Scene preview 不包含 Project BGM，整片主观听审仍是独立验收。
+
+最新源码还开放 strict `patch.boundaryScenes` 的 immutable template 播放区间及独立音乐包络、`patch.sound`
+的已有 Project 音乐增益/包络。模板/媒体/许可、资源与 track 身份、loop/scope、sealed narration 均保持冻结；
+fixed projection 裁剪时序并保留 source clock。运行时升级先正式复验 current；missing artifact 且 owning Scene
+输入完全未变时可冻结已复验 current 源码为新任务的 priorSource，仍须 bind/finalize/check/commit，不是假 artifact hit。
+这些最新修订有回归覆盖，尚未制作新的整片 candidate、promotion 样片或完成听审。详见
+[修订指南](guides/PROJECT_REVISION.md) 与 [收口证据](evidence/2026-10-04-visual-narrative-closeout.md)。
+
+正式样片覆盖 Attention 与站点两个主题。Attention 和 narrated 站点初始旧新两组 raw create input/旁白 bytes
+分别一致；后续站点 r6/r7 包含定向修订，不当作 raw-input-identical 比较。r6 narrated 与 r7 visual 的 final 各
+7/7，全部 1343/1500 帧解码 RGB 和 PCM 重渲染一致。共享主体接点改善，但 Attention Q 形状跳变仍有缺口，用户
+仍指出 r7 景别、颜色和节奏偏弱；这些样片不能证明稳定审美或未见主题的首次生成质量。
+
+另一全新安装 Workspace 使用四路 native probe/subagents 正式生成 35 秒品牌样片，bound 预览和最终四文件完成，
+public final 7/7，1050 帧 RGB/PCM 重渲染一致，MP4 bytes 不同；视频与封面保存在私人 Library，旧片未覆盖。
+此片仍使用 2+8 秒首尾，正文 BGM 0.16、片尾独立 0.65，无自动 ducking。仅查看实际抽样帧与封面，完整连续观看/
+人耳听审未完成。见 [视听样片证据](evidence/2026-10-04-audiovisual-directing.md)。
+
+工程检查点 `537c4a6` 的全覆盖等价 check 在 Node 24.15.0 下通过：全部 218 个 source 测试文件，216 个以并发4
+运行 1162 项、两个既有启动时序文件原样单并发运行27项，共1189/1189，零失败/取消/跳过；typecheck、lint、
+文档/资源检查、config/Remotion build 与 check:host 均退出0。这是完整 npm check 的同覆盖分阶段执行，不是字面
+`npm run check` 成功；历史默认调度的4个时序失败保留，未放宽300ms/2s时限。文档收口后的复验另见收口证据。
+真实制作曾暴露的 preview EOF 与 visual ScenePackage anchor fixed-flow 缺陷已有独立修复和回归。
+
+目前未执行两种未参与调试的中文 AI 概念完整旧新实验，也没有跨主题多次独立生成的稳定性数据。
+截图、自动分数、计划声明和技术完成都不能替代感知验收。操作入口见
+[视觉叙事工作流](guides/VISUAL_NARRATIVE_QUALITY.md)。当前 npm latest 为上方已验证的 0.1.17；下方保留历史发布及试次。
+
+## 0.1.16 历史发布闭环（2026-10-03，两包发布与公共安装烟测通过）
+
+当时 release worktree 基于 `7352dc9` 与原工作区73项已有修改，原分支、提交与文件 bytes 保持不变。
+当时 runtime/creator 均为 `0.1.16`，283/41文件，content fingerprints 为 `2f528b35…` / `5fc7408f…`。
 最新重新 type/build/发行边界/pack 的两个 tarball 与实际验收候选 bytes 相同，公开 `verify` 退出0。
 
 全新 `axmorf-0.1.16-reviewed-firstuse-20261003-gzhb5fc5/workspace` 由支持的 creator 安装，runtime与12份
@@ -73,7 +166,7 @@ record/verify 通过；canonical receipt 已替换为本候选真实生成收据
 已实际查看抽样画面、两封面与关键原分辨率画面；连续观看、全部动作时序观感、主观听审、实机手机与Hermes
 明确未验证。时长不作为验收条件。详见[当前验收记录](evidence/2026-10-03-v0.1.16-current-candidate.md)。
 
-两包0.1.16已公开为latest，发布源3f913b2/v0.1.16，最终支持CI通过；全新公共registry安装、
+两包0.1.16当时已公开为latest，发布源3f913b2/v0.1.16，最终支持CI通过；全新公共registry安装、
 283/41包文件及12生成指南、下载/锁/候选tarball逐byte核对、六项doctor和后续身份/空Workspace复验通过。
 第一次CI安全审计失败经最小开发依赖修复后复验；第二次runtime上传已被npm接受但异步处理超过五分钟，
 原失败保留。实际公开后沿同一不可变标签流程复验runtime、首次提交creator，未重复上传runtime。

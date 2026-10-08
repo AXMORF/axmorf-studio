@@ -24,6 +24,7 @@ import {
   buildNarrationSealTask,
   buildSemanticTimingTask,
   buildAuthoredSemanticTimingTask,
+  buildVisualSemanticTimingTask,
 } from "./build-current-plan";
 import { inspectProjectProduction } from "./inspect-production";
 import { loadProjectProductionInputs } from "./load-inputs";
@@ -81,17 +82,34 @@ const prepareFixedTaskArtifacts = async ({
     );
   }
   const revision = buildCurrentProductionRevision(inputs);
-  if (narration.timingSource === "authored-frames") {
-    const timing = buildAuthoredSemanticTimingTask({
-      inputs,
-      revisionId: revision.revisionId,
-    });
+  if (
+    narration.timingSource === "authored-frames" ||
+    narration.mode === "visual"
+  ) {
+    const timing =
+      narration.mode === "visual"
+        ? buildVisualSemanticTimingTask({
+            inputs,
+            revisionId: revision.revisionId,
+          })
+        : buildAuthoredSemanticTimingTask({
+            inputs,
+            revisionId: revision.revisionId,
+          });
     await ensureFixedTaskArtifact({
       rootDir,
       task: timing.task,
       workspaceRootDir: scope.isolatedRoot,
       files: {
         "inputs/context.json": timing.contextBytes,
+        ...(narration.mode === "visual"
+          ? {
+              "project/generated/sealed-narration.generated.json":
+                narration.sealedManifestBytes,
+              "project/generated/mastered-narration.generated.json":
+                narration.masteredManifestBytes,
+            }
+          : {}),
         "project/generated/semantic-timing.generated.json":
           narration.semanticTimingBytes,
       },
@@ -413,7 +431,7 @@ export const prepareProjectProduction = async (
       projectId,
       env,
       inputs,
-      narration,
+      ...(narration.mode === "visual" ? {} : { narration }),
       runtimePolicyManifest,
       scope,
     });

@@ -1,21 +1,84 @@
 # First-use release gate
 
-A stable npm release normally requires actual Codex and Hermes runs against the candidate
-creator and runtime tarballs. These runs use fresh workspaces and fresh host
-profiles, with one ordinary business prompt per host. They do not inherit the
-repository, earlier sessions, memory, global project skills, or engineering hints.
-Only the npm-generated workspace guides provide project instructions. Do not
-send follow-up repair instructions or change package internals during the run.
-A failed run stays recorded as failed; a later engineering fix requires new
-candidates and a new first-use run.
+Publication uses a reviewed change plan, rather than a version-number host matrix.
+The maintainer approved this layered policy on 2026-10-04:
 
-Except for the explicit host/serial scopes below, from 0.1.9 onward both hosts must exercise the package's default native
-`subagents` path with configured maximum concurrency four. The business prompt
-does not name this execution strategy. Select a normal video brief that produces
-more than four dirty creative tasks, so the run exercises releasing a child slot
-and admitting another task. An inline run or merely saving subagent settings is
-not evidence for this gate. Explicit inline behavior retains automated regression
-coverage; the historical 0.1.8 inline receipts remain readable.
+- Every ordinary release verifies the exact source tag, package contents and versions,
+  type/lint/build gates, affected regression tests, a fresh external installation and doctor,
+  and a minimal real render with complete decoding. The workflow renders the public zero-Project
+  `DefaultIntroPreview` (60 frames, H.264/AAC stereo) and verifies its media facts and EOF.
+  It does not require another native video run.
+- Production contract, execution protocol or scaffold changes require complete candidate
+  native first-use acceptance on the plan's primary host. The classifier covers the public
+  contracts, Project creation/revision and production code, scaffold source/templates, and
+  production Agent instructions. Recorder execution adapters also require native evidence.
+- A second host is required when the reviewed plan names an actual compatibility change
+  affecting that host, or the maintainer explicitly requests full acceptance. Required hosts
+  come from this scope, never from the next version number.
+
+The exact tag contains `docs/evidence/v<version>-release-plan.json`. Its strict schema records
+`baseTag`, `primaryHost`, `fullAcceptance`, host-specific `compatibilityChanges` with changed
+paths and a reason, affected `regressionTests`, and both reviewed package content fingerprints.
+The workflow derives the change set from the ancestor baseline tag and rejects unknown fields,
+missing native evidence for a major scope, missing required hosts, or changed package contents.
+A plan alone cannot suppress a mechanically identified contract, production or scaffold change.
+The plan's host compatibility declarations still require human review: a filename classifier
+cannot establish every semantic host impact.
+
+The maintainer may explicitly approve reuse of prior acceptance for one release. The optional
+`reviewedAcceptanceReuse` plan binds the approved version, reason and checksums of retained evidence.
+The workflow also requires `reuse_reviewed_acceptance` to contain that exact release tag; omission keeps
+the normal fresh native gate. Reuse cannot waive an explicit full-acceptance request or declared host
+compatibility changes. Package identity, scoped regressions, source/build gates, external installation,
+doctor, minimal render, complete decoding and registry integrity still run. Verification reports
+`release-gate-passed-with-reviewed-acceptance-reuse` and `nativeFirstUseVerified:false`; old evidence never
+becomes a native first-use certificate for changed packages.
+
+For 0.1.18, the maintainer authorized commit/push/publication using the already reviewed videos and then
+approved merging 0.1.17 with affected checks. This scope retains the 0.1.17 native receipt and the Oct 8
+continuous-video engineering acceptance at their original package identities and review limits. It does
+not claim fresh merged-package native acceptance, exact-four child concurrency or another listening review.
+
+Before new engineering work, compare the checkout with the newest published tag and its release branch.
+Before publishing, merge the prior release into the default branch and keep the new tag on that branch's
+release commit. Publishing from an isolated branch does not update the default branch automatically.
+
+For 0.1.17 the actual diff includes production/scaffold changes and Hermes native UI/process
+compatibility changes. The already completed Codex and Hermes candidate runs therefore satisfy
+this scope; the new policy does not require rerunning either valid record. Both original captures
+and failed superseded attempts remain retained. The compact receipt binds 290 runtime files and
+41 creator files. See the [reviewed plan](../evidence/v0.1.17-release-plan.json),
+[native receipt](../evidence/v0.1.17-first-use.json) and
+[BGM verification](../evidence/v0.1.17-bgm-verification.json).
+
+The unchanged `v0.1.17` tag was published successfully by the existing trusted workflow.
+The [publication record](../evidence/v0.1.17-publication.json) records its exact source,
+registry/CI tarball identity, official provenance and a subsequent anonymous public install.
+That install verifies the original locks, package files, generated guides and doctor; it does
+not claim another public native video run. For npm's Darwin `/tmp` cache alias, public lock
+verification accepts only the exact `/private/tmp` physical package owner, rejects ambiguous
+or foreign keys, and retains all version, official URL, integrity and no-link checks. It never
+rewrites the original lock or treats a failed install as a completed snapshot.
+
+When native acceptance is required, use fresh workspaces and fresh host profiles with one
+ordinary business prompt per required host. They do not inherit the repository, earlier
+sessions, memory, global project skills, or engineering hints. Only the npm-generated workspace
+guides provide project instructions. Do not send follow-up repair instructions or change package
+internals during the run. Failed runs stay failed. A package-content change requires new candidate
+installation and acceptance; a recorder compatibility repair may strictly revalidate unchanged
+original records against the same unchanged packages.
+
+Current native acceptance exercises the package's default `subagents` path with configured
+maximum concurrency four. The business prompt does not name this execution strategy. Select a
+normal video brief with more than four dirty creative tasks, so the run releases a child slot and
+admits another task. Require real bound-task overlap, all prepared attempts completed, one fixed
+continuation per attempt, and verified exact-four-file delivery. Inline runs or saved settings
+cannot satisfy current native scope. Explicit inline behavior retains automated regression coverage.
+
+## Historical acceptance scopes
+
+The following version-specific approvals describe retained historical receipts only. They do
+not select hosts for new releases or override the current change plan.
 
 For **0.1.14 only**, the maintainer approved Codex default four-way native execution
 and Hermes **explicit inline, gpt-5.6-terra, medium**. This matrix applies to both
@@ -38,8 +101,7 @@ For **0.1.15 only**, the maintainer uses Codex and authorized a Codex-only
 candidate and post-publication gate. The exact receipt must contain one Codex
 host, with the unchanged default four-way native execution, supervision, real
 delivery, and full media checks. Hermes runs remain diagnostic and cannot be
-counted as passing release evidence. This scope does not certify Hermes; later
-versions return to the two-host gate.
+counted as passing release evidence. This historical scope does not certify Hermes.
 
 For **0.1.16 only**, Codex-only acceptance remains authorized. The current
 2026-10-02 candidate request explicitly requires actual native children,
@@ -55,7 +117,7 @@ for each other or combine evidence. The current request authorizes no inline
 fallback. Independent fresh workspace/profile, one business prompt, unchanged
 package/guides, actual model settings, supervision, unique continuation per attempt, exact
 four-file Delivery and complete media checks remain required for either scope.
-Failed runs stay failed. Product defaults and future-version gates are unchanged.
+Failed runs stay failed. Product defaults were unchanged; new releases use the layered plan above.
 Current 0.1.16 `verify` and `verify-public` require native execution and reject
 the historical serial scope; neither publication entry offers an inline fallback.
 Use `verify-historical runtime.tgz creator.tgz combined-receipt.json` only to
@@ -79,7 +141,7 @@ The candidate's actual native concurrency, later admission, and separate scoped
 visual revision and reuse checks remain required. Keep a separate installation
 smoke record and mark public-registry native video production as unverified;
 this scope does not produce a passing `record`/`verify-public` native receipt.
-Other versions and the current native publication verifier remain unchanged.
+This historical smoke record is distinct from native acceptance. Current post-publication checks use the installation scope below.
 
 This gate supplements the automated install/contract tests. It does not claim
 multi-model, multi-OS, interactive approval, revision, or recovery certification.
@@ -110,6 +172,10 @@ not pass this gate. Hermes `message.interim` prose is visible in the TUI but may
 from SQLite assistant content. The recorder binds the fresh `session.create` response to
 the run's UI and stored session IDs, then matches every root UI tool call and result
 (ID, name, arguments, content, and order) to the unmodified complete SQLite transcript.
+The TUI may omit `tool.start.args` only for an original empty-object invocation;
+nonempty missing arguments, null, arrays and changed values are rejected.
+Native vision results retain the original JPEG or PNG data URL, require matching
+image signatures, and bind the accompanying text exactly to the database result.
 It requires contiguous native UI event sequence numbers and matches final report text
 against SQLite. Report timing comes from native `message.interim` and `message.complete`
 events. The complete raw UI stream checksum is recorded in `supervision.uiEvidence`;
@@ -122,10 +188,36 @@ Codex code-mode may truncate a long command result while the app-server retains
 its complete native command output. Keep both original captures. The optional
 `uiTranscriptFile` may supplement that result only when the original process
 handle, literal command, cwd, Root thread and turn, unique started/completed item,
-result order, exit code and complete output-delta sequence all agree. Bind the
+result order, exit code and complete output-delta sequence all agree. A completed native buffered
+result without streamed deltas is also retained in its original envelope. Bind the
 supplement to the original result time and index and record the UI checksum.
 Missing or ambiguous linkage is a failed audit; child output or a disk plan cannot
 reconstruct a missing prepare result.
+
+When code-mode display truncation omits or splices diagnostic envelopes, restoration is limited to
+literal read-only guide, create-schema/context, catalog and native-probe commands. The original UI
+must still bind the unique Root/turn/command/cwd/handle/start/terminal/output tuple. It cannot restore
+missing mutation, prepare or continuation envelopes. Metadata searches, passive JSON summaries,
+unchanged result storage and image display remain diagnostic; they do not gain process authority.
+Every prepared attempt and its real terminal result remain mandatory.
+
+Read-only code-mode summaries may slice or search an `output` field loaded from
+the host's serialized JSON store. These reads retain diagnostic text without
+acquiring command authority. Local callable objects, unknown methods and changed
+process results remain rejected; the complete original UI still proves that the
+diagnostic cell started no command.
+
+The native host removes a first-line `@exec` JSON metadata directive before
+evaluating code. Error-stack coordinates use that evaluated source; ordinary
+comments keep their coordinates. The original input, error envelope and complete
+UI command timeline remain unchanged and must still authenticate the failure.
+
+Hermes `terminal` background admission reports `exit_code: 0` for a successful
+spawn alongside its process handle. Only the exact native admission envelope
+with `background: true` and completion notifications establishes a pending
+process. It supplies no command exit authority. A matching original
+`process_manage` or `process` wait must provide the real terminal result;
+missing or foreign handles and unfinished production commands still fail.
 
 A code-mode call may also drain its own literal command result with
 `while (result.session_id !== undefined)`: every wait must use that same result's
@@ -220,6 +312,12 @@ must have exit code zero and an empty intervention list. Never store credentials
 in an evidence folder or commit raw host profiles. Hermes TUI runs additionally retain
 `uiSessionId` and the stored identity as `storedSessionId` or `sessionId` from the native session-create response. If both stored-identity fields are present, both must match the native database.
 
+The recorder binds snapshot and run Workspace paths by filesystem `realpath`,
+so host aliases such as macOS `/tmp` and `/private/tmp` must name the same
+directory. Native transcripts and UI still authenticate the original run cwd;
+the recorder does not rewrite either record. Different directories, even with
+identical package contents, are rejected.
+
 For Codex, retain the fresh root and every native child's
 `CODEX_HOME/sessions/**/rollout-*.jsonl`. For Hermes,
 export the root and every native child's SQLite messages in order, preserving
@@ -295,15 +393,14 @@ fixture. Keep source/package bytes unchanged and retain failed attempts. Record 
 command outputs, final tuple, unchanged original digest, and any harness limitations separately.
 A source test with an injected fixture policy does not replace this installed-package evidence.
 
-## Publish once the required hosts pass
+## Publish after scoped checks pass
 
-Combine the required generated JSON objects from the repository root. For
-0.1.15 and 0.1.16, use only the Codex receipt; other versions use both hosts:
+Combine the required generated JSON objects from the repository root. Use the actual hosts required by the reviewed release plan:
 
 ```sh
 node --input-type=module - <<'JS'
 import {readFile, writeFile} from 'node:fs/promises';
-const files = ['codex-receipt.json']; // 0.1.15 and 0.1.16 only; other versions require Hermes too.
+const files = ['codex-receipt.json', 'hermes-receipt.json']; // Include the reviewed scope's actual hosts.
 const hosts = await Promise.all(files.map(async file => JSON.parse(await readFile(file, 'utf8'))));
 const {version} = JSON.parse(await readFile('package.json', 'utf8'));
 await writeFile(`docs/evidence/v${version}-first-use.json`,
@@ -316,11 +413,16 @@ with the release. Retain referenced raw evidence privately; only the compact
 receipt, business prompts, and hashes belong in Git.
 
 ```sh
-node --import tsx scripts/release/first-use.ts verify runtime.tgz creator.tgz docs/evidence/v0.1.9-first-use.json
+node --import tsx scripts/release/release-gate.ts inspect docs/evidence/v0.1.17-release-plan.json
+node --import tsx scripts/release/release-gate.ts verify docs/evidence/v0.1.17-release-plan.json runtime.tgz creator.tgz docs/evidence/v0.1.17-first-use.json
 ```
 
-The publish workflow requires the receipt in the exact release tag and verifies
-it against the newly built tarballs **before either package is published**.
+The publish workflow requires the reviewed plan in the exact release tag and verifies its
+package fingerprints **before either package is published**. Native scope additionally requires
+the matching combined receipt and verifies every included host record. Ordinary scope omits that
+receipt argument. `first-use.ts verify` alone is a record diagnostic with a default Codex scope;
+the publication entry is `release-gate.ts verify`, which supplies the reviewed required hosts and
+forces current native execution requirements.
 Missing required hosts, failed checks, changed versions, or any changed published file fail
 closed. Tar container timestamps, compression, and ownership are not content
 identity. Every package file, its path, executable bit, and content remain covered.
@@ -330,15 +432,14 @@ Absolute source-map build paths are rejected instead of ignored. This lets the
 same package content be verified on macOS and Linux without accepting code drift.
 The exact registry tarball integrity remains independently checked at publication.
 
-After publication, repeat ordinary `npm create ...@latest` installation and the
-same required-host business-prompt test against the public registry. Keep post-release
-evidence separate from the candidate receipt. Do not mark the release as fully
-verified until these published-package runs finish.
+## Post-publication installation and optional native acceptance
 
-For the explicit 0.1.16 installation-smoke scope above, use `create-public`,
-compare the actual public package contents with the certified candidates, and
-run doctor in that new Workspace. Record the smoke result separately without
-starting a second video or claiming public native first-use certification.
+Every release reads back both `latest` versions, exact registry integrity and published package
+contents, then performs a fresh public `npm create` installation and generated doctor. Bind the
+Actions source SHA and retained exact tarballs. This is an installation smoke check; it does not
+claim public-registry native video certification. A second full native video is performed only
+when explicitly requested for that public-installation acceptance scope. The optional native
+receipt procedure below remains available for that request.
 
 Use `create-public` after both `latest` tags identify the intended release. Its strict configuration
 has `host`, `workspace`, `promptFile`, and `expectedVersion`; it accepts no local package paths:
@@ -365,7 +466,8 @@ both npm lockfiles, the generated guides, and the empty Workspace before any Age
 registry tarballs and creator lock required for revalidation. Credentials and host auth profiles must
 remain outside the evidence directory. There is no standalone command to certify an existing Workspace.
 
-Run each fresh host and use the same `record` command with the public snapshot. Combine these receipts
+When a full public native run is explicitly requested, run each required fresh host and use the same
+`record` command with the public snapshot. Combine these receipts
 in a separate public-release evidence file, then verify using the retained registry tarballs:
 
 ```sh
