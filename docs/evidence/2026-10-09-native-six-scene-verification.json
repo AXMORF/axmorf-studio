@@ -1,0 +1,240 @@
+{
+  "schemaVersion": 1,
+  "kind": "native-candidate-complete-film-verification",
+  "version": "0.1.19",
+  "sourceBaseTag": "v0.1.18",
+  "sourceBaseCommit": "01ccbdbc4262be0afb6931639f0caff134ce0c62",
+  "candidatePackageFingerprints": {
+    "runtime": "sha256:0bff80fffc394a1e5bf5bba915f52ba4620d123643b771fb35ffe6a8b3135db3",
+    "creator": "sha256:bed4e7f05b4dd29a11bf76e8e10be42aec43caff9c0a99da6b9971a3a3849dbe"
+  },
+  "storyId": "small-inventions-motion",
+  "revisionId": "revision-6a3cd720833162b9c1525ae917579390fdb2294e1a36f5c63ce2e211fc8a9da5",
+  "deliveryBuildId": "delivery-c35e5440580423804c94d86dcc99d84ae3b8ef67ddc9c31850b2963e06729dfc",
+  "finalCheck": {
+    "status": "project-final-check",
+    "storyId": "small-inventions-motion",
+    "aggregateStatus": "pass",
+    "deliveryBuildId": "delivery-c35e5440580423804c94d86dcc99d84ae3b8ef67ddc9c31850b2963e06729dfc",
+    "checks": [
+      {
+        "checkId": "artifacts",
+        "status": "pass",
+        "code": null,
+        "message": null
+      },
+      {
+        "checkId": "delivery",
+        "status": "pass",
+        "code": null,
+        "message": null
+      },
+      {
+        "checkId": "revision",
+        "status": "pass",
+        "code": null,
+        "message": null
+      },
+      {
+        "checkId": "artifact-set",
+        "status": "pass",
+        "code": null,
+        "message": null
+      },
+      {
+        "checkId": "delivery-build",
+        "status": "pass",
+        "code": null,
+        "message": null
+      },
+      {
+        "checkId": "audio-channels",
+        "status": "pass",
+        "code": null,
+        "message": null
+      },
+      {
+        "checkId": "snapshot",
+        "status": "pass",
+        "code": null,
+        "message": null
+      }
+    ],
+    "schemaVersion": 1,
+    "level": "final",
+    "scope": "current-production",
+    "revisionId": "revision-6a3cd720833162b9c1525ae917579390fdb2294e1a36f5c63ce2e211fc8a9da5",
+    "artifactSetFingerprint": "sha256:370c367e046eb8b38e418fbad403413810943acb7ec82b3a302673a5a33f1abe"
+  },
+  "delivery": {
+    "storyId": "small-inventions-motion",
+    "deliveryBuildId": "delivery-c35e5440580423804c94d86dcc99d84ae3b8ef67ddc9c31850b2963e06729dfc",
+    "files": {
+      "video.mp4": {
+        "checksum": "sha256:9aff7ff840a011019ba36bd85113472499aeb9ebf97fe6cc4d409d7089e405e4",
+        "sizeBytes": 7114451
+      },
+      "cover-4x3.png": {
+        "checksum": "sha256:686db55ecc5e2e83cac031cc264ce395dc2407763944a11b1348e1da1023d290",
+        "sizeBytes": 149721
+      },
+      "cover-3x4.png": {
+        "checksum": "sha256:55bf027000c50cfb2c79f376ca08fa636fc7d5905df0412130361ea87030a7c4",
+        "sizeBytes": 149967
+      },
+      "publish.json": {
+        "checksum": "sha256:caccb87e03d2270081007349949df138e65c0edd608ba958b4035a8eca4e2ba6",
+        "sizeBytes": 2504
+      }
+    },
+    "video": {
+      "codec": "h264",
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "width": 1280,
+      "height": 720,
+      "fps": 30,
+      "frameCount": 1200
+    },
+    "decodedFiles": ["video.mp4", "cover-4x3.png", "cover-3x4.png"]
+  },
+  "independentMedia": {
+    "schemaVersion": 1,
+    "kind": "independent-controller-media-inspection",
+    "storyId": "small-inventions-motion",
+    "revisionId": "revision-6a3cd720833162b9c1525ae917579390fdb2294e1a36f5c63ce2e211fc8a9da5",
+    "deliveryBuildId": "delivery-c35e5440580423804c94d86dcc99d84ae3b8ef67ddc9c31850b2963e06729dfc",
+    "checksum": "sha256:9aff7ff840a011019ba36bd85113472499aeb9ebf97fe6cc4d409d7089e405e4",
+    "sizeBytes": 7114451,
+    "width": 1280,
+    "height": 720,
+    "fps": "30/1",
+    "frameCount": 1200,
+    "duration": 40,
+    "videoCodec": "h264",
+    "audioCodec": "aac",
+    "audioChannels": 2,
+    "eofDecode": true,
+    "audio": {
+      "decodedSampleFrames": 1920000,
+      "peakLinear": 0.12135952711105347,
+      "peakDbfs": -18.31852248975614,
+      "rmsDbfs": -44.84624917719056,
+      "clippedSampleCount": 0,
+      "scope": "Decoded AAC sample metrics only; no subjective listening certification."
+    },
+    "verifiedAt": "2026-10-08T20:30:17.982Z"
+  },
+  "nativeFirstUse": {
+    "verified": true,
+    "receipt": "v0.1.19-first-use.json",
+    "model": "gpt-6.1-sol",
+    "ordinaryBusinessPrompts": 1,
+    "followUpMessages": 0,
+    "harnessInterventions": [],
+    "nativeExecution": {
+      "mode": "subagents",
+      "workerTransport": "shared-workspace",
+      "modeSource": "builtin-default",
+      "concurrencySource": "builtin-default",
+      "requestedMaxConcurrency": 4,
+      "effectiveMaxConcurrency": 4,
+      "peakActiveChildren": 4,
+      "peakBoundTasks": 4,
+      "fourWayBoundOverlapMs": 486012,
+      "dirtyTaskCount": 8,
+      "productionChildCount": 8,
+      "probeChildCount": 4,
+      "refillAdmissions": 4,
+      "attemptId": "0742322f-b9d1-4cba-b9ce-cf126113bcbf",
+      "childEvidence": [
+        {
+          "sessionId": "01a11ced-7e2e-72b1-a178-9372393150b0",
+          "taskRevision": null
+        },
+        {
+          "sessionId": "01a11ced-91b2-7d70-a915-4b4c1bf0e47f",
+          "taskRevision": null
+        },
+        {
+          "sessionId": "01a11ced-a89a-7e92-bddc-b96b1821513c",
+          "taskRevision": null
+        },
+        {
+          "sessionId": "01a11ced-bef6-7a31-a692-47512305ccfd",
+          "taskRevision": null
+        },
+        {
+          "sessionId": "01a11cf2-0454-7360-a8a0-848b89632f26",
+          "taskRevision": "task-11bcbe8ddeb6db33840a3378200f0cccb8933376bdc9b28d337567e9f25c32eb"
+        },
+        {
+          "sessionId": "01a11cf2-1e89-72a1-bb89-1f710f780768",
+          "taskRevision": "task-2061bf31cfb4481ef621fac0f3b07604847fbbd08769934b2f16c00483402a76"
+        },
+        {
+          "sessionId": "01a11cf2-37e7-7ce2-a842-c2a2ad326ef2",
+          "taskRevision": "task-27dc189674059e5c4f9da9499a41b16f6989c87f7dcd91cbca650e626e3dd5ca"
+        },
+        {
+          "sessionId": "01a11cf2-611a-7340-8618-13f1183706c5",
+          "taskRevision": "task-3760e834c48eaf107d01d18d0f1d20bf04407697bc4ac5bdfc0f1098c99a63d9"
+        },
+        {
+          "sessionId": "01a11cf9-a9d9-7f03-9201-6a0ea0c91abb",
+          "taskRevision": "task-598cae74357f87b5d1e5c9a80f5b5a98abf17fe617ebf2c69cf9e8d291b21c6e"
+        },
+        {
+          "sessionId": "01a11cf9-e2e7-7383-a147-df2cd50ad70e",
+          "taskRevision": "task-740bf39fa807d34f979aa6576133e79b38f0fdd54c97dfe4cd35d06f27b695a8"
+        },
+        {
+          "sessionId": "01a11cfa-64a8-7bc3-82e0-50940a207313",
+          "taskRevision": "task-860a2408cb178e06270e98ca4bebcb013588a538f649758e7cba1668e04d2f7d"
+        },
+        {
+          "sessionId": "01a11cfb-882a-7b53-bc50-b999a5a6c6d1",
+          "taskRevision": "task-a339b70be3cb2bcac7a6bfa89c318690885e9acef975ca2a42d1a6b3ba4ecdc8"
+        }
+      ],
+      "delegationChecksum": null,
+      "notificationFormatterChecksum": null,
+      "uiEvidence": {
+        "checksum": "sha256:32b4f8ee572dbc15962878e6299321ff90255e44e1ac9d5f2ec78f72c28a315d",
+        "sessionId": "01a11cec-ed6a-7a32-a7ed-ca13e8e2fda5",
+        "commandResults": 5
+      }
+    },
+    "unchangedPackageFiles": 291,
+    "unchangedGuideFiles": 13,
+    "originalRecordsUnmodified": true
+  },
+  "browserReview": {
+    "muted": true,
+    "ended": true,
+    "lastDecodedTime": 39.966667,
+    "error": null,
+    "quality": {
+      "totalVideoFrames": 1200,
+      "droppedVideoFrames": 28,
+      "corruptedVideoFrames": 0
+    },
+    "sampleCount": 80,
+    "viewedSamples": 80,
+    "viewedContactSheets": 6,
+    "viewedOfficialCovers": 2,
+    "observations": [
+      "Six distinct spatial compositions show rolling dominoes, folding bridge and car, magnetic assembly, gear/windmill motion, pulley lift and light/star causality.",
+      "Sampled camera and scale changes preserve subject visibility; titles and both cover layouts remain readable."
+    ],
+    "continuousPerceptualReview": "not-assessed",
+    "subjectiveListening": "not-assessed"
+  },
+  "scope": "Exact corrected npm candidates and a new empty Workspace. Native execution and technical media validation do not certify stable aesthetic quality, every host/model, or new revision and recovery paths.",
+  "supersededRuns": {
+    "initialGroupedPreview": "Immutable failed attempt; never reopened.",
+    "truncatedCliFirstUse": "Valid separate 40-second delivery, incomplete native UI evidence; remains ineligible for native publication acceptance.",
+    "disabledCodeModeHost": "Separate host configuration diagnostic stopped before creation; no film or passing receipt."
+  },
+  "recordRevalidation": "Complete original app-server records were strictly revalidated after recorder-only compatibility repair; candidate package bytes and original sessions were unchanged."
+}

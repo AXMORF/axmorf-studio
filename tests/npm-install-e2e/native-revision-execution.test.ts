@@ -6185,3 +6185,499 @@ test("release receipts bind grouped execution and supervision to the final four-
     assert.throws(() => verify(copy));
   }
 });
+
+test("positional allSettled diagnostics retain independent process ownership and restore only proved read-only output", () => {
+  const commands = [
+    "cat .agents/skills/axmorf-video/references/production-workflow.md .agents/skills/axmorf-video/references/film-direction.md",
+    "cat .agents/skills/axmorf-video/references/authoring.md",
+    "npm run doctor",
+  ];
+  const values = [
+    { exit_code: 0, output: "first guide" },
+    { exit_code: 0, output: "second guide" },
+    { session_id: 201, output: "doctor starting\n" },
+  ];
+  const source = `const results=await Promise.allSettled([${commands.map((cmd) => `tools.exec_command(${JSON.stringify({ cmd, workdir: "/workspace" })})`).join(",")}]);results.forEach(text);`;
+  const launch = tool("parallel-guides", 1, {});
+  launch[0]!.payload.name = "functions.exec";
+  launch[0]!.payload.input = source;
+  launch[0]!.payload.internal_chat_message_metadata_passthrough = {
+    turn_id: "root-turn",
+  };
+  launch[1]!.timestamp = at(2);
+  launch[1]!.payload.output = [
+    { type: "input_text", text: "Script completed\nOutput:\n" },
+    ...values.map((value) => ({
+      type: "input_text",
+      text: JSON.stringify({ status: "fulfilled", value }),
+    })),
+  ];
+  const poll = tool("doctor-poll", 4, { exit_code: 0, output: "ready\n" });
+  poll[0]!.payload.name = "functions.exec";
+  poll[0]!.payload.input = `text(await tools.write_stdin({session_id:201,chars:""}));`;
+  poll[0]!.payload.internal_chat_message_metadata_passthrough = {
+    turn_id: "root-turn",
+  };
+  const records: Row[] = [
+    {
+      type: "session_meta",
+      timestamp: at(0),
+      payload: { id: "parent", cwd: "/workspace" },
+    },
+    ...launch,
+    ...poll,
+  ];
+  const ui = commands.flatMap((command, index) => {
+    const item = {
+      type: "commandExecution",
+      id: `parallel-${index}`,
+      processId: index === 2 ? "201" : `guide-${index}`,
+      command,
+      cwd: "/workspace",
+      status: "inProgress",
+    };
+    return [
+      {
+        method: "item/started",
+        params: {
+          threadId: "parent",
+          turnId: "root-turn",
+          startedAtMs: Date.parse(at(1.1 + index / 10)),
+          item,
+        },
+      },
+      {
+        method: "item/completed",
+        params: {
+          threadId: "parent",
+          turnId: "root-turn",
+          completedAtMs: Date.parse(at(index === 2 ? 3.2 : 1.15 + index / 10)),
+          item: {
+            ...item,
+            status: "completed",
+            exitCode: 0,
+            aggregatedOutput:
+              index === 2 ? "doctor starting\nready\n" : values[index]!.output,
+          },
+        },
+      },
+    ];
+  });
+  const audit = (rows = records, packets: unknown[] = ui) =>
+    authenticateCodexCommands(nativeTrace("codex", text(rows)), {
+      rpc: packets.map((row) => JSON.stringify(row)).join("\n"),
+      sessionId: "parent",
+      workspace: "/workspace",
+    }).trace;
+  const complete = audit();
+  assert.deepEqual(
+    complete.records,
+    nativeTrace("codex", text(records)).records,
+  );
+  assert.ok(
+    complete.outputs[0]!.objects.some(
+      (value) => value.output === "second guide",
+    ),
+  );
+  const omitted = structuredClone(records);
+  omitted[2]!.payload.output = [
+    { type: "input_text", text: "Script completed\nOutput:\n" },
+    {
+      type: "input_text",
+      text: `Warning: truncated output (original token count: 20000)\nTotal output lines: 3\n\n${[0, 2].map((index) => JSON.stringify({ status: "fulfilled", value: values[index] })).join("\n")}`,
+    },
+  ];
+  assert.deepEqual(audit(omitted).outputs, complete.outputs);
+  assert.throws(() => audit(omitted, []));
+  for (const change of [
+    (packets: typeof ui) => {
+      packets.splice(3, 1);
+    },
+    (packets: typeof ui) => {
+      packets.push(structuredClone(packets[3]!));
+    },
+    (packets: typeof ui) => {
+      packets[3]!.params.turnId = "wrong-turn";
+    },
+    (packets: typeof ui) => {
+      packets[3]!.params.item.cwd = "/other";
+    },
+    (packets: typeof ui) => {
+      packets[3]!.params.completedAtMs = Date.parse(at(5));
+    },
+    (packets: typeof ui) => {
+      packets[2]!.params.item.processId = "wrong-process";
+    },
+  ]) {
+    const packets = structuredClone(ui);
+    change(packets);
+    assert.throws(() => audit(omitted, packets));
+  }
+  const hidden = structuredClone(records);
+  hidden[1]!.payload.input = source.replace(
+    commands[1]!,
+    "npm run project:produce:prepare -- --project story",
+  );
+  assert.throws(() => audit(hidden), /Independent public mutation/u);
+  const modified = structuredClone(records);
+  modified[1]!.payload.input = source.replace(
+    "results.forEach(text)",
+    "results.forEach(r=>text({...r,value:{exit_code:0,output:'fabricated'}}))",
+  );
+  assert.throws(() => audit(modified));
+  const missingPending = structuredClone(omitted);
+  const blocks = missingPending[2]!.payload.output as Array<{ text: string }>;
+  blocks[1]!.text = blocks[1]!.text.slice(0, blocks[1]!.text.lastIndexOf("\n"));
+  assert.throws(() => audit(missingPending));
+});
+
+test("parallel diagnostic waits retain both handles after a literal prefix and restore each remaining stdout", () => {
+  const commands = [
+    "npm run project:create:context -- --project story",
+    "npm run catalog:query -- --kind asset --tag motion-sync",
+    "node /probe cleanup",
+  ];
+  const launch = tool("two-launches", 1, {});
+  launch[0]!.payload.name = "functions.exec";
+  launch[0]!.payload.input = `const rs=await Promise.allSettled([${commands
+    .slice(0, 2)
+    .map(
+      (cmd) =>
+        `tools.exec_command(${JSON.stringify({ cmd, workdir: "/workspace" })})`,
+    )
+    .join(",")}]);rs.forEach(text);`;
+  launch[0]!.payload.internal_chat_message_metadata_passthrough = {
+    turn_id: "root-turn",
+  };
+  launch[1]!.timestamp = at(2);
+  launch[1]!.payload.output = [
+    { type: "input_text", text: "Script completed\nOutput:\n" },
+    ...[201, 202].map((session_id, index) => ({
+      type: "input_text",
+      text: JSON.stringify({
+        status: "fulfilled",
+        value: { session_id, output: `starting-${index}\n` },
+      }),
+    })),
+  ];
+  const poll = tool("two-polls", 3, {});
+  poll[0]!.payload.name = "functions.exec";
+  poll[0]!.payload.input = `text(await tools.exec_command(${JSON.stringify({ cmd: commands[2], workdir: "/workspace" })}));const rs=await Promise.allSettled([tools.write_stdin({session_id:201,chars:""}),tools.write_stdin({session_id:202,chars:""})]);rs.forEach(text);`;
+  poll[0]!.payload.internal_chat_message_metadata_passthrough = {
+    turn_id: "root-turn",
+  };
+  poll[1]!.timestamp = at(4);
+  const values = [
+    { exit_code: 0, output: "cleaned" },
+    { exit_code: 0, output: "ready-0\n" },
+    { exit_code: 0, output: "ready-1\n" },
+  ];
+  poll[1]!.payload.output = [
+    { type: "input_text", text: "Script completed\nOutput:\n" },
+    ...values.map((value, index) => ({
+      type: "input_text",
+      text: JSON.stringify(
+        index === 0 ? value : { status: "fulfilled", value },
+      ),
+    })),
+  ];
+  const records: Row[] = [
+    {
+      type: "session_meta",
+      timestamp: at(0),
+      payload: { id: "parent", cwd: "/workspace" },
+    },
+    ...launch,
+    ...poll,
+  ];
+  const ui = commands.flatMap((command, index) => {
+    const item = {
+      type: "commandExecution",
+      id: `multi-${index}`,
+      processId: index === 2 ? "203" : String(201 + index),
+      command,
+      cwd: "/workspace",
+      status: "inProgress",
+    };
+    return [
+      {
+        method: "item/started",
+        params: {
+          threadId: "parent",
+          turnId: "root-turn",
+          startedAtMs: Date.parse(at(index === 2 ? 3.1 : 1.1 + index / 10)),
+          item,
+        },
+      },
+      {
+        method: "item/completed",
+        params: {
+          threadId: "parent",
+          turnId: "root-turn",
+          completedAtMs: Date.parse(at(index === 2 ? 3.2 : 2.8 + index / 10)),
+          item: {
+            ...item,
+            status: "completed",
+            exitCode: 0,
+            aggregatedOutput:
+              index === 2 ? "cleaned" : `starting-${index}\nready-${index}\n`,
+          },
+        },
+      },
+    ];
+  });
+  const audit = (rows = records, packets: unknown[] = ui) =>
+    authenticateCodexCommands(nativeTrace("codex", text(rows)), {
+      rpc: packets.map((row) => JSON.stringify(row)).join("\n"),
+      sessionId: "parent",
+      workspace: "/workspace",
+    }).trace;
+  const complete = audit();
+  assert.ok(
+    complete.outputs[1]!.objects.some((value) => value.output === "ready-0\n"),
+  );
+  assert.ok(
+    complete.outputs[1]!.objects.some((value) => value.output === "ready-1\n"),
+  );
+  const omitted = structuredClone(records);
+  omitted[4]!.payload.output = [
+    { type: "input_text", text: "Script completed\nOutput:\n" },
+    {
+      type: "input_text",
+      text: `Warning: truncated output (original token count: 20000)\nTotal output lines: 3\n\n${JSON.stringify(values[0])}\n${JSON.stringify({ status: "fulfilled", value: values[2] })}`,
+    },
+  ];
+  assert.deepEqual(audit(omitted).outputs, complete.outputs);
+  const unknown = structuredClone(records);
+  unknown[3]!.payload.input = String(unknown[3]!.payload.input).replace(
+    "session_id:201",
+    "session_id:999",
+  );
+  assert.throws(() => audit(unknown), /original process handle/u);
+  const missingPrefix = structuredClone(omitted);
+  const blocks = missingPrefix[4]!.payload.output as Array<{ text: string }>;
+  blocks[1]!.text = blocks[1]!.text.replace(
+    JSON.stringify(values[0]) + "\n",
+    "",
+  );
+  assert.throws(() => audit(missingPrefix));
+  const deltas = structuredClone(ui);
+  deltas.splice(1, 0, {
+    method: "item/commandExecution/outputDelta",
+    params: {
+      threadId: "parent",
+      turnId: "root-turn",
+      itemId: "multi-0",
+      delta: "partial",
+    },
+  } as never);
+  assert.throws(() => audit(omitted, deltas));
+});
+
+type CommandPacket = {
+  method: string;
+  params: {
+    threadId: string;
+    turnId: string;
+    item?: Record<string, unknown>;
+    itemId?: string;
+    delta?: string;
+    startedAtMs?: number;
+    completedAtMs?: number;
+  };
+};
+const commandPackets = (
+  command: string,
+  id: string,
+  processId: number,
+  stdout: string | null,
+  start: number,
+  end: number,
+): CommandPacket[] => {
+  const item = {
+    type: "commandExecution",
+    id,
+    processId: String(processId),
+    command,
+    cwd: "/workspace",
+    status: "inProgress",
+  };
+  const params = { threadId: "parent", turnId: "root-turn" };
+  return [
+    {
+      method: "item/started",
+      params: { ...params, startedAtMs: Date.parse(at(start)), item },
+    },
+    {
+      method: "item/commandExecution/outputDelta",
+      params: { ...params, itemId: id, delta: stdout ?? "" },
+    },
+    {
+      method: "item/completed",
+      params: {
+        ...params,
+        completedAtMs: Date.parse(at(end)),
+        item: {
+          ...item,
+          status: "completed",
+          exitCode: 0,
+          aggregatedOutput: stdout,
+        },
+      },
+    },
+  ];
+};
+
+const commandRecords = (source: string, blocks: unknown[]) => {
+  const rows = tool("literal-source", 1, {});
+  rows[0]!.payload.name = "functions.exec";
+  rows[0]!.payload.input = source;
+  rows[0]!.payload.internal_chat_message_metadata_passthrough = {
+    turn_id: "root-turn",
+  };
+  rows[1]!.timestamp = at(2);
+  rows[1]!.payload.output = [
+    { type: "input_text", text: "Script completed\nOutput:\n" },
+    ...blocks,
+  ];
+  return [
+    {
+      type: "session_meta",
+      timestamp: at(0),
+      payload: { id: "parent", cwd: "/workspace" },
+    },
+    ...rows,
+  ];
+};
+const printedWrapper = (value: unknown) => ({
+  type: "input_text",
+  text: JSON.stringify(value),
+});
+const authenticatePackets = (rows: Row[], packets: unknown[]) =>
+  authenticateCodexCommands(nativeTrace("codex", text(rows)), {
+    rpc: packets.map((row) => JSON.stringify(row)).join("\n"),
+    sessionId: "parent",
+    workspace: "/workspace",
+  }).trace;
+
+test("image diagnostic forwarding retains the literal command envelope without trusting alias metadata", () => {
+  const command = "npm run catalog:query -- --kind asset";
+  const source = `const results=await Promise.allSettled([tools.exec_command(${JSON.stringify({ cmd: command, workdir: "/workspace" })}),tools.view_image({path:"/workspace/cover.png"})]);for(let i=0;i<results.length;i++){const r=results[i];text({index:i,status:r.status});if(r.status==="fulfilled"){if(i===0)text(r.value);else image(r.value.image_url);}else text(r.reason);}`;
+  const stdout = JSON.stringify({ status: "catalog-query", resources: [] });
+  const rows = commandRecords(source, [
+    printedWrapper({ index: 0, status: "fulfilled" }),
+    printedWrapper({ exit_code: 0, output: stdout }),
+    printedWrapper({ index: 1, status: "fulfilled" }),
+  ]);
+  const ui = commandPackets(command, "catalog", 301, stdout, 1.1, 1.8);
+  assert.ok(
+    authenticatePackets(rows, ui).outputs[0]!.objects.some(
+      (value) => value.status === "catalog-query",
+    ),
+  );
+  for (const changedSource of [
+    source.replace("text(r.value)", "text({...r.value,output:'fabricated'})"),
+    source.replace(
+      "const r=results[i]",
+      "const r={status:'fulfilled',value:{output:'fabricated'}}",
+    ),
+    `const text=()=>{};${source}`,
+  ]) {
+    const changed = structuredClone(rows);
+    changed[1]!.payload.input = changedSource;
+    assert.throws(() => authenticatePackets(changed, ui));
+  }
+  const incomplete = structuredClone(rows);
+  const blocks = incomplete[2]!.payload.output as Array<{
+    type: string;
+    text: string;
+  }>;
+  blocks[0]!.text +=
+    "Warning: truncated output (original token count: 20000)\n";
+  assert.throws(() => authenticatePackets(incomplete, ui));
+});
+
+test("ordered multiline authoring command accepts authentic null stdout and preserves the separate create process", () => {
+  const author = "node --input-type=module <<'NODE'\nconst n=1;\nvoid n;\nNODE";
+  const create = "npm run project:create -- --input input.json";
+  const source = `text(await tools.exec_command(${JSON.stringify({ cmd: author, workdir: "/workspace" })}));let r=await tools.exec_command(${JSON.stringify({ cmd: create, workdir: "/workspace" })});text(r);while(r.session_id!==undefined){r=await tools.write_stdin({session_id:r.session_id,chars:"",yield_time_ms:60000});text(r);}if(r.exit_code!==0)throw new Error("Create failed");`;
+  const stdout = JSON.stringify({
+    status: "project-created",
+    storyId: "story",
+  });
+  const rows = commandRecords(source, [
+    printedWrapper({ exit_code: 0, output: "" }),
+    printedWrapper({ session_id: 402, output: "" }),
+    printedWrapper({ exit_code: 0, output: stdout }),
+  ]);
+  const ui = [
+    ...commandPackets(author, "authoring", 401, null, 1.1, 1.2),
+    ...commandPackets(create, "create", 402, stdout, 1.3, 1.8),
+  ];
+  const authenticated = authenticatePackets(rows, ui);
+  assert.deepEqual(authenticated.records, rows);
+  assert.ok(
+    authenticated.outputs[0]!.objects.some(
+      (value) => value.status === "project-created",
+    ),
+  );
+  const nonempty = structuredClone(ui);
+  nonempty[2]!.params.item!.aggregatedOutput = "unreported stdout";
+  assert.throws(() => authenticatePackets(rows, nonempty));
+  const crossed = structuredClone(ui);
+  crossed[3]!.params.startedAtMs = Date.parse(at(1.15));
+  assert.throws(() => authenticatePackets(rows, crossed));
+});
+
+test("a scalar truncated wait restores only its own proved diagnostic from a parallel launch", () => {
+  const commands = [
+    "cat .agents/skills/axmorf-video/SKILL.md",
+    "cat package.json",
+    "npm run project:create -- --schema",
+  ];
+  const source = `const rs=await Promise.allSettled([${commands.map((cmd) => `tools.exec_command(${JSON.stringify({ cmd, workdir: "/workspace" })})`).join(",")}]);rs.forEach(text);`;
+  const stdout =
+    'schema starting\n{"status":"schema-complete","properties":{}}\n';
+  const rows = commandRecords(source, [
+    ...["guide bytes", "package bytes"].map((output) =>
+      printedWrapper({ status: "fulfilled", value: { exit_code: 0, output } }),
+    ),
+    printedWrapper({
+      status: "fulfilled",
+      value: { session_id: 503, output: "schema starting\n" },
+    }),
+  ]);
+  const poll = processWait("schema-poll", 4, 503, {});
+  poll[1]!.payload.output = JSON.stringify({
+    exit_code: 0,
+    output: '{"status":"schema-complete",…100 tokens truncated…{}}\n',
+  });
+  rows.push(...poll);
+  const ui = [
+    ...commandPackets(commands[0]!, "guide", 501, "guide bytes", 1.1, 1.2),
+    ...commandPackets(commands[1]!, "package", 502, "package bytes", 1.1, 1.2),
+    ...commandPackets(commands[2]!, "schema", 503, stdout, 1.1, 3.8),
+  ];
+  const authenticated = authenticatePackets(rows, ui);
+  assert.deepEqual(authenticated.records, rows);
+  assert.ok(
+    authenticated.outputs[1]!.objects.some(
+      (value) => value.status === "schema-complete",
+    ),
+  );
+  for (const change of [
+    (packets: typeof ui) => {
+      packets[7]!.params.delta = "incomplete";
+    },
+    (packets: typeof ui) => {
+      packets[8]!.params.item!.processId = "502";
+    },
+    (packets: typeof ui) => {
+      packets[8]!.params.item!.cwd = "/other";
+    },
+  ]) {
+    const changed = structuredClone(ui);
+    change(changed);
+    assert.throws(() => authenticatePackets(rows, changed));
+  }
+});

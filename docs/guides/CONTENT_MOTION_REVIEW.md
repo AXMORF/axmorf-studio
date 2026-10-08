@@ -42,6 +42,12 @@ same declared outputs. `resolveSceneActionTiming` optionally consumes action/anc
 timing; the Renderer `continuity` prop exposes the frozen seam. Preview remains diagnostic
 and excludes adjacent Scenes, GlobalVisual and project music. See [visual narrative](VISUAL_NARRATIVE_QUALITY.md).
 
+A grouped owner previews its complete Scene span using the same Story/timing aggregation
+and `coveredBeats` as the formal Renderer. The preview checks every frozen member and
+includes every caption owned by that group. Explicit `authored-frames` previews require
+no sealed/mastered narration files; legacy `visual-scene` previews retain their explicit
+null manifests. These modes keep their existing timing and readability contracts.
+
 After a verified technical Delivery, run:
 
 ```sh

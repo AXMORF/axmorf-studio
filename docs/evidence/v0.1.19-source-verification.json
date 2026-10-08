@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "kind": "release-source-and-package-verification",
+  "version": "0.1.19",
+  "baseTag": "v0.1.18",
+  "baseCommit": "01ccbdbc4262be0afb6931639f0caff134ce0c62",
+  "repositoryCheck": {
+    "command": "npm run check",
+    "exitCode": 0,
+    "testCount": 1404,
+    "passed": 1404,
+    "failed": 0,
+    "skipped": 0,
+    "logChecksum": "sha256:21106d0db37308cb35736c7782a3c8dbbbef1e516a8c84f1b69e9efee4f65b4f",
+    "stages": [
+      "tests",
+      "typecheck",
+      "lint",
+      "docs-links",
+      "scene-template-audio",
+      "catalog",
+      "registry",
+      "settings-build",
+      "remotion-bundle",
+      "compositions",
+      "current-project-source"
+    ]
+  },
+  "focusedNativeRecorder": {
+    "tests": 85,
+    "passed": 85,
+    "failed": 0,
+    "skipped": 0,
+    "logChecksum": "sha256:9d26ad46eb3968d66fc21705fc7265d85fca406616a460d0572d6dbe1c25ebe3"
+  },
+  "packageChecks": {
+    "typecheck": "pass",
+    "build": "pass",
+    "packageBoundaryTests": 82,
+    "packageLocalReadiness": {
+      "runtime": "ready",
+      "creator": "ready"
+    },
+    "finalRepackMatchesFrozenCandidates": true
+  },
+  "audit": {
+    "vulnerabilities": 0,
+    "logChecksum": "sha256:6d8c5c8f3d7684adb070417bd608d01ae90aa3dc26a65af03ffda4955f38d9a3"
+  },
+  "verifiedAt": "2026-10-08T20:43:56.583Z",
+  "scope": "Local full checks plus identical repacked candidates. CI, public registry and trusted-publisher provenance are verified separately after publication."
+}

@@ -45,6 +45,9 @@ const time = (value: unknown) => {
   assert.ok(Number.isFinite(result), "Native evidence has no valid timestamp");
   return result;
 };
+// The native protocol uses null for a command with no buffered output.
+const commandStdout = (item: Row) =>
+  item.aggregatedOutput === null ? "" : z.string().parse(item.aggregatedOutput);
 
 // Native tools wrap command output in JSON, text blocks, and npm banner lines.
 // Inspect only tool results; assistant prose is never production evidence.
@@ -1666,7 +1669,7 @@ const indexedNativeOriginals = new WeakMap<
 const restorableDiagnostic = (operation: NativeOperation | null) =>
   operation?.kind === "exec" &&
   typeof operation.command === "string" &&
-  (/^cat \.agents\/skills\/(?:axmorf-video|remotion-best-practices)\/[\w/-]+\.md$/u.test(
+  (/^cat (?:package\.json|\.agents\/skills\/(?:axmorf-video|remotion-best-practices)\/[\w/-]+\.md)(?: (?:package\.json|\.agents\/skills\/(?:axmorf-video|remotion-best-practices)\/[\w/-]+\.md))*$/u.test(
     operation.command,
   ) ||
     operation.command === "npm run project:create -- --schema" ||
@@ -1767,7 +1770,7 @@ const originalIndexedDiagnostic = (
   const exitCode = z.number().int().parse(end.item.exitCode);
   assert.equal(start.item.status, "inProgress", fail);
   assert.equal(end.item.status, exitCode === 0 ? "completed" : "failed", fail);
-  const stdout = z.string().parse(end.item.aggregatedOutput);
+  const stdout = commandStdout(end.item);
   assert.ok(!truncated.test(stdout), fail);
   const deltas = entries.filter(
     ({ row, params }) =>
@@ -1788,6 +1791,439 @@ const originalIndexedDiagnostic = (
       fail,
     );
   return { exit_code: exitCode, output: stdout };
+};
+
+type NativeStream = {
+  operation: Extract<NativeOperation, { kind: "exec" }>;
+  originCallId: string;
+  execOrdinal: number;
+  stdout: string;
+};
+
+// allSettled preserves array order even when its members run concurrently.
+// Accept only the literal batch and unchanged built-in text callback.
+const positionalNativeBatch = (call: { name: string; arguments: string }) => {
+  if (!/(?:^|[._])exec$/u.test(call.name)) return null;
+  const source = outerSource(call);
+  if (source.statements.length < 2) return null;
+  const [declaration, forwarding] = source.statements.slice(-2);
+  const prefix: ts.CallExpression[] = [];
+  for (const statement of source.statements.slice(0, -2)) {
+    if (
+      !ts.isExpressionStatement(statement) ||
+      !ts.isCallExpression(statement.expression) ||
+      !ts.isIdentifier(statement.expression.expression) ||
+      statement.expression.expression.text !== "text" ||
+      statement.expression.arguments.length !== 1 ||
+      !ts.isAwaitExpression(statement.expression.arguments[0]!)
+    )
+      return null;
+    const expression = statement.expression.arguments[0].expression;
+    if (!ts.isCallExpression(expression)) return null;
+    prefix.push(expression);
+  }
+  if (
+    !declaration ||
+    !ts.isVariableStatement(declaration) ||
+    declaration.modifiers?.length ||
+    !(declaration.declarationList.flags & ts.NodeFlags.Const) ||
+    declaration.declarationList.declarations.length !== 1
+  )
+    return null;
+  const binding = declaration.declarationList.declarations[0]!;
+  if (
+    !ts.isIdentifier(binding.name) ||
+    ["tools", "text", "Promise"].includes(binding.name.text) ||
+    binding.type ||
+    !binding.initializer ||
+    !ts.isAwaitExpression(binding.initializer)
+  )
+    return null;
+  const join = binding.initializer.expression;
+  if (
+    !ts.isCallExpression(join) ||
+    join.questionDotToken ||
+    !ts.isPropertyAccessExpression(join.expression) ||
+    join.expression.questionDotToken ||
+    !ts.isIdentifier(join.expression.expression) ||
+    join.expression.expression.text !== "Promise" ||
+    join.expression.name.text !== "allSettled" ||
+    join.arguments.length !== 1 ||
+    !ts.isArrayLiteralExpression(join.arguments[0]!)
+  )
+    return null;
+  if (
+    !forwarding ||
+    !ts.isExpressionStatement(forwarding) ||
+    !ts.isCallExpression(forwarding.expression)
+  )
+    return null;
+  const print = forwarding.expression;
+  if (
+    print.questionDotToken ||
+    !ts.isPropertyAccessExpression(print.expression) ||
+    print.expression.questionDotToken ||
+    !ts.isIdentifier(print.expression.expression) ||
+    print.expression.expression.text !== binding.name.text ||
+    print.expression.name.text !== "forEach" ||
+    print.arguments.length !== 1 ||
+    !ts.isIdentifier(print.arguments[0]!) ||
+    print.arguments[0].text !== "text"
+  )
+    return null;
+  const operations: Array<Exclude<NativeOperation, { kind: "cell" }>> = [];
+  for (const element of [...prefix, ...join.arguments[0].elements]) {
+    if (
+      !ts.isCallExpression(element) ||
+      element.questionDotToken ||
+      !ts.isPropertyAccessExpression(element.expression) ||
+      element.expression.questionDotToken ||
+      !ts.isIdentifier(element.expression.expression) ||
+      element.expression.expression.text !== "tools" ||
+      !["exec_command", "write_stdin"].includes(element.expression.name.text) ||
+      element.arguments.length !== 1 ||
+      !ts.isObjectLiteralExpression(element.arguments[0]!) ||
+      !nativeLiteral(element.arguments[0]!)
+    )
+      return null;
+    const values = nativeOperations({
+      name: "exec",
+      arguments: `text(await ${element.getText(source)});`,
+    });
+    if (values.length !== 1 || !values[0] || values[0].kind === "cell")
+      return null;
+    operations.push(values[0]);
+  }
+  return operations.length ? operations : null;
+};
+
+const positionalNativeResults = (
+  trace: NativeTrace,
+  callId: string,
+  timestamp: number,
+  texts: string[],
+  operations: ReturnType<typeof positionalNativeBatch> & {},
+  streams: Map<string, NativeStream>,
+) => {
+  const fail =
+    "Parallel native diagnostics need complete unchanged results or their original UI evidence";
+  assert.ok(
+    operations.every(
+      (operation) =>
+        operation.kind !== "exec" ||
+        restorableDiagnostic(operation) ||
+        !["create", "revise", "produce:prepare", "produce:continue"].some(
+          (action) =>
+            productionCommands([operation.command ?? ""], action).length,
+        ),
+    ),
+    "Independent public mutation needs its own original native result",
+  );
+  const rows = texts
+    .flatMap((value) => value.split("\n"))
+    .flatMap((value) => {
+      try {
+        const row = object(JSON.parse(value));
+        if (
+          typeof row.output === "string" &&
+          (row.session_id !== undefined || typeof row.exit_code === "number")
+        )
+          return [row];
+        if (row.status !== "fulfilled" || !Object.hasOwn(row, "value"))
+          return [];
+        assert.deepEqual(Object.keys(row).sort(), ["status", "value"]);
+        return [object(row.value)];
+      } catch (error) {
+        if (error instanceof SyntaxError) return [];
+        throw error;
+      }
+    });
+  const isTruncated = texts.some((value) =>
+    /^(?:Warning: truncated output|.*…\d+ tokens truncated…)/mu.test(value),
+  );
+  if (!isTruncated) assert.equal(rows.length, operations.length, fail);
+  const original = indexedNativeOriginals.get(trace);
+  const call = trace.calls.get(callId)!;
+  const payload = object(trace.records[call.index]!.payload);
+  const turnId =
+    payload.turn_id ??
+    object(payload.internal_chat_message_metadata_passthrough).turn_id;
+  const ui = original
+    ? original.input.rpc
+        .trim()
+        .split("\n")
+        .map((line) => object(JSON.parse(line)))
+    : [];
+  const entries = ui.map((row, index) => ({
+    row,
+    index,
+    params: object(row.params),
+    item: object(object(row.params).item),
+  }));
+  if (isTruncated) {
+    assert.ok(original, fail);
+    assert.equal(original.checksum, nativeProjectionChecksum(trace), fail);
+  }
+  const used = new Set<number>();
+  return operations.map((operation, ordinal) => {
+    if (operation.kind === "process")
+      assert.equal(
+        operation.chars,
+        "",
+        "Production process waits must be read-only",
+      );
+    const stream =
+      operation.kind === "process"
+        ? streams.get(operation.handle ?? "")
+        : undefined;
+    if (operation.kind === "process")
+      assert.ok(
+        stream,
+        "Parallel native wait lost its original process handle",
+      );
+    const command = operation.kind === "exec" ? operation : stream!.operation;
+    let wrapper = rows[ordinal];
+    if (isTruncated) {
+      const originId = stream?.originCallId ?? callId;
+      const originPayload = object(
+        trace.records[trace.calls.get(originId)!.index]!.payload,
+      );
+      const originTurn =
+        originPayload.turn_id ??
+        object(originPayload.internal_chat_message_metadata_passthrough)
+          .turn_id;
+      assert.equal(turnId, originTurn, fail);
+      const starts = entries.filter(
+        ({ row, params, item }) =>
+          row.method === "item/started" &&
+          item.type === "commandExecution" &&
+          params.threadId === original!.input.sessionId &&
+          params.turnId === turnId &&
+          item.cwd === original!.input.workspace &&
+          shellBody(String(item.command)) === command.command &&
+          Number(params.startedAtMs) >=
+            time(trace.records[trace.calls.get(originId)!.index]!.timestamp) &&
+          Number(params.startedAtMs) <= timestamp,
+      );
+      assert.equal(starts.length, 1, fail);
+      const ends = entries.filter(
+        ({ row, item }) =>
+          row.method === "item/completed" && item.id === starts[0]!.item.id,
+      );
+      assert.equal(ends.length, 1, fail);
+      const end = ends[0]!;
+      const start = starts[0]!;
+      assert.equal(start.item.status, "inProgress", fail);
+      assert.ok(
+        start.item.processId == null ||
+          String(start.item.processId) === String(end.item.processId),
+        fail,
+      );
+      assert.equal(end.item.type, "commandExecution", fail);
+      const began = z.number().finite().parse(start.params.startedAtMs);
+      const ended = z.number().finite().parse(end.params.completedAtMs);
+      assert.ok(start.index < end.index && began <= ended, fail);
+      assert.equal(end.params.threadId, original!.input.sessionId, fail);
+      assert.equal(end.params.turnId, turnId, fail);
+      assert.equal(end.item.cwd, original!.input.workspace, fail);
+      assert.equal(shellBody(String(end.item.command)), command.command, fail);
+      const full = commandStdout(end.item);
+      assert.ok(!truncated.test(full), fail);
+      const deltas = entries.filter(
+        ({ row, params }) =>
+          row.method === "item/commandExecution/outputDelta" &&
+          params.itemId === end.item.id,
+      );
+      for (const delta of deltas) {
+        assert.ok(start.index < delta.index && delta.index < end.index, fail);
+        assert.equal(delta.params.threadId, original!.input.sessionId, fail);
+        assert.equal(delta.params.turnId, turnId, fail);
+      }
+      if (deltas.length)
+        assert.equal(
+          deltas.map(({ params }) => z.string().parse(params.delta)).join(""),
+          full,
+          fail,
+        );
+      const prefix = stream?.stdout ?? "";
+      assert.ok(full.startsWith(prefix), fail);
+      const remaining = full.slice(prefix.length);
+      const matches = rows.flatMap((value, index) => {
+        if (used.has(index) || typeof value.output !== "string") return [];
+        const pending =
+          value.session_id !== undefined &&
+          value.exit_code === undefined &&
+          String(value.session_id) === String(end.item.processId) &&
+          remaining.startsWith(value.output);
+        const terminal =
+          ended <= timestamp &&
+          value.session_id === undefined &&
+          value.exit_code === end.item.exitCode &&
+          value.output === remaining;
+        return pending || terminal ? [{ value, index }] : [];
+      });
+      if (matches.length === 1) {
+        used.add(matches[0]!.index);
+        wrapper = matches[0]!.value;
+      } else {
+        assert.ok(restorableDiagnostic(command), fail);
+        const restored = originalIndexedDiagnostic(
+          trace,
+          originId,
+          timestamp,
+          command,
+        );
+        assert.ok(String(restored.output).startsWith(prefix), fail);
+        wrapper = {
+          ...restored,
+          output: String(restored.output).slice(prefix.length),
+        };
+      }
+    }
+    assert.ok(
+      wrapper &&
+        typeof wrapper.output === "string" &&
+        (wrapper.session_id !== undefined ||
+          typeof wrapper.exit_code === "number"),
+      fail,
+    );
+    assert.ok(
+      !(
+        wrapper.session_id !== undefined &&
+        typeof wrapper.exit_code === "number"
+      ),
+      "A completed native process cannot retain a running handle",
+    );
+    if (operation.kind === "process" && wrapper.session_id !== undefined)
+      assert.equal(String(wrapper.session_id), operation.handle, fail);
+    return {
+      operation,
+      wrapper,
+      originCallId: stream?.originCallId ?? callId,
+      originOperation: command,
+      execOrdinal:
+        stream?.execOrdinal ??
+        operations.slice(0, ordinal).filter((value) => value.kind === "exec")
+          .length,
+    };
+  });
+};
+
+const imageDiagnosticBatch = (
+  call: { name: string; arguments: string },
+  texts: string[],
+) => {
+  if (!/(?:^|[._])exec$/u.test(call.name)) return null;
+  const source = outerSource(call);
+  if (source.statements.length !== 2) return null;
+  const [declaration, loop] = source.statements;
+  if (
+    !declaration ||
+    !ts.isVariableStatement(declaration) ||
+    declaration.declarationList.declarations.length !== 1 ||
+    !(declaration.declarationList.flags & ts.NodeFlags.Const) ||
+    !loop ||
+    !ts.isForStatement(loop) ||
+    !ts.isBlock(loop.statement)
+  )
+    return null;
+  const binding = declaration.declarationList.declarations[0]!;
+  if (
+    !ts.isIdentifier(binding.name) ||
+    !binding.initializer ||
+    !ts.isAwaitExpression(binding.initializer)
+  )
+    return null;
+  const join = binding.initializer.expression;
+  if (
+    !ts.isCallExpression(join) ||
+    !ts.isPropertyAccessExpression(join.expression) ||
+    !ts.isIdentifier(join.expression.expression) ||
+    join.expression.expression.text !== "Promise" ||
+    join.expression.name.text !== "allSettled" ||
+    join.arguments.length !== 1 ||
+    !ts.isArrayLiteralExpression(join.arguments[0]!) ||
+    join.arguments[0].elements.length < 2
+  )
+    return null;
+  const elements = join.arguments[0].elements;
+  for (let index = 0; index < elements.length; index++) {
+    const element = elements[index]!;
+    if (
+      !ts.isCallExpression(element) ||
+      element.questionDotToken ||
+      !ts.isPropertyAccessExpression(element.expression) ||
+      element.expression.questionDotToken ||
+      !ts.isIdentifier(element.expression.expression) ||
+      element.expression.expression.text !== "tools" ||
+      element.expression.name.text !==
+        (index === 0 ? "exec_command" : "view_image") ||
+      element.arguments.length !== 1 ||
+      !ts.isObjectLiteralExpression(element.arguments[0]!) ||
+      !nativeLiteral(element.arguments[0]!)
+    )
+      return null;
+  }
+  if (
+    !loop.initializer ||
+    !ts.isVariableDeclarationList(loop.initializer) ||
+    loop.initializer.declarations.length !== 1
+  )
+    return null;
+  const counter = loop.initializer.declarations[0]!.name;
+  const alias = loop.statement.statements[0];
+  if (
+    !ts.isIdentifier(counter) ||
+    !alias ||
+    !ts.isVariableStatement(alias) ||
+    alias.declarationList.declarations.length !== 1 ||
+    !ts.isIdentifier(alias.declarationList.declarations[0]!.name)
+  )
+    return null;
+  const result = alias.declarationList.declarations[0]!.name.text;
+  const names = [binding.name.text, counter.text, result];
+  if (
+    new Set(names).size !== 3 ||
+    names.some((name) => ["text", "image", "tools", "Promise"].includes(name))
+  )
+    return null;
+  const expected = ts.createSourceFile(
+    "image-forwarding.ts",
+    `for(let ${counter.text}=0;${counter.text}<${binding.name.text}.length;${counter.text}++){const ${result}=${binding.name.text}[${counter.text}];text({index:${counter.text},status:${result}.status});if(${result}.status==="fulfilled"){if(${counter.text}===0)text(${result}.value);else image(${result}.value.image_url);}else text(${result}.reason);}`,
+    ts.ScriptTarget.Latest,
+    true,
+  );
+  const printer = ts.createPrinter({ removeComments: true });
+  const canonical = (node: ts.Node, file: ts.SourceFile) =>
+    printer.printNode(ts.EmitHint.Unspecified, node, file);
+  if (canonical(loop, source) !== canonical(expected.statements[0]!, expected))
+    return null;
+  const operation = nativeOperations({
+    name: "exec",
+    arguments: `text(await ${elements[0]!.getText(source)});`,
+  })[0];
+  if (!operation || operation.kind !== "exec") return null;
+  const wrappers = texts.flatMap((text) => {
+    try {
+      const value = object(JSON.parse(text));
+      return typeof value.output === "string" &&
+        (value.session_id !== undefined || typeof value.exit_code === "number")
+        ? [value]
+        : [];
+    } catch {
+      return [];
+    }
+  });
+  assert.equal(
+    wrappers.length,
+    1,
+    "Image diagnostic batch needs its complete original command wrapper",
+  );
+  assert.ok(
+    !texts.some((value) => /^Warning: truncated output/mu.test(value)),
+    "Image diagnostic batch cannot restore a missing command envelope",
+  );
+  return { operation, execOrdinal: 0, wrappers };
 };
 
 // Indexed allSettled envelopes preserve separate native invocations. Prove the
@@ -3896,7 +4332,11 @@ const orderedNativeInvocations = (call: {
       operation.kind === "cell" ||
       (!direct(statement) && !operation.selfDraining) ||
       (operation.kind === "exec" &&
-        (!operation.command || /[`$;&|\r\n]/u.test(operation.command))) ||
+        (!operation.command ||
+          (/[`$;&|\r\n]/u.test(operation.command) &&
+            (index !== 0 ||
+              !direct(statement) ||
+              /npm\s+run\s+project:/u.test(operation.command))))) ||
       (operation.kind === "process" &&
         (index !== 0 ||
           operation.handle === undefined ||
@@ -4821,7 +5261,7 @@ const proveSynchronousInvocations = (
         "Synchronous native exit code differs from its original UI process",
       );
       assert.equal(
-        end.item.aggregatedOutput,
+        commandStdout(end.item),
         wrapper.output,
         "Synchronous native stdout differs from its original UI process",
       );
@@ -4921,7 +5361,7 @@ const proveSynchronousInvocations = (
       );
       assert.equal(
         results.map((value) => value.stdout).join(""),
-        end.item.aggregatedOutput,
+        commandStdout(end.item),
         "Read-only native diagnostic prior process changed complete stdout",
       );
       const exits = results
@@ -4953,7 +5393,7 @@ const proveSynchronousInvocations = (
       );
       assert.equal(
         deltas.map(({ params }) => z.string().parse(params.delta)).join(""),
-        end.item.aggregatedOutput,
+        commandStdout(end.item),
         "Read-only native diagnostic prior process has incomplete original stdout",
       );
     }
@@ -4989,6 +5429,7 @@ function commandOrigins(trace: ReturnType<typeof nativeTrace>) {
   };
   const cells = new Map<string, Owner>();
   const processes = new Map<string, string>();
+  const streams = new Map<string, NativeStream>();
   const originProcesses = new Map<string, string>();
   const origins = new Map<string, Owner>();
   const outputs = commandOutputs(trace)
@@ -5056,6 +5497,73 @@ function commandOrigins(trace: ReturnType<typeof nativeTrace>) {
           }),
         );
       const call = trace.calls.get(output.callId)!;
+      const parallel = positionalNativeBatch(call);
+      if (parallel) {
+        return positionalNativeResults(
+          trace,
+          output.callId,
+          output.timestamp,
+          nativeTexts,
+          parallel,
+          streams,
+        ).map(
+          ({
+            operation,
+            wrapper,
+            originCallId,
+            originOperation,
+            execOrdinal,
+          }) => {
+            const processId =
+              operation.kind === "process"
+                ? operation.handle
+                : wrapper.session_id === undefined
+                  ? undefined
+                  : String(wrapper.session_id);
+            if (operation.kind === "process")
+              assert.equal(
+                processes.get(processId!),
+                originCallId,
+                "Parallel native wait lost its original process handle",
+              );
+            if (wrapper.session_id !== undefined) {
+              assert.ok(
+                !processes.has(processId!) ||
+                  processes.get(processId!) === originCallId,
+                "Native process handle changed origin",
+              );
+              processes.set(processId!, originCallId);
+              const prior = streams.get(processId!);
+              streams.set(processId!, {
+                operation: originOperation,
+                originCallId,
+                execOrdinal,
+                stdout: (prior?.stdout ?? "") + String(wrapper.output),
+              });
+            } else if (processId !== undefined) {
+              processes.delete(processId);
+              streams.delete(processId);
+            }
+            return {
+              ...output,
+              originCallId,
+              originCommand:
+                operation.kind === "exec" ? operation.command : undefined,
+              originCwd: originOperation.cwd,
+              originExecOrdinal:
+                operation.kind === "exec" ? execOrdinal : undefined,
+              processId,
+              stdout: String(wrapper.output),
+              nativeExitCodes:
+                typeof wrapper.exit_code === "number"
+                  ? [Number(wrapper.exit_code)]
+                  : [],
+              objects: outputObjects(wrapper),
+              parallelBatch: true,
+            };
+          },
+        );
+      }
       let owner = origins.get(output.callId);
       const operation = nativeOperations(call).find(
         (value) => value.kind === "cell",
@@ -5299,16 +5807,14 @@ function commandOrigins(trace: ReturnType<typeof nativeTrace>) {
         );
         if (operation?.kind === "cell") cells.delete(operation.handle!);
       }
-      const batchResult = indexedBatchResult(
-        trace.calls.get(owner.invocationCallId)!,
-        texts,
-        {
+      const batchResult =
+        imageDiagnosticBatch(trace.calls.get(owner.invocationCallId)!, texts) ??
+        indexedBatchResult(trace.calls.get(owner.invocationCallId)!, texts, {
           trace,
           callId: owner.invocationCallId,
           timestamp: output.timestamp,
           outputIndex: output.index,
-        },
-      );
+        });
       if (batchResult) owner.operation = batchResult.operation;
       const joinedWrappers =
         owner.operation.kind === "exec" && owner.operation.joinedDiagnostics
@@ -5443,6 +5949,28 @@ function commandOrigins(trace: ReturnType<typeof nativeTrace>) {
           owner.operation.kind === "exec" &&
           operation.command === owner.operation.command,
       );
+      const observedProcess =
+        owner.operation.kind === "process"
+          ? owner.operation.handle
+          : originProcesses.get(owner.originCallId);
+      const observedStdout =
+        direct !== null
+          ? direct[1]!
+          : wrappers.map((value) => String(value.output)).join("");
+      if (observedProcess !== undefined) {
+        if (exits.length) streams.delete(observedProcess);
+        else {
+          const prior = streams.get(observedProcess);
+          if (prior) prior.stdout += observedStdout;
+          else if (owner.operation.kind === "exec" && owner.operation.command)
+            streams.set(observedProcess, {
+              operation: owner.operation,
+              originCallId: owner.originCallId,
+              execOrdinal: originalExecs.indexOf(matchingExecs[0]!),
+              stdout: observedStdout,
+            });
+        }
+      }
       return {
         ...output,
         originCallId: owner.originCallId,
@@ -5642,6 +6170,7 @@ export function authenticateCodexCommands(
       const call = trace.calls.get(callId)!;
       assert.ok(
         "indexedBatch" in result ||
+          "parallelBatch" in result ||
           unchangedNativeForwarding(call, input.workspace),
         `Native source needs its unchanged literal forwarding (${callId})`,
       );
@@ -5739,7 +6268,7 @@ export function authenticateCodexCommands(
         if (!truncated.test(stdout))
           assert.equal(
             stdout,
-            item.aggregatedOutput,
+            commandStdout(item),
             "Native stdout differs from its complete original UI process",
           );
       }
@@ -5899,7 +6428,7 @@ export function authenticateCodexCommands(
     );
     const stdout = stream.map((value) => value.stdout).join("");
     assert.equal(
-      end.item.aggregatedOutput,
+      commandStdout(end.item),
       stdout,
       "Ordered native stdout differs from its original UI process",
     );
@@ -5951,17 +6480,34 @@ export function authenticateCodexCommands(
     const operations = nativeOperations(origin).filter(
       (operation) => operation.kind === "exec",
     );
-    assert.equal(
-      operations.length,
-      1,
-      "Truncated result has no unique literal command origin",
-    );
-    const operation = operations[0]!;
+    const launch =
+      result.processId === undefined
+        ? undefined
+        : launches.get(result.processId);
+    const parallel = positionalNativeBatch(origin);
+    let ordinal = 0;
+    if (operations.length !== 1) {
+      assert.ok(
+        parallel && launch,
+        "Truncated result has no unique literal command origin",
+      );
+      const tuple = z
+        .tuple([z.string(), z.number().int().nonnegative()])
+        .parse(JSON.parse(launch.owner));
+      assert.equal(tuple[0], result.originCallId);
+      ordinal = tuple[1];
+      assert.ok(
+        restorableDiagnostic(operations[ordinal] ?? null),
+        "Parallel truncation cannot restore a public mutation",
+      );
+    }
+    const operation = operations[ordinal]!;
+    const cwd = operation.cwd ?? (parallel ? input.workspace : undefined);
     assert.ok(
-      operation.kind === "exec" && operation.command && operation.cwd,
+      operation.kind === "exec" && operation.command && cwd,
       "Truncated result needs literal command and cwd",
     );
-    assert.equal(operation.cwd, input.workspace);
+    assert.equal(cwd, input.workspace);
     assert.ok(
       result.processId,
       "Truncated result has no proved original process handle",
@@ -6026,7 +6572,7 @@ export function authenticateCodexCommands(
       assert.equal(entry.params.threadId, input.sessionId);
       assert.equal(entry.params.turnId, turnId);
       assert.equal(entry.item.type, "commandExecution");
-      assert.equal(entry.item.cwd, operation.cwd);
+      assert.equal(entry.item.cwd, cwd);
       assert.equal(shellBody(String(entry.item.command)), operation.command);
     }
     assert.equal(start.item.status, "inProgress");
@@ -6059,7 +6605,7 @@ export function authenticateCodexCommands(
       assert.equal(delta.params.threadId, input.sessionId);
       assert.equal(delta.params.turnId, turnId);
     }
-    const stdout = z.string().min(1).parse(completion.item.aggregatedOutput);
+    const stdout = z.string().min(1).parse(commandStdout(completion.item));
     assert.equal(
       deltas.map(({ params }) => z.string().parse(params.delta)).join(""),
       stdout,
@@ -6068,7 +6614,9 @@ export function authenticateCodexCommands(
     const observed = native
       .filter(
         (value) =>
-          value.originCallId === result.originCallId &&
+          (launch
+            ? owners.get(value) === launch.owner
+            : value.originCallId === result.originCallId) &&
           value.index <= result.index,
       )
       .map((value) => value.stdout)
@@ -6101,11 +6649,16 @@ export function authenticateCodexCommands(
   const forwardedObjects = new Map(
     native
       .filter(
-        (value) => !("orderedBatch" in value) && !synchronous.has(value.index),
+        (value) =>
+          !("orderedBatch" in value) &&
+          !("parallelBatch" in value) &&
+          !synchronous.has(value.index),
       )
       .map((value) => [value.index, value.objects]),
   );
-  for (const result of native.filter((value) => "orderedBatch" in value))
+  for (const result of native.filter(
+    (value) => "orderedBatch" in value || "parallelBatch" in value,
+  ))
     forwardedObjects.set(result.index, [
       ...(forwardedObjects.get(result.index) ?? []),
       ...result.objects,

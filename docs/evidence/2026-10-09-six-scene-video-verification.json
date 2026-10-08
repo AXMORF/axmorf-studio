@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 1,
+  "kind": "post-merge-six-scene-delivery-verification",
+  "version": "0.1.19",
+  "rootSessionId": "01a11cab-0440-7400-9152-91695882c0af",
+  "nativeTranscriptChecksum": "sha256:80055d6ea4e1fe24015f7901ad853bc97900590ed4e08e5305b1069eabe4a36a",
+  "runChecksum": "sha256:fbfedb753b5fd7b990905c1d0deb67c726ffc35cae2011bd6164978d11398ebb",
+  "packages": {
+    "runtime": "sha256:0bff80fffc394a1e5bf5bba915f52ba4620d123643b771fb35ffe6a8b3135db3",
+    "creator": "sha256:bed4e7f05b4dd29a11bf76e8e10be42aec43caff9c0a99da6b9971a3a3849dbe"
+  },
+  "bodySceneOwnerCount": 6,
+  "providerRequests": 0,
+  "finalCheck": {
+    "schemaVersion": 1,
+    "status": "project-final-check",
+    "storyId": "small-inventions-motion",
+    "level": "final",
+    "scope": "current-production",
+    "aggregateStatus": "pass",
+    "revisionId": "revision-68433dcb0f1dd506ae54d94a55b093f4f5d3b0b24e22c35f180682b8751e91e3",
+    "artifactSetFingerprint": "sha256:eae5ed8674a075503bfd3f36405994a193366ce59b5f0dfc60f4c0ce5c2fb862",
+    "deliveryBuildId": "delivery-ed7427862e26c5ecf9b45792dc29ed6a0cd5e8b6382f5388958fdebff5c8d0d4",
+    "checks": [
+      {
+        "checkId": "artifacts",
+        "status": "pass",
+        "code": null,
+        "message": null
+      },
+      {
+        "checkId": "delivery",
+        "status": "pass",
+        "code": null,
+        "message": null
+      },
+      {
+        "checkId": "revision",
+        "status": "pass",
+        "code": null,
+        "message": null
+      },
+      {
+        "checkId": "artifact-set",
+        "status": "pass",
+        "code": null,
+        "message": null
+      },
+      {
+        "checkId": "delivery-build",
+        "status": "pass",
+        "code": null,
+        "message": null
+      },
+      {
+        "checkId": "audio-channels",
+        "status": "pass",
+        "code": null,
+        "message": null
+      },
+      {
+        "checkId": "snapshot",
+        "status": "pass",
+        "code": null,
+        "message": null
+      }
+    ]
+  },
+  "media": {
+    "schemaVersion": 1,
+    "kind": "independent-controller-media-inspection",
+    "storyId": "small-inventions-motion",
+    "revisionId": "revision-68433dcb0f1dd506ae54d94a55b093f4f5d3b0b24e22c35f180682b8751e91e3",
+    "deliveryBuildId": "delivery-ed7427862e26c5ecf9b45792dc29ed6a0cd5e8b6382f5388958fdebff5c8d0d4",
+    "checksum": "sha256:add3ecd485213827a3e869878cc39e44ff44eda39382d65b0768e046417abd31",
+    "sizeBytes": 6053832,
+    "width": 1280,
+    "height": 720,
+    "fps": "30/1",
+    "frameCount": 1200,
+    "duration": 40,
+    "videoCodec": "h264",
+    "audioCodec": "aac",
+    "audioChannels": 2,
+    "eofDecode": true,
+    "audio": {
+      "decodedSampleFrames": 1920000,
+      "peakLinear": 0.10461533814668655,
+      "peakDbfs": -19.60809273688455,
+      "rmsDbfs": -45.6025183234733,
+      "clippedSampleCount": 0,
+      "scope": "Decoded AAC sample metrics only; no subjective listening certification."
+    },
+    "verifiedAt": "2026-10-08T18:37:09.058Z"
+  },
+  "browser": {
+    "ended": true,
+    "firstFrame": 0,
+    "lastFrame": 39.966667,
+    "sampledFrames": 78,
+    "allSampledFramesViewed": true,
+    "totalVideoFrames": 1200,
+    "cumulativeDroppedVideoFrames": 397,
+    "corruptedVideoFrames": 0,
+    "error": null,
+    "perceptualSmoothness": "not-assessed",
+    "listening": "not-assessed",
+    "scope": "Muted technical playback and temporal sample review only. Playback-quality counters are cumulative for the player; no zero-drop certification."
+  },
+  "nativeFirstUseAcceptance": false,
+  "nativeFirstUseBlocker": "Original CLI display truncated diagnostic output; the required original app-server UI event stream was not captured. Formal media remains valid; separate fresh acceptance is required.",
+  "finalCheckScope": "Independent controller check after the original native business run ended"
+}

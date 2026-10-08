@@ -23,11 +23,23 @@ import {
   buildProjectSoundPlan,
   buildSceneOriginalityBaseline,
   buildSceneTaskInputV7,
+  buildSceneTaskInputV8,
+  buildSilentScenePreset,
+  buildMasteredNarrationManifest,
+  computeGenerationInputFingerprint,
+  computeSealedNarrationFingerprint,
   buildTaskWorkerBindingId,
   computeRenderSpecFingerprint,
   computeStoryFingerprint,
   generateVisualSemanticTiming,
+  generateAuthoredFrameTiming,
+  generateSemanticTiming,
+  aggregateSceneStoryBeat,
+  aggregateSceneTimingBeat,
   RenderSpecSchema,
+  NARRATION_MASTERING_POLICY,
+  NarrationSpecSchema,
+  SealedNarrationManifestSchema,
   ResourceAssetDescriptorSchema,
   SceneSelectedResourceSchema,
   computeResourceDescriptorFingerprint,
@@ -54,11 +66,21 @@ import { previewBoundSceneTask } from "../../scripts/project-production/applicat
 import { bindTaskWorker } from "../../scripts/project-production/application/task-worker-binding";
 import { runProjectProductionCli } from "../../scripts/project-production/cli";
 import type { ProcessRunner } from "../../scripts/shared/process";
-import { validRenderSpec, validVideoBrief } from "../fixtures/narrative";
+import { encodeCanonicalPcmWav } from "../../scripts/narration/domain/pcm-wav";
+import {
+  buildValidSealedNarrationManifest,
+  validNarrationSpec,
+  validRenderSpec,
+  validVideoBrief,
+} from "../fixtures/narrative";
 import { createSceneTaskInput, sha } from "../fixtures/scene/scene-input";
 import { createSoundRuntimeFixture } from "../fixtures/scene/sound-runtime";
 
-const fixture = async () => {
+const fixture = async ({
+  grouped = false,
+  authored = false,
+  narrated = false,
+} = {}) => {
   const rootDir = await realpath(
     await mkdtemp(join(tmpdir(), "axmorf-task-preview-")),
   );
@@ -66,31 +88,130 @@ const fixture = async () => {
     schemaVersion: 3,
     storyId: "synthetic-proof",
     title: "State change preview",
-    beats: [
-      {
-        kind: "visual-scene",
-        meaningId: "meaning-one",
+    ...(authored ? { timingSource: "authored-frames" } : {}),
+    ...(grouped
+      ? { visualScenes: [{ meaningIds: ["meaning-one", "meaning-two"] }] }
+      : {}),
+    beats: (grouped ? ["meaning-one", "meaning-two"] : ["meaning-one"]).map(
+      (meaningId, index) => ({
+        ...(narrated
+          ? {
+              kind: "narrated-scene",
+              ttsChunks: [
+                {
+                  chunkId: `${meaningId}-01`,
+                  ttsText: index === 0 ? "A" : "B",
+                },
+              ],
+              explicitPauses:
+                index === 0
+                  ? [{ afterChunkId: `${meaningId}-01`, pauseMs: 250 }]
+                  : [],
+            }
+          : authored
+            ? {
+                kind: "silent-scene",
+                preset: buildSilentScenePreset({
+                  presetId: meaningId,
+                  durationInFrames: 120,
+                  visualIntent: "Show a deterministic state change.",
+                  soundIntent: "No narration or sound effects.",
+                  resourceIds: [],
+                  implementation: { kind: "scene-owner" },
+                }),
+              }
+            : { kind: "visual-scene", durationInFrames: 120 }),
+        meaningId,
         narrativePurpose: "Show a deterministic state change.",
-        durationInFrames: 120,
-      },
-    ],
+      }),
+    ),
   });
   const render = RenderSpecSchema.parse({
     ...validRenderSpec,
     compositionId: "SceneTaskPreview",
   });
-  const timing = generateVisualSemanticTiming({ story, render });
   const brief = {
     ...validVideoBrief,
     storyId: story.storyId,
     title: story.title,
   };
+  const narrationSpec = NarrationSpecSchema.parse(validNarrationSpec);
+  const narration = narrated ? narrationSpec : null;
+  const {
+    sealedNarrationFingerprint: _originalFingerprint,
+    ...originalSealed
+  } = buildValidSealedNarrationManifest();
+  void _originalFingerprint;
+  const wav = encodeCanonicalPcmWav(
+    Buffer.alloc(originalSealed.completeAudio.sampleFrameCount * 2),
+  );
+  const sealedInput = {
+    ...originalSealed,
+    storyId: story.storyId,
+    generationInputFingerprint: narrated
+      ? computeGenerationInputFingerprint(story, narrationSpec)
+      : originalSealed.generationInputFingerprint,
+    segments: originalSealed.segments.map((segment) => {
+      const meaningId =
+        segment.meaningId === "opening" ? "meaning-one" : "meaning-two";
+      return segment.kind === "chunk"
+        ? {
+            ...segment,
+            meaningId,
+            chunkId: `${meaningId}-01`,
+            localPath: `public/projects/${story.storyId}/narration/${meaningId}.wav`,
+          }
+        : { ...segment, meaningId, afterChunkId: `${meaningId}-01` };
+    }),
+    completeAudio: {
+      ...originalSealed.completeAudio,
+      localPath: `public/projects/${story.storyId}/narration/complete.wav`,
+      checksum: checksumBytes(wav),
+    },
+  };
+  const sealed = narrated
+    ? SealedNarrationManifestSchema.parse({
+        ...sealedInput,
+        sealedNarrationFingerprint:
+          computeSealedNarrationFingerprint(sealedInput),
+      })
+    : null;
+  const mastered =
+    sealed === null
+      ? null
+      : buildMasteredNarrationManifest({
+          storyId: story.storyId,
+          sealedNarrationFingerprint: sealed.sealedNarrationFingerprint,
+          sourceAudio: sealed.completeAudio,
+          outputAudio: {
+            ...sealed.completeAudio,
+            localPath: `public/projects/${story.storyId}/narration/mastered.wav`,
+          },
+          masteringPolicy: NARRATION_MASTERING_POLICY,
+          measurements: {
+            integratedLoudnessLufs: -16,
+            truePeakDbtp: -1.5,
+            loudnessRangeLu: 3,
+            thresholdLufs: -26,
+          },
+        });
+  const timing =
+    sealed !== null
+      ? generateSemanticTiming({
+          story,
+          render,
+          narration: narrationSpec,
+          sealedNarration: sealed,
+        })
+      : authored
+        ? generateAuthoredFrameTiming({ story, render })
+        : generateVisualSemanticTiming({ story, render });
   const sound = buildProjectSoundPlan({
     storyId: story.storyId,
     contributions: [],
   });
   const requirements = buildAuthoringRequirements({
-    source: { brief, story, narration: null, render, projectSound: sound },
+    source: { brief, story, narration, render, projectSound: sound },
     sourceChecksums: {
       videoBrief: sha("1"),
       storySpec: sha("2"),
@@ -110,10 +231,23 @@ const fixture = async () => {
     additionalRequirements: [],
     readability: { edgeInsetPx: 90 },
   });
-  const taskInput = buildSceneTaskInputV7({
+  const storyBeat = aggregateSceneStoryBeat(story.beats);
+  const taskInput = (grouped ? buildSceneTaskInputV8 : buildSceneTaskInputV7)({
     ...createSceneTaskInput(),
-    storyBeat: story.beats[0],
-    timingBeat: timing.storyBeats[0],
+    storyBeat,
+    timingBeat: aggregateSceneTimingBeat(
+      timing.storyBeats,
+      story.beats.map(({ meaningId }) => meaningId),
+      storyBeat,
+    ),
+    ...(grouped
+      ? {
+          coveredBeats: story.beats.map((storyBeat, index) => ({
+            storyBeat,
+            timingBeat: timing.storyBeats[index],
+          })),
+        }
+      : {}),
     storyFingerprint: computeStoryFingerprint(story),
     renderFingerprint: computeRenderSpecFingerprint(render),
     sceneViewport: resolveSceneViewport(requirements.readabilityPolicy),
@@ -147,23 +281,46 @@ const fixture = async () => {
     subjectStoryId: story.storyId,
     entries: [],
   });
+  const sceneBrief = {
+    meaningId: taskInput.meaningId,
+    visualIntent: "Show the state change.",
+    compositionIntent: "Keep one focal object.",
+    motionIntent: "Cause then effect.",
+    soundIntent: "No narration.",
+    continuityBrief: taskInput.continuity.continuityBrief,
+    candidateResourceIds: [],
+    allowedSnapshotCards: [],
+  };
   const taskContext = {
     originalityBaseline,
     scene: {
       taskInput,
-      brief: {
-        meaningId: taskInput.meaningId,
-        visualIntent: "Show the state change.",
-        compositionIntent: "Keep one focal object.",
-        motionIntent: "Cause then effect.",
-        soundIntent: "No narration.",
-        continuityBrief: taskInput.continuity.continuityBrief,
-        candidateResourceIds: [],
-        allowedSnapshotCards: [],
-      },
+      brief: sceneBrief,
+      ...(grouped
+        ? {
+            coveredBriefs: story.beats.map(({ meaningId }) => ({
+              ...sceneBrief,
+              meaningId,
+            })),
+          }
+        : {}),
       visualStyle,
       availableResources: [],
-      narrationCues: [],
+      narrationCues: timing.segments.flatMap((segment) =>
+        segment.kind === "chunk"
+          ? [
+              {
+                chunkId: segment.chunkId,
+                text: segment.ttsText,
+                startFrame:
+                  segment.frameRange.startFrame -
+                  taskInput.timingBeat.startFrame,
+                endFrame:
+                  segment.frameRange.endFrame - taskInput.timingBeat.startFrame,
+              },
+            ]
+          : [],
+      ),
       fps: render.fps,
     },
   };
@@ -284,17 +441,22 @@ export default Renderer;\n`;
     "story.json": story,
     "render.json": render,
     "brief.json": brief,
-    "narration.json": null,
+    "narration.json": narration,
     "production/requirements.json": requirements,
     "generated/semantic-timing.generated.json": timing,
-    "generated/sealed-narration.generated.json": null,
-    "generated/mastered-narration.generated.json": null,
+    ...(authored
+      ? {}
+      : {
+          "generated/sealed-narration.generated.json": sealed,
+          "generated/mastered-narration.generated.json": mastered,
+        }),
   })) {
     await write(
       `src/projects/${task.storyId}/${path}`,
       `${serializeCanonicalJson(value)}\n`,
     );
   }
+  if (mastered !== null) await write(mastered.outputAudio.localPath, wav);
   // Process results are injected. These files exercise the local invocation
   // resolver without launching Chromium or claiming a real rendered video.
   await write("package.json", '{"name":"preview-fixture","type":"module"}\n');
@@ -312,17 +474,33 @@ export default Renderer;\n`;
   );
   compilerConfig.compilerOptions.baseUrl = repositoryRoot;
   await write("tsconfig.json", `${JSON.stringify(compilerConfig)}\n`);
-  return { rootDir, task, workspace, attempt, bindingId, render, write };
+  return {
+    rootDir,
+    task,
+    taskInput,
+    story,
+    narration,
+    sealed,
+    mastered,
+    timing,
+    workspace,
+    attempt,
+    bindingId,
+    render,
+    write,
+  };
 };
 
 const renderRunner = ({
   beforeInspection,
   incorrectFrameCount = false,
   decodeFailure = false,
+  frameCount = 120,
 }: {
   beforeInspection?: () => Promise<void>;
   incorrectFrameCount?: boolean;
   decodeFailure?: boolean;
+  frameCount?: number;
 } = {}) => {
   const calls: { args: readonly string[] }[] = [];
   const runProcess: ProcessRunner = async (_command, args) => {
@@ -352,7 +530,9 @@ const renderRunner = ({
                 width: 960,
                 height: 540,
                 r_frame_rate: "30/1",
-                nb_read_frames: incorrectFrameCount ? "119" : "120",
+                nb_read_frames: String(
+                  incorrectFrameCount ? frameCount - 1 : frameCount,
+                ),
               },
             ],
           })
@@ -461,6 +641,145 @@ test("visual preview verifies explicit null narration manifests and uses the rea
       snapshot,
     }),
     /explicit null narration manifests/u,
+  );
+});
+
+for (const options of [
+  { grouped: true, authored: false },
+  { grouped: false, authored: true },
+  { grouped: true, authored: true },
+]) {
+  test(`preview retains the complete ${options.authored ? "authored-frame" : "visual"} ${options.grouped ? "grouped owner" : "Scene"} without inventing narration files`, async (context) => {
+    const current = await fixture(options);
+    context.after(() => rm(current.rootDir, { recursive: true, force: true }));
+    const snapshot = await readSceneTaskPreviewSnapshot(current);
+    const inputs = await loadSceneTaskPreviewInputs({
+      rootDir: current.rootDir,
+      runtimeRootDir: current.rootDir,
+      snapshot,
+    });
+    const frameCount = options.grouped ? 240 : 120;
+    assert.equal(inputs.narrationAudio, null);
+    assert.deepEqual(inputs.captionCues, []);
+    assert.equal(
+      inputs.readabilityPolicy.policyVersion,
+      options.authored ? 2 : 1,
+    );
+    const entry = buildSceneTaskPreviewEntry({ snapshot, inputs });
+    assert.match(entry, new RegExp(`durationInFrames=\\{${frameCount}\\}`));
+    if (options.grouped) {
+      assert.match(entry, /"coveredBeats":\[/u);
+      assert.match(entry, /"meaningId":"meaning-two"/u);
+    }
+    const runner = renderRunner({ frameCount });
+    const result = await renderSceneTaskPreview({
+      rootDir: current.rootDir,
+      runtimeRootDir: current.rootDir,
+      task: current.task,
+      snapshot,
+      attemptId: current.attempt.attemptId,
+      assertSourceCurrent: async () => {},
+      runProcess: runner.runProcess,
+    });
+    assert.equal(result.frameCount, frameCount);
+    assert.ok(runner.calls[0].args.includes(`--frames=0-${frameCount - 1}`));
+    if (options.authored) {
+      for (const name of ["sealed-narration", "mastered-narration"]) {
+        await assert.rejects(
+          readFile(
+            join(
+              current.rootDir,
+              `src/projects/${current.task.storyId}/generated/${name}.generated.json`,
+            ),
+          ),
+          /ENOENT/u,
+        );
+      }
+    }
+  });
+}
+
+test("grouped narrated preview retains every member caption and rejects changed internal timing even when the owner span is unchanged", async (context) => {
+  const current = await fixture({ grouped: true, narrated: true });
+  context.after(() => rm(current.rootDir, { recursive: true, force: true }));
+  const snapshot = await readSceneTaskPreviewSnapshot(current);
+  const input = {
+    rootDir: current.rootDir,
+    runtimeRootDir: current.rootDir,
+    snapshot,
+  };
+  const inputs = await loadSceneTaskPreviewInputs(input);
+  assert.deepEqual(
+    inputs.captionCues.map(({ meaningId }) => meaningId),
+    ["meaning-one", "meaning-two"],
+  );
+  assert.deepEqual(
+    inputs.captionCues.map(({ startFrame, endFrame }) => ({
+      startFrame,
+      endFrame,
+    })),
+    current.timing.captionCues.map(({ startFrame, endFrame }) => ({
+      startFrame: startFrame - current.taskInput.timingBeat.startFrame,
+      endFrame: endFrame - current.taskInput.timingBeat.startFrame,
+    })),
+  );
+  assert.equal(inputs.narrationAudio?.trimBefore, 0);
+  assert.equal(
+    inputs.narrationAudio?.trimAfter,
+    current.taskInput.timingBeat.endFrame -
+      current.taskInput.timingBeat.startFrame,
+  );
+
+  assert.ok(current.sealed && current.mastered && current.narration);
+  const { sealedNarrationFingerprint: _oldSealedFingerprint, ...sealedInput } =
+    current.sealed;
+  void _oldSealedFingerprint;
+  const changedInput = {
+    ...sealedInput,
+    segments: current.sealed.segments.map((segment) =>
+      segment.kind === "chunk"
+        ? {
+            ...segment,
+            sampleFrameCount:
+              segment.sampleFrameCount +
+              (segment.meaningId === "meaning-one" ? 1600 : -1600),
+          }
+        : segment,
+    ),
+  };
+  const changedSealed = SealedNarrationManifestSchema.parse({
+    ...changedInput,
+    sealedNarrationFingerprint: computeSealedNarrationFingerprint(changedInput),
+  });
+  const changedTiming = generateSemanticTiming({
+    story: current.story,
+    narration: current.narration,
+    render: current.render,
+    sealedNarration: changedSealed,
+  });
+  assert.equal(changedTiming.durationInFrames, current.timing.durationInFrames);
+  const {
+    masteredNarrationFingerprint: _oldMasteredFingerprint,
+    ...masteredInput
+  } = current.mastered;
+  void _oldMasteredFingerprint;
+  const changedMastered = buildMasteredNarrationManifest({
+    ...masteredInput,
+    sealedNarrationFingerprint: changedSealed.sealedNarrationFingerprint,
+  });
+  for (const [name, value] of Object.entries({
+    "semantic-timing": changedTiming,
+    "sealed-narration": changedSealed,
+    "mastered-narration": changedMastered,
+  })) {
+    await current.write(
+      `src/projects/${current.task.storyId}/generated/${name}.generated.json`,
+      serializeCanonicalJson(value),
+    );
+  }
+  await assert.rejects(
+    loadSceneTaskPreviewInputs(input),
+    /fixed inputs differ/u,
   );
 });
 

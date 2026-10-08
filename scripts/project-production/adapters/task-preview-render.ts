@@ -38,7 +38,10 @@ import {
   computeRenderSpecFingerprint,
   computeStoryFingerprint,
   createFingerprint,
+  aggregateSceneStoryBeat,
+  aggregateSceneTimingBeat,
   isVisualStory,
+  resolveStorySceneGroups,
   resolveSceneSoundContributions,
   resolveSceneViewport,
   serializeCanonicalJson,
@@ -276,13 +279,14 @@ export const loadSceneTaskPreviewInputs = async ({
   const narration = NarrationSpecSchema.nullable().parse(
     await json("narration.json"),
   );
-  const visualOnly = isVisualStory(story);
-  const sealedManifest = await json(
-    "generated/sealed-narration.generated.json",
-  );
-  const masteredManifest = await json(
-    "generated/mastered-narration.generated.json",
-  );
+  const authoredFrames = story.timingSource === "authored-frames";
+  const visualOnly = authoredFrames || isVisualStory(story);
+  const sealedManifest = authoredFrames
+    ? null
+    : await json("generated/sealed-narration.generated.json");
+  const masteredManifest = authoredFrames
+    ? null
+    : await json("generated/mastered-narration.generated.json");
   if (visualOnly && (sealedManifest !== null || masteredManifest !== null)) {
     throw new Error(
       "Visual Scene preview requires explicit null narration manifests.",
@@ -296,17 +300,39 @@ export const loadSceneTaskPreviewInputs = async ({
     sealedNarration,
     semanticTiming: timing,
   });
-  const timingBeat = timing.storyBeats.find(
+  const group = resolveStorySceneGroups(story).find(
     ({ meaningId }) => meaningId === taskInput.meaningId,
   );
+  if (group === undefined)
+    throw new Error("Scene preview fixed inputs differ from its frozen task.");
+  const meaningIds = group.beats.map(({ meaningId }) => meaningId);
+  const storyBeat = aggregateSceneStoryBeat(group.beats);
+  const timingBeat = aggregateSceneTimingBeat(
+    timing.storyBeats,
+    meaningIds,
+    storyBeat,
+  );
+  const coveredBeats = group.beats.map((storyBeat) => ({
+    storyBeat,
+    timingBeat: timing.storyBeats.find(
+      ({ meaningId }) => meaningId === storyBeat.meaningId,
+    )!,
+  }));
   if (
     story.storyId !== taskInput.storyId ||
     requirements.storyId !== taskInput.storyId ||
-    timingBeat === undefined ||
     computeStoryFingerprint(story) !== taskInput.storyFingerprint ||
     computeRenderSpecFingerprint(render) !== taskInput.renderFingerprint ||
+    serializeCanonicalJson(storyBeat) !==
+      serializeCanonicalJson(taskInput.storyBeat) ||
     serializeCanonicalJson(timingBeat) !==
       serializeCanonicalJson(taskInput.timingBeat) ||
+    serializeCanonicalJson(coveredBeats) !==
+      serializeCanonicalJson(
+        taskInput.coveredBeats ?? [
+          { storyBeat: taskInput.storyBeat, timingBeat: taskInput.timingBeat },
+        ],
+      ) ||
     resolveSceneViewport(requirements.readabilityPolicy).viewportFingerprint !==
       taskInput.sceneViewport.viewportFingerprint ||
     timing.fps !== render.fps
@@ -386,7 +412,7 @@ export const loadSceneTaskPreviewInputs = async ({
     };
   }
   const captionCues = timing.captionCues
-    .filter(({ meaningId }) => meaningId === taskInput.meaningId)
+    .filter(({ meaningId }) => meaningIds.includes(meaningId))
     .map((cue) => ({
       ...cue,
       startFrame: cue.startFrame - taskInput.timingBeat.startFrame,
@@ -462,6 +488,9 @@ export const buildSceneTaskPreviewEntry = ({
     viewportWidth: taskInput.sceneViewport.width,
     viewportHeight: taskInput.sceneViewport.height,
     storyBeat: taskInput.storyBeat,
+    ...(taskInput.coveredBeats === undefined
+      ? {}
+      : { coveredBeats: taskInput.coveredBeats }),
     sourceReferences: taskInput.sourceReferences,
     timingBeat: taskInput.timingBeat,
     ...(taskInput.continuity.handoffs === undefined

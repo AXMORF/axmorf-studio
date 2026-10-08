@@ -1,5 +1,47 @@
 # Iteration Status
 
+## 0.1.19 候选验证（2026-10-09，尚未公开）
+
+本轮基于默认分支收口 `01ccbdb` 和已发布 `v0.1.18`，保留 0.1.17/0.1.18 的全部合并改进。
+真实制作暴露 bound Scene preview 只比较首个 Beat 与完整分组 owner 的错误；现与正式生产共用分组聚合，
+逐成员核对冻结 Story/timing，传入 `coveredBeats` 和全部 owning captions，并区分作者帧模式缺失的旁白文件与
+legacy visual 模式的明确 null。未放宽 validator、改变时间轴或改写失败 attempt。
+
+12 项预览回归、46 项 focused checks、最终完整 1404 项测试均通过，零失败/skip。
+最终字面 `npm run check` 退出 0，类型/lint/文档/资源/构建/宿主检查通过；发布 recorder 的新增 5 项回归
+覆盖真实格式及拒绝路径。较早 fixture lint 失败及其 1399 项测试记录保留，未改写旧退出结果。
+两包类型、构建、82 项包边界检查与 package-local readiness 通过，审计零漏洞；最终重新打包仍与冻结
+首用候选完全一致。见[源码与发行包复验](evidence/v0.1.19-source-verification.json)。
+
+正常 npm 升级的独立副本已正式完成《一个包裹的旅程》：60 秒、1080×1920、30 fps，一个连续正文 owner
+覆盖六个 visual Beat，零 provider/旁白/字幕，含完整首尾与独立封面。正文/整片预览、四文件及 final 7/7 通过；
+1800 帧 H.264/AAC 双声道与 EOF 由独立媒体检查复验。完整静音浏览器播放结束且未报告丢帧或损坏帧，
+实际查看 82 个正文时序样帧及两张封面，未声称连续感知观感或主观听审通过。
+运行时 fingerprint 改变使 Scene TaskRevision 更新，本次场景从冻结 brief 新建，旧草稿与旧失败记录完整保留。
+见[故障与修复](evidence/2026-10-09-grouped-scene-preview-incident.json)和
+[成片复验](evidence/2026-10-09-post-merge-video-verification.json)。
+
+同一候选包的空 Workspace 已另行交付《小发明，让动作发生》：六个独立正文 owner、40 秒、1280×720、
+30 fps，1200 帧与 H.264/AAC 双声道、EOF 和独立 final 7/7 通过；实际查看 78 个浏览器时序样帧及两张封面。
+静音浏览器播放到结束，播放器有累计丢帧，因此未声明连续感知流畅度或听审通过。
+该次 CLI 显示截断只读诊断，且没有完整 app-server 事件补证；成片有效，但不作为发布原生首用验收。
+见[六场景交付复验](evidence/2026-10-09-six-scene-video-verification.json)。
+
+新的空 Workspace 使用同一候选包和普通业务请求正式通过独立原生首用。完整保存的原始 app-server 事件
+与 native sessions 经 recorder 复验：默认四路并发、4 个 probe、8 个 fresh 创作 child、4 次补位，
+四个 bound task 真实重叠 486.012 秒；唯一 continuation、正式四文件与 final 7/7 通过。
+新生成的 40 秒六场景视频为 1200 帧 H.264/AAC 双声道，EOF 与解码音频零 clipping 另行复验。
+291 个 runtime 文件、42 个 creator 文件及 13 份生成指南与冻结候选一致。完整静音播放到结尾，无损坏帧，
+浏览器累计丢帧 28；实际查看 80 个时序样帧与两张封面。见[原生首用收据](evidence/v0.1.19-first-use.json)和
+[独立六场景复验](evidence/2026-10-09-native-six-scene-verification.json)。
+
+发布 recorder 现支持当前 Codex 的 literal allSettled 诊断及独立等待句柄、原样图片显示、带多行作者输入准备的
+独立 create 进程和协议的空 stdout null；仅用原始 UI 补齐允许的只读诊断，保留 thread/turn/cwd/process/
+start/terminal/visible bytes/output deltas 校验。新增回归覆盖缺失、错配、篡改及混入生产修改的拒绝。
+候选包未因此改变，原始日志未编辑；截断 CLI 首用及宿主配置诊断失败仍保留，不转为成功。
+本次不复用 0.1.18 的旧首用证据；最终全仓检查已通过，未声明主观听审或稳定审美通过。
+两包目标版本为 0.1.19，公开 latest 仍是下方已验证的 0.1.18；完成发布门禁后再推送 tag 和执行 npm 发布。
+
 ## 当前发布：0.1.18（2026-10-08，两包 latest 已回读）
 
 当前默认分支曾停在 0.1.16 的发布收口 `c3431f6`；0.1.17 标签与发布分支均保留，发布分支
@@ -146,7 +188,7 @@ public final 7/7，1050 帧 RGB/PCM 重渲染一致，MP4 bytes 不同；视频�
 
 目前未执行两种未参与调试的中文 AI 概念完整旧新实验，也没有跨主题多次独立生成的稳定性数据。
 截图、自动分数、计划声明和技术完成都不能替代感知验收。操作入口见
-[视觉叙事工作流](guides/VISUAL_NARRATIVE_QUALITY.md)。当前 npm latest 为上方已验证的 0.1.17；下方保留历史发布及试次。
+[视觉叙事工作流](guides/VISUAL_NARRATIVE_QUALITY.md)。当时 npm latest 为已验证的 0.1.17；当前公开版本以上方发布记录为准，下方保留历史发布及试次。
 
 ## 0.1.16 历史发布闭环（2026-10-03，两包发布与公共安装烟测通过）
 

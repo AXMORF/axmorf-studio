@@ -204,6 +204,22 @@ missing mutation, prepare or continuation envelopes. Metadata searches, passive 
 unchanged result storage and image display remain diagnostic; they do not gain process authority.
 Every prepared attempt and its real terminal result remain mandatory.
 
+Literal `Promise.allSettled([...]); results.forEach(text)` diagnostics retain a separate
+command ordinal and stdout prefix for every pending process, including a later scalar wait.
+An unchanged literal prefix may precede the batch. Missing diagnostic display rows require the
+complete original native UI; missing mutation, prepare or continuation rows remain a failed audit.
+Image batches must forward the original command result and image URL without changing the result.
+An ordered multiline authoring-input command retains its own start/terminal before the separate
+public create process. The protocol's `aggregatedOutput:null` means empty buffered stdout;
+it cannot replace nonempty observed bytes or contradictory streamed deltas.
+
+The 0.1.19 candidate [native receipt](../evidence/v0.1.19-first-use.json) exercises these actual
+code-mode formats using unchanged 291-file runtime and 42-file creator candidates. One ordinary
+40-second six-scene prompt produced eight fresh creative children, peak four bound tasks,
+four later admissions, one continuation and complete exact-four-file delivery. Failed earlier
+runs remain retained. Recorder compatibility revalidation does not modify their original logs
+or waive fresh package acceptance; publication is recorded separately after registry readback.
+
 Read-only code-mode summaries may slice or search an `output` field loaded from
 the host's serialized JSON store. These reads retain diagnostic text without
 acquiring command authority. Local callable objects, unknown methods and changed

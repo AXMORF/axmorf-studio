@@ -1,0 +1,136 @@
+{
+  "schemaVersion": 1,
+  "kind": "post-merge-grouped-scene-engineering-verification",
+  "version": "0.1.19",
+  "rootSessionId": "01a11c8b-f49d-7ea3-8f43-0ec3d9c8e4ed",
+  "nativeTranscriptChecksum": "sha256:26a906d172a8cf211c75b39912b16eb981a6a95cec5a9878da267d4add4f9a5e",
+  "runChecksum": "sha256:c35ebae2278d0d0643f0442fe8370d7044186f5698bec9749792f0815462c8ec",
+  "packages": {
+    "runtime": "sha256:0bff80fffc394a1e5bf5bba915f52ba4620d123643b771fb35ffe6a8b3135db3",
+    "creator": "sha256:bed4e7f05b4dd29a11bf76e8e10be42aec43caff9c0a99da6b9971a3a3849dbe"
+  },
+  "sourceMode": "legacy-grouped-visual",
+  "bodyBeatCount": 6,
+  "bodySceneOwnerCount": 1,
+  "providerRequests": 0,
+  "oldFailedAttemptReopened": false,
+  "originalWorkspacePreserved": true,
+  "oldDraftSourceReused": false,
+  "finalCheck": {
+    "schemaVersion": 1,
+    "status": "project-final-check",
+    "storyId": "parcel-journey",
+    "level": "final",
+    "scope": "current-production",
+    "aggregateStatus": "pass",
+    "revisionId": "revision-752f1a3831b1e137fbe5243a0c2c6f49c44ad486ee791a22e4c80bf48218fb34",
+    "artifactSetFingerprint": "sha256:f13461c00852462b4c82b53e512b5320ecf3ec5cc06f10c6a97fdef74cf264a7",
+    "deliveryBuildId": "delivery-0b9ceda6c7af658442b4f6e462d6fdd1cca599a9d1e1dbc6fb9855639d02e32c",
+    "checks": [
+      {
+        "checkId": "artifacts",
+        "status": "pass",
+        "code": null,
+        "message": null
+      },
+      {
+        "checkId": "delivery",
+        "status": "pass",
+        "code": null,
+        "message": null
+      },
+      {
+        "checkId": "revision",
+        "status": "pass",
+        "code": null,
+        "message": null
+      },
+      {
+        "checkId": "artifact-set",
+        "status": "pass",
+        "code": null,
+        "message": null
+      },
+      {
+        "checkId": "delivery-build",
+        "status": "pass",
+        "code": null,
+        "message": null
+      },
+      {
+        "checkId": "audio-channels",
+        "status": "pass",
+        "code": null,
+        "message": null
+      },
+      {
+        "checkId": "snapshot",
+        "status": "pass",
+        "code": null,
+        "message": null
+      }
+    ]
+  },
+  "media": {
+    "schemaVersion": 1,
+    "kind": "independent-controller-media-inspection",
+    "storyId": "parcel-journey",
+    "revisionId": "revision-752f1a3831b1e137fbe5243a0c2c6f49c44ad486ee791a22e4c80bf48218fb34",
+    "deliveryBuildId": "delivery-0b9ceda6c7af658442b4f6e462d6fdd1cca599a9d1e1dbc6fb9855639d02e32c",
+    "checksum": "sha256:46d74cb96a5b68d6e1ef3c7bb5c2e1d6eea3b9be4b1ff6ca39f1ad8c251a45b7",
+    "sizeBytes": 8480978,
+    "width": 1080,
+    "height": 1920,
+    "fps": "30/1",
+    "frameCount": 1800,
+    "duration": 60,
+    "videoCodec": "h264",
+    "audioCodec": "aac",
+    "audioChannels": 2,
+    "eofDecode": true,
+    "audio": {
+      "decodedSampleFrames": 2880512,
+      "peakLinear": 0.7802168726921082,
+      "peakDbfs": -2.1556932404988127,
+      "rmsDbfs": -26.603347513113746,
+      "clippedSampleCount": 0,
+      "scope": "Decoded AAC sample metrics only; no subjective listening certification."
+    },
+    "verifiedAt": "2026-10-08T17:53:49.791Z"
+  },
+  "playback": {
+    "scope": "Complete muted technical browser playback with sampled-frame visual inspection",
+    "ended": true,
+    "muted": true,
+    "firstFrame": 0,
+    "lastFrame": 59.966667,
+    "frameCallbackPresentedCount": 1801,
+    "frameCountAuthority": "FFprobe decoded frame count 1800; browser callbacks include initial display and are not the frame authority.",
+    "sampleCount": 98,
+    "totalVideoFrames": 1804,
+    "droppedVideoFrames": 0,
+    "corruptedVideoFrames": 0
+  },
+  "visualObservations": {
+    "bodySamplesViewed": 82,
+    "coversViewed": 2,
+    "findings": [
+      "The same label, seam and round mark identify the orange parcel across shelf, conveyor, vehicle, doorstep and unboxing states.",
+      "Observed actions show confirmation, shelf removal, scan-selected route, crossing a city, doorstep arrival and opening the lamp.",
+      "Camera scale and horizontal position change through stage joins; sampled states retain the carried subject and readable phase/result labels."
+    ],
+    "scope": "Actual browser samples from 2.433 to 51.8 seconds, plus formal covers and ended-player screenshot. No continuous perceptual smoothness or broad aesthetic certification."
+  },
+  "subjectiveListening": "not-assessed",
+  "nativeFirstUseAcceptance": false,
+  "verifiedAt": "2026-10-08T18:02:24.385Z",
+  "boundScenePreview": {
+    "status": "scene-task-preview-complete",
+    "taskRevision": "task-64962bc59e89f91f058b6734f00c3b0e5e99de93469a0896c0828b64f8b1b458",
+    "checksum": "sha256:6d92fd36a83916aafd8ea080c55836d7866cb48bc09793a4392e9c2f7acb2aee",
+    "fps": 30,
+    "frameCount": 1500,
+    "decodedToEof": true,
+    "soundContributionCount": 25
+  }
+}
