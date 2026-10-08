@@ -1,6 +1,6 @@
 # Iteration Status
 
-## 当前候选：0.1.18 合并与发布（2026-10-08，待发布）
+## 当前发布：0.1.18（2026-10-08，两包 latest 已回读）
 
 当前默认分支曾停在 0.1.16 的发布收口 `c3431f6`；0.1.17 标签与发布分支均保留，发布分支
 `axmorf/visual-narrative-quality` 的收口 `d323d69` 当时没有合回默认分支。本次将它与连续创作升级
@@ -10,14 +10,21 @@ filmPlan、连续多 Beat owner、作者帧 preset、冻结整片 preview 和 re
 两种无旁白时间轴保留各自合同，不静默迁移已有作品；新建默认 BGM 保留完整 Composition 范围，显式
 content-window 保持正文范围。scene-review 的 authored 非空章节误判已修复并新增防止错误报 stale 的回归。
 Skill 合并继续满足原有上下文预算，未提高 validator 或放宽 production gate。
-发布审计发现新披露的间接依赖漏洞，root 与 creator Workspace 将 postcss-selector-parser 固定为 7.1.6、
+发布审计发现新披露的间接依赖漏洞，root 与 creator Workspace 已将 postcss-selector-parser 固定为 7.1.6、
 source-map-js 固定为 1.2.2；Remotion 及直接依赖版本保持原值，补做审计、scaffold 与打包渲染检查。
 
 用户明确授权提交、推送和发布，并选择“完成合并并复验受影响部分”。本版本复用已观察成片与既有原生
 验收的原始证据，重新检查合并代码和新包；不声明新合并候选已通过完整独立原生首用、exact-four 并发或听审。
-发布完成与新包证据将在收口记录中另行确认。
+不可变 `v0.1.18` 指向合并提交 `b467f91`，已合入并推送默认分支；两个官方 npm 包的 `latest` 均为 0.1.18，
+[Actions](https://github.com/AXMORF/axmorf-studio/actions/runs/37770840796) 和
+[GitHub Release](https://github.com/AXMORF/axmorf-studio/releases/tag/v0.1.18) 已成功。
+CI 的 611 项受影响测试为 610 pass、0 fail、1 Darwin 专属用例在 Linux skip；本地 603 项合并回归和
+20 项依赖/scaffold 复验全部通过。类型/lint/构建、零漏洞审计、全新外部安装/六项 doctor/compositions、
+60 帧 H.264/AAC 双声道实际渲染与 EOF 通过。公开两包的 291/42 文件内容与计划一致，registry integrity 与
+官方 provenance 已核对，见[发布记录](evidence/v0.1.18-publication.json)。
+仓库 Agent 规范现要求升级/发布前核对最新 tag 与默认分支，避免再次沿用旧基线；原生首用与听审的复用边界不变。
 
-## 当前源码：视频创作 Skill 经验沉淀（2026-10-08，未发布）
+## 视频创作 Skill 经验沉淀（2026-10-08，已随 0.1.18 发布）
 
 项目内 axmorf-video policy v27（schemaVersion20）新增 film-direction reference，仓库与 creator 模板逐 byte 同步，
 Root 与独立 Scene 入口均可发现。它保留整片因果设计、连续主体/空间、相机动机、自然转场、静止/阅读停留、
@@ -28,12 +35,12 @@ Root 与独立 Scene 入口均可发现。它保留整片因果设计、连续�
 已完成的58秒竖屏原创作品《一座城市，如何醒来》以7个作者帧 Beat/1个连续正文 owner 表达因果变化，
 零 provider/旁白/字幕；exact-four delivery 与记录中的7项final通过。抽样视觉、技术静音播放和音频事件测量
 保留各自范围，主观听审仍未评估。该片暴露的 scene-review authored 非空章节误判当时尚未修复，
-现已在上方合并候选修复；原有成片仍有效。Skill 修改与验证范围见[创作经验记录](evidence/2026-10-08-creative-video-skill.md)。
+现已在 0.1.18 修复；原有成片仍有效。Skill 修改与验证范围见[创作经验记录](evidence/2026-10-08-creative-video-skill.md)。
 本轮53/53 focused、最后两项受影响指南复验、类型/scoped lint/Skill validator/格式与creator检查通过；
 pack dry-run含新增指南，199份active文档的370条本地链接/264处命令引用通过。未重复完整check或重新制作成片。
-本次不代表 npm 发布、独立首用或新的成片质量认证。
+该轮 Skill 工程验收本身不代表 npm 发布、独立首用或新的成片质量认证；后续发布证据见上方 0.1.18 记录。
 
-## 当前源码：连续视频创作升级（2026-10-08，未发布）
+## 连续视频创作升级（2026-10-08，已随 0.1.18 发布）
 
 整片 filmPlan 与显式 visualScenes 已进入 strict authoring/任务/包/覆盖/注册表/runtime/revision：一个 owner
 可覆盖多个连续正文 Beat，持续 sceneFrame 不在内部语义边界归零，字幕/时间/章节仍独立。单 Beat 原合同保留，
@@ -61,7 +68,8 @@ authored/grouped/stereo 草稿和 exact-four 交付，7项final检查通过；�
 只改最后一段标题的候选为1dirty owning Scene/5reuse/0provider，自动提升、7项final和重复promote只读复验通过；
 封面/首尾/全局视觉/时间轴/素材及完整解码音轨保持一致。时序审阅页9段实际clip技术播放通过。具体结果与证据见
 [连续视频验收](evidence/2026-10-08-continuous-video-acceptance.md)，操作见
-[连续视频创作](guides/CONTINUOUS_VIDEO_AUTHORING.md)。本次无 npm 发布、Git 提交或现有用户 Project 生产；
+[连续视频创作](guides/CONTINUOUS_VIDEO_AUTHORING.md)。该轮工程验收未执行 npm 发布、Git 提交或现有用户 Project 生产；
+后续提交、合并与发布见上方 0.1.18 记录。
 独立普通提示首用、exact-four 并发发布门槛和主观听审未以该内部工程验收替代。
 下方 0.1.16 发布/首用证据只认证其当时冻结的包，不能认证本次源码新增能力。
 

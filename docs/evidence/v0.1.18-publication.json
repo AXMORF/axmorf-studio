@@ -1,0 +1,164 @@
+{
+  "schemaVersion": 1,
+  "status": "published-registry-and-candidate-installation-verified",
+  "version": "0.1.18",
+  "verifiedAt": "2026-10-08T11:58:20.426Z",
+  "sourceCommit": "b467f91d615d71556f3324a011595693844d4f0b",
+  "tag": "v0.1.18",
+  "tagMovedAfterPublication": false,
+  "defaultBranch": "axmorf/npm-workspace-open-source",
+  "sourceParents": [
+    "c2bb0581bee1622c8070cc5da2e3aad2ab62ffa0",
+    "d323d69467f6e1933dd7478230fcb03004508cb0"
+  ],
+  "previousPublishedTag": "v0.1.17",
+  "previousReleaseBranch": "axmorf/visual-narrative-quality",
+  "workflow": {
+    "path": ".github/workflows/npm-publish.yml",
+    "url": "https://github.com/AXMORF/axmorf-studio/actions/runs/37770840796",
+    "runId": 37770840796,
+    "attempt": 1,
+    "conclusion": "success",
+    "startedAt": "2026-10-08T11:33:35Z",
+    "completedAt": "2026-10-08T11:47:57Z",
+    "completeLogChecksum": "sha256:09cad9a8c9462320bab61747c220133e5689c27029c7eb2ca7ecbddafbe49a12"
+  },
+  "githubRelease": {
+    "url": "https://github.com/AXMORF/axmorf-studio/releases/tag/v0.1.18",
+    "latest": true,
+    "draft": false,
+    "prerelease": false
+  },
+  "packages": [
+    {
+      "role": "runtime",
+      "name": "@axmorf/studio",
+      "version": "0.1.18",
+      "latest": "0.1.18",
+      "files": 291,
+      "fingerprint": "sha256:656652b7014debe53e56d5c71341235a7d504bfe4372f1b6dd234c879bd70ee0",
+      "tarball": "https://registry.npmjs.org/@axmorf/studio/-/studio-0.1.18.tgz",
+      "integrity": "sha512-6B2KWZl7yeT8Yk/AxKmsmnemeKsCndT/ZgYZfqw5iXzxM2b9VrG0LB0dEXtQhIfXEugfFKyYtRrSGS9vjFXhvQ==",
+      "tarballChecksum": "sha256:c9a74c41f7522f4942b2509ec3a7a33c78e414ce07301053147a04daed288694",
+      "candidateContentsMatchPublishedPackage": true,
+      "officialProvenanceSubjectAndSourceMatch": true,
+      "attestationChecksum": "sha256:8a5d7701b52b1cf8d2c40fda941959d35d04473c5344b320b0cd23b149b60f81"
+    },
+    {
+      "role": "creator",
+      "name": "create-axmorf-studio",
+      "version": "0.1.18",
+      "latest": "0.1.18",
+      "files": 42,
+      "fingerprint": "sha256:678633868cdc1be57dc203a13cbdae7025551c382fa60f752261017af88860d4",
+      "tarball": "https://registry.npmjs.org/create-axmorf-studio/-/create-axmorf-studio-0.1.18.tgz",
+      "integrity": "sha512-NPD3PiYdxm4hMTvvbjzMR63PFQ7BjJIqr33cBoWkwbkSATL4UoM5lDm4+ubN7Z4Xh53AHE2RHWyrfABY/iX0Dw==",
+      "tarballChecksum": "sha256:959ad8e8bddcfa010c27224bf5a142c7fb0c1b913a3255daa4bd87416c65deec",
+      "candidateContentsMatchPublishedPackage": true,
+      "officialProvenanceSubjectAndSourceMatch": true,
+      "attestationChecksum": "sha256:3798f921ea636d0c7d2cc4ff2b6c9b2380cc5799f3b663ce03a5fc87beb0073e"
+    }
+  ],
+  "officialProvenance": {
+    "status": "pass",
+    "sourceCommit": "b467f91d615d71556f3324a011595693844d4f0b",
+    "tag": "v0.1.18",
+    "workflow": ".github/workflows/npm-publish.yml",
+    "runId": 37770840796,
+    "bothSubjectsMatchPublishedTarballs": true,
+    "verificationScope": "Official registry SLSA statements parsed and matched to downloaded package bytes, source, tag and workflow; no independent Sigstore signature verification claimed."
+  },
+  "acceptance": {
+    "mode": "reviewed-reuse",
+    "gateStatus": "release-gate-passed-with-reviewed-acceptance-reuse",
+    "nativeFirstUseVerified": false,
+    "freshMergedPackageNativeVideoRun": false,
+    "exactFourNativeConcurrencyRepeated": false,
+    "subjectiveListeningRepeated": false,
+    "retainedEvidence": [
+      {
+        "path": "docs/evidence/v0.1.17-first-use.json",
+        "checksum": "sha256:53da8ba60d6499fe964b16e29fdfbd16ec016a85b104482a0ccf22b00ff72eba"
+      },
+      {
+        "path": "docs/evidence/2026-10-08-continuous-video-acceptance.md",
+        "checksum": "sha256:4a05680e7b6498bafd63e05fa57d09838194cf154892a21ce476043e22974ea1"
+      },
+      {
+        "path": "docs/evidence/2026-10-08-creative-video-skill.md",
+        "checksum": "sha256:c6432730dabca1316e998a27980d382ce0ff32ac8978d632db36114e77e472c0"
+      },
+      {
+        "path": "docs/evidence/v0.1.18-release-review.md",
+        "checksum": "sha256:c4e0d2f5f292ec59c837825c2bb20b03af2af5c979e540c40191dc62fce4bafd"
+      }
+    ]
+  },
+  "checks": {
+    "localMergedRegressions": {
+      "tests": 603,
+      "pass": 603,
+      "fail": 0,
+      "skipped": 0
+    },
+    "localDependencyAndScaffoldRegressions": {
+      "tests": 20,
+      "pass": 20,
+      "fail": 0,
+      "skipped": 0,
+      "overlapsMergedRegressions": true
+    },
+    "ci": {
+      "node": "24.16.0",
+      "scopedTests": {
+        "tests": 611,
+        "pass": 610,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 1,
+        "skipReason": "Darwin-only exact physical package-owner tmp alias test; Linux CI"
+      },
+      "packageTypecheckBuildAudit": "pass",
+      "sourceTypecheckLintBuildAndHostGate": "pass",
+      "minimalRealRender": {
+        "status": "pass",
+        "compositionId": "DefaultIntroPreview",
+        "width": 1080,
+        "height": 1920,
+        "fps": 30,
+        "durationInFrames": 60,
+        "videoCodec": "h264",
+        "audioCodec": "aac",
+        "audioChannels": 2,
+        "eofDecode": true,
+        "evidence": "Successful workflow media assertions; the archived render checksum was not downloaded in this session."
+      },
+      "freshExternalCandidateInstallation": {
+        "status": "pass",
+        "method": "npm-exec-local-CI-tarballs",
+        "doctor": {
+          "status": "workspace-ready",
+          "workspaceVersion": 1,
+          "checks": {
+            "layout": "pass",
+            "runtimeResources": "pass",
+            "remotionCli": "pass",
+            "browserRender": "pass",
+            "producerConfig": "pass",
+            "resourceCatalog": "pass"
+          }
+        },
+        "compositions": "pass"
+      },
+      "exactCandidateContentGate": "release-gate-passed-with-reviewed-acceptance-reuse",
+      "completeRepositoryGate": "not-run-under-approved-reuse-scope"
+    }
+  },
+  "limits": {
+    "postPublicationPublicInstallationRun": false,
+    "currentMergedPackageNativeFirstUse": false,
+    "independentCiArtifactArchiveDownload": false,
+    "ciArtifactId": 11548028600,
+    "ciArtifactDownload": "GitHub artifact archive requests timed out; CI logs and public registry tarballs were separately retrieved and verified."
+  }
+}

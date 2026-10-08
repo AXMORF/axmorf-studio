@@ -38,8 +38,9 @@ Scene 选择音效并对齐实际起音或声势中心；新 Project 默认从�
 这些能力已随两个官方 npm 包的 0.1.17 发布。发布及公共安装证据见
 [发布记录](docs/evidence/v0.1.17-publication.json)，具体样片与未验证范围见当前实现状态。
 
-当前源码的[连续视频创作升级](docs/guides/CONTINUOUS_VIDEO_AUTHORING.md)增加整片 filmPlan、多 Beat 共用 Scene、
-作者帧无旁白时间轴、共享世界/相机/语义事件以及正式渲染前冻结草稿。公开 npm 0.1.17 尚未包含本轮升级，
+两个官方 npm 包的 `latest` 已更新为 **0.1.18**。[连续视频创作](docs/guides/CONTINUOUS_VIDEO_AUTHORING.md)增加
+整片 filmPlan、多 Beat 共用 Scene、作者帧无旁白时间轴、共享世界/相机/语义事件以及正式渲染前冻结草稿，
+并保留 0.1.17 的已发布能力。见[0.1.18 发布记录](docs/evidence/v0.1.18-publication.json)。
 已安装 Workspace 始终以其 public schemas/生成指南为准；既有作品不会自动重组。
 
 ## 把这段提示词交给你的 Agent

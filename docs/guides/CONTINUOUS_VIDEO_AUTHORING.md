@@ -1,6 +1,6 @@
 # 连续视频创作
 
-本指南对应仓库当前源码的未发布升级；公开 npm 0.1.17 的能力仍以已安装 contracts/生成指南为准。
+本指南对应公开 npm 0.1.18；旧 Workspace 的能力仍以其已安装 contracts/生成指南为准。
 保留一 Story 一个 Composition 和逐 Beat 的语义时间轴，同时用显式视觉分组决定 Renderer 所有权。
 
 ## 先设计整片，再决定视觉边界
@@ -134,9 +134,10 @@ profile 保留原布局尺寸、fps、帧数和声音，用 Remotion scale 降�
 技术音频测量的范围。实际看过的主体延续、因果动作、阅读停留和相机路径可以记录为观察；没有主观听审时
 保留该未验证项。需要返工时完成当前交付后创建 exact-base candidate，不覆盖已提交任务。
 
-当前未发布源码的 `project:scene:review --motion` 对带完整非空章节的 authored-frames 作品仍有 narrated-only
-比较误判；这是已诊断、未修复的审阅工具缺陷。合法章节不应删除来绕过它，正式交付与实际观察分别报告。
-具体匹配事实和创作 Skill 的经验沉淀见[创作经验记录](../evidence/2026-10-08-creative-video-skill.md)。
+0.1.18 已修复 `project:scene:review --motion` 对带完整非空章节的 authored-frames 作品的比较误判，
+并覆盖空章节、完整章节与 stale 章节的回归；不需要删除合法章节来绕过审阅工具。
+当时的失败事实与创作经验保留在[创作经验记录](../evidence/2026-10-08-creative-video-skill.md)，
+当前发布范围见[0.1.18 发布记录](../evidence/v0.1.18-publication.json)。
 
 正式和草稿使用同一音频输出主链：Remotion 生成无音轨 H.264 与 lossless PCM WAV，再由 Workspace-local
 FFmpeg 一次编码 AAC 并封装 MP4，保留编码器的 priming/skip 元数据。mono/stereo 在该次编码中选择，

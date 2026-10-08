@@ -38,6 +38,9 @@ For 0.1.18, the maintainer authorized commit/push/publication using the already 
 approved merging 0.1.17 with affected checks. This scope retains the 0.1.17 native receipt and the Oct 8
 continuous-video engineering acceptance at their original package identities and review limits. It does
 not claim fresh merged-package native acceptance, exact-four child concurrency or another listening review.
+Both 0.1.18 packages are now public and their `latest` tags, package contents and official provenance have
+been read back. The [publication record](../evidence/v0.1.18-publication.json) retains this reuse scope,
+the CI checks and the separate public archive verification.
 
 Before new engineering work, compare the checkout with the newest published tag and its release branch.
 Before publishing, merge the prior release into the default branch and keep the new tag on that branch's

@@ -293,6 +293,9 @@ Root 优先整段转发 prepare/reissue 的 `workerPrompts`；进程工具返回
 
 ## 修改与验证
 
+- runtime/creator 升级或发布前，核对当前 checkout、远端默认分支与最新已发布 tag 的祖先关系。
+  最新发布位于独立分支时，先整合该分支的已发布改进，再继续升级；保护现有未提交修改与历史 tag。
+  新发布 tag 应指向已合入默认分支的 release commit，不能把独立分支发布当作默认分支已同步。
 - 保护用户未提交修改；不 reset、覆盖或整理无关内容。删除、覆盖、强推、生产发布、密钥或权限变更
   必须有明确授权。精确 staging，不用 `git add .`，不 push，除非用户明确要求。
 - `scripts/project-production/` 采用 `domain/`、`application/`、`adapters/`、根 CLI 分层。domain 不依赖
