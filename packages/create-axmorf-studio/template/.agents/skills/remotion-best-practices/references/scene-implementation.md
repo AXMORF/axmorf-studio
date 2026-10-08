@@ -10,17 +10,41 @@
 - Run the exact task check command until the owning workspace validates, then
   use the exact attempt-bound terminal command.
 
+Grouped tasks cover multiple consecutive Beats with one Renderer. Use the whole owner duration and continuous sceneFrame;
+do not remount or reset world/camera at an internal Beat. Read every coveredBrief and coveredBeat. For authored-frames,
+the immutable frame windows replace narration timing; never generate or draw captions. Public capability.motion guides
+route world-camera projection, analytic follow/settle, indexed point morph/gather and semantic frame/event retiming.
+Evaluate those APIs against the brief, preserve causal geometry and hold the result long enough to read.
+
 The following boundary example is checked by the same Scene validator used in production. Replace its visual with the Beat's meaning:
 
 ```tsx
-import type {SceneRendererProps} from "@axmorf/studio/remotion";
-import {interpolate} from "remotion";
+import type { SceneRendererProps } from "@axmorf/studio/remotion";
+import { interpolate } from "remotion";
 
-const Renderer = ({sceneFrame, fps, viewportWidth, viewportHeight}: SceneRendererProps) => {
-  const progress = interpolate(sceneFrame, [0, fps], [0, 1], {extrapolateRight: "clamp"});
-  return <div style={{width: viewportWidth, height: viewportHeight}}>
-    <div style={{width: 120, height: 120, borderRadius: 60, backgroundColor: "#00d4ff", opacity: progress, transform: `translateX(${progress * 40}px)`}} />
-  </div>;
+const Renderer = ({
+  sceneFrame,
+  fps,
+  viewportWidth,
+  viewportHeight,
+}: SceneRendererProps) => {
+  const progress = interpolate(sceneFrame, [0, fps], [0, 1], {
+    extrapolateRight: "clamp",
+  });
+  return (
+    <div style={{ width: viewportWidth, height: viewportHeight }}>
+      <div
+        style={{
+          width: 120,
+          height: 120,
+          borderRadius: 60,
+          backgroundColor: "#00d4ff",
+          opacity: progress,
+          transform: `translateX(${progress * 40}px)`,
+        }}
+      />
+    </div>
+  );
 };
 export default Renderer;
 ```

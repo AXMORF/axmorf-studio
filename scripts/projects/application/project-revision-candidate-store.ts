@@ -31,14 +31,23 @@ import {
 } from "../../../packages/studio/src/contracts/project-revision";
 import { Sha256DigestSchema } from "../../../packages/studio/src/contracts/primitives";
 import { serializeCanonicalJson } from "../../../packages/studio/src/contracts/fingerprint";
+import { StorySpecSchema } from "../../../packages/studio/src/contracts/story";
 import {
   assertProjectRevisionOwnedPath,
   type ProjectRevisionProductionScope,
 } from "../../project-production/application/production-scope";
+import { readContainedRegularFile } from "../adapters/project-create-store";
 
 export type ProjectRevisionBaseDirectories = Readonly<
   Record<(typeof PROJECT_REVISION_BASE_SNAPSHOT_SCOPES)[number], string>
 >;
+
+export type ProjectRevisionRootSnapshot =
+  | Readonly<{
+      presence: "present";
+      entries: readonly ProjectRevisionSnapshotEntry[];
+    }>
+  | Readonly<{ presence: "absent" }>;
 
 type PathState = Awaited<ReturnType<typeof lstat>> | null;
 
@@ -73,7 +82,114 @@ const assertRealDirectory = async (path: string, label: string) => {
   }
 };
 
-const ensureContainedDirectory = async ({
+const inspectSnapshotRootChain = async ({
+  rootDir,
+  root,
+  allowAbsent,
+}: {
+  readonly rootDir: string;
+  readonly root: string;
+  readonly allowAbsent: boolean;
+}) => {
+  const repositoryRoot = resolve(rootDir);
+  const resolvedRoot = resolve(root);
+  const fromRepository = relative(repositoryRoot, resolvedRoot);
+  if (
+    fromRepository === "" ||
+    fromRepository === ".." ||
+    fromRepository.startsWith(`..${sep}`) ||
+    isAbsolute(fromRepository)
+  ) {
+    throw new Error("Project revision snapshot root escapes the repository.");
+  }
+  const identities: {
+    path: string;
+    dev: number | bigint;
+    ino: number | bigint;
+  }[] = [];
+  let current = repositoryRoot;
+  for (const segment of ["", ...fromRepository.split(sep)]) {
+    if (segment !== "") current = join(current, segment);
+    const state = await pathState(current);
+    if (state === null) {
+      if (!allowAbsent || current === repositoryRoot) {
+        throw new Error(`Project revision snapshot root is missing: ${root}.`);
+      }
+      return { identities, missingPath: current } as const;
+    }
+    if (state.isSymbolicLink() || !state.isDirectory()) {
+      throw new Error(
+        "Project revision snapshot root chain must be a real directory.",
+      );
+    }
+    identities.push({ path: current, dev: state.dev, ino: state.ino });
+  }
+  return { identities, missingPath: null } as const;
+};
+
+const assertSnapshotRootChainUnchanged = async (
+  chain: Awaited<ReturnType<typeof inspectSnapshotRootChain>>,
+) => {
+  for (const identity of chain.identities) {
+    const state = await lstat(identity.path);
+    if (
+      state.isSymbolicLink() ||
+      !state.isDirectory() ||
+      state.dev !== identity.dev ||
+      state.ino !== identity.ino
+    ) {
+      throw new Error(
+        "Project revision snapshot root chain changed while reading.",
+      );
+    }
+  }
+  if (
+    chain.missingPath !== null &&
+    (await pathState(chain.missingPath)) !== null
+  ) {
+    throw new Error(
+      "Project revision snapshot root presence changed while reading.",
+    );
+  }
+};
+
+export const allowsAbsentProjectRevisionNarrationRoot = async ({
+  rootDir,
+  sourceRoot,
+  storyId,
+}: {
+  readonly rootDir: string;
+  readonly sourceRoot: string;
+  readonly storyId: string;
+}) => {
+  const chain = await inspectSnapshotRootChain({
+    rootDir,
+    root: sourceRoot,
+    allowAbsent: false,
+  });
+  const bytes = await readContainedRegularFile({
+    rootDir,
+    relativePath: relative(
+      resolve(rootDir),
+      join(resolve(sourceRoot), "story.json"),
+    )
+      .split(sep)
+      .join("/"),
+    label: "Project revision narration presence StorySpec",
+  });
+  const story = StorySpecSchema.parse(
+    JSON.parse(new TextDecoder().decode(bytes)),
+  );
+  await assertSnapshotRootChainUnchanged(chain);
+  if (story.storyId !== storyId) {
+    throw new Error(
+      "Project revision narration presence Story identity is stale.",
+    );
+  }
+  return story.timingSource === "authored-frames";
+};
+
+export const ensureProjectRevisionContainedDirectory = async ({
   root,
   directory,
 }: {
@@ -340,9 +456,16 @@ export const inspectProjectRevisionRegularTree = async (
     directory: string,
     relativeDirectory: string,
   ): Promise<void> => {
-    for (const entry of (
-      await readdir(directory, { withFileTypes: true })
-    ).sort((left, right) => left.name.localeCompare(right.name))) {
+    const before = await lstat(directory);
+    if (before.isSymbolicLink() || !before.isDirectory()) {
+      throw new Error(
+        "Project revision candidate contains an unsafe directory.",
+      );
+    }
+    const children = (await readdir(directory, { withFileTypes: true })).sort(
+      (left, right) => left.name.localeCompare(right.name),
+    );
+    for (const entry of children) {
       const logicalPath = relativeDirectory
         ? `${relativeDirectory}/${entry.name}`
         : entry.name;
@@ -364,11 +487,89 @@ export const inspectProjectRevisionRegularTree = async (
         throw new Error("Project revision candidate contains a special entry.");
       }
     }
+    const after = await lstat(directory);
+    const namesAfter = (await readdir(directory)).sort((left, right) =>
+      left.localeCompare(right),
+    );
+    if (
+      after.isSymbolicLink() ||
+      !after.isDirectory() ||
+      before.dev !== after.dev ||
+      before.ino !== after.ino ||
+      namesAfter.length !== children.length ||
+      namesAfter.some((name, index) => name !== children[index]?.name)
+    ) {
+      throw new Error(
+        "Project revision candidate directory changed while reading.",
+      );
+    }
   };
   await inspectDirectory(root, "");
   return entries.sort((left, right) =>
     left.logicalPath.localeCompare(right.logicalPath),
   );
+};
+
+export const inspectProjectRevisionSnapshotRoot = async ({
+  rootDir,
+  root,
+  allowAbsent = false,
+}: {
+  readonly rootDir: string;
+  readonly root: string;
+  readonly allowAbsent?: boolean;
+}): Promise<ProjectRevisionRootSnapshot> => {
+  const chain = await inspectSnapshotRootChain({ rootDir, root, allowAbsent });
+  const snapshot: ProjectRevisionRootSnapshot =
+    chain.missingPath === null
+      ? {
+          presence: "present",
+          entries: await inspectProjectRevisionRegularTree(resolve(root)),
+        }
+      : { presence: "absent" };
+  await assertSnapshotRootChainUnchanged(chain);
+  return snapshot;
+};
+
+export const copyProjectRevisionSnapshotRoot = async ({
+  rootDir,
+  sourceRoot,
+  destinationRoot,
+  allowAbsent = false,
+}: {
+  readonly rootDir: string;
+  readonly sourceRoot: string;
+  readonly destinationRoot: string;
+  readonly allowAbsent?: boolean;
+}): Promise<ProjectRevisionRootSnapshot> => {
+  const sourceChain = await inspectSnapshotRootChain({
+    rootDir,
+    root: sourceRoot,
+    allowAbsent,
+  });
+  const destinationChain = await inspectSnapshotRootChain({
+    rootDir,
+    root: destinationRoot,
+    allowAbsent: true,
+  });
+  if (destinationChain.missingPath === null) {
+    throw new Error("Project revision snapshot destination already exists.");
+  }
+  let snapshot: ProjectRevisionRootSnapshot;
+  if (sourceChain.missingPath === null) {
+    snapshot = {
+      presence: "present",
+      entries: await copyProjectRevisionRegularTree({
+        sourceRoot: resolve(sourceRoot),
+        destinationRoot: resolve(destinationRoot),
+      }),
+    };
+  } else {
+    snapshot = { presence: "absent" };
+    await assertSnapshotRootChainUnchanged(destinationChain);
+  }
+  await assertSnapshotRootChainUnchanged(sourceChain);
+  return snapshot;
 };
 
 const assertExactNames = (
@@ -453,17 +654,27 @@ export const inspectProjectRevisionCandidateDefinition = async ({
     .sort((left, right) => left.localeCompare(right));
   assertExactNames(
     baseEntries,
-    PROJECT_REVISION_BASE_SNAPSHOT_SCOPES,
+    record.baseSnapshot.trees
+      .filter((tree) => tree.presence === "present")
+      .map((tree) => tree.scope),
     "Candidate base snapshot",
   );
+  const allowAbsentNarration = await allowsAbsentProjectRevisionNarrationRoot({
+    rootDir: scope.repositoryRoot,
+    sourceRoot: join(baseRoot, "source"),
+    storyId: scope.storyId,
+  });
   for (const tree of record.baseSnapshot.trees) {
-    const actualEntries = await inspectProjectRevisionRegularTree(
-      join(baseRoot, tree.scope),
-    );
-    if (
-      serializeCanonicalJson(actualEntries) !==
-      serializeCanonicalJson(tree.entries)
-    ) {
+    const actual = await inspectProjectRevisionSnapshotRoot({
+      rootDir: scope.repositoryRoot,
+      root: join(baseRoot, tree.scope),
+      allowAbsent: tree.scope === "narration" && allowAbsentNarration,
+    });
+    const expected: ProjectRevisionRootSnapshot =
+      tree.presence === "present"
+        ? { presence: "present", entries: tree.entries }
+        : { presence: "absent" };
+    if (serializeCanonicalJson(actual) !== serializeCanonicalJson(expected)) {
       throw new Error(
         `Project revision candidate ${tree.scope} snapshot bytes are stale.`,
       );
@@ -504,7 +715,12 @@ export const stageProjectRevisionCandidateDefinition = async ({
   ) {
     throw new Error("Project revision input does not match its fixed scope.");
   }
-  await ensureContainedDirectory({
+  const allowAbsentNarration = await allowsAbsentProjectRevisionNarrationRoot({
+    rootDir: scope.repositoryRoot,
+    sourceRoot: baseDirectories.source,
+    storyId: scope.storyId,
+  });
+  await ensureProjectRevisionContainedDirectory({
     root: scope.repositoryRoot,
     directory: scope.candidateRoot,
   });
@@ -519,13 +735,34 @@ export const stageProjectRevisionCandidateDefinition = async ({
     await mkdir(baseRoot);
     const baseTrees = [];
     for (const snapshotScope of PROJECT_REVISION_BASE_SNAPSHOT_SCOPES) {
-      baseTrees.push({
-        scope: snapshotScope,
-        entries: await copyProjectRevisionRegularTree({
-          sourceRoot: baseDirectories[snapshotScope],
-          destinationRoot: join(baseRoot, snapshotScope),
-        }),
+      const snapshot = await copyProjectRevisionSnapshotRoot({
+        rootDir: scope.repositoryRoot,
+        sourceRoot: baseDirectories[snapshotScope],
+        destinationRoot: join(baseRoot, snapshotScope),
+        allowAbsent: snapshotScope === "narration" && allowAbsentNarration,
       });
+      if (snapshot.presence === "absent") {
+        if (snapshotScope !== "narration") {
+          throw new Error(
+            "Only Project revision narration roots may be absent.",
+          );
+        }
+        baseTrees.push({ scope: snapshotScope, ...snapshot });
+      } else {
+        baseTrees.push({ scope: snapshotScope, ...snapshot });
+      }
+    }
+    if (baseTrees.some((tree) => tree.presence === "absent")) {
+      const narration = await inspectProjectRevisionSnapshotRoot({
+        rootDir: scope.repositoryRoot,
+        root: baseDirectories.narration,
+        allowAbsent: allowAbsentNarration,
+      });
+      if (narration.presence !== "absent") {
+        throw new Error(
+          "Project revision narration root presence changed while snapshotting.",
+        );
+      }
     }
     const record = buildProjectRevisionCandidateRecord({ input, baseTrees });
     await writeCandidateRecord({
@@ -696,7 +933,7 @@ export const copyProjectRevisionBaseAuthoring = async ({
   readonly stagingDirectory: string;
 }) => {
   assertScopeStagingPath(scope, stagingDirectory);
-  await inspectProjectRevisionCandidateDefinition({ scope });
+  const record = await inspectProjectRevisionCandidateDefinition({ scope });
   const mappings = [
     {
       snapshotScope: "source" as const,
@@ -712,11 +949,27 @@ export const copyProjectRevisionBaseAuthoring = async ({
     },
   ];
   for (const mapping of mappings) {
+    const tree = record.baseSnapshot.trees.find(
+      (tree) => tree.scope === mapping.snapshotScope,
+    );
+    if (tree === undefined) {
+      throw new Error("Project revision base authoring scope is missing.");
+    }
+    if (tree.presence === "absent") continue;
     await mkdir(dirname(mapping.destination), { recursive: true });
-    await copyProjectRevisionRegularTree({
+    const copied = await copyProjectRevisionSnapshotRoot({
+      rootDir: scope.repositoryRoot,
       sourceRoot: join(scope.baseSnapshotRoot, mapping.snapshotScope),
       destinationRoot: mapping.destination,
     });
+    if (
+      serializeCanonicalJson(copied) !==
+      serializeCanonicalJson({ presence: "present", entries: tree.entries })
+    ) {
+      throw new Error(
+        `Project revision ${tree.scope} base authoring changed while copying.`,
+      );
+    }
   }
 };
 

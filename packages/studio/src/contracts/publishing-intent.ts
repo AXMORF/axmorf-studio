@@ -7,7 +7,7 @@ import {
   Sha256DigestSchema,
   StoryIdSchema,
 } from "./primitives";
-import { StorySpecSchema } from "./story";
+import { StorySpecSchema, type StorySpec } from "./story";
 import {
   PublishingCollectionSchema,
   ProducerConfigIdSchema,
@@ -18,10 +18,14 @@ export const PUBLISHING_INTENT_VERSION = "publishing-intent-v2" as const;
 
 const PublishingTextSchema = z.string().trim().min(1);
 
-export const PublishingTopicSchema = z.string().min(1).max(48).refine(
-  (value) => !/[\s\p{White_Space}]/u.test(value),
-  "Publishing topics must not contain whitespace.",
-);
+export const PublishingTopicSchema = z
+  .string()
+  .min(1)
+  .max(48)
+  .refine(
+    (value) => !/[\s\p{White_Space}]/u.test(value),
+    "Publishing topics must not contain whitespace.",
+  );
 
 export const PublishingChapterNameSchema = PublishingTextSchema.max(64)
   .refine(
@@ -44,8 +48,31 @@ const PublishingIntentChapterSchema = z
 const PublishingIntentAuthoredFields = {
   description: PublishingTextSchema.max(2_000),
   topics: z.array(PublishingTopicSchema).min(6).max(7).readonly(),
-  chapters: z.array(PublishingIntentChapterSchema).min(1).max(256).readonly(),
+  chapters: z.array(PublishingIntentChapterSchema).max(256).readonly(),
 } as const;
+
+export const hasValidPublishingChapterCoverage = ({
+  story,
+  chapters,
+}: {
+  readonly story: Pick<StorySpec, "beats" | "timingSource">;
+  readonly chapters: readonly { readonly meaningId: string }[];
+}) => {
+  if (story.timingSource === "authored-frames" && chapters.length === 0)
+    return true;
+  const content = story.beats.filter(
+    (beat) =>
+      beat.kind === "narrated-scene" ||
+      (story.timingSource === "authored-frames" &&
+        beat.preset.implementation.kind === "scene-owner"),
+  );
+  return (
+    chapters.length === content.length &&
+    chapters.every(
+      ({ meaningId }, index) => meaningId === content[index]?.meaningId,
+    )
+  );
+};
 
 export const AuthoredPublishingIntentSchema = z
   .object({
@@ -202,18 +229,11 @@ export const resolveCurrentPublishingIntent = ({
   ) {
     throw new Error("PublishingIntent is stale against the current StorySpec.");
   }
-  const narratedBeats = story.beats.filter(
-    (beat) => beat.kind === "narrated-scene",
-  );
   if (
-    intent.chapters.length !== narratedBeats.length ||
-    intent.chapters.some(
-      ({ meaningId }, index) =>
-        meaningId !== narratedBeats[index]?.meaningId,
-    )
+    !hasValidPublishingChapterCoverage({ story, chapters: intent.chapters })
   ) {
     throw new Error(
-      "PublishingIntent chapters must cover narrated StoryBeats in Story order.",
+      "PublishingIntent chapters must cover content StoryBeats in order; only authored-frame films may omit chapters.",
     );
   }
   return intent;

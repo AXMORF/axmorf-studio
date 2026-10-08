@@ -132,6 +132,9 @@ export const inspectProjectProduction = async (
       schemaVersion: 1,
       contractVersion: "production-inspection-v1",
       storyId: projectId,
+      ...(narration.timingSource === undefined
+        ? {}
+        : { timingSource: narration.timingSource }),
       sourceState: readiness.sourceState,
       durationBudget: readiness.durationBudget,
       currentRevisionId: null,
@@ -145,7 +148,9 @@ export const inspectProjectProduction = async (
       tasks: [],
       nextAction:
         readiness.sourceState === "configured-authoring"
-          ? "prepare-narration"
+          ? narration.timingSource === "authored-frames"
+            ? "prepare-timing"
+            : "prepare-narration"
           : "complete-authoring",
     });
   }
@@ -168,6 +173,9 @@ export const inspectProjectProduction = async (
     schemaVersion: 1,
     contractVersion: "production-inspection-v1",
     storyId: projectId,
+    ...(narration.timingSource === undefined
+      ? {}
+      : { timingSource: narration.timingSource }),
     sourceState: readiness.sourceState,
     durationBudget: readiness.durationBudget,
     currentRevisionId: revisionId,

@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   PROJECT_REVISION_BASE_SNAPSHOT_SCOPES,
   ProjectRevisionCandidateRecordSchema,
+  ProjectRevisionBaseTreeSchema,
   ProjectRevisionContinuationResultSchema,
   ProjectRevisionInputSchema,
   ProjectRevisionValidationResultSchema,
@@ -34,6 +35,7 @@ const revisionInput = {
 
 const emptyBaseTrees = PROJECT_REVISION_BASE_SNAPSHOT_SCOPES.map((scope) => ({
   scope,
+  presence: "present" as const,
   entries: [],
 }));
 
@@ -277,6 +279,7 @@ test("candidate record rejects non-canonical or incomplete base manifests", () =
       input: revisionInput,
       baseTrees: PROJECT_REVISION_BASE_SNAPSHOT_SCOPES.map((scope) => ({
         scope,
+        presence: "present" as const,
         entries:
           scope === "source"
             ? [
@@ -285,6 +288,59 @@ test("candidate record rejects non-canonical or incomplete base manifests", () =
               ]
             : [],
       })),
+    }),
+  );
+});
+
+test("candidate base snapshots distinguish absent narration from an empty directory and reject legacy ambiguity", () => {
+  const empty = buildProjectRevisionCandidateRecord({
+    input: revisionInput,
+    baseTrees: emptyBaseTrees,
+  });
+  const absentTrees = emptyBaseTrees.map((tree) =>
+    tree.scope === "narration"
+      ? { scope: "narration" as const, presence: "absent" as const }
+      : tree,
+  );
+  const absent = buildProjectRevisionCandidateRecord({
+    input: revisionInput,
+    baseTrees: absentTrees,
+  });
+  assert.equal(absent.candidateId, empty.candidateId);
+  assert.notEqual(
+    absent.baseSnapshot.snapshotFingerprint,
+    empty.baseSnapshot.snapshotFingerprint,
+  );
+  const narration = absent.baseSnapshot.trees.find(
+    (tree) => tree.scope === "narration",
+  );
+  assert.equal(narration?.presence, "absent");
+  assert.equal(Object.hasOwn(narration!, "entries"), false);
+  for (const scope of ["delivery", "public", "source"] as const) {
+    assert.throws(() =>
+      ProjectRevisionBaseTreeSchema.parse({ ...narration, scope }),
+    );
+  }
+  assert.throws(() =>
+    buildProjectRevisionCandidateRecord({
+      input: revisionInput,
+      baseTrees: absentTrees.map((tree) =>
+        tree.scope === "narration" ? { ...tree, entries: [] } : tree,
+      ),
+    }),
+  );
+  assert.throws(() =>
+    ProjectRevisionCandidateRecordSchema.parse({
+      ...empty,
+      contractVersion: "project-revision-candidate-record-v1",
+      baseSnapshot: {
+        ...empty.baseSnapshot,
+        contractVersion: "project-revision-base-snapshot-v1",
+        trees: empty.baseSnapshot.trees.map(({ presence, ...tree }) => {
+          assert.equal(presence, "present");
+          return tree;
+        }),
+      },
     }),
   );
 });

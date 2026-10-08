@@ -20,13 +20,14 @@ import {
 
 export type M2NarrationCheckResult = {
   readonly storyId: string;
-  readonly generationInputFingerprint: string;
-  readonly sealedNarrationFingerprint: string;
+  readonly timingSource?: "sealed-narration" | "authored-frames";
+  readonly generationInputFingerprint: string | null;
+  readonly sealedNarrationFingerprint: string | null;
   readonly semanticTimingFingerprint: string;
   readonly chunkCount: number;
   readonly captionCueCount: number;
-  readonly completeAudioChecksum: string;
-  readonly completeAudioSampleFrameCount: number;
+  readonly completeAudioChecksum: string | null;
+  readonly completeAudioSampleFrameCount: number | null;
 };
 
 const readJson = async (path: string, label: string): Promise<unknown> => {
@@ -82,8 +83,26 @@ export const checkM2NarrationArtifacts = async ({
   readonly rootDir: string;
   readonly projectSource: NarrativeProjectSource;
 }): Promise<M2NarrationCheckResult> => {
-  const manifest = await readManifest(rootDir, projectSource.story.storyId);
   const timing = await readTiming(rootDir, projectSource.story.storyId);
+  if (projectSource.story.timingSource === "authored-frames") {
+    validateNarrativeArtifactBundle({
+      projectSource,
+      sealedNarration: null,
+      semanticTiming: timing,
+    });
+    return {
+      storyId: projectSource.story.storyId,
+      timingSource: "authored-frames",
+      generationInputFingerprint: null,
+      sealedNarrationFingerprint: null,
+      semanticTimingFingerprint: timing.fingerprint,
+      chunkCount: 0,
+      captionCueCount: 0,
+      completeAudioChecksum: null,
+      completeAudioSampleFrameCount: null,
+    };
+  }
+  const manifest = await readManifest(rootDir, projectSource.story.storyId);
 
   const reconstructedParts: Buffer[] = [];
   let chunkCount = 0;

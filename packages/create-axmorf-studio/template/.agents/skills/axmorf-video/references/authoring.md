@@ -2,6 +2,10 @@
 
 Run the read-only command first:
 
+New authored-frame inputs select captionless readability policyVersion 2 with symmetric safe insets. Use only the returned
+Scene viewport; do not recover full-frame dimensions. Narrated and existing frozen version 1 layouts remain unchanged,
+and revision preserves the complete frozen policy.
+
 ```bash
 npm run project:create:context -- --project <storyId>
 ```
@@ -21,6 +25,31 @@ Follow `agentHandoff` before create: adapt its example budget to the user's targ
 The schema is generated from the installed version. It describes JSON shape; cross-field semantics, current Catalog choices,
 caption budget and licensing are still checked by create. Do not read package internals or fetch development-branch contracts.
 
+## Film and continuous Scenes
+
+Read [film direction](film-direction.md#plan-the-film) before writing briefs; select causal actions, camera motivation,
+rhythm and resources for this film rather than treating a technical proof or a previous film as its creative template.
+
+Write `story.filmPlan` with concept, subject, cameraIntent, rhythmIntent and soundIntent before individual briefs.
+`story.visualScenes: [{meaningIds: [...]}]` groups consecutive content Beats into one Scene; its first meaningId owns
+the task/path, Renderer and source graph. Every Beat still has a brief and independent timing/coverage. Missing grouping
+preserves individual Scenes; fixed template-copy boundaries cannot join a group. Keep world and camera continuous inside it.
+
+For pure motion, explicitly use `story.timingSource: "authored-frames"` and silent scene-owner Beats. Build each preset with
+the public `buildSilentScenePreset` from `@axmorf/studio/contracts`: presetId, durationInFrames, visualIntent, soundIntent,
+sorted resourceIds and `implementation: {kind: "scene-owner"}`. The Scene brief's visualIntent, soundIntent and
+candidateResourceIds must match that preset. Frame durations are authoritative; no TTS, PCM narration master or captions
+are generated. Publishing chapters may be empty or cover every content Beat in order. Include inherited boundaries in the
+total frame budget. Default narrated authoring continues to use sealed PCM samples; do not implicitly switch an existing Project.
+
+The Story resource pool may be broader, but a silent preset's resourceIds are exact required consumption, not a list of
+optional candidates. Freeze only resources the Beat will actually use; do not force irrelevant effects to satisfy an
+overbroad preset. Deduplicate and sort IDs before the public builder. Validate the full input and stop if input generation
+fails; do not invoke create with a missing or stale file.
+
+Continuous external handoffs apply to adjacent Scene owners in either timing mode. Only a group's final Beat brief defines
+its outgoing seam; internal Beat handoffs do not become external transitions. Fixed templates remain separate boundaries.
+
 - Resolve each render field from the explicit user request first, then `renderDefaults` for unspecified fields.
   Set optional `render.width`, `render.height`, `render.fps`, and `render.locale` only when requested. An orientation
   or aspect ratio requires concrete width and height; for example, a requested 16:9 landscape video can use
@@ -37,8 +66,8 @@ caption budget and licensing are still checked by create. Do not read package in
   with `visualStyle` and `continuityBrief`. For longer narration, plan distinct framing or visible state changes at semantic
   turns, then hold the result briefly; camera drift alone does not add information. Keep text and chart labels readable after
   camera scaling, use theme roles for every foreground, and reserve the caption region. A generic diagram or decorative movement is not a substitute for that sequence.
-- Before create, Root selects continuous seams: add `outgoingHandoff: { "subject": "the same subject and meaning across the boundary" }` to the preceding narrated Scene brief. Both isolated tasks receive the same immutable `scene.taskInput.continuity.handoffs` ID, subject and outgoing kind. Leave the field absent for a motivated cut; fixed template boundaries cannot promise continuous motion. Tracked v1 continuous seams also need a complete Root-authored `trackedState` boundary pose. Intent v2 leaves geometry and implementation free. Do not invent handoff IDs in workers or coordinate by reading another workspace.
-- New narrated Projects freeze `scene-content-motion-v1`: use intent-first motionPlan v2 for subjects, explanatory actions, sealed narration anchors and reading holds. Custom frame-driven SVG, Canvas and supported 3D are allowed. Tracked v1 and `ProducerMotionObject` are optional; their limited DOM dependency probe checks declared tracks without proving visibility or aesthetics. Intent-only and unsupported results require actual temporal review. Match frozen handoffs, explain deliberate holds/cuts and inspect real action/boundary previews; no camera quota or fixed metaphor. Fixed `scene-template` tasks retain canonical validation and are exempt from Agent content-motion checks.
+- Before create, Root selects continuous seams: add `outgoingHandoff: { "subject": "the same subject and meaning across the boundary" }` to the preceding Scene owner's final Beat brief. Both isolated tasks receive the same immutable `scene.taskInput.continuity.handoffs` ID, subject and outgoing kind. Leave the field absent for a motivated cut; fixed template boundaries cannot promise continuous motion. Tracked v1 continuous seams also need a complete Root-authored `trackedState` boundary pose. Intent v2 leaves geometry and implementation free. Do not invent handoff IDs in workers or coordinate by reading another workspace.
+- New Scene owners freeze `scene-content-motion-v1`: use intent-first motionPlan v2 for subjects, explanatory actions, semantic anchors and reading holds. Narrated anchors use sealed narration; authored anchors use preset frames. Custom frame-driven SVG, Canvas and supported 3D are allowed. Tracked v1 and `ProducerMotionObject` are optional; their limited DOM dependency probe checks declared tracks without proving visibility or aesthetics. Intent-only and unsupported results require actual temporal review. Match frozen handoffs, explain deliberate holds/cuts and inspect real action/boundary previews; no camera quota or fixed metaphor. Fixed `scene-template` tasks retain canonical validation and are exempt from Agent content-motion checks.
 - `ttsChunks` contains objects with `chunkId` and `ttsText`, not strings. Keep each within 72 caption display half-units; shorten or
   split by natural meaning when needed. Audio sample measurements determine actual duration.
 - The duration brief includes inherited intro/outro Scenes. Report their selection before create; do not silently disable them to
@@ -93,7 +122,7 @@ const input = ProjectRevisionInputSchema.parse({
     scenes: revisionContext.editable.scenes.map((scene) =>
       scene.meaningId === targetMeaningId
         ? { ...scene, compositionIntent: revisedCompositionIntent }
-        : scene
+        : scene,
     ),
   },
 });
@@ -103,6 +132,12 @@ Write only `input` to a Workspace-relative JSON file, not the context response o
 Keep VisualStyle, GlobalVisual, Story/TTS and unaffected Scenes unchanged for a local correction.
 Changing shared VisualStyle for one Scene invalidates unrelated visual tasks. There is no `patch.cover` or Cover-only
 revision API; if the installed schema cannot express a scoped correction, report that limitation instead of inventing a field.
+
+For a grouped Scene, change only the requested member's brief in the complete Scene list; the same owner implements that
+delta using frozen priorSource. Changing compositionIntent does not require changing silent preset visualIntent or timing.
+Explicit regrouping uses the full supported `patch.story`, preserving content meaningIds/order and the existing timingSource.
+Revision snapshots preserve present/absent owned roots. Authored timing may have no narration root; do not create a dummy
+directory. Promotion and rollback preserve absence. Source/public/delivery remain required; old v1 candidates fail closed.
 
 ```bash
 npm run project:revise:validate -- --input <repository-relative-json>

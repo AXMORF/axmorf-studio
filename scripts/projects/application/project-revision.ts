@@ -226,8 +226,13 @@ const readProjectJson = async ({
     ),
   ) as unknown;
 
-const narratedBeats = (story: ReturnType<typeof StorySpecSchema.parse>) =>
-  story.beats.filter((beat) => beat.kind === "narrated-scene");
+const contentBeats = (story: ReturnType<typeof StorySpecSchema.parse>) =>
+  story.beats.filter(
+    (beat) =>
+      beat.kind === "narrated-scene" ||
+      (story.timingSource === "authored-frames" &&
+        beat.preset.implementation.kind === "scene-owner"),
+  );
 
 const editableVisualStyle = (
   visualStyle: ReturnType<typeof VisualStyleSpecSchema.parse>,
@@ -314,15 +319,22 @@ const readEditableProject = async ({
     throw new Error("Project revision pending Scene authoring is stale.");
   }
   const narratedMeaningIds = new Set(
-    narratedBeats(story).map(({ meaningId }) => meaningId),
+    contentBeats(story).map(({ meaningId }) => meaningId),
   );
   const editable = ProjectRevisionEditableAuthoringSchema.parse({
     brief,
     story: {
+      ...(story.timingSource === undefined
+        ? {}
+        : { timingSource: story.timingSource }),
+      ...(story.filmPlan === undefined ? {} : { filmPlan: story.filmPlan }),
+      ...(story.visualScenes === undefined
+        ? {}
+        : { visualScenes: story.visualScenes }),
       schemaVersion: story.schemaVersion,
       storyId,
       title: story.title,
-      beats: narratedBeats(story),
+      beats: contentBeats(story),
     },
     visualStyle: editableVisualStyle(visualStyle),
     scenes: pending.scenes.filter(({ meaningId }) =>
@@ -451,7 +463,7 @@ const assertMeaningOrder = ({
     expected.some((meaningId, index) => meaningId !== actual[index])
   ) {
     throw new Error(
-      `${label} must preserve narrated meaning IDs and order exactly.`,
+      `${label} must preserve content meaning IDs and order exactly.`,
     );
   }
 };
@@ -509,6 +521,14 @@ const inspectProjectRevisionAuthoring = async ({
     }
   }
   if (input.patch.story !== undefined) {
+    if (
+      (input.patch.story.timingSource ?? "sealed-narration") !==
+      (state.project.story.timingSource ?? "sealed-narration")
+    ) {
+      throw new Error(
+        "Project revision must preserve the current timing source; create a new Project to change it.",
+      );
+    }
     assertMeaningOrder({
       expected: expectedMeaningIds,
       actual: input.patch.story.beats.map(({ meaningId }) => meaningId),
@@ -610,10 +630,21 @@ const applyProjectRevisionPatch = async ({
     authoredStory.beats.map((beat) => [beat.meaningId, beat] as const),
   );
   const story = StorySpecSchema.parse({
-    ...project.story,
+    schemaVersion: project.story.schemaVersion,
+    storyId,
+    ...(authoredStory.timingSource === undefined
+      ? {}
+      : { timingSource: authoredStory.timingSource }),
+    ...(authoredStory.filmPlan === undefined
+      ? {}
+      : { filmPlan: authoredStory.filmPlan }),
+    ...(authoredStory.visualScenes === undefined
+      ? {}
+      : { visualScenes: authoredStory.visualScenes }),
     title: authoredStory.title,
     beats: project.story.beats.map((beat) =>
-      beat.kind === "silent-scene"
+      beat.kind === "silent-scene" &&
+      beat.preset.implementation.kind === "template-copy"
         ? beat
         : (revisedBeatByMeaning.get(beat.meaningId) ?? beat),
     ),
@@ -696,7 +727,7 @@ const applyProjectRevisionPatch = async ({
     resourcePolicy: previousRequirements.resourcePolicy,
     additionalRequirements: previousRequirements.additionalRequirements,
     readability: {
-      edgeInsetPx: previousRequirements.readabilityPolicy.baseEdgeInsetPx,
+      frozenPolicy: previousRequirements.readabilityPolicy,
     },
   });
   const visualStyle = VisualStyleSpecSchema.parse({
@@ -812,7 +843,7 @@ const applyProjectRevisionPatch = async ({
       `src/projects/${storyId}/generated/scene-coverage.generated.json`,
       `src/projects/${storyId}/production-scene-runtime.generated.ts`,
       `src/projects/${storyId}/Composition.tsx`,
-      ...narratedBeats(project.story).map(
+      ...contentBeats(project.story).map(
         ({ meaningId }) => `src/projects/${storyId}/scenes/${meaningId}`,
       ),
     ]) {

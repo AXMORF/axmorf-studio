@@ -33,13 +33,15 @@ source/public/narration/delivery 四个 Project-owned roots；失败完整 rollb
 
 ## 2. 必须长期保持的产品不变量
 
-- 一 Story 一个 Composition；一 StoryBeat 一个 meaningId、Scene 和完成后的 ScenePackage。
-- narrated 与 silent Scene 是 discriminated contract；silent Scene 只在时间线首尾且没有 TTS、CaptionCue
-  或 sealed narration segment。
+- 一 Story 一个 Composition；一 StoryBeat 一个 meaningId。一个 Scene/Renderer/ScenePackage 可拥有多个连续正文 Beat，
+  语义 Coverage、旁白和章节仍逐 Beat；分组来自严格有序的 `story.visualScenes`，全片意图来自 `story.filmPlan`。
+- narrated 与 silent Beat 是 discriminated contract。缺省 sealed-narration 模式的 silent 只位于首尾；显式
+  authored-frames 模式以 silent scene-owner 正文的 preset 帧数定义时间，没有 TTS、CaptionCue、seal 或 mastered WAV。
+  两种时间源不能混合，template-copy 仅在首尾。
 - Agent-authored `ttsChunks` 不被工具改写；sealed PCM sample measurement 和累计 sample frame 是时间
   authority。
 - Scene root 透明；Composition 顶层 exactly once owns safe-area-local SceneViewport、captions、narration 和
-  GlobalVisual。GlobalVisual base 覆盖完整 Composition；decoration 仅覆盖首个至末个 narrated Scene 的连续
+  GlobalVisual。GlobalVisual base 覆盖完整 Composition；decoration 仅覆盖正文 Beat 的连续
   窗口，不进入 silent boundary。Scene 只在本地 viewport 内布局，不感知 full-frame inset。
 - template-copy Scene 是 Project-local immutable instance，由 fixed task 产出，不派发 Agent。
 - package-owned shared Workspace resources 只通过 runtime policy、manifest、checksum 与 license gate 发行；
@@ -112,6 +114,8 @@ decode 全部通过后才替换。相同完整 identity 是只读 no-op。
 - Project 删除使用完整 storyId 确认并清理该 Project 的全部 ownership roots，同时保护其他 Project、
   core、shared media、private config 与 voice profiles。
 - 每个完成状态都有机械证据；聊天成功、Agent 自评、文件存在或进程启动都不代表交付完成。
+- 有效 owner artifacts 齐全后可先生成冻结草稿，再执行正式 continuation；草稿按比例降低像素而保留布局、fps、
+  时间和声音。独立 receipt 绑定源码、资源、artifacts、runtime 和 profile，审片结论独立于 checksum/EOF 通过。
 - 新建视频的尺寸/横竖屏、fps、locale 按用户明确要求优先、未指定字段继承配置。Agent 将要求写入结构化 create
   input；fixed creator 解析并冻结 Project RenderSpec，返回实际值供有成本生产前复核，不自动改写长期默认配置。
 - Agent 执行模式按用户提示词明确字段、配置页、内置 `subagents`/4 默认逐级解析；默认要求

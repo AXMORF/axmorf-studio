@@ -11,7 +11,7 @@ import {
 export const NarrativeArtifactBundleSchema = z
   .object({
     projectSource: NarrativeProjectSourceSchema,
-    sealedNarration: SealedNarrationManifestSchema,
+    sealedNarration: SealedNarrationManifestSchema.nullable(),
     semanticTiming: SemanticTimingSchema,
   })
   .strict()

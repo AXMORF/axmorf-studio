@@ -17,6 +17,7 @@ import {
   type ProductionRevisionId,
   type SealedNarrationManifest,
   type SemanticTiming,
+  type AuthoredFrameTiming,
   type Sha256Digest,
 } from "@axmorf/studio/contracts";
 import { resolveProducerNarrationExecution } from "../../config/narration-execution";
@@ -32,6 +33,7 @@ import {
   readCandidateBytes,
 } from "../../narration/adapters/candidate-workspace";
 import { runNarrationSeal } from "../../narration/seal-runner";
+import { writeAuthoredFrameTiming } from "../../narration/authored-frame-timing";
 import { writeJsonAtomic } from "../../narration/adapters/atomic-files";
 import {
   inspectArtifact,
@@ -49,7 +51,8 @@ import {
   type ProductionScope,
 } from "./production-scope";
 
-export type PreparedNarrationInputs = Readonly<{
+export type PreparedSealedNarrationInputs = Readonly<{
+  timingSource?: "sealed-narration";
   providerAttemptFingerprint: Sha256Digest;
   masteringPolicy: MasteredNarrationManifest["masteringPolicy"];
   sealedNarration: SealedNarrationManifest;
@@ -66,6 +69,26 @@ export type PreparedNarrationInputs = Readonly<{
     providerCacheHits: number;
   }>;
 }>;
+
+export type PreparedAuthoredFrameInputs = Readonly<{
+  timingSource: "authored-frames";
+  providerAttemptFingerprint: null;
+  masteringPolicy: null;
+  sealedNarration: null;
+  masteredNarration: null;
+  semanticTiming: AuthoredFrameTiming;
+  sealedManifestBytes: null;
+  masteredManifestBytes: null;
+  semanticTimingBytes: Uint8Array;
+  completeAudioBytes: null;
+  masteredAudioBytes: null;
+  chunkAudioBytes: ReadonlyMap<string, Uint8Array>;
+  actualCost: Readonly<{ providerRequests: number; providerCacheHits: number }>;
+}>;
+
+export type PreparedNarrationInputs =
+  | PreparedSealedNarrationInputs
+  | PreparedAuthoredFrameInputs;
 
 export type PrepareNarration = (input: {
   readonly rootDir: string;
@@ -204,6 +227,37 @@ export const prepareNarrationInputs: PrepareNarration = async ({
     rootDir: contentRoot,
     projectId,
   });
+  if (projectSource.story.timingSource === "authored-frames") {
+    const semanticTiming = await writeAuthoredFrameTiming({
+      rootDir: contentRoot,
+      projectSource,
+    });
+    await checkM2NarrationArtifacts({ rootDir: contentRoot, projectSource });
+    const semanticTimingBytes = await readRegularBytes(
+      join(
+        contentRoot,
+        "src/projects",
+        projectId,
+        "generated/semantic-timing.generated.json",
+      ),
+      "authored semantic timing",
+    );
+    return {
+      timingSource: "authored-frames",
+      providerAttemptFingerprint: null,
+      masteringPolicy: null,
+      sealedNarration: null,
+      masteredNarration: null,
+      semanticTiming,
+      sealedManifestBytes: null,
+      masteredManifestBytes: null,
+      semanticTimingBytes,
+      completeAudioBytes: null,
+      masteredAudioBytes: null,
+      chunkAudioBytes: new Map(),
+      actualCost: { providerRequests: 0, providerCacheHits: 0 },
+    };
+  }
   const execution = await resolveProducerNarrationExecution({
     rootDir: scope.shared.runtimeRoot,
     env,

@@ -14,11 +14,13 @@ import {
   StoryIdSchema,
   TtsChunkIdSchema,
 } from "./primitives";
-import type { RenderSpec } from "./render";
+import { RenderSpecSchema, type RenderSpec } from "./render";
 import type { SealedNarrationManifest } from "./sealed-narration";
-import type { StorySpec } from "./story";
+import { StorySpecSchema, type StorySpec } from "./story";
 
 export const TIMING_ALGORITHM_ID = "pcm-cumulative-ceil-v1" as const;
+export const AUTHORED_FRAME_TIMING_ALGORITHM_ID =
+  "authored-cumulative-frames-v1" as const;
 
 const FrameRangeSchema = z
   .object({
@@ -141,9 +143,7 @@ const SilentStoryBeatTimingSchema = z
         message: "Silent StoryBeat timing must cover at least one frame.",
       });
     }
-    if (
-      beat.endFrame - beat.startFrame !== beat.presetDurationInFrames
-    ) {
+    if (beat.endFrame - beat.startFrame !== beat.presetDurationInFrames) {
       context.addIssue({
         code: "custom",
         message: "Silent StoryBeat timing must equal its preset duration.",
@@ -158,7 +158,7 @@ const StoryBeatTimingSchema = z.discriminatedUnion("kind", [
   SilentStoryBeatTimingSchema,
 ]);
 
-export const SemanticTimingSchema = z
+const NarratedSemanticTimingSchema = z
   .object({
     schemaVersion: z.literal(3),
     algorithmId: z.literal(TIMING_ALGORITHM_ID),
@@ -329,7 +329,98 @@ export const SemanticTimingSchema = z
   })
   .readonly();
 
+export const AuthoredFrameTimingSchema = z
+  .object({
+    schemaVersion: z.literal(3),
+    algorithmId: z.literal(AUTHORED_FRAME_TIMING_ALGORITHM_ID),
+    storyId: StoryIdSchema,
+    fingerprint: Sha256DigestSchema,
+    sampleRate: z.null(),
+    fps: z.number().int().positive().safe(),
+    leadInFrames: NonNegativeIntegerSchema,
+    tailFrames: NonNegativeIntegerSchema,
+    narrationStartFrame: z.null(),
+    durationInFrames: PositiveIntegerSchema,
+    segments: z.tuple([]).readonly(),
+    captionCues: z.tuple([]).readonly(),
+    storyBeats: z.array(SilentStoryBeatTimingSchema).min(1).readonly(),
+    contentFrameRange: z
+      .object({
+        startFrame: NonNegativeIntegerSchema,
+        endFrame: PositiveIntegerSchema,
+      })
+      .strict()
+      .readonly(),
+  })
+  .strict()
+  .superRefine((timing, context) => {
+    let cursor = timing.leadInFrames;
+    const ids = new Set<string>();
+    timing.storyBeats.forEach((beat, index) => {
+      if (beat.startFrame !== cursor || ids.has(beat.meaningId)) {
+        context.addIssue({
+          code: "custom",
+          message:
+            "Authored-frame Beats must have unique IDs and cumulative frame boundaries.",
+          path: ["storyBeats", index],
+        });
+      }
+      cursor = beat.endFrame;
+      ids.add(beat.meaningId);
+    });
+    const expectedDuration = cursor + timing.tailFrames;
+    if (
+      !Number.isSafeInteger(expectedDuration) ||
+      timing.durationInFrames !== expectedDuration
+    ) {
+      context.addIssue({
+        code: "custom",
+        message:
+          "Authored-frame duration must include cumulative Beats and tail.",
+        path: ["durationInFrames"],
+      });
+    }
+    if (
+      timing.contentFrameRange.endFrame <=
+        timing.contentFrameRange.startFrame ||
+      !timing.storyBeats.some(
+        (beat) => beat.startFrame === timing.contentFrameRange.startFrame,
+      ) ||
+      !timing.storyBeats.some(
+        (beat) => beat.endFrame === timing.contentFrameRange.endFrame,
+      )
+    ) {
+      context.addIssue({
+        code: "custom",
+        message:
+          "Authored visual content must cover a non-empty whole-Beat frame window.",
+        path: ["contentFrameRange"],
+      });
+    }
+  })
+  .readonly();
+
+export const SemanticTimingSchema = z.discriminatedUnion("algorithmId", [
+  NarratedSemanticTimingSchema,
+  AuthoredFrameTimingSchema,
+]);
+
 export type SemanticTiming = z.infer<typeof SemanticTimingSchema>;
+export type AuthoredFrameTiming = z.infer<typeof AuthoredFrameTimingSchema>;
+
+export const resolveSemanticContentFrameRange = (rawTiming: unknown) => {
+  const timing = SemanticTimingSchema.parse(rawTiming);
+  if (timing.algorithmId === AUTHORED_FRAME_TIMING_ALGORITHM_ID)
+    return timing.contentFrameRange;
+  const content = timing.storyBeats.filter(
+    (beat) => beat.kind === "narrated-scene",
+  );
+  const first = content[0];
+  const last = content.at(-1);
+  if (first === undefined || last === undefined)
+    throw new Error("Semantic timing has no content window.");
+  return { startFrame: first.startFrame, endFrame: last.endFrame } as const;
+};
 
 export const ceilDivBigInt = (value: bigint, divisor: bigint): bigint => {
   if (value < 0n || divisor <= 0n)
@@ -378,10 +469,27 @@ export const sampleFrameToFrame = ({
 
 export const computeSemanticTimingFingerprint = (
   story: StorySpec,
-  sealedNarration: SealedNarrationManifest,
+  sealedNarration: SealedNarrationManifest | null,
   render: RenderSpec,
-) =>
-  createFingerprint({
+) => {
+  if (story.timingSource === "authored-frames") {
+    if (sealedNarration !== null)
+      throw new Error("Authored-frame timing cannot use sealed narration.");
+    return createFingerprint({
+      namespace: "semantic-timing",
+      version: 3,
+      value: {
+        algorithmId: AUTHORED_FRAME_TIMING_ALGORITHM_ID,
+        storyFingerprint: computeStoryFingerprint(story),
+        fps: render.fps,
+        leadInFrames: render.leadInFrames,
+        tailFrames: render.tailFrames,
+      },
+    });
+  }
+  if (sealedNarration === null)
+    throw new Error("Narrated timing requires sealed narration.");
+  return createFingerprint({
     namespace: "semantic-timing",
     version: 3,
     value: {
@@ -393,6 +501,70 @@ export const computeSemanticTimingFingerprint = (
       tailFrames: render.tailFrames,
     },
   });
+};
+
+export const generateAuthoredFrameTiming = ({
+  story: rawStory,
+  render: rawRender,
+}: {
+  readonly story: StorySpec;
+  readonly render: RenderSpec;
+}): AuthoredFrameTiming => {
+  const story = StorySpecSchema.parse(rawStory);
+  const render = RenderSpecSchema.parse(rawRender);
+  if (story.timingSource !== "authored-frames")
+    throw new Error(
+      "Authored-frame timing requires an explicit Story timing source.",
+    );
+  let cursor = BigInt(render.leadInFrames);
+  const storyBeats = story.beats.map((beat) => {
+    if (beat.kind !== "silent-scene")
+      throw new Error("Authored-frame timing rejects narrated Beats.");
+    const startFrame = toSafeNumber(cursor, "Authored-frame startFrame");
+    cursor += BigInt(beat.preset.durationInFrames);
+    return {
+      kind: beat.kind,
+      meaningId: beat.meaningId,
+      presetFingerprint: beat.preset.presetFingerprint,
+      presetDurationInFrames: beat.preset.durationInFrames,
+      startFrame,
+      endFrame: toSafeNumber(cursor, "Authored-frame endFrame"),
+    };
+  });
+  const content = storyBeats.filter((_, index) => {
+    const beat = story.beats[index];
+    return (
+      beat.kind === "silent-scene" &&
+      beat.preset.implementation.kind === "scene-owner"
+    );
+  });
+  const first = content[0];
+  const last = content.at(-1);
+  if (first === undefined || last === undefined)
+    throw new Error("Authored-frame timing requires visual content.");
+  return AuthoredFrameTimingSchema.parse({
+    schemaVersion: 3,
+    algorithmId: AUTHORED_FRAME_TIMING_ALGORITHM_ID,
+    storyId: story.storyId,
+    fingerprint: computeSemanticTimingFingerprint(story, null, render),
+    sampleRate: null,
+    fps: render.fps,
+    leadInFrames: render.leadInFrames,
+    tailFrames: render.tailFrames,
+    narrationStartFrame: null,
+    durationInFrames: toSafeNumber(
+      cursor + BigInt(render.tailFrames),
+      "Authored-frame durationInFrames",
+    ),
+    segments: [],
+    captionCues: [],
+    storyBeats,
+    contentFrameRange: {
+      startFrame: first.startFrame,
+      endFrame: last.endFrame,
+    },
+  });
+};
 
 export const generateSemanticTiming = ({
   story,
@@ -403,8 +575,15 @@ export const generateSemanticTiming = ({
   readonly story: StorySpec;
   readonly narration: NarrationSpec;
   readonly render: RenderSpec;
-  readonly sealedNarration: SealedNarrationManifest;
+  readonly sealedNarration: SealedNarrationManifest | null;
 }): SemanticTiming => {
+  if (story.timingSource === "authored-frames") {
+    if (sealedNarration !== null)
+      throw new Error("Authored-frame timing cannot use sealed narration.");
+    return generateAuthoredFrameTiming({ story, render });
+  }
+  if (sealedNarration === null)
+    throw new Error("Narrated timing requires sealed narration.");
   if (story.storyId !== sealedNarration.storyId)
     throw new Error("Story and sealed narration ids differ.");
   if (
@@ -592,7 +771,11 @@ export const generateSemanticTiming = ({
     schemaVersion: 3,
     algorithmId: TIMING_ALGORITHM_ID,
     storyId: story.storyId,
-    fingerprint: computeSemanticTimingFingerprint(story, sealedNarration, render),
+    fingerprint: computeSemanticTimingFingerprint(
+      story,
+      sealedNarration,
+      render,
+    ),
     sampleRate: sealedNarration.canonicalPcm.sampleRate,
     fps: render.fps,
     leadInFrames: render.leadInFrames,

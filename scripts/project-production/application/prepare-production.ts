@@ -23,6 +23,7 @@ import {
   buildNarrationChunkTask,
   buildNarrationSealTask,
   buildSemanticTimingTask,
+  buildAuthoredSemanticTimingTask,
 } from "./build-current-plan";
 import { inspectProjectProduction } from "./inspect-production";
 import { loadProjectProductionInputs } from "./load-inputs";
@@ -80,76 +81,93 @@ const prepareFixedTaskArtifacts = async ({
     );
   }
   const revision = buildCurrentProductionRevision(inputs);
-  const chunkArtifacts: Array<{
-    task: ProducerTaskSpec;
-    attestation: ArtifactAttestation;
-  }> = [];
-  for (const segment of narration.sealedNarration.segments) {
-    if (segment.kind !== "chunk") continue;
-    const audio = narration.chunkAudioBytes.get(segment.chunkId);
-    if (audio === undefined) {
-      throw new Error("Prepared narration chunk bytes are incomplete.");
-    }
-    const built = buildNarrationChunkTask({
-      storyId: inputs.projectId,
+  if (narration.timingSource === "authored-frames") {
+    const timing = buildAuthoredSemanticTimingTask({
+      inputs,
       revisionId: revision.revisionId,
-      narrationFingerprint: inputs.fingerprints.narration,
-      providerAttemptFingerprint: narration.providerAttemptFingerprint,
-      chunk: segment,
     });
-    chunkArtifacts.push({
-      task: built.task,
-      attestation: await ensureFixedTaskArtifact({
-        rootDir,
+    await ensureFixedTaskArtifact({
+      rootDir,
+      task: timing.task,
+      workspaceRootDir: scope.isolatedRoot,
+      files: {
+        "inputs/context.json": timing.contextBytes,
+        "project/generated/semantic-timing.generated.json":
+          narration.semanticTimingBytes,
+      },
+    });
+  } else {
+    const chunkArtifacts: Array<{
+      task: ProducerTaskSpec;
+      attestation: ArtifactAttestation;
+    }> = [];
+    for (const segment of narration.sealedNarration.segments) {
+      if (segment.kind !== "chunk") continue;
+      const audio = narration.chunkAudioBytes.get(segment.chunkId);
+      if (audio === undefined) {
+        throw new Error("Prepared narration chunk bytes are incomplete.");
+      }
+      const built = buildNarrationChunkTask({
+        storyId: inputs.projectId,
+        revisionId: revision.revisionId,
+        narrationFingerprint: inputs.fingerprints.narration,
+        providerAttemptFingerprint: narration.providerAttemptFingerprint,
+        chunk: segment,
+      });
+      chunkArtifacts.push({
         task: built.task,
-        workspaceRootDir: scope.isolatedRoot,
-        files: {
-          "inputs/context.json": built.contextBytes,
-          "public/chunk.wav": audio,
-        },
-      }),
+        attestation: await ensureFixedTaskArtifact({
+          rootDir,
+          task: built.task,
+          workspaceRootDir: scope.isolatedRoot,
+          files: {
+            "inputs/context.json": built.contextBytes,
+            "public/chunk.wav": audio,
+          },
+        }),
+      });
+    }
+    const seal = buildNarrationSealTask({
+      inputs,
+      revisionId: revision.revisionId,
+      dependencies: chunkArtifacts.map(({ task, attestation }) =>
+        artifactBinding(task, attestation),
+      ),
+      generationInputFingerprint:
+        narration.sealedNarration.generationInputFingerprint,
+    });
+    const sealAttestation = await ensureFixedTaskArtifact({
+      rootDir,
+      task: seal.task,
+      workspaceRootDir: scope.isolatedRoot,
+      files: {
+        "inputs/context.json": seal.contextBytes,
+        "project/generated/sealed-narration.generated.json":
+          narration.sealedManifestBytes,
+        "public/complete.wav": narration.completeAudioBytes,
+      },
+    });
+    const timing = buildSemanticTimingTask({
+      inputs,
+      revisionId: revision.revisionId,
+      sealTask: seal.task,
+      sealAttestation,
+      masteringPolicy: narration.masteringPolicy,
+    });
+    await ensureFixedTaskArtifact({
+      rootDir,
+      task: timing.task,
+      workspaceRootDir: scope.isolatedRoot,
+      files: {
+        "inputs/context.json": timing.contextBytes,
+        "project/generated/mastered-narration.generated.json":
+          narration.masteredManifestBytes,
+        "project/generated/semantic-timing.generated.json":
+          narration.semanticTimingBytes,
+        "public/mastered-complete.wav": narration.masteredAudioBytes,
+      },
     });
   }
-  const seal = buildNarrationSealTask({
-    inputs,
-    revisionId: revision.revisionId,
-    dependencies: chunkArtifacts.map(({ task, attestation }) =>
-      artifactBinding(task, attestation),
-    ),
-    generationInputFingerprint:
-      narration.sealedNarration.generationInputFingerprint,
-  });
-  const sealAttestation = await ensureFixedTaskArtifact({
-    rootDir,
-    task: seal.task,
-    workspaceRootDir: scope.isolatedRoot,
-    files: {
-      "inputs/context.json": seal.contextBytes,
-      "project/generated/sealed-narration.generated.json":
-        narration.sealedManifestBytes,
-      "public/complete.wav": narration.completeAudioBytes,
-    },
-  });
-  const timing = buildSemanticTimingTask({
-    inputs,
-    revisionId: revision.revisionId,
-    sealTask: seal.task,
-    sealAttestation,
-    masteringPolicy: narration.masteringPolicy,
-  });
-  await ensureFixedTaskArtifact({
-    rootDir,
-    task: timing.task,
-    workspaceRootDir: scope.isolatedRoot,
-    files: {
-      "inputs/context.json": timing.contextBytes,
-      "project/generated/mastered-narration.generated.json":
-        narration.masteredManifestBytes,
-      "project/generated/semantic-timing.generated.json":
-        narration.semanticTimingBytes,
-      "public/mastered-complete.wav": narration.masteredAudioBytes,
-    },
-  });
 
   for (const built of buildAgentTasks(inputs, revision.revisionId)) {
     if (built.task.taskKind !== "scene-template") continue;

@@ -484,6 +484,7 @@ export const buildDeliveryUnlocked = async ({
         outputPath,
         entryPoint: prepared.entryPoint,
         publicDir: prepared.publicDir,
+        audioChannels: prepared.render.output.audioChannels,
       }),
     inspect: (absolutePath) =>
       inspectVideo({

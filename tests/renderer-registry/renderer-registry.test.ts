@@ -12,7 +12,12 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
 
-import { buildSceneCoverageMap } from "@axmorf/studio/contracts";
+import {
+  buildSceneCoverageMap,
+  computeScenePackageFingerprint,
+  MeaningIdSchema,
+  ScenePackageSchema,
+} from "@axmorf/studio/contracts";
 import {
   buildRendererRegistry,
   collectRendererSourceGraph,
@@ -101,6 +106,62 @@ test("registry discovers fixed-depth Renderer only and emits stable literal stat
       ],
     );
     assert.equal(first.entries.length, 1);
+  } finally {
+    await rm(fixture.rootDir, { recursive: true, force: true });
+  }
+});
+
+test("one owning package binds one renderer for every covered Beat", async () => {
+  const fixture = await prepare();
+  try {
+    const grouped = {
+      ...fixture.scenePackage,
+      schemaVersion: 7 as const,
+      coveredMeaningIds: ["meaning-one", "meaning-two"].map((id) =>
+        MeaningIdSchema.parse(id),
+      ),
+      beatFrameRange: { startFrame: 20, endFrame: 260 },
+    };
+    const scenePackage = ScenePackageSchema.parse({
+      ...grouped,
+      packageFingerprint: computeScenePackageFingerprint(grouped),
+    });
+    const coverage = buildSceneCoverageMap({
+      storyId: "synthetic-proof",
+      storyBeatOrder: ["meaning-one", "meaning-two"],
+      packages: [scenePackage],
+      fallbacks: [],
+      stalePackages: [],
+    });
+    const registry = await buildRendererRegistry({
+      rootDir: fixture.rootDir,
+      projectId: "synthetic-proof",
+      coverage,
+      packages: [scenePackage],
+    });
+    assert.ok(registry);
+    assert.equal(registry.entries.length, 1);
+    assert.equal(registry.entries[0].meaningId, "meaning-one");
+    assert.equal(
+      (registry.source.match(/import Renderer\d+ from/gu) ?? []).length,
+      1,
+    );
+    assert.doesNotMatch(registry.source, /scenes\/meaning-two/u);
+    const incomplete = buildSceneCoverageMap({
+      storyId: "synthetic-proof",
+      storyBeatOrder: ["meaning-one", "meaning-two"],
+      packages: [fixture.scenePackage],
+      fallbacks: [],
+      stalePackages: [],
+    });
+    await assert.rejects(
+      buildRendererRegistry({
+        rootDir: fixture.rootDir,
+        projectId: "synthetic-proof",
+        coverage: incomplete,
+        packages: [scenePackage],
+      }),
+    );
   } finally {
     await rm(fixture.rootDir, { recursive: true, force: true });
   }

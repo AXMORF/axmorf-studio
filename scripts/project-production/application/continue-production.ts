@@ -233,12 +233,13 @@ export const continueProjectProduction = async (
           }),
         ),
     );
-    const terminal = await readProgress({
-      rootDir: executionRoot,
-      storyId: projectId,
-      attemptId,
-    });
-    if (terminal?.state !== "succeeded") {
+    // Convergence returns only after revalidating the current delivery and
+    // stable artifact plan. Attempt terminal writes are diagnostic-only.
+    if (
+      (result.status !== "project-production-complete" &&
+        result.status !== "project-production-current") ||
+      result.revisionId !== revisionId
+    ) {
       throw new Error("Fixed production convergence did not succeed.");
     }
     if (scope.kind === "live-project") {
@@ -246,13 +247,6 @@ export const continueProjectProduction = async (
     }
     if (candidateRecord === null) {
       throw new Error("Execution continuation candidate record is missing.");
-    }
-    if (
-      (result.status !== "project-production-complete" &&
-        result.status !== "project-production-current") ||
-      result.revisionId !== revisionId
-    ) {
-      throw new Error("Candidate production result is not promotable.");
     }
     const expectedDeliveryBuildId = result.delivery.deliveryBuildId;
     const continuation = {

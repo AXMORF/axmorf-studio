@@ -5,6 +5,7 @@ import { dirname, join } from "node:path";
 import test from "node:test";
 
 import {
+  AuthoringRequirementsSchema,
   AuthoringValidationError,
   VISUAL_THEME_PRESETS,
   NarrationSpecSchema,
@@ -13,7 +14,9 @@ import {
   StorySpecSchema,
   computeGenerationInputFingerprint,
   computeSealedNarrationFingerprint,
+  buildSilentScenePreset,
   generateSemanticTiming,
+  resolveSceneViewport,
 } from "@axmorf/studio/contracts";
 import { ProjectCreateInputSchema } from "@axmorf/studio/contracts";
 import {
@@ -87,6 +90,74 @@ test("create resolves explicit render fields over defaults without changing sett
     const current = await createProject(args);
     assert.equal(current.status, "project-create-current");
     assert.deepEqual(current.render, frozen);
+    assert.deepEqual(await snapshotProjectMtimes(fixture.rootDir), before);
+    assert.deepEqual(await readFile(fixture.configPath), configBefore);
+  }
+});
+
+test("authored create freezes frame-safe geometry for landscape and portrait without changing configured insets", async (t) => {
+  for (const dimensions of [
+    { width: 1280, height: 720, viewportWidth: 1100, viewportHeight: 540 },
+    { width: 1080, height: 1920, viewportWidth: 900, viewportHeight: 1740 },
+  ]) {
+    const fixture = await prepareProjectCreateFixture();
+    t.after(() => rm(fixture.rootDir, { recursive: true, force: true }));
+    const configBefore = await readFile(fixture.configPath);
+    await writeProjectCreateJson(fixture.inputPath, {
+      ...validProjectCreateInput,
+      story: {
+        ...validProjectCreateInput.story,
+        timingSource: "authored-frames",
+        beats: [
+          {
+            kind: "silent-scene",
+            meaningId: "opening",
+            narrativePurpose: "Express the result through continuous motion.",
+            preset: buildSilentScenePreset({
+              presetId: "opening",
+              durationInFrames: 120,
+              visualIntent: "Retain one subject in one continuous world.",
+              soundIntent: "No narration or captions.",
+              resourceIds: [],
+              implementation: { kind: "scene-owner" },
+            }),
+          },
+        ],
+      },
+      render: {
+        ...validProjectCreateInput.render,
+        width: dimensions.width,
+        height: dimensions.height,
+      },
+    });
+    const request = {
+      rootDir: fixture.rootDir,
+      projectId: validProjectCreateInput.storyId,
+      inputPath: fixture.inputPath,
+      env: { RSP_PRODUCER_CONFIG: fixture.configPath },
+    };
+    await createProject(request);
+    const requirementsPath = join(
+      fixture.rootDir,
+      "src/projects/story-example/production/requirements.json",
+    );
+    const requirementsBytes = await readFile(requirementsPath);
+    const requirements = AuthoringRequirementsSchema.parse(
+      JSON.parse(requirementsBytes.toString("utf8")),
+    );
+    assert.ok(requirements.readabilityPolicy.policyVersion === 2);
+    assert.equal(requirements.readabilityPolicy.captionBand, "none");
+    assert.equal(requirements.readabilityPolicy.baseEdgeInsetPx, 90);
+    const viewport = resolveSceneViewport(requirements.readabilityPolicy);
+    assert.equal(viewport.width, dimensions.viewportWidth);
+    assert.equal(viewport.height, dimensions.viewportHeight);
+    assert.equal(viewport.minFontSizePx, 36);
+    const before = await snapshotProjectMtimes(fixture.rootDir);
+    assert.equal(
+      (await createProject(request)).status,
+      "project-create-current",
+    );
+    assert.deepEqual(await readFile(requirementsPath), requirementsBytes);
     assert.deepEqual(await snapshotProjectMtimes(fixture.rootDir), before);
     assert.deepEqual(await readFile(fixture.configPath), configBefore);
   }
@@ -855,6 +926,13 @@ test("project:create localizes packaged template sounds inside the new Project",
     ),
     Buffer.from("synthetic project create music"),
   );
+  const soundPlan = JSON.parse(
+    await readFile(
+      join(fixture.rootDir, "src/projects/story-example/sound.json"),
+      "utf8",
+    ),
+  );
+  assert.equal(soundPlan.contributions[0]?.playbackScope, "content-window");
   await stat(
     join(
       fixture.rootDir,

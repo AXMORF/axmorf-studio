@@ -1,6 +1,6 @@
 {
-  "schemaVersion": 19,
-  "policyVersion": "axmorf-video-policy-v24",
+  "schemaVersion": 20,
+  "policyVersion": "axmorf-video-policy-v27",
   "rootEndpoints": [
     "project-production-complete",
     "project-production-current"
@@ -20,6 +20,7 @@
     "Finish with verified delivery"
   ],
   "requiredReferences": [
+    "references/film-direction.md",
     "references/producer-config.md",
     "references/direct-production-workflow.md",
     "references/execution-capabilities.md",
@@ -54,11 +55,7 @@
   ],
   "executionPolicy": {
     "resolutionPhase": "before-production-inspect",
-    "precedence": [
-      "user-prompt",
-      "settings-page",
-      "builtin-default"
-    ],
+    "precedence": ["user-prompt", "settings-page", "builtin-default"],
     "promptOverridePersistence": "current-production-only-unless-explicit-save",
     "defaultMode": "subagents",
     "defaultSubagentMaxConcurrency": 4,
@@ -122,6 +119,11 @@
     "coverReadsOnlyTaskInputs": true,
     "childIdentityPersisted": false,
     "timingPolicy": "pcm-cumulative-ceil-v1",
+    "authoredTimingPolicy": "authored-cumulative-frames-v1-no-provider-no-narration",
+    "sceneOwnershipPolicy": "ordered-consecutive-content-beat-groups-with-one-renderer-owner",
+    "filmPlanPolicy": "concept-subject-camera-rhythm-sound-immutable-task-context",
+    "optionalDraftReviewPolicy": "native-terminal-wait-and-frozen-preview-before-continuation",
+    "referenceAnalysisPolicy": "bounded-cut-refinement-image-motion-and-frame-evidence-v2-diagnostic-only",
     "storyBeatContract": "discriminated-narrated-or-silent-scene",
     "configuredSceneTemplates": "project-create-copy-with-project-local-instance",
     "templateCopyPolicy": "fixed-task-artifact-without-agent",

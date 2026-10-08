@@ -14,6 +14,10 @@ import {
   SemanticTimingSchema,
   ShotPlanSetSchema,
   SceneSyncAnchorSetSchema,
+  StorySpecSchema,
+  aggregateSceneStoryBeat,
+  aggregateSceneTimingBeat,
+  resolveStorySceneGroups,
   validateSceneMotionPlan,
   StoryIdSchema,
   serializeCanonicalJson,
@@ -120,17 +124,55 @@ export const generateSceneReview = async ({
     ).raw,
   );
   const plan = planSceneReview(timing, delivery);
+  const motionScenes = [];
+  if (motion) {
+    const story = StorySpecSchema.parse(
+      (
+        await readRegularJson(
+          join(rootDir, "src/projects", projectId, "story.json"),
+          "StorySpec",
+        )
+      ).raw,
+    );
+    if (
+      story.storyId !== projectId ||
+      serializeCanonicalJson(story.beats.map(({ meaningId }) => meaningId)) !==
+        serializeCanonicalJson(
+          timing.storyBeats.map(({ meaningId }) => meaningId),
+        )
+    ) {
+      throw new Error(
+        "Motion review Story ownership is stale against current timing.",
+      );
+    }
+    for (const group of resolveStorySceneGroups(story)) {
+      const meaningIds = group.beats.map(({ meaningId }) => meaningId);
+      motionScenes.push({
+        meaningIds,
+        beat: aggregateSceneTimingBeat(
+          timing.storyBeats,
+          meaningIds,
+          aggregateSceneStoryBeat(group.beats),
+        ),
+      });
+    }
+  }
   const sceneClips = motion
-    ? planMotionReview(timing.storyBeats, timing.fps, timing.durationInFrames, {
-        startFrame: timing.leadInFrames,
-        endFrame: timing.durationInFrames - timing.tailFrames,
-      })
+    ? planMotionReview(
+        motionScenes.map(({ beat }) => beat),
+        timing.fps,
+        timing.durationInFrames,
+        {
+          startFrame: timing.leadInFrames,
+          endFrame: timing.durationInFrames - timing.tailFrames,
+        },
+      )
     : [];
 
   const actions: ReturnType<typeof planActionReview> = [];
   const sourcePlans: { meaningId: string; status: string }[] = [];
   if (motion)
-    for (const beat of timing.storyBeats) {
+    for (const { beat, meaningIds } of motionScenes) {
       let raw: unknown;
       try {
         raw = (
@@ -188,12 +230,15 @@ export const generateSceneReview = async ({
           shots: shots.shots,
           anchors: anchors.anchors,
           duration: shots.sceneDurationInFrames,
-          narrationCues: timing.captionCues
-            .filter((cue) => cue.meaningId === beat.meaningId)
-            .map((cue) => ({
-              startFrame: cue.startFrame - beat.startFrame,
-              endFrame: cue.endFrame - beat.startFrame,
-            })),
+          narrationCues:
+            beat.kind === "narrated-scene"
+              ? timing.captionCues
+                  .filter((cue) => meaningIds.includes(cue.meaningId))
+                  .map((cue) => ({
+                    startFrame: cue.startFrame - beat.startFrame,
+                    endFrame: cue.endFrame - beat.startFrame,
+                  }))
+              : undefined,
         });
       }
       actions.push(...planActionReview(shots, beat.startFrame));

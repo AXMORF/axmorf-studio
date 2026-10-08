@@ -27,6 +27,14 @@ export type SceneRendererProps = Readonly<{
   viewportWidth: number;
   viewportHeight: number;
   storyBeat: StoryBeat;
+  coveredBeats?: readonly Readonly<{
+    storyBeat: StoryBeat;
+    timingBeat: Readonly<{
+      meaningId: string;
+      startFrame: number;
+      endFrame: number;
+    }>;
+  }>[];
   sourceReferences: readonly VideoSourceReference[];
   timingBeat: Readonly<{ startFrame: number; endFrame: number }>;
   visualStyle: VisualStyleSpec;
@@ -53,6 +61,7 @@ export type SceneRendererRegistry = Readonly<
 
 export type StoryVisualReadyEntry = Readonly<{
   meaningId: string;
+  ownerMeaningId?: string;
   status: "ready";
   startFrame: number;
   endFrame: number;

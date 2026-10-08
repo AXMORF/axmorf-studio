@@ -1,9 +1,6 @@
 import { computeGenerationInputFingerprint } from "@axmorf/studio/contracts";
 import type { NarrationSpec } from "@axmorf/studio/contracts";
-import {
-  flattenTtsChunks,
-  type StorySpec,
-} from "@axmorf/studio/contracts";
+import { flattenTtsChunks, type StorySpec } from "@axmorf/studio/contracts";
 import {
   CanonicalMeasuredChunkSchema,
   RawNarrationCandidateSchema,
@@ -76,6 +73,10 @@ export const runNarrationGeneration = async ({
   readonly generateChunk: ChunkAudioGenerator;
   readonly normalizePcm: PcmNormalizer;
 }): Promise<NarrationGenerationResult> => {
+  if (story.timingSource === "authored-frames")
+    throw new Error(
+      "Authored-frame Stories do not generate narration; prepare their fixed frame timing.",
+    );
   const expected = createExpectedGeneration({
     story,
     narration,

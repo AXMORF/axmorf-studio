@@ -70,3 +70,13 @@ The creator prepares the pinned browser and checks a real tiny PNG render before
 preparation is serialized and bounded; doctor never silently downloads Chrome. New authoring begins with
 `npm run project:create:context -- --project <storyId>`, which returns a complete example and current public choices.
 Use the generated Workspace-local authoring and host-execution references for exact task execution and interruption recovery.
+
+The current source adds filmPlan, consecutive multi-Beat Scene ownership, authored-frame visual-only timelines, deterministic
+world/morph/semantic-time utilities and `axmorf project preview`. Drafts project verified artifacts into a frozen private view
+before final rendering; their receipts certify media integrity and leave creative assessment explicit. Existing Projects keep
+their authored grouping and delivered bytes until an explicit revision. This source upgrade is not yet an npm release.
+`axmorf reference analyze --input public/<reference.mp4>` writes bounded cut-refinement brackets, image translation/scale
+estimates, timestamped color frames and a local review page. Agent camera/semantic interpretations remain separate from
+these measurements. Analysis neither admits media into a Project nor certifies every cut or creative quality.
+Formal and draft video export share lossless PCM mixing and one AAC-to-MP4 encoding step, retaining encoder priming metadata
+and the original H.264 frames. Requested mono/stereo is applied during that single encode.

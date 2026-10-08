@@ -129,11 +129,7 @@ const resolveWorkspaceConfigurationPaths = async (rootDir: string) => {
       "Workspace must contain exactly one supported Remotion config file.",
     );
   }
-  return [
-    "package.json",
-    "package-lock.json",
-    existingRemotionConfigs[0]!,
-  ];
+  return ["package.json", "package-lock.json", existingRemotionConfigs[0]!];
 };
 
 export const snapshotWorkspaceConfiguration = async ({
@@ -262,6 +258,8 @@ const TASK_POLICY_PATHS = {
     "scripts/project-production/adapters/remotion-preflight.ts",
     "scripts/project-production/application/build-delivery.ts",
     "scripts/shared/media-process.ts",
+    "scripts/shared/render-h264-aac.ts",
+    "scripts/shared/media-tool-command.ts",
     "scripts/shared/process.ts",
     "scripts/shared/remotion-command.ts",
     "src/contracts/delivery-build.ts",

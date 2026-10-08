@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
 import {
   access,
+  lstat,
   mkdir,
   mkdtemp,
   readFile,
@@ -14,6 +15,7 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import test from "node:test";
 
+import { buildSilentScenePreset } from "@axmorf/studio/contracts";
 import { computeProjectRevisionCandidateId } from "../../packages/studio/src/contracts/project-revision";
 import { createProjectRevisionProductionScope } from "../../scripts/project-production/application/production-scope";
 import { createProjectRevisionCandidateDefinition } from "../../scripts/projects/application/project-revision-candidate-store";
@@ -108,12 +110,19 @@ const readDeliveryTuple: NonNullable<
   ProjectRevisionPromotionDependencies["inspectDelivery"]
 > = async ({ rootDir }) =>
   JSON.parse(
-    await readFile(join(rootDir, "deliveries", storyId, "publish.json"), "utf8"),
+    await readFile(
+      join(rootDir, "deliveries", storyId, "publish.json"),
+      "utf8",
+    ),
   );
 
-const fixture = async (context: {
-  after: (callback: () => Promise<void>) => void;
-}) => {
+const fixture = async (
+  context: {
+    after: (callback: () => Promise<void>) => void;
+  },
+  authoredFrames = false,
+  narrationPresent = !authoredFrames,
+) => {
   const rootDir = await mkdtemp(join(tmpdir(), "axmorf-revision-promote-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));
   const live = {
@@ -125,16 +134,40 @@ const fixture = async (context: {
   await Promise.all([
     mkdir(live.source, { recursive: true }),
     mkdir(live.public, { recursive: true }),
-    mkdir(live.narration, { recursive: true }),
+    ...(narrationPresent ? [mkdir(live.narration, { recursive: true })] : []),
     mkdir(join(rootDir, "src/remotion/catalog"), { recursive: true }),
   ]);
+  const story = authoredFrames
+    ? {
+        ...validProjectCreateInput.story,
+        timingSource: "authored-frames",
+        beats: [
+          {
+            kind: "silent-scene",
+            meaningId: "opening",
+            narrativePurpose: "Show the idea visually.",
+            preset: buildSilentScenePreset({
+              presetId: "opening",
+              durationInFrames: 120,
+              visualIntent: "One visual subject.",
+              soundIntent: "No narration.",
+              resourceIds: [],
+              implementation: { kind: "scene-owner" },
+            }),
+          },
+        ],
+      }
+    : validProjectCreateInput.story;
   await Promise.all([
+    writeFile(join(live.source, "story.json"), `${JSON.stringify(story)}\n`),
     writeFile(
       join(live.source, "revision.json"),
       `${JSON.stringify({ revisionId: baseRevisionId, marker: "base" })}\n`,
     ),
     writeFile(join(live.public, "asset.bin"), "public:base"),
-    writeFile(join(live.narration, "draft.wav"), "narration:base"),
+    ...(narrationPresent
+      ? [writeFile(join(live.narration, "draft.wav"), "narration:base")]
+      : []),
     writeFile(
       join(rootDir, "src/projects/project-registry.generated.ts"),
       "registry:base\n",
@@ -171,15 +204,28 @@ const fixture = async (context: {
   await Promise.all([
     mkdir(candidate.source, { recursive: true }),
     mkdir(candidate.public, { recursive: true }),
-    mkdir(candidate.narration, { recursive: true }),
+    ...(narrationPresent
+      ? [mkdir(candidate.narration, { recursive: true })]
+      : []),
   ]);
   await Promise.all([
+    writeFile(
+      join(candidate.source, "story.json"),
+      `${JSON.stringify(story)}\n`,
+    ),
     writeFile(
       join(candidate.source, "revision.json"),
       `${JSON.stringify({ revisionId: expectedRevisionId, marker: "candidate" })}\n`,
     ),
     writeFile(join(candidate.public, "asset.bin"), "public:candidate"),
-    writeFile(join(candidate.narration, "draft.wav"), "narration:candidate"),
+    ...(narrationPresent
+      ? [
+          writeFile(
+            join(candidate.narration, "draft.wav"),
+            "narration:candidate",
+          ),
+        ]
+      : []),
   ]);
   await writeDelivery({
     rootDir: scope.isolatedRoot,
@@ -200,11 +246,7 @@ const fixture = async (context: {
     readCandidateRevision: async ({ scope: candidateScope }) =>
       JSON.parse(
         await readFile(
-          join(
-            candidateScope.projectSourceRoot,
-            storyId,
-            "revision.json",
-          ),
+          join(candidateScope.projectSourceRoot, storyId, "revision.json"),
           "utf8",
         ),
       ),
@@ -284,15 +326,24 @@ test("promotion replaces the live tuple and is idempotent without consuming the 
     projectEntryCount: 1,
   });
   assert.match(
-    await readFile(join(rootDir, "src/projects", storyId, "revision.json"), "utf8"),
+    await readFile(
+      join(rootDir, "src/projects", storyId, "revision.json"),
+      "utf8",
+    ),
     /candidate/u,
   );
   assert.equal(
-    await readFile(join(rootDir, "public/projects", storyId, "asset.bin"), "utf8"),
+    await readFile(
+      join(rootDir, "public/projects", storyId, "asset.bin"),
+      "utf8",
+    ),
     "public:candidate",
   );
   assert.equal(
-    await readFile(join(rootDir, ".narration-work", storyId, "draft.wav"), "utf8"),
+    await readFile(
+      join(rootDir, ".narration-work", storyId, "draft.wav"),
+      "utf8",
+    ),
     "narration:candidate",
   );
   await access(join(candidate.source, "revision.json"));
@@ -306,6 +357,193 @@ test("promotion replaces the live tuple and is idempotent without consuming the 
     revisionId: expectedRevisionId,
     deliveryBuildId: expectedDeliveryBuildId,
   });
+});
+
+test("authored promotion and its idempotent retry keep narration genuinely absent", async (context) => {
+  const { live, candidate, dependencies, input } = await fixture(context, true);
+  assert.equal(
+    (await promoteProjectRevisionCandidate(input, dependencies)).status,
+    "project-revision-promoted",
+  );
+  assert.equal(
+    (await promoteProjectRevisionCandidate(input, dependencies)).status,
+    "project-revision-current",
+  );
+  for (const root of [live.narration, candidate.narration]) {
+    await assert.rejects(lstat(root), { code: "ENOENT" });
+  }
+  assert.match(
+    await readFile(join(live.source, "revision.json"), "utf8"),
+    /candidate/u,
+  );
+  assert.match(
+    await readFile(join(live.delivery, "publish.json"), "utf8"),
+    new RegExp(expectedDeliveryBuildId, "u"),
+  );
+  await mkdir(live.narration, { recursive: true });
+  await assert.rejects(
+    promoteProjectRevisionCandidate(input, dependencies),
+    /Current narration.*do not match/u,
+  );
+});
+
+for (const failingCheckpoint of [
+  "source-installed",
+  "public-installed",
+  "narration-installed",
+  "delivery-installed",
+  "projections-regenerated",
+  "verification-complete",
+] as const) {
+  test(`authored promotion restores absent narration on ${failingCheckpoint} failure`, async (context) => {
+    const { live, candidate, dependencies, input } = await fixture(
+      context,
+      true,
+    );
+    await assert.rejects(
+      promoteProjectRevisionCandidate(input, {
+        ...dependencies,
+        checkpoint: async (checkpoint) => {
+          if (checkpoint === failingCheckpoint)
+            throw new Error(`injected:${checkpoint}`);
+        },
+      }),
+      new RegExp(`injected:${failingCheckpoint}`, "u"),
+    );
+    for (const root of [live.narration, candidate.narration]) {
+      await assert.rejects(lstat(root), { code: "ENOENT" });
+    }
+    assert.match(
+      await readFile(join(live.source, "revision.json"), "utf8"),
+      /base/u,
+    );
+    assert.match(
+      await readFile(join(live.delivery, "publish.json"), "utf8"),
+      new RegExp(baseDeliveryBuildId, "u"),
+    );
+  });
+}
+
+test("authored promotion rejects live root presence drift and unsafe missing-root parents", async (context) => {
+  const { rootDir, live, dependencies, input } = await fixture(context, true);
+  await mkdir(live.narration, { recursive: true });
+  await assert.rejects(
+    promoteProjectRevisionCandidate(input, dependencies),
+    /Live narration base snapshot.*do not match/u,
+  );
+  await rm(live.narration, { recursive: true });
+  await rm(join(rootDir, ".narration-work"), { recursive: true });
+  await symlink(
+    join(rootDir, "missing-target"),
+    join(rootDir, ".narration-work"),
+  );
+  await assert.rejects(
+    promoteProjectRevisionCandidate(input, dependencies),
+    /real directory|unsafe|symbolic/u,
+  );
+  assert.match(
+    await readFile(join(live.source, "revision.json"), "utf8"),
+    /base/u,
+  );
+});
+
+test("authored promotion rejects candidate narration presence drift after locking", async (context) => {
+  const { live, candidate, dependencies, input } = await fixture(context, true);
+  await assert.rejects(
+    promoteProjectRevisionCandidate(input, {
+      ...dependencies,
+      checkpoint: async (checkpoint) => {
+        if (checkpoint === "lock-acquired")
+          await mkdir(candidate.narration, { recursive: true });
+      },
+    }),
+    /Candidate narration.*do not match/u,
+  );
+  await assert.rejects(lstat(live.narration), { code: "ENOENT" });
+  assert.match(
+    await readFile(join(live.source, "revision.json"), "utf8"),
+    /base/u,
+  );
+});
+
+test("narrated promotion requires candidate narration even with a matching delivery tuple", async (context) => {
+  const { live, candidate, dependencies, input } = await fixture(context);
+  await rm(candidate.narration, { recursive: true });
+  await assert.rejects(
+    promoteProjectRevisionCandidate(input, dependencies),
+    /missing|ENOENT|real directory/u,
+  );
+  assert.match(
+    await readFile(join(live.source, "revision.json"), "utf8"),
+    /base/u,
+  );
+});
+
+test("promotion rolls an installed optional narration root back to absence", async (context) => {
+  const { live, candidate, dependencies, input } = await fixture(context, true);
+  await mkdir(candidate.narration, { recursive: true });
+  await writeFile(
+    join(candidate.narration, "draft.wav"),
+    "candidate-owned narration bytes",
+  );
+  await assert.rejects(
+    promoteProjectRevisionCandidate(input, {
+      ...dependencies,
+      checkpoint: async (checkpoint) => {
+        if (checkpoint === "narration-installed") {
+          assert.equal(
+            await readFile(join(live.narration, "draft.wav"), "utf8"),
+            "candidate-owned narration bytes",
+          );
+          throw new Error("injected optional narration install failure");
+        }
+      },
+    }),
+    /injected optional narration install failure/u,
+  );
+  await assert.rejects(lstat(live.narration), { code: "ENOENT" });
+  assert.match(
+    await readFile(join(live.source, "revision.json"), "utf8"),
+    /base/u,
+  );
+  assert.equal(
+    await readFile(join(candidate.narration, "draft.wav"), "utf8"),
+    "candidate-owned narration bytes",
+  );
+});
+
+test("promotion restores a present optional narration root after removing it and can commit absence", async (context) => {
+  const { live, candidate, dependencies, input } = await fixture(
+    context,
+    true,
+    true,
+  );
+  await rm(candidate.narration, { recursive: true });
+  await assert.rejects(
+    promoteProjectRevisionCandidate(input, {
+      ...dependencies,
+      checkpoint: async (checkpoint) => {
+        if (checkpoint === "narration-installed") {
+          await assert.rejects(lstat(live.narration), { code: "ENOENT" });
+          throw new Error("injected optional narration removal failure");
+        }
+      },
+    }),
+    /injected optional narration removal failure/u,
+  );
+  assert.equal(
+    await readFile(join(live.narration, "draft.wav"), "utf8"),
+    "narration:base",
+  );
+  assert.equal(
+    (await promoteProjectRevisionCandidate(input, dependencies)).status,
+    "project-revision-promoted",
+  );
+  await assert.rejects(lstat(live.narration), { code: "ENOENT" });
+  assert.equal(
+    (await promoteProjectRevisionCandidate(input, dependencies)).status,
+    "project-revision-current",
+  );
 });
 
 for (const failingCheckpoint of [
@@ -332,19 +570,31 @@ for (const failingCheckpoint of [
       new RegExp(`injected:${failingCheckpoint}`, "u"),
     );
     assert.match(
-      await readFile(join(rootDir, "src/projects", storyId, "revision.json"), "utf8"),
+      await readFile(
+        join(rootDir, "src/projects", storyId, "revision.json"),
+        "utf8",
+      ),
       /base/u,
     );
     assert.equal(
-      await readFile(join(rootDir, "public/projects", storyId, "asset.bin"), "utf8"),
+      await readFile(
+        join(rootDir, "public/projects", storyId, "asset.bin"),
+        "utf8",
+      ),
       "public:base",
     );
     assert.equal(
-      await readFile(join(rootDir, ".narration-work", storyId, "draft.wav"), "utf8"),
+      await readFile(
+        join(rootDir, ".narration-work", storyId, "draft.wav"),
+        "utf8",
+      ),
       "narration:base",
     );
     assert.match(
-      await readFile(join(rootDir, "deliveries", storyId, "publish.json"), "utf8"),
+      await readFile(
+        join(rootDir, "deliveries", storyId, "publish.json"),
+        "utf8",
+      ),
       new RegExp(baseDeliveryBuildId, "u"),
     );
     await access(join(candidate.source, "revision.json"));
@@ -418,7 +668,10 @@ test("promotion rejects candidate symlinks, unknown delivery files, and tuple dr
     /expected revision tuple/u,
   );
   assert.match(
-    await readFile(join(rootDir, "src/projects", storyId, "revision.json"), "utf8"),
+    await readFile(
+      join(rootDir, "src/projects", storyId, "revision.json"),
+      "utf8",
+    ),
     /base/u,
   );
 });

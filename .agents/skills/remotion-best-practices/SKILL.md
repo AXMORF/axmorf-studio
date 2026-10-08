@@ -16,6 +16,9 @@ If no Remotion project currently exists, load [Create a new Remotion project](./
 
 If you are writing Remotion React Markup, load [Remotion Markup Best Practices](./remotion-markup/REFERENCE.md)
 
+For a new or substantially redesigned AXMORF Scene, after the exact bind read [Film direction / Scene execution](../axmorf-video/references/film-direction.md#scene-execution).
+Use bound current context; a local correction preserves priorSource and implements only its delta. Task contracts and validators take precedence.
+
 ## Maps
 
 For static maps, animated routes and markers, geographic explainers, Mapbox, MapLibre, MapTiler, GeoJSON, or 3D geographic flyovers, load [Remotion Maps](./remotion-maps/REFERENCE.md).
@@ -51,7 +54,6 @@ To find and read current Remotion documentation, load [Remotion Docs](./remotion
 ## Upgrading
 
 To upgrade Remotion, related packages, compatible Mediabunny packages, and installed Remotion Agent Skills, load [Remotion Upgrade](./remotion-upgrade/REFERENCE.md).
-
 
 ## Constrained agent host troubleshooting
 

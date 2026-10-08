@@ -42,17 +42,60 @@ export const generateRendererRegistryFromProjectFiles = async ({
     ),
   );
   const ready = coverage.entries.filter((entry) => entry.status === "ready");
-  const packages = await Promise.all(
-    ready.map((entry) =>
-      readJsonFile(
-        join(
-          projectRoot,
-          "scenes",
-          entry.meaningId,
-          "generated/scene-package.generated.json",
-        ),
-      ),
+  const story =
+    ready.length === 0
+      ? null
+      : StorySpecSchema.parse(
+          await readJsonFile(join(projectRoot, "story.json")),
+        );
+  if (
+    story !== null &&
+    (story.storyId !== projectId ||
+      serializeCanonicalJson(story.beats.map(({ meaningId }) => meaningId)) !==
+        serializeCanonicalJson(coverage.storyBeatOrder))
+  ) {
+    throw new Error("Renderer coverage is stale against current Story order.");
+  }
+  const groups = story === null ? [] : resolveStorySceneGroups(story);
+  const groupByMember = new Map(
+    groups.flatMap((group) =>
+      group.beats.map((beat) => [beat.meaningId, group] as const),
     ),
+  );
+  const ownerIds = [
+    ...new Set(
+      ready.map((entry) => {
+        const group = groupByMember.get(entry.meaningId);
+        if (group === undefined)
+          throw new Error("Ready Renderer coverage has no owning Story Scene.");
+        return group.meaningId;
+      }),
+    ),
+  ];
+  const packages = await Promise.all(
+    ownerIds.map(async (meaningId) => {
+      const scenePackage = ScenePackageSchema.parse(
+        await readJsonFile(
+          join(
+            projectRoot,
+            "scenes",
+            meaningId,
+            "generated/scene-package.generated.json",
+          ),
+        ),
+      );
+      const group = groupByMember.get(meaningId)!;
+      if (
+        serializeCanonicalJson(
+          scenePackage.coveredMeaningIds ?? [scenePackage.meaningId],
+        ) !== serializeCanonicalJson(group.beats.map((beat) => beat.meaningId))
+      ) {
+        throw new Error(
+          "Renderer Scene package ownership is stale against current Story groups.",
+        );
+      }
+      return scenePackage;
+    }),
   );
   return generateRendererRegistry({
     mode,
@@ -65,5 +108,11 @@ export const generateRendererRegistryFromProjectFiles = async ({
 };
 import { join } from "node:path";
 
-import { SceneCoverageMapSchema } from "@axmorf/studio/contracts";
+import {
+  SceneCoverageMapSchema,
+  ScenePackageSchema,
+  StorySpecSchema,
+  resolveStorySceneGroups,
+  serializeCanonicalJson,
+} from "@axmorf/studio/contracts";
 import { readJsonFile } from "../scene-package/project-files";

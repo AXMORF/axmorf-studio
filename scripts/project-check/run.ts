@@ -63,58 +63,71 @@ export const checkNarrativeSourceHealth = async ({
     });
   }
 
-  let sealedNarration: SealedNarrationManifest;
-  let masteredNarration: MasteredNarrationManifest;
-  let semanticTiming: SemanticTiming;
-  try {
-    sealedNarration = await loadProjectCheckSealedNarration(
-      paths.sealedNarration,
-    );
-    masteredNarration = await loadProjectCheckMasteredNarration(
-      paths.masteredNarration,
-    );
-    semanticTiming = await loadProjectCheckSemanticTiming(paths.semanticTiming);
-    const physicalCheckProjectSource = {
-      ...projectSource,
-      render: {
-        ...projectSource.render,
-        fps: semanticTiming.fps,
-        leadInFrames: semanticTiming.leadInFrames,
-        tailFrames: semanticTiming.tailFrames,
-      },
-    };
-    const m2 = await checkM2NarrationArtifacts({
-      rootDir,
-      projectSource: physicalCheckProjectSource,
-    });
-    if (
-      m2.generationInputFingerprint !==
-        sealedNarration.generationInputFingerprint ||
-      m2.sealedNarrationFingerprint !==
-        sealedNarration.sealedNarrationFingerprint ||
-      m2.completeAudioChecksum !== sealedNarration.completeAudio.checksum
-    ) {
-      throw new Error("M2 checker identity does not match sealed narration.");
+  const authoredFrames = projectSource.story.timingSource === "authored-frames";
+  if (authoredFrames) {
+    try {
+      await checkM2NarrationArtifacts({ rootDir, projectSource });
+    } catch (error) {
+      throw new Error("Authored-frame timing source is invalid.", {
+        cause: error,
+      });
     }
-    const master = await checkMasteredNarrationArtifacts({
-      rootDir,
-      storyId: paths.storyId,
-    });
-    if (
-      master.sealedNarrationFingerprint !==
-        sealedNarration.sealedNarrationFingerprint ||
-      master.masteredNarrationFingerprint !==
-        masteredNarration.masteredNarrationFingerprint
-    ) {
-      throw new Error("Mastered narration identity does not match its seal.");
+  } else {
+    let sealedNarration: SealedNarrationManifest;
+    let masteredNarration: MasteredNarrationManifest;
+    let semanticTiming: SemanticTiming;
+    try {
+      sealedNarration = await loadProjectCheckSealedNarration(
+        paths.sealedNarration,
+      );
+      masteredNarration = await loadProjectCheckMasteredNarration(
+        paths.masteredNarration,
+      );
+      semanticTiming = await loadProjectCheckSemanticTiming(
+        paths.semanticTiming,
+      );
+      const physicalCheckProjectSource = {
+        ...projectSource,
+        render: {
+          ...projectSource.render,
+          fps: semanticTiming.fps,
+          leadInFrames: semanticTiming.leadInFrames,
+          tailFrames: semanticTiming.tailFrames,
+        },
+      };
+      const m2 = await checkM2NarrationArtifacts({
+        rootDir,
+        projectSource: physicalCheckProjectSource,
+      });
+      if (
+        m2.generationInputFingerprint !==
+          sealedNarration.generationInputFingerprint ||
+        m2.sealedNarrationFingerprint !==
+          sealedNarration.sealedNarrationFingerprint ||
+        m2.completeAudioChecksum !== sealedNarration.completeAudio.checksum
+      ) {
+        throw new Error("M2 checker identity does not match sealed narration.");
+      }
+      const master = await checkMasteredNarrationArtifacts({
+        rootDir,
+        storyId: paths.storyId,
+      });
+      if (
+        master.sealedNarrationFingerprint !==
+          sealedNarration.sealedNarrationFingerprint ||
+        master.masteredNarrationFingerprint !==
+          masteredNarration.masteredNarrationFingerprint
+      ) {
+        throw new Error("Mastered narration identity does not match its seal.");
+      }
+      validateNarrativeArtifactBundle({
+        projectSource,
+        sealedNarration,
+        semanticTiming,
+      });
+    } catch (error) {
+      throw new Error("Sealed narration source is invalid.", { cause: error });
     }
-    validateNarrativeArtifactBundle({
-      projectSource,
-      sealedNarration,
-      semanticTiming,
-    });
-  } catch (error) {
-    throw new Error("Sealed narration source is invalid.", { cause: error });
   }
 
   try {
@@ -122,11 +135,12 @@ export const checkNarrativeSourceHealth = async ({
       rootDir,
       paths.storyId,
     );
-    await resolveNarrativeBaselineGeneratedRegistryChecksum({
-      rootDir,
-      storyId: paths.storyId,
-      entry,
-    });
+    if (!authoredFrames)
+      await resolveNarrativeBaselineGeneratedRegistryChecksum({
+        rootDir,
+        storyId: paths.storyId,
+        entry,
+      });
     if (entry.descriptor.storyId !== paths.storyId) {
       throw failDependency("Narrative Baseline");
     }

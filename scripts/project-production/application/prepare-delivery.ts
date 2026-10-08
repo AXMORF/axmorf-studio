@@ -27,6 +27,7 @@ import {
   formatDeliveryTimecode,
   getStoryCompositionDurationInFrames,
   resolveCurrentPublishingIntent,
+  resolveStorySceneGroups,
   toStoryCompositionFrame,
   type ResourceCatalog,
   type Sha256Digest,
@@ -482,7 +483,9 @@ export const prepareProjectAuthoringBuild = async ({
     story,
     intent: rawPublishingIntent,
   });
-  const meaningIds = story.beats.map(({ meaningId }) => meaningId);
+  const meaningIds = resolveStorySceneGroups(story).map(
+    ({ meaningId }) => meaningId,
+  );
   for (const meaningId of meaningIds) {
     await generateScenePackageFromProjectFiles({
       rootDir: contentRoot,
@@ -523,6 +526,7 @@ export const prepareProjectAuthoringBuild = async ({
     storyId: projectId,
     meaningIds,
     runtimeInputFingerprint,
+    timingSource: story.timingSource,
   });
   await Promise.all([
     collectGlobalVisualSourceGraph({
@@ -536,10 +540,12 @@ export const prepareProjectAuthoringBuild = async ({
       storyId: projectId,
       compositionId: deriveCoverCompositionBaseId(projectId),
     }),
-    checkMasteredNarrationArtifacts({
-      rootDir: contentRoot,
-      storyId: projectId,
-    }),
+    story.timingSource === "authored-frames"
+      ? Promise.resolve(null)
+      : checkMasteredNarrationArtifacts({
+          rootDir: contentRoot,
+          storyId: projectId,
+        }),
   ]);
   await generateProjectRegistry({ rootDir: contentRoot, mode: "write" });
   await compileTargetProjectComposition({
@@ -573,7 +579,11 @@ export const prepareProjectAuthoringBuild = async ({
       const beat = timing.storyBeats.find(
         ({ meaningId }) => meaningId === chapter.meaningId,
       );
-      if (beat === undefined || beat.kind !== "narrated-scene") {
+      if (
+        beat === undefined ||
+        (story.timingSource !== "authored-frames" &&
+          beat.kind !== "narrated-scene")
+      ) {
         throw new Error(
           "Publishing chapters are stale against SemanticTiming.",
         );

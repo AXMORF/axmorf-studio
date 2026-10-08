@@ -25,6 +25,9 @@ scripts/project-production/
 scripts/projects/              atomic create/revision/originality/promotion/delete use cases
 scripts/narration/             provider attempt cache, PCM validation, seal and timing
 scripts/scene-package/          deterministic ScenePackage/Coverage generation
+scripts/project-preview/        frozen artifact projection and diagnostic draft render
+scripts/reference-analysis/     bounded cut/motion/frame-evidence diagnostics
+scripts/shared/render-h264-aac.ts  lossless PCM and one AAC-to-MP4 encoding path
 scripts/renderer-registry/      static composition-local registry generation
 settings/                      Web source; Vite is monorepo build-time only
 private/execution-preferences.json  ignored Agent execution defaults, separate from ProducerConfig
@@ -77,6 +80,7 @@ flowchart TD
   Executor --> Validator[Fixed validators]
   Validator --> Artifacts[Artifact Store + attestations]
   Artifacts --> Continue[One-shot fixed continuation]
+  Artifacts -. optional read-only projection .-> Preview[Frozen draft view]
   Continue --> Converge[Convergence]
   Converge --> Scope[Live or isolated candidate materialization]
   Scope --> Delivery[Exact four-file DeliveryBuild]
@@ -99,6 +103,23 @@ Root 实际 callable 的兼容 MCP tools 才激活；缺失时不生成任何结
 receipt 或 candidate path 投影到 Revision、TaskSpec、child workspace、Artifact Store、delivery 或 runtime。
 
 ## 3. Contract boundaries
+
+StoryBeat 与 Scene ownership 分离：可选 `story.visualScenes` 按顺序完整分组正文，首 meaningId 为 owner。
+任务路径、source graph、ScenePackage 与静态 RendererRegistry 每 owner 一份，Coverage/Timing/Publishing 每 Beat 一条。
+SceneTask v8 保留 coveredBeats 和所有原 briefs/cues/资源；ScenePackage v7 声明 coveredMeaningIds；单 Beat 的 v7/v6 继续可读。
+`filmPlan` 是所有 owner 共享的创作意图，绑定 immutable context。runtime 在整个 owner window 挂载一次，音效每 owner 一次。
+
+显式 authored-frames 使用累计 preset duration 和独立 fixed semantic task，缺省旁白继续以 PCM 定义时间。
+两者通过 SemanticTiming union 和 `resolveSemanticContentFrameRange` 提供同一正文范围，sealed/mastered 在 authored 分支缺席。
+无旁白 Scene 仍遵守素材、声音、viewport、originality 和交付验证。见[连续创作指南](guides/CONTINUOUS_VIDEO_AUTHORING.md)。
+连续 handoff 统一按 Scene ownership 分类，narrated 与 silent scene-owner 共用冻结接缝，template-copy 不参与。
+
+草稿是 diagnostics：只读取有效 tasks/artifacts，在私有 source/public view 中投影同一 build scaffold，再以缩放 profile 渲染。
+独立 preview receipt/cache 不进入 production data plane，不写 current 或提升 candidate。参考分析通过有界区间细化、
+图像运动与时间戳彩色帧提供可读证据，整目录/hash 复验；相机语义解释和人工观察仍在诊断面。
+正式/草稿渲染共用 lossless PCM 与单次 AAC-to-MP4 mux adapter，保留 encoder priming metadata，原 H.264 stream copy；
+声道在该次编码选择，不另走 AAC 解码后转 mono 的路径。delivery policy fingerprint 覆盖该共同实现。
+正式/草稿统一关闭 parallel encoding，以完整帧序列固定精确视频时间基；帧渲染 concurrency 保留。
 
 - ProductionRevision 只冻结 task inputs；不包含 Agent output、workspace path 或 attempt diagnostic。
 - ProjectRevisionInput 绑定 exact current Revision/Delivery，只允许 strict authored patch；candidateId/scope path
@@ -140,16 +161,20 @@ render 供 Agent 在有成本生产前核对用户要求。既有 Project 的 Re
 
 ## 5. Task isolation
 
-Scene task reads one complete StoryBeat, its SemanticTiming slice, Scene-only requirements, a derived
-safe-area-local SceneViewport, Scene brief, VisualStyleSpec, Scene-local narration chunk ranges, resource pool and
+Scene task reads its complete owning StoryBeat or consecutive group, original covered Beats/timing/briefs, filmPlan,
+Scene-only requirements, a derived safe-area-local SceneViewport, Scene brief, VisualStyleSpec, Scene-local narration chunk ranges, resource pool and
 selected resources. It does not receive the raw
 Composition readability policy, full-frame dimensions or insets. GlobalVisual reads
 Story/Timing/VisualStyle/requirements/brief/resources but never Scene output. Its fixed layer policy derives a
-full-Composition base range and a first-to-last narrated Scene decoration range from canonical SemanticTiming;
+full-Composition base range and a first-to-last content Beat decoration range from canonical SemanticTiming;
 the decoration component receives window-local frame zero. Cover reads only
 Story/VisualStyle/fixed CoverSpec. Template-copy is a fixed task over the configured Project-local template
 instance. Its artifact is the exact union of immutable copied source/assets and the canonical derived Scene bundle;
 live-only fixed projections are excluded from its task identity.
+
+New authored-frame Projects freeze readability policyVersion 2 with `captionBand: "none"`: all Scene safe edges use
+the edge inset without reserving a caption band. Narrated Projects use unchanged version 1. Existing Projects and
+revisions preserve the complete validated frozen policy; neither installation nor revision silently migrates layout.
 
 Scene owner validator v4 distinguishes actual text from provable JSX-only layout/graphic children. A bounded
 syntax proof resolves lexical const bindings and supports common synchronous map returns; unknown or text-returning
@@ -227,6 +252,9 @@ Workspace configuration snapshot 要求根目录恰有一个 `remotion.config.mj
 candidate scope 复用同一 immutable runtime/config 与 content-addressed Artifact Store，但隔离 Project source/public、
 narration、task workspace、attempt、disposable output 和 Delivery。所有 production/task/recovery CLI 都通过受信
 candidate resolver 定位这些 roots，不能把 candidate directory 当成第二个 Workspace root。
+Revision snapshot/record v2 对 owned roots 显式记录 present/absent；只有 authored-frames 允许 narration 缺失，
+source/public/delivery 仍 required。安全祖先、root presence 与 bytes 一起复验；candidate 不伪造空目录，
+promotion/rollback/idempotence 保留真实缺失。旧 v1 candidate fail closed，不静默迁移。
 revision builder 在 authoring mutation 前验证并冻结受影响普通 Scene 的当前 base source graph、plans、license/lineage，
 以 `production/scene-prior-source.json` 保存到 authoring-owned source root，并纳入 materialization checksum。
 仅 owning entry 的 fingerprint 参与 Scene TaskRevision；bound context 提供它及精确 helper 输出，不扩展 worker 路径权限。

@@ -290,33 +290,45 @@ export const buildRendererRegistry = async ({
   const packages = rawPackages.map((value) => ScenePackageSchema.parse(value));
   const packageByMeaning = new Map<string, ScenePackage>();
   for (const scenePackage of packages) {
+    const ids = scenePackage.coveredMeaningIds ?? [scenePackage.meaningId];
+    const start = coverage.storyBeatOrder.indexOf(scenePackage.meaningId);
     if (
       scenePackage.storyId !== projectId ||
-      packageByMeaning.has(scenePackage.meaningId)
+      ids.some(
+        (id, index) =>
+          packageByMeaning.has(id) ||
+          coverage.storyBeatOrder[start + index] !== id,
+      )
     ) {
       throw new Error("Renderer package identity is unknown or duplicated.");
     }
-    packageByMeaning.set(scenePackage.meaningId, scenePackage);
+    for (const id of ids) packageByMeaning.set(id, scenePackage);
   }
-  if (packages.length !== ready.length) {
+  if (packageByMeaning.size !== ready.length) {
     throw new Error("Only current ready packages may enter RendererRegistry.");
   }
   const entries = [];
   const rendererIds = new Set<string>();
+  const owners = new Set<string>();
   for (const coverageEntry of ready) {
     const scenePackage = packageByMeaning.get(coverageEntry.meaningId);
     if (
       !scenePackage ||
       scenePackage.packageFingerprint !== coverageEntry.packageFingerprint ||
-      scenePackage.rendererBinding.rendererId !== coverageEntry.rendererId ||
-      rendererIds.has(coverageEntry.rendererId)
+      scenePackage.rendererBinding.rendererId !== coverageEntry.rendererId
     ) {
       throw new Error(
         "Ready coverage and ScenePackage renderer binding do not match.",
       );
     }
+    if (owners.has(scenePackage.meaningId)) continue;
+    if (rendererIds.has(coverageEntry.rendererId))
+      throw new Error(
+        "Renderer IDs must be unique across owning Scene packages.",
+      );
+    owners.add(scenePackage.meaningId);
     rendererIds.add(coverageEntry.rendererId);
-    const rendererPath = `src/projects/${projectId}/scenes/${coverageEntry.meaningId}/Renderer.tsx`;
+    const rendererPath = `src/projects/${projectId}/scenes/${scenePackage.meaningId}/Renderer.tsx`;
     const graph = await collectRendererSourceGraph({
       rootDir,
       projectId,
@@ -331,7 +343,7 @@ export const buildRendererRegistry = async ({
       );
     }
     entries.push({
-      meaningId: coverageEntry.meaningId,
+      meaningId: scenePackage.meaningId,
       rendererId: coverageEntry.rendererId,
       rendererPath,
       sourceGraphFingerprint: graph.sourceGraphFingerprint,

@@ -27,9 +27,12 @@ import {
   type ProjectRevisionProductionScope,
 } from "../../project-production/application/production-scope";
 import {
-  copyProjectRevisionRegularTree,
+  allowsAbsentProjectRevisionNarrationRoot,
+  copyProjectRevisionSnapshotRoot,
+  ensureProjectRevisionContainedDirectory,
   inspectProjectRevisionCandidateDefinition,
-  inspectProjectRevisionRegularTree,
+  inspectProjectRevisionSnapshotRoot,
+  type ProjectRevisionRootSnapshot,
 } from "./project-revision-candidate-store";
 
 export const PROJECT_REVISION_PROMOTION_CHECKPOINTS = [
@@ -88,9 +91,7 @@ export type ProjectRevisionPromotionDependencies = Readonly<{
 }>;
 
 type PathState = Awaited<ReturnType<typeof lstat>> | null;
-type TreeSnapshot = Awaited<
-  ReturnType<typeof inspectProjectRevisionRegularTree>
->;
+type TreeSnapshot = ProjectRevisionRootSnapshot;
 
 type CandidateState = Readonly<{
   source: TreeSnapshot;
@@ -104,6 +105,10 @@ type PromotionDirectorySlot = {
   readonly live: string;
   readonly staging: string;
   readonly backup: string;
+  readonly rootDir: string;
+  readonly before: TreeSnapshot;
+  readonly after: TreeSnapshot;
+  prepared: boolean;
   backedUp: boolean;
   installed: boolean;
 };
@@ -381,11 +386,29 @@ const inspectCandidate = async ({
     expectedDeliveryBuildId,
     label: "Candidate delivery",
   });
+  const allowAbsentNarration = await allowsAbsentProjectRevisionNarrationRoot({
+    rootDir: scope.repositoryRoot,
+    sourceRoot: paths.source,
+    storyId: scope.storyId,
+  });
   const state = {
-    source: await inspectProjectRevisionRegularTree(paths.source),
-    public: await inspectProjectRevisionRegularTree(paths.public),
-    narration: await inspectProjectRevisionRegularTree(paths.narration),
-    delivery: await inspectProjectRevisionRegularTree(paths.delivery),
+    source: await inspectProjectRevisionSnapshotRoot({
+      rootDir: scope.repositoryRoot,
+      root: paths.source,
+    }),
+    public: await inspectProjectRevisionSnapshotRoot({
+      rootDir: scope.repositoryRoot,
+      root: paths.public,
+    }),
+    narration: await inspectProjectRevisionSnapshotRoot({
+      rootDir: scope.repositoryRoot,
+      root: paths.narration,
+      allowAbsent: allowAbsentNarration,
+    }),
+    delivery: await inspectProjectRevisionSnapshotRoot({
+      rootDir: scope.repositoryRoot,
+      root: paths.delivery,
+    }),
   } as const;
   const revision = await readCandidateRevision({
     rootDir: scope.repositoryRoot,
@@ -408,17 +431,6 @@ const assertCandidateUnchanged = (
   assertSameTree(after.public, before.public, "Candidate public tree");
   assertSameTree(after.narration, before.narration, "Candidate narration");
   assertSameTree(after.delivery, before.delivery, "Candidate delivery");
-};
-
-const snapshotForBaseScope = async ({
-  scope,
-  snapshotScope,
-}: {
-  readonly scope: ProjectRevisionProductionScope;
-  readonly snapshotScope: "delivery" | "narration" | "public" | "source";
-}) => {
-  const paths = livePaths(scope);
-  return inspectProjectRevisionRegularTree(paths[snapshotScope]);
 };
 
 const inspectLive = async ({
@@ -448,10 +460,30 @@ const inspectLive = async ({
     deliveryDirectory: paths.delivery,
     inspectDelivery,
   });
-  const source = await inspectProjectRevisionRegularTree(paths.source);
-  const publicTree = await inspectProjectRevisionRegularTree(paths.public);
-  const narration = await inspectProjectRevisionRegularTree(paths.narration);
-  const deliveryTree = await inspectProjectRevisionRegularTree(paths.delivery);
+  const allowAbsentNarration = await allowsAbsentProjectRevisionNarrationRoot({
+    rootDir: scope.repositoryRoot,
+    sourceRoot: paths.source,
+    storyId: scope.storyId,
+  });
+  const state: CandidateState = {
+    source: await inspectProjectRevisionSnapshotRoot({
+      rootDir: scope.repositoryRoot,
+      root: paths.source,
+    }),
+    public: await inspectProjectRevisionSnapshotRoot({
+      rootDir: scope.repositoryRoot,
+      root: paths.public,
+    }),
+    narration: await inspectProjectRevisionSnapshotRoot({
+      rootDir: scope.repositoryRoot,
+      root: paths.narration,
+      allowAbsent: allowAbsentNarration,
+    }),
+    delivery: await inspectProjectRevisionSnapshotRoot({
+      rootDir: scope.repositoryRoot,
+      root: paths.delivery,
+    }),
+  };
   const revision = await readRevision({
     rootDir: scope.repositoryRoot,
     projectId: scope.storyId,
@@ -462,10 +494,18 @@ const inspectLive = async ({
     delivery.revisionId === expectedRevisionId &&
     delivery.deliveryBuildId === expectedDeliveryBuildId
   ) {
-    assertSameTree(source, candidate.state.source, "Current source");
-    assertSameTree(publicTree, candidate.state.public, "Current public tree");
-    assertSameTree(narration, candidate.state.narration, "Current narration");
-    assertSameTree(deliveryTree, candidate.state.delivery, "Current delivery");
+    assertSameTree(state.source, candidate.state.source, "Current source");
+    assertSameTree(state.public, candidate.state.public, "Current public tree");
+    assertSameTree(
+      state.narration,
+      candidate.state.narration,
+      "Current narration",
+    );
+    assertSameTree(
+      state.delivery,
+      candidate.state.delivery,
+      "Current delivery",
+    );
     return { kind: "current" } as const;
   }
 
@@ -478,34 +518,45 @@ const inspectLive = async ({
     throw new Error("Live Project no longer matches the candidate base tuple.");
   }
   for (const expectedTree of baseSnapshot.trees) {
-    const actualTree =
-      expectedTree.scope === "source"
-        ? source
-        : expectedTree.scope === "public"
-          ? publicTree
-          : expectedTree.scope === "delivery"
-            ? deliveryTree
-            : expectedTree.scope === "narration"
-              ? narration
-              : await snapshotForBaseScope({
-                  scope,
-                  snapshotScope: expectedTree.scope,
-                });
+    const expected: TreeSnapshot =
+      expectedTree.presence === "present"
+        ? { presence: "present", entries: expectedTree.entries }
+        : { presence: "absent" };
     assertSameTree(
-      actualTree,
-      expectedTree.entries,
+      state[expectedTree.scope],
+      expected,
       `Live ${expectedTree.scope} base snapshot`,
     );
   }
-  return { kind: "base" } as const;
+  return { kind: "base", state } as const;
 };
 
 const installDirectorySlot = async (slot: PromotionDirectorySlot) => {
-  await assertRealDirectory(slot.live, `Live ${slot.name}`);
-  await rename(slot.live, slot.backup);
-  slot.backedUp = true;
-  await rename(slot.staging, slot.live);
-  slot.installed = true;
+  const before = await inspectProjectRevisionSnapshotRoot({
+    rootDir: slot.rootDir,
+    root: slot.live,
+    allowAbsent: slot.name === "narration",
+  });
+  assertSameTree(before, slot.before, `Live ${slot.name}`);
+  const staged = await inspectProjectRevisionSnapshotRoot({
+    rootDir: slot.rootDir,
+    root: slot.staging,
+    allowAbsent: slot.name === "narration",
+  });
+  assertSameTree(staged, slot.after, `Staged ${slot.name}`);
+  slot.prepared = true;
+  if (slot.before.presence === "present") {
+    await rename(slot.live, slot.backup);
+    slot.backedUp = true;
+  }
+  if (slot.after.presence === "present") {
+    await ensureProjectRevisionContainedDirectory({
+      root: slot.rootDir,
+      directory: dirname(slot.live),
+    });
+    await rename(slot.staging, slot.live);
+    slot.installed = true;
+  }
 };
 
 const backupProjection = async (slot: PromotionFileSlot) => {
@@ -521,16 +572,41 @@ const backupProjection = async (slot: PromotionFileSlot) => {
 };
 
 const rollbackDirectorySlot = async (slot: PromotionDirectorySlot) => {
+  if (!slot.prepared) return;
   if (slot.installed) {
-    await assertRealDirectory(slot.live, `Promoted ${slot.name}`);
+    const installed = await inspectProjectRevisionSnapshotRoot({
+      rootDir: slot.rootDir,
+      root: slot.live,
+    });
+    assertSameTree(installed, slot.after, `Promoted ${slot.name}`);
     await rename(slot.live, slot.staging);
     slot.installed = false;
   }
   if (slot.backedUp) {
-    await assertRealDirectory(slot.backup, `Backed-up ${slot.name}`);
+    const backup = await inspectProjectRevisionSnapshotRoot({
+      rootDir: slot.rootDir,
+      root: slot.backup,
+    });
+    assertSameTree(backup, slot.before, `Backed-up ${slot.name}`);
+    const current = await inspectProjectRevisionSnapshotRoot({
+      rootDir: slot.rootDir,
+      root: slot.live,
+      allowAbsent: true,
+    });
+    if (current.presence !== "absent") {
+      throw new Error(
+        `Project revision rollback ${slot.name} destination is no longer absent.`,
+      );
+    }
     await rename(slot.backup, slot.live);
     slot.backedUp = false;
   }
+  const restored = await inspectProjectRevisionSnapshotRoot({
+    rootDir: slot.rootDir,
+    root: slot.live,
+    allowAbsent: slot.name === "narration",
+  });
+  assertSameTree(restored, slot.before, `Restored ${slot.name}`);
 };
 
 const rollbackProjection = async (slot: PromotionFileSlot) => {
@@ -661,9 +737,13 @@ export const promoteProjectRevisionCandidate = async (
         "delivery",
       ] as const) {
         const staging = join(stagingRoot, name);
-        const copied = await copyProjectRevisionRegularTree({
+        const copied = await copyProjectRevisionSnapshotRoot({
+          rootDir,
           sourceRoot: candidatePathsForPromotion[name],
           destinationRoot: staging,
+          allowAbsent:
+            name === "narration" &&
+            candidate.state.narration.presence === "absent",
         });
         assertSameTree(copied, candidate.state[name], `Staged ${name}`);
         directorySlots.push({
@@ -671,6 +751,10 @@ export const promoteProjectRevisionCandidate = async (
           live: livePathsForPromotion[name],
           staging,
           backup: join(backupRoot, name),
+          rootDir,
+          before: live.state[name],
+          after: candidate.state[name],
+          prepared: false,
           backedUp: false,
           installed: false,
         });

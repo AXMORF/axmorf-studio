@@ -7,3 +7,4 @@ export {
   ProducerMotionObject,
   resolveSceneMotionObjectState,
 } from "./ProducerMotionObject";
+export * from "./continuous";

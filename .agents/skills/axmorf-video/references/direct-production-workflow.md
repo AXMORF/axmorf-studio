@@ -2,7 +2,7 @@
 
 Root only. Assigned workers follow [task protocol](task-execution-protocol.md).
 
-create-context/inspect 汇报后同轮继续工具。Hermes 用 assistant text 搭配下一次 tool call，单独 final 会结束轮次。暂停/yield 按 Skill。
+create-context/inspect 汇报后同轮继续。Hermes 的 assistant text 须搭配下一次 tool call，单独 final 会结束轮次；暂停/yield 按 Skill。
 
 ## 1. Create or revise Project inputs
 
@@ -18,21 +18,23 @@ Create 原子保留 silent/narrated 语义并冻结 Scene baseline。legacy 缺�
 npm run project:originality:freeze -- --project <storyId>
 ```
 
-不伪造 baseline。Root 预定 `outgoingHandoff.subject`；v1 给 `trackedState`。child 对照
-`continuity.handoffs`；fixed template 不连续。字幕与修订按 Skill。
+不伪造 baseline。先写全片 filmPlan，再将连续正文 meaningIds 按 visualScenes 分组；所有 Beat 的 brief 仍保留。
+一个分组一个 owning task/source graph，sceneFrame 跨内部 Beat 不重置。纯动效显式 timingSource=authored-frames，
+正文 silent scene-owner preset 帧数为 authority，没有 provider/seal/master/captions；首尾模板仍独立。
+Root 预定跨 owner 的 `outgoingHandoff.subject`；v1 给 `trackedState`。child 对照
+`continuity.handoffs`；scene-owner 可交接，fixed 不连续，仅组尾定义外部接缝。
 
 ## 2. Load the optional external-asset MCP slot
 
-Activate only when the Root can call one MCP's `get_provider_status`, `search_images`, `preview_images`, and
-`acquire_image` with an import-compatible receipt. Query Catalog first; acquire only missing imagery:
+仅当 Root 实际可调用同一 MCP 的 `get_provider_status`、`search_images`、`preview_images`、`acquire_image`
+且 receipt 兼容 import 才启用。先查 Catalog，仅获取缺少的图片：
 
 ```bash
 npm run project:asset:import -- --project <storyId> --receipt <absolute-receipt-path> --asset <assetId>
 ```
 
-If the MCP is absent, omit this entire stage without error, placeholder task, prompt, estimate, or DAG node. Task
-executors never receive it. Receipts/candidates stay at the adapter; only Project-owned manifest IDs and
-fingerprints proceed.
+If the MCP is absent, omit this entire stage without error, placeholder task, prompt, estimate, or DAG node.
+child 不接收 MCP/receipt/candidate；仅导入后的 Project-owned manifest IDs and fingerprints 进入生产。
 
 ## 3. Resolve each production once
 
@@ -56,25 +58,26 @@ Inspect 后报告 `sourceState`、cost/reuse、结构化 invalidation；前置�
 npm run project:produce:prepare -- --project <storyId>
 ```
 
-Prepare 返回 ProductionRevision、Task DAG、`dirtyAgentTasks`；复用 artifacts，只执行 dirty Agent tasks，never `scene-template`。Attempt IDs never enter TaskRevision；diagnostics 无 content identity。
+Prepare 返回 ProductionRevision/Task DAG/`dirtyAgentTasks`；复用有效 artifacts，仅执行 dirty Agent tasks，never `scene-template`。
+Attempt IDs never enter TaskRevision；diagnostics 不入 content identity。
 
 ## 5. Execute dirty Agent tasks
 
 每 TaskRevision 只归属一个 executor。`inputs/task-contract.json` 是 immutable、attempt-neutral exact output contract，无 host command。Root 按 transport 整段转发 prepare `workerPrompts` 的完整角色/路径/bind。
-短 ordinal 从 exact attempt immutable dirty task snapshots 解析，完整 binding gate 不变；保留旧 full task/binding CLI，禁止混用。
+短 ordinal 只解析 exact attempt 的 immutable task；不混用 full binding 参数。
 
-先运行 prepare 的 exact attempt-bound bind；这是 zero-write gate，`task-worker-bound` 前禁止 task read/write。
-之后只使用返回的 capability 与 commands：
+仅用 prepare 的 exact commands，见 [task protocol](task-execution-protocol.md)。先 zero-write gate bind，
+`task-worker-bound` 前零读写，之后仅 capability 允许范围，不手抄身份：
 
 ```bash
-npm run project:task:bind -- --project <storyId> --attempt <attemptId> --assignment <ordinal> --transport shared-workspace|controller-io
-npm run project:task:describe -- --project <storyId> --attempt <attemptId> --assignment <ordinal>
-npm run project:task:finalize -- --project <storyId> --attempt <attemptId> --assignment <ordinal>
-npm run project:task:check -- --project <storyId> --attempt <attemptId> --assignment <ordinal>
-npm run project:task:commit -- --project <storyId> --attempt <attemptId> --assignment <ordinal>
-npm run project:task:fail -- --project <storyId> --attempt <attemptId> --assignment <ordinal> --kind task|host|fixed
-npm run project:task:file-read -- --project <storyId> --attempt <attemptId> --assignment <ordinal> --path <logicalPath>
-npm run project:task:file-write -- --project <storyId> --attempt <attemptId> --assignment <ordinal> --path <declaredOutputPath>
+npm run project:task:bind -- --task <taskRevision> --attempt <attemptId> --binding <bindingId> --transport shared-workspace|controller-io
+npm run project:task:describe -- --task <taskRevision> --attempt <attemptId> --binding <bindingId>
+npm run project:task:finalize -- --task <taskRevision> --attempt <attemptId> --binding <bindingId>
+npm run project:task:check -- --task <taskRevision> --attempt <attemptId> --binding <bindingId>
+npm run project:task:commit -- --task <taskRevision> --attempt <attemptId> --binding <bindingId>
+npm run project:task:fail -- --task <taskRevision> --attempt <attemptId> --binding <bindingId> --kind task|host|fixed
+npm run project:task:file-read -- --task <taskRevision> --attempt <attemptId> --binding <bindingId> --path <logicalPath>
+npm run project:task:file-write -- --task <taskRevision> --attempt <attemptId> --binding <bindingId> --path <declaredOutputPath>
 ```
 
 `shared-workspace` 仅访问返回的 workspace。`controller-io` 无 filesystem access，只能用 file-read/file-write；
@@ -89,9 +92,13 @@ write 通过 strict `{ "contentBase64": "..." }` stdin。finalize 生成 fixed f
 `fixedFailureCommand`；两者不能访问 task content。普通 failure 要 full binding；no automatic inline fallback。完成
 inline tasks 或 child admission 后立即 continuation。
 
+提前审片可原生等待全部 workers 终态，在唯一 continuation 前运行 `project:preview`（candidate 携 exact `--candidate`）。
+草稿要求有效 fixed/owner artifacts，只在私有 view 物化/缩放渲染；无 provider/attempt/live/current/promotion 写入。
+审后启动原 exact continuation 一次，不暂停/重启，不重置 deadline。receipt 不代替观看/听审；已提交 artifact 不覆盖。
+
 ## 6. Supervise through the fixed continuation
 
-After dispatch, Root launches prepare's exact `continuationCommand`:
+Root 启动 prepare 的 exact `continuationCommand`：
 
 ```bash
 npm run project:produce:continue -- --project <storyId> --revision <revisionId> --attempt <attemptId>
@@ -99,10 +106,10 @@ npm run project:produce:continue -- --project <storyId> --revision <revisionId> 
 
 Claim 一次，拒绝重复。Root 阻塞等原进程/通知，普通超时只续等；不轮询 child、反复读日志或重复汇报。错误才诊断并指导原 executor，不代写/commit。失败退出，all success converges once；deadline 从 attempt 创建起一小时。
 
-Converge: read-only replan, attested materialization, checksum/EOF-decode for `video.mp4`, `cover-4x3.png`, `cover-3x4.png`, `publish.json`.
-Valid matching delivery returns `project-production-current` without rewrite.
+Converge：read-only replan、attested 物化，四文件 `video.mp4`、`cover-4x3.png`、`cover-3x4.png`、`publish.json` 经 checksum/EOF-decode。
+完整同 BuildId 返回 `project-production-current`，只读 no-op。
 
-Fixed success 后汇报路径并结束；需独立复验用 `npm run project:check -- --project <storyId> --level final`。revision context 只用于已授权范围内修改。Candidate promotion 按 revision reference。
+Fixed success 后一次汇报路径并结束；复验用 `npm run project:check -- --project <storyId> --level final`。修改须授权，candidate promotion 见 revision reference。
 
 terminal failed attempt immutable。按 [recovery](agent-rework-and-system-hardening.md) 诊断，视频创作错误每个请求最多恢复一次；旧 workers 全退出后报告 read-only、zero-provider inspection，ready 才 same Revision reissue：
 
@@ -113,5 +120,4 @@ npm run project:attempt:reissue -- --project <storyId> --attempt <failedAttemptI
 
 Reissue 无需 current delivery；复用 valid artifacts/drafts，返回 fresh bindings/continuation，派 fresh workers；拒绝 active/stale/fixed-flow recovery，不重开旧 attempt。系统/外部故障只诊断报告。
 
-Run `npm run compositions` and `npm run check` with host permissions first. Sandbox failures cannot prove VoxCPM
-unavailable or justify weakening Chromium sandbox.
+`npm run compositions`、`npm run check` 首次用 host permissions（宿主权限）。沙箱失败不能证明 VoxCPM 不可用或作为降低 Chromium sandbox 的依据。

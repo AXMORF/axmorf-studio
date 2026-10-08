@@ -33,6 +33,10 @@ import {
 } from "../domain/template-scene-output";
 import { checkProducerTaskWorkspace } from "./task-check";
 import { checkSceneTask } from "./scene-task-check";
+import {
+  AuthoredFrameTimingSchema,
+  generateAuthoredFrameTiming,
+} from "../../../packages/studio/src/contracts/semantic-timing";
 
 const FIXED_TASK_KINDS = [
   "narration-chunk",
@@ -117,6 +121,14 @@ const TimingContextSchema = z
   })
   .strict();
 
+const AuthoredTimingContextSchema = z
+  .object({
+    story: StorySpecSchema,
+    render: RenderSpecSchema,
+    timingSource: z.literal("authored-frames"),
+  })
+  .strict();
+
 const CompositionContextSchema = z
   .object({
     storyId: z.string().min(1),
@@ -177,17 +189,26 @@ const assertTaskShape = (task: ProducerTaskSpec, kind: FixedTaskKind) => {
   if (task.taskKind !== kind || task.semanticId !== null) {
     throw new Error("Fixed task identity is cross-bound.");
   }
-  if (task.validatorPolicyVersion !== policies[kind]) {
+  const authoredTiming =
+    kind === "semantic-timing" &&
+    task.validatorPolicyVersion === "authored-frame-timing-validator-v1";
+  if (!authoredTiming && task.validatorPolicyVersion !== policies[kind]) {
     throw new Error("Fixed task validator policy is incompatible.");
   }
   if (!same(task.declaredReadSet, ["inputs/context.json"])) {
     throw new Error("Fixed task declared read set is invalid.");
   }
-  if (!same(task.declaredOutputSet, [...outputs[kind]].sort())) {
+  const expectedOutputs = authoredTiming
+    ? ["project/generated/semantic-timing.generated.json"]
+    : [...outputs[kind]].sort();
+  if (!same(task.declaredOutputSet, expectedOutputs)) {
     throw new Error("Fixed task declared output set is invalid.");
   }
   const actualInputIds = task.inputFingerprints.map(({ id }) => id);
-  if (!same(actualInputIds, [...requiredInputIds[kind]].sort())) {
+  const expectedInputIds = authoredTiming
+    ? ["read:inputs/context.json", "render", "story"]
+    : [...requiredInputIds[kind]].sort();
+  if (!same(actualInputIds, expectedInputIds)) {
     throw new Error("Fixed task input bindings are incomplete.");
   }
 };
@@ -214,6 +235,34 @@ const checkChunk = async (workspace: string, task: ProducerTaskSpec) => {
   if (measured.sampleFrameCount <= 0) {
     throw new Error("Narration chunk must contain measured PCM samples.");
   }
+};
+
+const checkAuthoredTiming = async (
+  workspace: string,
+  task: ProducerTaskSpec,
+) => {
+  assertDependencyCount(task, 0);
+  const context = await assertCanonicalContext(
+    join(workspace, "inputs/context.json"),
+    AuthoredTimingContextSchema,
+  );
+  if (
+    context.story.storyId !== task.storyId ||
+    context.story.timingSource !== "authored-frames"
+  )
+    throw new Error("Authored-frame timing context is cross-bound.");
+  const timing = await parseJson(
+    join(workspace, "project/generated/semantic-timing.generated.json"),
+    AuthoredFrameTimingSchema,
+  );
+  const expected = generateAuthoredFrameTiming({
+    story: context.story,
+    render: context.render,
+  });
+  if (!same(timing, expected))
+    throw new Error(
+      "Authored-frame timing output does not match its declared frame authority.",
+    );
 };
 
 const checkSeal = async (workspace: string, task: ProducerTaskSpec) => {
@@ -596,8 +645,11 @@ export const checkFixedTask = async (input: {
   assertTaskShape(task, kind);
   if (kind === "narration-chunk") await checkChunk(workspace, task);
   else if (kind === "narration-seal") await checkSeal(workspace, task);
-  else if (kind === "semantic-timing") await checkTiming(workspace, task);
-  else if (kind === "composition-convergence")
+  else if (kind === "semantic-timing") {
+    if (task.validatorPolicyVersion === "authored-frame-timing-validator-v1")
+      await checkAuthoredTiming(workspace, task);
+    else await checkTiming(workspace, task);
+  } else if (kind === "composition-convergence")
     await checkComposition(workspace, task);
   else await checkDelivery(workspace, task);
   return checked;

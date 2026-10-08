@@ -31,6 +31,7 @@ export type SceneSoundProjection = Readonly<{
   schemaVersion: 1;
   storyId: string;
   meaningId: string;
+  coveredMeaningIds?: readonly string[];
   beatStartFrame: number;
   beatEndFrame: number;
   packageFingerprint: Sha256Digest;
@@ -211,6 +212,9 @@ export const resolveSceneSound = ({
     schemaVersion: 1 as const,
     storyId: scenePackage.storyId,
     meaningId: scenePackage.meaningId,
+    ...(scenePackage.coveredMeaningIds === undefined
+      ? {}
+      : { coveredMeaningIds: scenePackage.coveredMeaningIds }),
     beatStartFrame: scenePackage.beatFrameRange.startFrame,
     beatEndFrame: scenePackage.beatFrameRange.endFrame,
     sceneSoundFingerprint: scenePackage.sceneSoundFingerprint,

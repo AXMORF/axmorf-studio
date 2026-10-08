@@ -384,6 +384,18 @@ test("no-install creates a standalone, host-neutral workspace without claiming r
     join(workspace, ".agents/skills/axmorf-video/SKILL.md"),
     "utf8",
   );
+  const directionPath =
+    ".agents/skills/axmorf-video/references/film-direction.md";
+  const direction = await readFile(join(workspace, directionPath), "utf8");
+  assert.equal(
+    direction,
+    await readFile(join(process.cwd(), directionPath), "utf8"),
+    "New Workspaces must receive the same creative guidance as repository production.",
+  );
+  assert.equal(
+    direction,
+    await readFile(join(creatorTemplate, directionPath), "utf8"),
+  );
   const workspaceReadme = await readFile(join(workspace, "README.md"), "utf8");
   const workspaceAgents = await readFile(join(workspace, "AGENTS.md"), "utf8");
   assert.match(workspaceReadme, /npm run doctor/u);
@@ -403,6 +415,11 @@ test("no-install creates a standalone, host-neutral workspace without claiming r
     /Do not use package\s+internals or assume a particular Agent host/u,
   );
   assert.match(workspaceSkill, /The Root runs `npm run doctor`/u);
+  assert.match(workspaceSkill, /story\.filmPlan/u);
+  assert.match(workspaceSkill, /story\.visualScenes/u);
+  assert.match(workspaceSkill, /authored-frames/u);
+  assert.match(workspaceSkill, /project:preview/u);
+  assert.match(workspaceSkill, /reference:analyze/u);
   assert.match(workspaceSkill, /intermediate progress message/u);
   assert.match(workspaceSkill, /same turn/u);
   assert.match(workspaceSkill, /not a final answer/u);
@@ -441,6 +458,13 @@ test("no-install creates a standalone, host-neutral workspace without claiming r
     /assigned executor writes only contract-declared/u,
   );
   assert.match(workspaceWorkflow, /Root is that executor only in inline mode/u);
+  assert.match(workspaceWorkflow, /scene\.coveredBriefs/u);
+  assert.match(workspaceWorkflow, /silent scene-owner preset frames/u);
+  assert.match(workspaceWorkflow, /first-to-last content Scene window/u);
+  assert.doesNotMatch(
+    workspaceWorkflow,
+    /first-to-last narrated Scene window/u,
+  );
   assert.match(
     workspaceSkill,
     /project:revise:context[\s\S]*project:revise:validate[\s\S]*project:revise`/u,

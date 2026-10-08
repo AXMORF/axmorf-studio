@@ -17,6 +17,7 @@ import {
   type ProductionRevisionId,
   type Sha256Digest,
   type NarrationPreparationReceipt,
+  type MasteredNarrationManifest,
 } from "@axmorf/studio/contracts";
 import type { DiagnosticSubject } from "@axmorf/studio/contracts";
 import type { RuntimePolicyManifest } from "../../../packages/studio/src/runtime/policy-manifest";
@@ -269,11 +270,44 @@ export const buildNarrationTasks = async ({
   readonly inputs: LoadedInputs;
   readonly revisionId: ProductionRevisionId;
   readonly narration: Readonly<{
-    providerAttemptFingerprint: Sha256Digest;
-    masteringPolicy: LoadedInputs["masteredNarration"]["masteringPolicy"];
+    providerAttemptFingerprint: Sha256Digest | null;
+    masteringPolicy: MasteredNarrationManifest["masteringPolicy"] | null;
     sealedNarration: LoadedInputs["sealedNarration"];
   }>;
 }) => {
+  if (inputs.story.timingSource === "authored-frames") {
+    if (
+      narration.sealedNarration !== null ||
+      narration.providerAttemptFingerprint !== null ||
+      narration.masteringPolicy !== null
+    )
+      throw new Error(
+        "Authored-frame timing cannot have narration preparation inputs.",
+      );
+    const timing = buildAuthoredSemanticTimingTask({ inputs, revisionId });
+    const timingInspection = await inspect({ rootDir, task: timing.task });
+    const timingAttestation = timingInspection.attestation;
+    return {
+      nodes: [{ task: timing.task, dependencyTaskRevisions: [] }],
+      attestations: new Map<string, ArtifactAttestation>(
+        timingAttestation === null
+          ? []
+          : [[timing.task.taskRevision, timingAttestation]],
+      ),
+      timingTask: timing.task,
+      timingAttestation,
+      inspections: new Map([[timing.task.taskRevision, timingInspection]]),
+      subjects: new Map<string, DiagnosticSubject>(),
+    } as const;
+  }
+  if (
+    narration.sealedNarration === null ||
+    narration.providerAttemptFingerprint === null ||
+    narration.masteringPolicy === null
+  )
+    throw new Error(
+      "Narrated Stories require sealed narration preparation inputs.",
+    );
   const nodes: ProducerTaskNode[] = [];
   const attestations = new Map<string, ArtifactAttestation>();
   const chunkTasks: ProducerTaskSpec[] = [];
@@ -413,7 +447,7 @@ export const buildSemanticTimingTask = ({
   readonly revisionId: ProductionRevisionId;
   readonly sealTask: ProducerTaskSpec;
   readonly sealAttestation: ArtifactAttestation | null;
-  readonly masteringPolicy: LoadedInputs["masteredNarration"]["masteringPolicy"];
+  readonly masteringPolicy: MasteredNarrationManifest["masteringPolicy"];
 }) =>
   buildContextTask({
     taskKind: "semantic-timing",
@@ -444,6 +478,37 @@ export const buildSemanticTimingTask = ({
       masteringPolicy,
     },
   });
+
+export const buildAuthoredSemanticTimingTask = ({
+  inputs,
+  revisionId,
+}: {
+  readonly inputs: LoadedInputs;
+  readonly revisionId: ProductionRevisionId;
+}) => {
+  if (inputs.story.timingSource !== "authored-frames")
+    throw new Error(
+      "Authored-frame fixed task requires explicit Story frame authority.",
+    );
+  return buildContextTask({
+    taskKind: "semantic-timing",
+    storyId: inputs.projectId,
+    semanticId: null,
+    revisionId,
+    dependencies: [],
+    inputFingerprints: [
+      { id: "render", fingerprint: inputs.fingerprints.render },
+      { id: "story", fingerprint: inputs.fingerprints.story },
+    ],
+    outputs: ["project/generated/semantic-timing.generated.json"],
+    validatorPolicyVersion: "authored-frame-timing-validator-v1",
+    context: {
+      story: inputs.story,
+      render: inputs.render,
+      timingSource: "authored-frames",
+    },
+  });
+};
 
 export const buildAgentTasks = (
   inputs: LoadedInputs,
@@ -532,6 +597,10 @@ export const buildAgentTasks = (
           beat: scene.beat,
           timingBeat: scene.timingBeat,
           brief: scene.brief,
+          ...(scene.coveredBriefs === undefined
+            ? {}
+            : { coveredBriefs: scene.coveredBriefs }),
+          ...(scene.filmPlan === undefined ? {} : { filmPlan: scene.filmPlan }),
           ...(templateCopy
             ? {}
             : {
@@ -700,8 +769,8 @@ export type BuildCurrentProductionPlanInput = Readonly<{
   env?: Readonly<Record<string, string | undefined>>;
   inputs?: LoadedInputs;
   narration?: Readonly<{
-    providerAttemptFingerprint?: string;
-    masteringPolicy?: LoadedInputs["masteredNarration"]["masteringPolicy"];
+    providerAttemptFingerprint?: string | null;
+    masteringPolicy?: MasteredNarrationManifest["masteringPolicy"] | null;
     preparationReceipt?: NarrationPreparationReceipt;
   }>;
   baseline?: Awaited<ReturnType<typeof readProductionDiagnosticBaseline>>;
@@ -740,10 +809,14 @@ export const buildCurrentProductionPlan = async ({
   const narration =
     suppliedNarration ??
     (await inspectNarrationCache({ rootDir, projectId, env, scope }));
-  if (narration.providerAttemptFingerprint === undefined) {
+  const authoredFrames = inputs.story.timingSource === "authored-frames";
+  if (!authoredFrames && narration.providerAttemptFingerprint == null) {
     throw new Error("Narration preparation identity is unavailable.");
   }
   if (
+    !authoredFrames &&
+    inputs.sealedNarration !== null &&
+    inputs.masteredNarration !== null &&
     narration.preparationReceipt !== undefined &&
     (narration.preparationReceipt.storyId !== inputs.projectId ||
       narration.preparationReceipt.generationInputFingerprint !==
@@ -759,21 +832,26 @@ export const buildCurrentProductionPlan = async ({
   }
   const revision = buildCurrentProductionRevision(inputs);
   const baseline =
-    suppliedBaseline ??
-    (await readProductionDiagnosticBaseline({
-      rootDir: scope.isolatedRoot,
-      runtimeRootDir: scope.shared.runtimeRoot,
-      projectId,
-    }));
+    suppliedBaseline === undefined
+      ? await readProductionDiagnosticBaseline({
+          rootDir: scope.isolatedRoot,
+          runtimeRootDir: scope.shared.runtimeRoot,
+          projectId,
+        })
+      : suppliedBaseline;
   const fixed = await buildNarrationTasks({
     rootDir,
     inputs,
     revisionId: revision.revisionId,
     narration: {
-      providerAttemptFingerprint:
-        narration.providerAttemptFingerprint as Sha256Digest,
-      masteringPolicy:
-        narration.masteringPolicy ?? inputs.masteredNarration.masteringPolicy,
+      providerAttemptFingerprint: authoredFrames
+        ? null
+        : (narration.providerAttemptFingerprint as Sha256Digest),
+      masteringPolicy: authoredFrames
+        ? null
+        : (narration.masteringPolicy ??
+          inputs.masteredNarration?.masteringPolicy ??
+          null),
       sealedNarration: inputs.sealedNarration,
     },
   });

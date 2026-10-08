@@ -30,6 +30,8 @@ const CORE_TEST_ROOTS = [
   "tests/registry",
   "tests/baseline",
   "tests/project-production",
+  "tests/project-preview",
+  "tests/reference-analysis",
   "tests/projects",
   "tests/project-check",
   "tests/project-validation",

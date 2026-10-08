@@ -17,6 +17,7 @@ import {
   SceneReadabilityPolicySchema,
   resolveSceneReadabilityPolicy,
   validateStoryCaptionReadability,
+  type SceneReadabilityPolicy,
 } from "./scene-readability";
 import { RenderSpecSchema } from "./render";
 import { StorySpecSchema } from "./story";
@@ -484,18 +485,26 @@ const buildAuthoringRequirementsBase = ({
 
 type AuthoringRequirementsBuildInput = Parameters<
   typeof buildAuthoringRequirementsBase
->[0] & { readonly readability: Readonly<{ edgeInsetPx: number }> };
+>[0] & {
+  readonly readability:
+    | Readonly<{ edgeInsetPx: number }>
+    | Readonly<{ frozenPolicy: SceneReadabilityPolicy }>;
+};
 
 export const buildAuthoringRequirements = (
   input: AuthoringRequirementsBuildInput,
 ) => {
   const base = buildAuthoringRequirementsBase(input);
-  const readabilityPolicy = resolveSceneReadabilityPolicy({
-    width: base.normalizedSummary.width,
-    height: base.normalizedSummary.height,
-    edgeInsetPx: input.readability.edgeInsetPx,
-  });
   const source = assertCurrentSource(input.source);
+  const readabilityPolicy =
+    "frozenPolicy" in input.readability
+      ? SceneReadabilityPolicySchema.parse(input.readability.frozenPolicy)
+      : resolveSceneReadabilityPolicy({
+          width: base.normalizedSummary.width,
+          height: base.normalizedSummary.height,
+          edgeInsetPx: input.readability.edgeInsetPx,
+          timingSource: source.story.timingSource,
+        });
   validateStoryCaptionReadability({
     story: source.story,
     policy: readabilityPolicy,
@@ -536,7 +545,7 @@ export const resolveCurrentAuthoringRequirements = ({
     resourcePolicy: requirements.resourcePolicy,
     additionalRequirements: requirements.additionalRequirements,
     readability: {
-      edgeInsetPx: requirements.readabilityPolicy.baseEdgeInsetPx,
+      frozenPolicy: requirements.readabilityPolicy,
     },
   });
   if (

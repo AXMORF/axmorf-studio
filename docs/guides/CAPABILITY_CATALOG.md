@@ -46,6 +46,10 @@ flowchart LR
   media、transition preset 或 Project-local Scene 混为一类；新 Project 只在 atomic create transaction 中
   复制所选 instance。`DefaultIntroPreview` / `DefaultOutroPreview` 是 shared template 的 system preview，
   不是 Project delivery；片尾 mark + wordmark 以一个 responsive lockup box 居中，关注按钮维持独立的同轴布局。
+  当前 credits 模板按 viewport 计算内容预算，保留48px正文和36px引用字号；空间不足时分开正文与引用阶段，
+  密集引用用并列标题/来源域名，长文本显式省略。完整原始引用仍保存在 Story 数据，不声称全部字串可见。
+  1100×540 可在同一引用阶段列出8条；旧1100×270最多分两页，最坏每页25帧，几何通过不等于阅读停留充分。
+  改动仅供后续 create 冻结的新模板实例，现有 Project 不自动替换模板源码。
 
 当前权威与生成入口：
 

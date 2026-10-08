@@ -6,8 +6,10 @@ import test from "node:test";
 
 import {
   DELIVERY_BUILD_POLICY_VERSION,
+  DeliveryBuildIdSchema,
   RenderSpecSchema,
   Sha256DigestSchema,
+  StoryIdSchema,
   StorySpecSchema,
   buildArtifactAttestation,
   buildDeliveryPublish,
@@ -817,6 +819,87 @@ test("synchronous delivery failure is terminal and never reports completion", as
       diagnosticCode: "project-production-convergence-failed",
     },
   ]);
+});
+
+test("lost terminal diagnostics preserve verified delivery results and real delivery failures", async (context) => {
+  for (const deliveryStatus of [
+    "project-production-complete",
+    "project-production-current",
+    "render-failed",
+  ] as const) {
+    await context.test(deliveryStatus, async () => {
+      const ownerTask = task("scene-owner");
+      const stages = convergenceStages(ownerTask);
+      let planCalls = 0;
+      let verifyCalls = 0;
+      const terminalStatuses: string[] = [];
+      const running = convergeProjectProduction({
+        rootDir: "/fixture",
+        projectId: "story-example",
+        revisionId: REVISION,
+        attemptId: ATTEMPT_ID,
+        dependencies: {
+          acquireLock: acquireTestLock,
+          buildCurrentPlan: async () => {
+            planCalls += 1;
+            return planCalls === 1 ? stages.initial : stages.withComposition;
+          },
+          inspectArtifact: async () => attestation(ownerTask),
+          materializeOwnerArtifacts: async () => undefined,
+          verifyMaterializedOwnerArtifacts: async () => {
+            verifyCalls += 1;
+          },
+          prepareProject: fakePrepareProject,
+          readPreparedScenePackage: async () =>
+            new TextEncoder().encode("scene-package\n"),
+          commitFixedArtifact: async ({ task: fixedTask }) =>
+            attestation(fixedTask),
+          readDeliveryPublish: async () => new TextEncoder().encode("{}\n"),
+          buildDelivery: async () => {
+            if (deliveryStatus === "render-failed") {
+              throw new Error("render failed");
+            }
+            const delivery = {
+              projectId: StoryIdSchema.parse("story-example"),
+              deliveryBuildId: DeliveryBuildIdSchema.parse(
+                `delivery-${"3".repeat(64)}`,
+              ),
+              deliveryPath: "deliveries/story-example",
+            };
+            return deliveryStatus === "project-production-current"
+              ? { ...delivery, status: deliveryStatus, noOp: true as const }
+              : {
+                  ...delivery,
+                  status: deliveryStatus,
+                  noOp: false as const,
+                  reused: { video: false, cover4x3: false, cover3x4: false },
+                };
+          },
+          appendAttempt: async ({ result }) => {
+            terminalStatuses.push(result.status);
+            throw new Error("diagnostic store unavailable");
+          },
+        },
+      });
+      if (deliveryStatus === "render-failed") {
+        await assert.rejects(running, /render failed/u);
+        assert.deepEqual(terminalStatuses, ["failed"]);
+        assert.equal(planCalls, 2);
+      } else {
+        const result = await running;
+        assert.equal(result.status, deliveryStatus);
+        assert.equal(result.attemptRecorded, false);
+        assert.equal(result.revisionId, REVISION);
+        assert.equal(
+          result.delivery.deliveryBuildId,
+          `delivery-${"3".repeat(64)}`,
+        );
+        assert.deepEqual(terminalStatuses, ["verified"]);
+        assert.equal(planCalls, 3);
+        assert.equal(verifyCalls, 4);
+      }
+    });
+  }
 });
 
 test("one repository lock covers the complete convergence orchestration", async (context) => {

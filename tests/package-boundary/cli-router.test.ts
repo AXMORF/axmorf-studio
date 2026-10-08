@@ -96,6 +96,8 @@ test("the public CLI maps grouped commands exactly without leaking routing argum
     projectCheck: createRunner(calls, "projectCheck"),
     projectProduction: createRunner(calls, "projectProduction"),
     projectSceneReview: createRunner(calls, "projectSceneReview"),
+    projectPreview: createRunner(calls, "projectPreview"),
+    referenceAnalysis: createRunner(calls, "referenceAnalysis"),
     catalog: createRunner(calls, "catalog"),
     registry: createRunner(calls, "registry"),
     renderer: createRunner(calls, "renderer"),
@@ -206,6 +208,16 @@ test("the public CLI maps grouped commands exactly without leaking routing argum
       ["--project", "story"],
     ],
     [
+      ["project", "preview", "--project", "story", "--candidate", "candidate"],
+      "projectPreview",
+      ["--project", "story", "--candidate", "candidate"],
+    ],
+    [
+      ["reference", "analyze", "--input", "public/reference.mp4"],
+      "referenceAnalysis",
+      ["--input", "public/reference.mp4"],
+    ],
+    [
       ["project", "produce", "continue", "--attempt", "attempt"],
       "projectProduction",
       ["continue", "--attempt", "attempt"],
@@ -305,6 +317,8 @@ test("the router rejects aliases partial commands and arguments on fixed command
     projectCheck: noOp,
     projectProduction: noOp,
     projectSceneReview: noOp,
+    projectPreview: noOp,
+    referenceAnalysis: noOp,
     catalog: noOp,
     registry: noOp,
     renderer: noOp,
@@ -328,6 +342,8 @@ test("the router rejects aliases partial commands and arguments on fixed command
     ["project", "asset", "unknown"],
     ["project", "verify"],
     ["unknown"],
+    ["reference"],
+    ["reference", "unknown"],
   ]) {
     await assert.rejects(
       routeCliCommand({ rootDir: "/workspace", args, runners }),
@@ -365,6 +381,8 @@ test("CLI composition resolves Workspace before invoking any command runner", as
     projectCheck: runner,
     projectProduction: runner,
     projectSceneReview: runner,
+    projectPreview: runner,
+    referenceAnalysis: runner,
     catalog: runner,
     registry: runner,
     renderer: runner,

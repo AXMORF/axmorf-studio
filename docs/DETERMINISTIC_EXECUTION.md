@@ -42,6 +42,10 @@ safe-area-local SceneViewport fingerprint（width/height/min font size/coordinat
 policy fingerprint/width/height/insets 均不进入 Scene workspace；Composition 在 runtime 重新从当前 policy 派生
 SceneViewport，并与 task/package 绑定的 boundary version/fingerprint fail-closed 对齐。
 
+新建 authored-frames 固化 policyVersion 2 与 `captionBand: "none"`，以对称安全边界派生 viewport；
+旁白与旧 frozen policyVersion 1 的 bytes、几何和 fingerprint namespace version 保留。
+current validation 与 revision 使用完整 frozen policy，不能仅按 edgeInset 重建或自动迁移。
+
 Configured template instance 另外绑定 copied Renderer adapter 与完整 import graph。adapter 只做
 `viewportWidth`/`viewportHeight` → 模板内部 `width`/`height` 的确定性映射；adapter/layout bytes 改变会改变
 未来 instance/source-graph identity，但不会跨过 immutable copy 边界重写既有 Project。
@@ -67,7 +71,7 @@ Scene originality baseline fingerprint/context 只进入 `scene-owner` TaskRevis
 historical graph，converge 在任何 scope materialization 前再次拒绝同 Revision exact/token-normalized duplicate。
 
 GlobalVisual layer policy 由 canonical SemanticTiming 确定性派生：base 是完整 Composition，decoration 是首个至
-末个 narrated Scene 的连续 frame range，且 decoration origin 固定为 window-local zero。它进入 task/context 与
+末个正文 Beat 的连续 frame range（sealed-narration 取 narrated；authored-frames 取 scene-owner），且 decoration origin 固定为 window-local zero。它进入 task/context 与
 生成式 Composition projection，不由 Agent 自行选择或扩大。
 
 失效解释把正交事实分开：typed `artifactState` 描述目标 artifact 的 current integrity；`directChanges`
@@ -76,13 +80,25 @@ edges 传播。hash 不可反解，因此 baseline 不可用时明确标记，�
 
 预期 invalidation：
 
-- 一个 Scene brief 变化：该 Scene 与必要 convergence/delivery dirty，其他 Scene/TTS/GlobalVisual/Cover reused；
+- 一个 Beat brief 变化：其 owning Scene 与必要 convergence/delivery dirty，同组所有 Beat 共用该 source graph；其他 Scene/TTS/GlobalVisual/Cover reused；
 - Cover input 变化：Cover 与 delivery dirty；
 - 一个 TTS chunk 变化：其他 chunk reused，seal/timing 及实际受 timing 影响的 Scene dirty；
 - shared renderer runtime 变化：相关 Scene/convergence/delivery dirty；
 - readability 改变：只有派生 SceneViewport 或 caption/runtime policy 真正变化的下游 dirty；
 - 一个 validator policy 变化：只影响该 task kind；
 - attempt、历史数据或无关 Project 变化：current identities 不变。
+
+`visualScenes` 显式完整分组，SceneTask v8/ScenePackage v7 绑定 ordered coveredBeats/coveredMeaningIds；
+没有分组的单 Beat 保留 v7/v6 输入格式。聚合任务保留全部原 Beat、brief、资源 allowlists 和 narration cues。
+同一个 Scene 的内部 Beat 边界不会重挂 Renderer 或归零 sceneFrame。多 Beat 的音效 projection 每 owner 只混音一次。
+
+无旁白时间来自 `authored-cumulative-frames-v1` 的累计 preset duration；sampleRate/narrationStartFrame 为 null，
+segments/captionCues 为空，contentFrameRange 排除 fixed 首尾。它不会把人为帧数冒充 PCM measurement。
+world camera、settle/follow、point morph/gather 与 semantic retiming 均为纯帧函数，可随机 seek 和分数帧采样。
+retiming 不修改 sealed timing，只给视觉与事件提供同一严格单调映射。
+
+`project:preview` 和 `reference:analyze` 是诊断输出，不进入 ProductionRevision/Task/Artifact/Delivery identity。
+草稿独立 build identity 绑定完整输入和 profile；原/source/view/artifact checksum drift 必须拒绝，不能因草稿缓存命中略过复验。
 
 ## 4. Workspace 与 Artifact Store
 
@@ -160,6 +176,8 @@ no-op。
 - create：same creation identity → read-only current；different/partial target → fail closed，不覆盖；
 - revision candidate：same strict input + exact base tree bytes → read-only current；base drift 或 candidate bytes
   冲突 → fail closed，且不修改 live；
+  snapshot/record v2 冻结 root presence，authored narration absence 与空目录不同；unsafe ancestor/presence drift
+  同样拒绝，旧 v1 candidate fail closed。presence 是 candidate 快照诊断，不进入 production identity；
 - inspect：同 source/cache/artifact/delivery snapshot → byte-equivalent read model、零 provider/零写入；
 - prepare：同 inputs + valid store → same Revision/Task identities and reuse classification；新 attempt 仍只诊断；
 - check：同 workspace → same read-only result；
@@ -174,6 +192,7 @@ no-op。
 - revision promotion：same expected candidate Revision/Delivery 已 current → no-op；只替换 source/public/narration/delivery
   四个 Project-owned roots；captured replacement/refresh/verification failure → rollback previous current，保留
   candidate 供独立 promote retry；
+  narration 的合法 absence 同样保持，并在失败 rollback 后恢复缺失；
 - attempt recovery inspection：同 failed attempt/current Revision snapshot → 相同只读、零 provider 结论；active、
   stale、non-terminal 或 fixed dirty/blocked flow 明确拒绝；
 - attempt reissue：只在 recovery-ready 时创建 fresh attempt/bindings，旧 failed attempt immutable；不要求 current

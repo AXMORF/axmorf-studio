@@ -38,9 +38,15 @@ const AbsoluteBeatFrameRangeSchema = z
 
 const ScenePackageInputObject = z
   .object({
-    schemaVersion: z.literal(6),
+    schemaVersion: z.union([z.literal(6), z.literal(7)]),
     storyId: StoryIdSchema,
     meaningId: MeaningIdSchema,
+    coveredMeaningIds: z
+      .array(MeaningIdSchema)
+      .min(2)
+      .max(256)
+      .readonly()
+      .optional(),
     beatFrameRange: AbsoluteBeatFrameRangeSchema,
     taskInputFingerprint: Sha256DigestSchema,
     semanticTimingFingerprint: Sha256DigestSchema,
@@ -125,6 +131,21 @@ const addScenePackageIssues = (
   scenePackage: ScenePackageInput & { readonly packageFingerprint: string },
   context: z.RefinementCtx,
 ) => {
+  if (
+    (scenePackage.schemaVersion === 7) !==
+      (scenePackage.coveredMeaningIds !== undefined) ||
+    (scenePackage.coveredMeaningIds !== undefined &&
+      (scenePackage.coveredMeaningIds[0] !== scenePackage.meaningId ||
+        new Set(scenePackage.coveredMeaningIds).size !==
+          scenePackage.coveredMeaningIds.length))
+  ) {
+    context.addIssue({
+      code: "custom",
+      message:
+        "Multi-Beat Scene packages require version 7 and unique ordered ownership.",
+      path: ["coveredMeaningIds"],
+    });
+  }
   if (
     new Set(
       scenePackage.selectedResources.map((resource) => resource.resourceId),
@@ -337,7 +358,10 @@ export const buildSceneCoverageMap = (rawInput: {
   }));
   const allowed = new Set(storyBeatOrder);
   const allClaims = [
-    ...packages.map((scenePackage) => scenePackage.meaningId),
+    ...packages.flatMap(
+      (scenePackage) =>
+        scenePackage.coveredMeaningIds ?? [scenePackage.meaningId],
+    ),
     ...fallbacks.map((fallback) => fallback.meaningId),
     ...stalePackages.map((stale) => stale.meaningId),
   ];
@@ -351,8 +375,20 @@ export const buildSceneCoverageMap = (rawInput: {
     );
   }
   const packageByMeaning = new Map(
-    packages.map((scenePackage) => [scenePackage.meaningId, scenePackage]),
+    packages.flatMap((scenePackage) =>
+      (scenePackage.coveredMeaningIds ?? [scenePackage.meaningId]).map(
+        (id) => [id, scenePackage] as const,
+      ),
+    ),
   );
+  for (const scenePackage of packages) {
+    const ids = scenePackage.coveredMeaningIds ?? [scenePackage.meaningId];
+    const start = storyBeatOrder.indexOf(ids[0]);
+    if (ids.some((id, index) => storyBeatOrder[start + index] !== id))
+      throw new Error(
+        "Scene coverage visual ownership is not consecutive Story order.",
+      );
+  }
   const fallbackByMeaning = new Map(
     fallbacks.map((fallback) => [fallback.meaningId, fallback]),
   );

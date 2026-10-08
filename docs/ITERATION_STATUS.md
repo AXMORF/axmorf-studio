@@ -1,5 +1,52 @@
 # Iteration Status
 
+## 当前源码：视频创作 Skill 经验沉淀（2026-10-08，未发布）
+
+项目内 axmorf-video policy v27（schemaVersion20）新增 film-direction reference，仓库与 creator 模板逐 byte 同步，
+Root 与独立 Scene 入口均可发现。它保留整片因果设计、连续主体/空间、相机动机、自然转场、静止/阅读停留、
+事件音效与实际媒体审阅的方法，不固化城市题材、配色、BPM 或元素数量。局部修订仍只改 owning priorSource delta。
+补清逐 Beat scenes brief、总时长/首尾声音预算、资源池与 silent preset 精确消费；公开 motion API 指南分别说明
+旁白/作者帧锚点、tracked v1/intent v2，不改 runtime 行为或 validator。原上下文预算保持不变。
+
+已完成的58秒竖屏原创作品《一座城市，如何醒来》以7个作者帧 Beat/1个连续正文 owner 表达因果变化，
+零 provider/旁白/字幕；exact-four delivery 与记录中的7项final通过。抽样视觉、技术静音播放和音频事件测量
+保留各自范围，主观听审仍未评估。该片暴露的 scene-review authored 非空章节误判是已诊断、未修复的工具缺陷，
+不能把已有成片误报为失效。Skill 修改与验证范围见[创作经验记录](evidence/2026-10-08-creative-video-skill.md)。
+本轮53/53 focused、最后两项受影响指南复验、类型/scoped lint/Skill validator/格式与creator检查通过；
+pack dry-run含新增指南，199份active文档的370条本地链接/264处命令引用通过。未重复完整check或重新制作成片。
+本次不代表 npm 发布、独立首用或新的成片质量认证。
+
+## 当前源码：连续视频创作升级（2026-10-08，未发布）
+
+整片 filmPlan 与显式 visualScenes 已进入 strict authoring/任务/包/覆盖/注册表/runtime/revision：一个 owner
+可覆盖多个连续正文 Beat，持续 sceneFrame 不在内部语义边界归零，字幕/时间/章节仍独立。单 Beat 原合同保留，
+fixed 首尾不合组，现有 Project 通过显式 revision 重组，不自动迁移。
+
+显式 authored-frames 以 silent scene-owner preset 帧数生成时间轴，零 provider/seal/mastered WAV/captions，
+BGM/GlobalVisual 使用正文窗口；旁白默认继续采用 sealed PCM samples。纯视觉章节可为空或完整按序。
+新增世界相机、落定/跟随、点形变/收束与语义重定时纯函数；没有引入第二渲染引擎或复制 OneTake 实现。
+
+`project:preview` 在私有冻结 view 中投影有效 fixed/owner artifacts，保留布局/fps/帧数/声音并降低像素，
+在唯一 continuation 前供审阅；它不改变 live/current、不创建 attempt、不 promotion。参考诊断采用最多120个低分辨率
+粗采样、最多12个区间各8次细化和24个彩色预览，报告 nominal 切换区间与有拒估条件的图像平移/缩放证据。
+它不把图像变化当成语义相机或主观质量通过。公共 CLI、creator 与生成 Skill 已同步。
+
+正式/草稿/工程 proof 统一导出完整 lossless PCM 后仅编码一次 AAC，保留 priming/skip metadata；不使用固定毫秒移位。
+禁用 parallel encoding 保持极短片的准确帧时间。当前 pinned pulse fixture 的 PCM/AAC 事件范围相同、实测 lag 为0；
+此前约42.67ms测量保留为历史失败证据，不代表当前路径。新 authored readability 不预留空字幕区域；片尾按 viewport
+预算换行、压缩来源标签和必要分页，既有 immutable 模板不迁移。revision snapshot/record v2 明确记录 narration root
+的真实存在/缺失状态，支持纯动效候选创建、提升和回滚；v1 候选 fail closed。
+
+本轮 Skill 修改前的完整 `npm run check` 1270/1270、类型/lint/构建/宿主 gate 与两包检查通过。该次 packed Workspace 六项 doctor
+通过，runtime284文件与creator41文件及生成指南逐 byte 核对。Root 实际派发3个 fresh native workers，完成26秒
+authored/grouped/stereo 草稿和 exact-four 交付，7项final检查通过；浏览器技术静音播放780帧，另看抽样画面与两封面。
+只改最后一段标题的候选为1dirty owning Scene/5reuse/0provider，自动提升、7项final和重复promote只读复验通过；
+封面/首尾/全局视觉/时间轴/素材及完整解码音轨保持一致。时序审阅页9段实际clip技术播放通过。具体结果与证据见
+[连续视频验收](evidence/2026-10-08-continuous-video-acceptance.md)，操作见
+[连续视频创作](guides/CONTINUOUS_VIDEO_AUTHORING.md)。本次无 npm 发布、Git 提交或现有用户 Project 生产；
+独立普通提示首用、exact-four 并发发布门槛和主观听审未以该内部工程验收替代。
+下方 0.1.16 发布/首用证据只认证其当时冻结的包，不能认证本次源码新增能力。
+
 ## 0.1.16 当前发布闭环（2026-10-03，两包发布与公共安装烟测通过）
 
 当前 release worktree 基于 `7352dc9` 与原工作区73项已有修改，原分支、提交与文件 bytes 保持不变。

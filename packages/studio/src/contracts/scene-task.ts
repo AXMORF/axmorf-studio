@@ -16,7 +16,11 @@ import {
   SCENE_COMPOSITION_BOUNDARY_VERSION,
 } from "./authoring-requirements";
 import { ResourceIdSchema } from "./resource-catalog";
-import { StoryBeatSchema } from "./story";
+import {
+  StoryBeatSchema,
+  aggregateSceneStoryBeat,
+  isSceneOwnerBeat,
+} from "./story";
 import {
   SceneContinuityContractSchema,
   computeSceneContinuityId,
@@ -113,12 +117,23 @@ const SceneTaskRequirementSchema = z
 
 const SceneTaskInputObject = z
   .object({
-    schemaVersion: z.literal(7),
+    schemaVersion: z.union([z.literal(7), z.literal(8)]),
     storyId: StoryIdSchema,
     meaningId: MeaningIdSchema,
     storyBeat: StoryBeatSchema,
     sourceReferences: VideoSourceReferencesSchema,
     timingBeat: TimingBeatSchema,
+    coveredBeats: z
+      .array(
+        z
+          .object({ storyBeat: StoryBeatSchema, timingBeat: TimingBeatSchema })
+          .strict()
+          .readonly(),
+      )
+      .min(2)
+      .max(256)
+      .readonly()
+      .optional(),
     storyFingerprint: Sha256DigestSchema,
     renderFingerprint: Sha256DigestSchema,
     visualStyleFingerprint: Sha256DigestSchema,
@@ -139,7 +154,7 @@ const SceneTaskInputObject = z
 type SceneTaskFingerprintInput = Omit<
   z.input<typeof SceneTaskInputObject>,
   "schemaVersion" | "taskInputFingerprint"
-> & { readonly schemaVersion?: 7 };
+> & { readonly schemaVersion?: 7 | 8 };
 
 export const computeSceneTaskInputFingerprint = (
   rawTask: SceneTaskFingerprintInput & {
@@ -150,7 +165,7 @@ export const computeSceneTaskInputFingerprint = (
   delete task.taskInputFingerprint;
   return createFingerprint({
     namespace: "scene-task-input",
-    version: 7,
+    version: rawTask.schemaVersion ?? 7,
     value: task,
   });
 };
@@ -159,6 +174,63 @@ const addSceneTaskIssues = (
   task: z.infer<typeof SceneTaskInputObject>,
   context: z.RefinementCtx,
 ) => {
+  if ((task.schemaVersion === 8) !== (task.coveredBeats !== undefined))
+    context.addIssue({
+      code: "custom",
+      message:
+        "Multi-Beat Scene tasks require schemaVersion 8 and exact covered Beats.",
+      path: ["coveredBeats"],
+    });
+  if (task.coveredBeats !== undefined) {
+    const members = task.coveredBeats;
+    if (
+      members[0].storyBeat.meaningId !== task.meaningId ||
+      members[0].timingBeat.startFrame !== task.timingBeat.startFrame ||
+      members.at(-1)!.timingBeat.endFrame !== task.timingBeat.endFrame ||
+      new Set(members.map((member) => member.storyBeat.meaningId)).size !==
+        members.length ||
+      members.some(
+        (member, index) =>
+          member.storyBeat.kind !== task.storyBeat.kind ||
+          member.timingBeat.kind !== member.storyBeat.kind ||
+          member.storyBeat.meaningId !== member.timingBeat.meaningId ||
+          (index > 0 &&
+            member.timingBeat.startFrame !==
+              members[index - 1].timingBeat.endFrame) ||
+          (member.storyBeat.kind === "silent-scene" &&
+            (member.storyBeat.preset.implementation.kind !== "scene-owner" ||
+              member.timingBeat.kind !== "silent-scene" ||
+              member.timingBeat.presetFingerprint !==
+                member.storyBeat.preset.presetFingerprint ||
+              member.timingBeat.presetDurationInFrames !==
+                member.storyBeat.preset.durationInFrames ||
+              member.timingBeat.endFrame - member.timingBeat.startFrame !==
+                member.storyBeat.preset.durationInFrames)),
+      )
+    )
+      context.addIssue({
+        code: "custom",
+        message:
+          "Covered Beats must exactly bind consecutive content timing and identity.",
+        path: ["coveredBeats"],
+      });
+    try {
+      if (
+        JSON.stringify(task.storyBeat) !==
+        JSON.stringify(
+          aggregateSceneStoryBeat(members.map((member) => member.storyBeat)),
+        )
+      )
+        throw new Error("Scene aggregate changed owned content.");
+    } catch {
+      context.addIssue({
+        code: "custom",
+        message:
+          "Multi-Beat Scene must preserve every owned Beat in its aggregate.",
+        path: ["storyBeat"],
+      });
+    }
+  }
   const handoffs = task.continuity.handoffs;
   if (handoffs !== undefined) {
     for (const direction of ["incoming", "outgoing"] as const) {
@@ -174,7 +246,7 @@ const addSceneTaskIssues = (
           : task.continuity.nextMeaningId;
       if (
         seam !== null &&
-        (task.storyBeat.kind !== "narrated-scene" ||
+        (!isSceneOwnerBeat(task.storyBeat) ||
           neighbor === null ||
           seam.continuityId !==
             computeSceneContinuityId(
@@ -277,6 +349,14 @@ export const SceneTaskInputSchema =
 
 export const buildSceneTaskInputV7 = (rawInput: SceneTaskFingerprintInput) => {
   const input = { ...rawInput, schemaVersion: 7 as const };
+  return SceneTaskInputSchema.parse({
+    ...input,
+    taskInputFingerprint: computeSceneTaskInputFingerprint(input),
+  });
+};
+
+export const buildSceneTaskInputV8 = (rawInput: SceneTaskFingerprintInput) => {
+  const input = { ...rawInput, schemaVersion: 8 as const };
   return SceneTaskInputSchema.parse({
     ...input,
     taskInputFingerprint: computeSceneTaskInputFingerprint(input),

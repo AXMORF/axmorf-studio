@@ -8,7 +8,10 @@ import {
   Sha256DigestSchema,
   StoryIdSchema,
 } from "./primitives";
-import { SemanticTimingSchema } from "./semantic-timing";
+import {
+  SemanticTimingSchema,
+  resolveSemanticContentFrameRange,
+} from "./semantic-timing";
 import { getStoryCompositionDurationInFrames } from "./story-composition";
 
 export const GLOBAL_VISUAL_PLAN_VERSION = "global-visual-plan-v1" as const;
@@ -73,14 +76,7 @@ export const GlobalVisualLayerPolicySchema = z
 
 export const deriveGlobalVisualLayerPolicy = (rawTiming: unknown) => {
   const timing = SemanticTimingSchema.parse(rawTiming);
-  const narratedBeats = timing.storyBeats.filter(
-    (beat) => beat.kind === "narrated-scene",
-  );
-  const firstNarratedBeat = narratedBeats[0];
-  const lastNarratedBeat = narratedBeats.at(-1);
-  if (firstNarratedBeat === undefined || lastNarratedBeat === undefined) {
-    throw new Error("GlobalVisual requires narrated content.");
-  }
+  const contentFrameRange = resolveSemanticContentFrameRange(timing);
   return GlobalVisualLayerPolicySchema.parse({
     schemaVersion: 1,
     policyVersion: GLOBAL_VISUAL_LAYER_POLICY_VERSION,
@@ -89,8 +85,8 @@ export const deriveGlobalVisualLayerPolicy = (rawTiming: unknown) => {
       endFrame: getStoryCompositionDurationInFrames(timing.durationInFrames),
     },
     decorationFrameRange: {
-      startFrame: firstNarratedBeat.startFrame,
-      endFrame: lastNarratedBeat.endFrame,
+      startFrame: contentFrameRange.startFrame,
+      endFrame: contentFrameRange.endFrame,
     },
     decorationFrameOrigin: "window-local-zero",
   });

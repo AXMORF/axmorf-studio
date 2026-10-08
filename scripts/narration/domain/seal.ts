@@ -5,10 +5,7 @@ import {
   SealedNarrationManifestSchema,
   type SealedNarrationManifest,
 } from "@axmorf/studio/contracts";
-import {
-  flattenTtsChunks,
-  type StorySpec,
-} from "@axmorf/studio/contracts";
+import { flattenTtsChunks, type StorySpec } from "@axmorf/studio/contracts";
 import {
   CanonicalMeasuredChunkSchema,
   NarrationGenerationProgressSchema,
@@ -47,6 +44,8 @@ export const buildNarrationSeal = ({
   readonly progress: NarrationGenerationProgress;
   readonly normalizedChunks: ReadonlyMap<string, Buffer>;
 }): NarrationSeal => {
+  if (story.timingSource === "authored-frames")
+    throw new Error("Authored-frame Stories have no narration seal.");
   const parsedProgress = NarrationGenerationProgressSchema.parse(progress);
   const generationInputFingerprint = computeGenerationInputFingerprint(
     story,

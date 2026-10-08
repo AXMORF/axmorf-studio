@@ -17,3 +17,6 @@ safe-area placement. Use `staticFile()` for Workspace-owned public media.
 
 Read [Scene implementation](references/scene-implementation.md) before editing a
 Scene. The task contract and fixed validator take precedence over this guidance.
+
+After the exact bind, read [Film direction / Scene execution](../axmorf-video/references/film-direction.md#scene-execution)
+for new or substantially redesigned Scenes. A local correction preserves priorSource and implements only its delta.

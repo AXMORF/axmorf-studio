@@ -11,6 +11,8 @@ export const describeWorkspaceCliHelp = () => ({
     "npm run project:produce:inspect -- --project <storyId>",
     "npm run project:produce:prepare -- --project <storyId>",
     "npm run project:scene:review -- --project <storyId> [--motion]",
+    "npm run project:preview -- --project <storyId> [--candidate <candidateId>]",
+    "npm run reference:analyze -- --input public/<reference.mp4> [--threshold <0..1>]",
     "npm run project:attempt:interrupt-inspect -- --project <storyId> --attempt <attemptId>",
     "npm run project:attempt:interrupt -- --project <storyId> --attempt <attemptId>",
     "npm run project:attempt:recover-inspect -- --project <storyId> --attempt <attemptId>",
@@ -27,5 +29,6 @@ export const describeWorkspaceCliHelp = () => ({
     "With explicit user authorization before prepare, --allow-inline-fallback records inline mode and the original capability blockers. It does not downgrade exact concurrency, a dispatched attempt, or parallel release validation; it never changes saved preferences.",
     "project:check --level final verifies the current Revision, artifacts, and four-file delivery without writing proof reports. --scope source retains source-only checks.",
     "Candidate production and recovery must preserve the exact --candidate returned by revision create.",
+    "Reference analysis writes bounded cut brackets, image-motion estimates, and timestamped color previews. Review their evidence before interpreting camera or semantics; analysis neither approves quality nor admits media.",
   ],
 });

@@ -98,8 +98,11 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
   validator 来制造兼容，无法通过 gate 时必须报告 blocker。
 - 只使用宿主机 Node.js/npm 与 Workspace-local Remotion CLI，不新增 Docker；所有 `remotion` 与 `@remotion/*` 保持
   完全相同的精确版本。
-- 一 Story 一个 Composition；一 StoryBeat 一个 meaningId 和 Scene，完成物化的 Scene 对应一个
-  ScenePackage。StoryBeat 严格区分 narrated 与只允许位于首尾的 silent Scene。
+- 一 Story 一个 Composition；一 StoryBeat 一个 meaningId。`story.visualScenes` 可让一个 Scene 连续拥有多个
+  相邻正文 Beat，首 Beat 的 meaningId 是 task/path owner；一个 owner 一个 Renderer/ScenePackage，Coverage 仍逐 Beat。
+  未声明分组时每 Beat 单独成 Scene，既有作品不自动重组。全片 concept/subject/camera/rhythm/sound 写入 `story.filmPlan`。
+  默认 sealed-narration 模式保留 narrated 正文和首尾 silent；显式 authored-frames 模式仅使用 silent scene-owner
+  正文的 preset frame duration，不生成旁白/字幕或调用 TTS。fixed template-copy 仍只在首尾，不能加入正文分组。
 - `project:create` 从 strict create input 原子创建 configured authoring，并将选定边界 Scene template
   源码与资源复制为 Project-local immutable instance；它不调用 provider、不生成媒体或生产 attempt。
 - 用户明确的尺寸/横竖屏、fps、locale 写入 create input 的 `render.width/height/fps/locale`，未指定字段继承配置；
@@ -124,10 +127,12 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
   `caption-display-budget-exceeded` 由 Agent 改短或按自然语义拆分，不得降低 validator。
 - 字幕只由顶层 CaptionLayer 渲染；Scene root 透明，只输出 Beat 语义视觉与音效。Composition exactly
   once owns safe-area-local SceneViewport、captions、narration 和 GlobalVisual layers；GlobalVisual base 覆盖完整
-  Composition，decoration 只覆盖首个至末个 narrated Scene 的连续窗口。Scene 的 `(0, 0)` 是 viewport 左上角，
+  Composition，decoration 只覆盖正文连续窗口（旁白模式首至末 narrated Beat；authored 模式首至末 scene-owner Beat）。Scene 的 `(0, 0)` 是 viewport 左上角，
   只接收 viewport width/height，不感知 full-frame inset。
+- 新 authored-frames Project 使用 readability policyVersion 2、captionBand none，四边保留安全 inset，不预留字幕带。
+  旁白与既有 policyVersion 1 保持原几何/fingerprint；current validation/revision 保留完整 frozen policy，不自动迁移。
 - 新 Project 的 `VisualStyleSpec.theme` 固化已校验四角色配色，Composition 实际绘制 background；themed GlobalVisual base 必须直接返回 null，正文/首尾共用主题。旧 immutable 模板不静默迁移；不兼容主题在 create/revision 前置拒绝。
-- 旁白独占 narration track；非旁白声音都是独立 `SoundContribution`。Project BGM 只覆盖 narrated
+- 旁白独占 narration track；非旁白声音都是独立 `SoundContribution`。Project BGM 只覆盖正文
   content window，不进入 silent boundary Scenes。
 - JSON/数据文件不包含 executable expression；renderer 由 composition-local static registry 绑定。
   render runtime 不调用 Agent、Skill、MCP、Git、网络或目录扫描。
@@ -197,6 +202,10 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
   required artifacts 齐全前不得修改 live
   owner roots。物化使用受控 staging/replace/rollback，随后刷新 ScenePackage、Coverage、RendererRegistry、
   GlobalVisualPackage 与生成式 Composition，并从 live paths 复验 bytes 与 attestations 一致。
+- 需要交付前时序审阅时，可先原生等待所有 workers 完成，再运行 `project:preview -- --project <storyId>`
+  （candidate 携带 exact `--candidate`），随后启动同一个唯一 continuation。preview 只复验 current inputs/有效 artifacts，
+  在私有冻结 view 物化并缩放渲染；不调用 provider、不创建 attempt、不写 live source/current Delivery、不 promotion。
+  它仍受 attempt 一小时总期限限制，receipt 的 motion/continuity/listening 默认为 not-assessed；草稿成功不是交付或审美通过。
 - delivery 是同一 converge 内的同步阶段。它使用 build-owned staging，可跨失败复用已验证媒体，等待
   Remotion/FFmpeg 完成，验证 H.264/AAC、声道、尺寸、fps、frame count、PNG、checksum 与 EOF decode，
   最后写 `publish.json`。exact 四文件全部通过后才受控替换 `deliveries/<storyId>/`。
@@ -245,7 +254,6 @@ contact sheet 或布局。第三方 source/media 分别校验 license/attributio
 - Root 只有在解析为 `inline` 时才能按 task prompt 串行创作；不得读其他 executor workspace、跨 task 代
   commit 或持久化 child identity/chat/heartbeat/token。subagents 模式的 spawn failure 记录 exact
   `spawnFailureCommand`，不得自动回退 inline。
-
 
 短 `--assignment` 只路由 exact project/attempt 的 immutable dirty task 序号；CLI 还原 full task/binding 后继续原验证，不能混入手写长身份。
 Root 优先整段转发 prepare/reissue 的 `workerPrompts`；进程工具返回 session/cell handle 时完整保留并等待，不能只取 output 或提前结束 Root。

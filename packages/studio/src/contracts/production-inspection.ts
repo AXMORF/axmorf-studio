@@ -320,6 +320,7 @@ export const ProductionInspectionSchema = z
     schemaVersion: z.literal(1),
     contractVersion: z.literal(PRODUCTION_INSPECTION_VERSION),
     storyId: StoryIdSchema,
+    timingSource: z.enum(["sealed-narration", "authored-frames"]).optional(),
     sourceState: z.enum([
       "configured-authoring",
       "timing-ready",
@@ -339,6 +340,7 @@ export const ProductionInspectionSchema = z
     nextAction: z.enum([
       "complete-authoring",
       "prepare-narration",
+      "prepare-timing",
       "prepare-production",
       "converge-current",
     ]),

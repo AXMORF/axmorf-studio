@@ -81,8 +81,12 @@ test("video EOF inspection selects encoders bundled by Remotion FFmpeg", async (
   ]);
 });
 
-test("candidate rendering uses explicit entrypoint, public directory, and shared runtime cwd", async () => {
+test("candidate rendering separates PCM and muxes AAC while preserving entrypoint, public directory, and runtime cwd", async (context) => {
   const rootDir = process.cwd();
+  const candidateRoot = await mkdtemp(
+    join(tmpdir(), "axmorf-candidate-media-"),
+  );
+  context.after(() => rm(candidateRoot, { recursive: true, force: true }));
   const videoEntry = "/fixture/candidate/src/index.ts";
   const coverEntry =
     "/fixture/candidate/src/projects/story-example/delivery/cover/index.ts";
@@ -93,13 +97,26 @@ test("candidate rendering uses explicit entrypoint, public directory, and shared
   }> = [];
   const runProcess: ProcessRunner = async (_command, args, options) => {
     calls.push({ args, cwd: options?.cwd });
+    if (args.includes("render")) {
+      await writeFile(args[args.indexOf("render") + 3]!, "rendered h264");
+      const separateAudio = args.find((arg) =>
+        arg.startsWith("--separate-audio-to="),
+      );
+      if (separateAudio)
+        await writeFile(
+          separateAudio.split("=").slice(1).join("="),
+          "mixed PCM",
+        );
+    } else if (args.includes("ffmpeg")) {
+      await writeFile(args.at(-1)!, "muxed h264/aac");
+    }
     return { status: 0, stdout: "", stderr: "" };
   };
 
   await renderProjectVideo({
     rootDir,
     compositionId: "StoryExample",
-    outputPath: "/fixture/candidate/video.mp4",
+    outputPath: join(candidateRoot, "video.mp4"),
     entryPoint: videoEntry,
     publicDir,
     runProcess,
@@ -115,9 +132,16 @@ test("candidate rendering uses explicit entrypoint, public directory, and shared
   });
 
   assert.equal(calls[0]?.args.includes(videoEntry), true);
-  assert.equal(calls[1]?.args.includes(coverEntry), true);
+  assert.equal(calls[0]?.args.includes("--audio-codec=pcm-16"), true);
+  assert.equal(calls[0]?.args.includes("--disallow-parallel-encoding"), true);
+  assert.equal(calls[0]?.args.includes("--audio-codec=aac"), false);
+  assert.equal(calls[1]?.args.includes("libfdk_aac"), true);
+  assert.equal(calls[1]?.args.includes("copy"), true);
+  assert.equal(calls[2]?.args.includes(coverEntry), true);
   assert.equal(
-    calls.every(({ args }) => args.includes(`--public-dir=${publicDir}`)),
+    [calls[0], calls[2]].every(({ args }) =>
+      args.includes(`--public-dir=${publicDir}`),
+    ),
     true,
   );
   assert.equal(

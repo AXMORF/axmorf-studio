@@ -47,6 +47,11 @@ candidateId 由 canonical input 决定。candidate 隔离在
 Delivery。runtime/config/operation lock 与 content-addressed Artifact Store 仍由 Workspace 共享。相同完整 input
 和 base bytes 只读 current；stale base、bytes conflict、unknown entry、symlink、special file 或 path escape fail closed。
 
+base snapshot/record v2 显式冻结每个 owned root 的 `present`/`absent` 状态；只有 Story 的
+`authored-frames` 分支允许 narration root 不存在。candidate 保留真实缺失，不创建空目录代替；
+source/public/delivery 仍必须存在，缺失路径的既有祖先也必须是安全真实目录。root presence drift 与 bytes drift
+同样拒绝。旧 v1 candidate 不静默补充 presence，须以 exact current context 创建新 candidate。
+
 本流程不提供 candidate-local asset import。revision patch 只能引用 live Project 已经准入并纳入 base snapshot 的
 Project-owned media。
 
@@ -78,6 +83,7 @@ candidate continuation 在 exact-four validation 后自动尝试 promotion。fix
 复验 candidate definition/bytes、live base tuple 与四类 base snapshot、expected candidate Revision/Delivery tuple，
 然后受控替换 source/public/narration/delivery 四个 Project-owned roots，刷新 Registry/Catalog 并复验结果。
 任一步失败按逆序恢复上一 current roots，candidate 保留。
+authored narration 的 absence 同样受控晋升并在 rollback 后保持缺失；不引入空 narration root。
 
 若 production 已成功而 promotion 失败，只重试 exact promotion：
 

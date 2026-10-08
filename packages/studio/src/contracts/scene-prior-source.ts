@@ -51,6 +51,12 @@ const ScenePriorSourceIdentitySchema = z
     storyId: StoryIdSchema,
     meaningId: MeaningIdSchema,
     brief: SceneProductionBriefItemSchema,
+    coveredBriefs: z
+      .array(SceneProductionBriefItemSchema)
+      .min(2)
+      .max(256)
+      .readonly()
+      .optional(),
     rendererSourceFingerprint: Sha256DigestSchema,
     scenePackageFingerprint: Sha256DigestSchema,
     files: z.array(ScenePriorSourceFileSchema).min(1).readonly(),
@@ -75,6 +81,18 @@ export const ScenePriorSourceSchema = ScenePriorSourceIdentitySchema.extend({
         code: "custom",
         message: "Prior Scene brief must belong to its meaning.",
         path: ["brief"],
+      });
+    if (
+      snapshot.coveredBriefs !== undefined &&
+      (snapshot.coveredBriefs[0].meaningId !== snapshot.meaningId ||
+        new Set(snapshot.coveredBriefs.map(({ meaningId }) => meaningId))
+          .size !== snapshot.coveredBriefs.length)
+    )
+      context.addIssue({
+        code: "custom",
+        message:
+          "Prior Scene covered briefs must preserve unique ordered ownership.",
+        path: ["coveredBriefs"],
       });
     const paths = snapshot.files.map(({ path }) => path);
     const sortedPaths = [...paths].sort((a, b) => a.localeCompare(b));

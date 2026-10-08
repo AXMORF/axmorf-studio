@@ -100,7 +100,15 @@ export const buildStoryVisualProjection = (rawInput: {
     ) {
       throw new Error("Visual projection ScenePackage identity is invalid.");
     }
-    packageByMeaning.set(scenePackage.meaningId, scenePackage);
+    for (const id of scenePackage.coveredMeaningIds ?? [
+      scenePackage.meaningId,
+    ]) {
+      if (packageByMeaning.has(id))
+        throw new Error(
+          "Visual projection contains overlapping Scene ownership.",
+        );
+      packageByMeaning.set(id, scenePackage);
+    }
   }
   const entries: StoryVisualEntry[] = storyBeatTimings.map((timing, index) => {
     const prior = storyBeatTimings[index - 1];
@@ -134,13 +142,16 @@ export const buildStoryVisualProjection = (rawInput: {
       scenePackage === undefined ||
       coverageEntry.packageFingerprint !== scenePackage.packageFingerprint ||
       coverageEntry.rendererId !== scenePackage.rendererBinding.rendererId ||
-      scenePackage.beatFrameRange.startFrame !== timing.startFrame ||
-      scenePackage.beatFrameRange.endFrame !== timing.endFrame
+      scenePackage.beatFrameRange.startFrame > timing.startFrame ||
+      scenePackage.beatFrameRange.endFrame < timing.endFrame
     ) {
       throw new Error("Ready visual coverage and ScenePackage do not match.");
     }
     return {
       meaningId: timing.meaningId,
+      ...(scenePackage.coveredMeaningIds === undefined
+        ? {}
+        : { ownerMeaningId: scenePackage.meaningId }),
       status: "ready",
       startFrame: timing.startFrame,
       endFrame: timing.endFrame,
@@ -153,6 +164,24 @@ export const buildStoryVisualProjection = (rawInput: {
     entries.filter((entry) => entry.status === "ready").length
   ) {
     throw new Error("Visual projection contains an unclaimed ScenePackage.");
+  }
+  for (const scenePackage of packages) {
+    const ids = scenePackage.coveredMeaningIds ?? [scenePackage.meaningId];
+    const start = storyBeatTimings.findIndex(
+      (beat) => beat.meaningId === ids[0],
+    );
+    if (
+      ids.some(
+        (id, index) => storyBeatTimings[start + index]?.meaningId !== id,
+      ) ||
+      storyBeatTimings[start]?.startFrame !==
+        scenePackage.beatFrameRange.startFrame ||
+      storyBeatTimings[start + ids.length - 1]?.endFrame !==
+        scenePackage.beatFrameRange.endFrame
+    )
+      throw new Error(
+        "Scene package window does not exactly cover its semantic Beats.",
+      );
   }
   if (rawInput.transitions.length !== Math.max(0, entries.length - 1)) {
     throw new Error("Every adjacent StoryBeat boundary needs one transition.");
@@ -175,6 +204,11 @@ export const buildStoryVisualProjection = (rawInput: {
         (rawTransition.kind === "hard-cut" && duration !== 0) ||
         (rawTransition.kind === "visual-overlay-v1" &&
           (duration <= 0 || duration > left.endFrame - left.startFrame)) ||
+        (left.status === "ready" &&
+          right.status === "ready" &&
+          (left.ownerMeaningId ?? left.meaningId) ===
+            (right.ownerMeaningId ?? right.meaningId) &&
+          rawTransition.kind !== "hard-cut") ||
         (rawTransition.boundaryFrame !== undefined &&
           rawTransition.boundaryFrame !== right.startFrame)
       ) {
@@ -223,9 +257,19 @@ export const StoryVisualTrack: FC<StoryVisualTrackProps> = ({
   rendererPropsByMeaning,
 }) => (
   <Fragment>
-    {projection.entries.map((entry) => {
+    {projection.entries.map((entry, index) => {
       if (entry.status === "fallback") return null;
-      const rendererProps = rendererPropsByMeaning[entry.meaningId];
+      const owner = entry.ownerMeaningId ?? entry.meaningId;
+      if (entry.meaningId !== owner) return null;
+      const last = projection.entries
+        .slice(index)
+        .filter(
+          (member) =>
+            member.status === "ready" &&
+            (member.ownerMeaningId ?? member.meaningId) === owner,
+        )
+        .at(-1)!;
+      const rendererProps = rendererPropsByMeaning[owner];
       if (rendererProps === undefined) {
         throw new Error(
           `Scene renderer props are missing: ${entry.meaningId}.`,
@@ -234,7 +278,7 @@ export const StoryVisualTrack: FC<StoryVisualTrackProps> = ({
       return (
         <SceneSlot
           key={entry.meaningId}
-          entry={entry}
+          entry={{ ...entry, endFrame: last.endFrame }}
           registry={registry}
           rendererProps={rendererProps}
         />

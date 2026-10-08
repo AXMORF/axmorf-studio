@@ -81,6 +81,15 @@ export const inspectProjectCreateContext = async ({
       schemaVersion: 3,
       storyId,
       title,
+      filmPlan: {
+        concept: "从复杂地图中找到今天能走的一步，用主体连续运动呈现转变。",
+        subject: "同一位行动者与同一条路径。",
+        cameraIntent:
+          "从俯看复杂路线逐渐靠近行动者，跟随第一步，不在语义段落重置相机。",
+        rhythmIntent: "开头短暂拥挤和停顿，选择后加速，结尾给下一步留出呼吸。",
+        soundIntent: "路线收束与第一步落点使用轻微事件音；旁白保持清晰。",
+      },
+      visualScenes: [{ meaningIds: ["stuck-goal", "next-step"] }],
       beats: [
         {
           kind: "narrated-scene",
@@ -241,7 +250,7 @@ export const inspectProjectCreateContext = async ({
       "production.additionalRequirements is an array of objects, never strings. Keep [] when no additional requirement is needed; otherwise adapt fieldExamples to the user's requirement, preserving every required field.",
       "durationBudget describes this example with inherited boundary templates. Recalculate available narration time when changing the requested total duration, render lead/tail or selected boundaries; include speech and pauses in that budget.",
       "Omit sceneTemplates to inherit settings. Set both fields explicitly only when the user selected or disabled boundary Scenes.",
-      "Keep Story beats, scenes and publishing chapters in the same meaningId order; each ttsChunk is an object with chunkId and ttsText.",
+      "Keep Story beats and scene briefs in the same meaningId order. visualScenes explicitly groups consecutive content Beats into one owning renderer; omit it for individual Scenes. Narrated publishing chapters cover content Beats in order; authored-frames may use an empty chapter list or complete content coverage. Each narrated ttsChunk is an object with chunkId and ttsText.",
       "For each narrated Scene, turn narrativePurpose into a visible subject, an observable change and a resulting state. Make the scene's compositionIntent and motionIntent describe what the viewer sees at the relevant narration cue; avoid generic diagrams, decorative motion and text that merely repeats the narration.",
       "The JSON Schema describes shape; project:create also validates cross-field semantics, caption budget and current Catalog choices.",
     ],

@@ -107,7 +107,9 @@ Project-owned resource IDs。共享路径冲突不会覆盖，未被 template �
 供新 Scene authoring 选择；既有 Project 不自动迁移。
 
 StoryBeat 明确区分 narrated-scene 与 silent-scene。narrated beat 的 `ttsChunks` 是 Agent-authored atomic
-units；silent beat 只允许在首尾，使用固定 frame/template/sound，不创建 TTS、CaptionCue 或 sealed segment。
+units；缺省 sealed-narration 模式的 silent beat 只允许在首尾。显式 authored-frames 模式使用 silent scene-owner 正文的
+preset duration，不调用 TTS、不创建 CaptionCue/seal/master；fixed template-copy 仍只在首尾。
+`story.filmPlan` 固化全片意图，`story.visualScenes` 将相邻正文 Beat 分组为同一个 owner，省略时每 Beat 一个 Scene。
 外部媒体必须先经 `project:asset:import` 本地化为 Project-owned、runtime-approved asset，只有 manifest ID
 和校验后的 bytes fingerprint 进入 Revision/task inputs。
 
@@ -126,11 +128,13 @@ npm run project:revise -- --project <storyId> --input <repository-relative-json>
 
 context 在返回 editable authoring 前同时复验 current `baseRevisionId` 与 exact-four-file
 `baseDeliveryBuildId`。revision 无 `--schema`，validate 只接受 `--input`；先核 installed public `ProjectRevisionInputSchema`。
-strict patch 只开放 authored sections，并保持 narrated meaningId/order 与 boundary Scenes。局部 Scene 排版只改完整
+strict patch 只开放 authored sections，并保持正文 meaningId/order 与 boundary Scenes。局部 Scene 排版只改完整
 `patch.scenes` 列表中的目标 Scene brief，不顺手改全局 VisualStyle/GlobalVisual/Story/TTS；没有 Cover-only patch API。
 candidateId 由 canonical input 确定；候选在 `.producer-revisions/<storyId>/<candidateId>/` 隔离 source/public/
 narration/work/attempt/out/delivery。相同完整 input/base bytes 只读 current，stale base、未知文件、symlink、special
 file 或路径逃逸 fail closed。candidate create 和后续 production 在 promotion 前都不修改 live Project/Delivery。
+snapshot/record v2 冻结 root present/absent；authored-frames 可没有 narration root，candidate、晋升及回滚保留该缺失，
+不补空目录。其他三类 roots 必须存在，既有祖先必须安全，presence drift 同样拒绝；旧 v1 candidate 不自动迁移。
 
 ## 3. 只读 inspect 与显式 prepare
 
@@ -163,9 +167,11 @@ prepare 是唯一公开的有成本 preparation 入口。它在 operation lock �
 只读验证，随后才允许 narration cache/provider、seal/master/timing、timing-bound authoring projection、fixed
 artifact、Revision/DAG、dirty Agent workspace 与新 ExecutionAttempt 写入。若仍缺 timing-bound authoring，
 返回 `project-authoring-required`，不创建 owner workspaces 或伪造完整 Revision。
-prepare 同时写入不含私有配置或声纹内容的 narration preparation receipt，把 active seal/mastering 与本次
+sealed-narration prepare 同时写入不含私有配置或声纹内容的 narration preparation receipt，把 active seal/mastering 与本次
 选择的 provider-attempt identity 精确绑定。VoxCPM inspect 只读取该 receipt 来重建 current DAG，未来请求成本
 仍保持 `null`，不会为了估算打开或 normalize 私有 voice material。
+authored-frames 在 provider 配置读取前走累计作者帧数的固定 timing 分支，不写 narration receipt、seal 或 mastered WAV；
+inspection 的 nextAction 为 prepare-timing，已知 providerRequests/providerCacheHits 均为0。
 
 production inputs ready 时生成：
 
@@ -211,7 +217,7 @@ prepare 前阻塞。`scene-template` 和其他 fixed tasks
 `remotion-best-practices`，且不能用 Skill 扩大
 TaskSpec/validator/write scope。
 
-SceneTask v7 是 clean-break 的最小 Scene 输入：它只包含 Scene-only requirements 与由
+单 Beat SceneTask v7、多 Beat SceneTask v8 是最小 Scene 输入：它们只包含 Scene-only requirements 与由
 Composition readability policy 确定性派生的 `sceneViewport`（safe-area-local width/height/min font
 size/fingerprint）。raw policy、full-frame width/height 和四边 inset 不进入 task workspace。Renderer
 从本地 `(0, 0)` 布局；只有 Composition 在 runtime 安装/clip SceneViewport 并拥有 CaptionLayer。
@@ -220,7 +226,9 @@ validator 拒绝 Renderer 自建 SceneViewport/provider、读取 raw policy/inse
 
 `scene-owner` context 另外提供当前 Scene brief、完整 VisualStyleSpec 与由已封存 SemanticTiming 派生的
 Scene-local narrationCues。TaskExecutionContract 要求执行者把开场主体、可见变化与结果对应到实际镜头和
-旁白 chunk；示例 Renderer 只是 API scaffold，原样提交由 `scene-owner-validator-v4` 拒绝。新增 context 和
+旁白 chunk；authored-frame Scene 使用显式语义事件与作者帧范围。多 Beat context 另外冻结 coveredBriefs、
+原 Beat/time ranges、合并资源 allowlists 与 filmPlan，Scene-local 时间跨边界不归零。
+示例 Renderer 只是 API scaffold，原样提交会被 validator 拒绝。新增 context 和
 contract 只改变相关 Agent TaskRevision，不改变 ProductionRevision。
 
 创建 context 提供 Catalog capability 的公开 API、参数和可编译示例。Root 按叙事需要选入资源池与 Scene
@@ -230,7 +238,7 @@ contract 只改变相关 Agent TaskRevision，不改变 ProductionRevision。
 不适用的能力允许由自绘替代，理由写进 styleRealization；源码调用检查不代替实际画面审阅。
 
 GlobalVisual context 包含 fixed workflow 从 canonical SemanticTiming 派生的严格 layer policy：base range 是完整
-Composition，decoration range 是首个至末个 narrated Scene 的连续窗口，decoration 的 Remotion frame origin 是
+Composition，decoration range 是首个至末个正文 Beat 的连续窗口，decoration 的 Remotion frame origin 是
 窗口 local zero。GlobalVisual validator 要求同一入口恰好导出两个 no-Props component，并拒绝越出
 decoration range 的 continuity window；themed base 必须直接返回 null，由 Composition 固定绘制 theme.background。
 themed decoration 在 Scene 后方的固定隔离组内合成，group opacity 上限 8%，配色校验覆盖该最差背景范围。
@@ -271,6 +279,11 @@ attempt 的机械 task-terminal event；executor chat 不参与 barrier，也不
 
 ## 5. Fixed continuation、convergence 与物化
 
+若需要正式渲染前审阅，先原生等待所有 worker 终态，再运行 `project:preview -- --project <storyId>`，candidate 携带
+exact `--candidate`。草稿只在冻结私有 view 物化有效 artifacts，不写 live/current、不调用 provider、不创建 attempt 或 promotion；
+保留布局/fps/时间/声音，按比例减少像素。随后仍启动原 prepare 的唯一 continuation，不能暂停或重复已启动的 continuation。
+同一 attempt 的一小时总期限不重置；preview receipt 不代替审片结论或正式交付。详见[连续创作指南](guides/CONTINUOUS_VIDEO_AUTHORING.md)。
+
 Root inline 执行完或完成 bounded admission 后启动 prepare 返回的 exact command，每个 attempt 仅一次：
 
 ```bash
@@ -304,6 +317,11 @@ DeliveryBuildId 绑定 `revisionId + artifactSetFingerprint + Composition metada
 复验 materialized bytes。每个 Project 有一个 build-owned staging，可复用同 identity 已验证的 video 或 Cover；
 捕获到的失败不替换 current package。
 
+共同 video adapter 先让 Remotion 生成无音轨 H.264 和 lossless PCM WAV，再一次编码 AAC 并封装 MP4；
+保留编码器 priming/skip 元数据，mono/stereo 同时选择，H.264 stream copy。该实现同时服务冻结草稿，
+不改变正文/旁白/字幕的时间 authority；封装 staging 失败不会替换旧媒体。
+帧渲染保留 concurrency，统一禁止 parallel encoding，以完整帧序列保证视频时间基。
+
 build 同步等待 Remotion/FFmpeg，依次验证：
 
 - video 是 H.264/AAC，声道、尺寸、fps、frame count 与 RenderSpec 一致并 EOF-decode；
@@ -316,11 +334,11 @@ build 同步等待 Remotion/FFmpeg，依次验证：
 current files 完整，不是计划、聊天或进程启动事实。
 
 交付后可运行 `npm run project:scene:review -- --project <storyId>`。命令先复验 current 四文件
-Delivery，再核对当前 SemanticTiming 的 fps/frame count 与 narrated chapter 起点；逐个 Scene 提取开头、
+Delivery，再核对当前 SemanticTiming 的 fps/frame count 与 content chapter 起点；逐个 Beat 提取开头、
 中点和末帧，生成 `out/<storyId>/scene-review/<deliveryBuildId>-*/index.html` 与 `review.json`。
 该产物只供人工复核，既不进入 Project/Task/Artifact/Delivery identity，也不自动判定审美质量。
 
-加 `--motion` 会同时导出保留音轨的整 Scene MP4，以及每个 Scene 边界前后各约 0.75 秒的重叠片段，
+加 `--motion` 会同时导出保留音轨的整 owning Scene MP4，以及不同 owning Scene 边界前后各约 0.75 秒的重叠片段，
 并在页面提供播放器。只生成证据，`review.json` 的 motion approval 始终为 `not-assessed`，不替代正式发布门禁。
 动作规划应指定同一对象的初态、随旁白发生的因果动作、结果和必要阅读停留；用帧函数连接这些状态，
 避免用几次静态布局/viewBox 切换代替动作。人工审阅完整动作和跨镜头连续性，不能用三张静帧或像素变化量
@@ -388,6 +406,5 @@ failure 或 validator/store/materialization/delivery fixed failure 都立即结�
 
 Browser preparation, real-render readiness, bounded media processes and explicit interrupted-attempt recovery are described in
 [Workspace reliability](guides/WORKSPACE_RELIABILITY.md). Process ownership and logs are diagnostic-only; read-only inspection remains zero-write.
-
 
 `npm run project:scene:review -- --project <storyId> --motion` exports whole Scenes, boundary clips and available action windows, including cause/result/reading-hold samples. `revision-feedback.json` scopes observed defects to meaningId/actionId/frame ranges; it is diagnostic feedback, not accepted revision input or approval. Read `project:revise:context`, then use the strict isolated revision workflow; preserve sealed narration and unaffected assets. Source-plan annotations are explicitly current-source references, not attested statements about the delivered animation. Watch actual clips and compare their visible causal actions; numeric motion, static stills and generated evidence never certify aesthetics or listening. Formal release checks remain unchanged.

@@ -1,6 +1,6 @@
 ---
 name: axmorf-video
-description: Create, produce, validate, and deliver a video in this Workspace.
+description: Create and revise expressive videos with whole-film direction, bounded production, and verified delivery.
 ---
 
 # AXMORF Studio Video
@@ -10,6 +10,7 @@ With an exact attempt-bound task bind, follow only
 Do not restart global doctor/preflight or the Root flow below. Otherwise act as the Root.
 
 Read [the production workflow](references/production-workflow.md#root-production) before acting.
+For a new film, substantial creative revision or media review read [film direction](references/film-direction.md).
 For a new Project read [authoring](references/authoring.md); before preparation read
 [host execution and recovery](references/host-execution-and-recovery.md).
 Use the Workspace's npm scripts and their structured output. Do not use package
@@ -31,6 +32,11 @@ dimensions, not just a textual constraint. Do not change saved settings for one 
 `render` against the request before inspect or provider preparation.
 For each narrated Scene, author a visible subject, initial state, narration-timed change, and readable result. Use
 composition and shot relationships to express cause and consequence instead of generic diagrams or decorative motion.
+
+Plan the complete film in `story.filmPlan`; group consecutive content Beats with `story.visualScenes` when they share
+one continuous world. A group has one Scene owner and uninterrupted sceneFrame while timing and coverage remain per Beat.
+Explicit `timingSource: "authored-frames"` uses silent scene-owner preset frame durations, without TTS, narration or captions.
+Read the installed public contracts and [authoring](references/authoring.md); fixed boundary templates stay separate.
 
 Project creation also freezes the Scene originality baseline. For a legacy
 Project that predates it, require explicit user approval and run
@@ -111,5 +117,11 @@ Convergence rejects exact or token-normalized duplicates before any live materia
 
 GlobalVisual owns two no-Props exports: `GlobalVisualBaseLayer` covers the full
 Composition, while `GlobalVisualDecorationLayers` receives frame zero at the
-first narrated Scene and is bounded through the last narrated Scene. It must not
+first content Scene and is bounded through the last content Scene, for narrated or authored timing. It must not
 read Scene output or place Beat-specific copy in either layer.
+
+Before the unique continuation, workers may finish and the Root may run `project:preview` with the exact candidate flag.
+The frozen draft does not change live source/current Delivery or reset the attempt deadline. Record media checksums,
+observed frame ranges and unobserved listening/quality separately; a receipt is not creative approval.
+`reference:analyze` produces bounded cut candidates, image-motion fits and timestamped PNG evidence for local video.
+Review those frames before interpreting camera or continuity; the report neither approves quality nor admits assets.

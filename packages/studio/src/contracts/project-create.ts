@@ -8,7 +8,10 @@ import {
 import { VideoBriefSchema } from "./brief";
 import { createFingerprint } from "./fingerprint";
 import { MeaningIdSchema, StoryIdSchema, TtsChunkIdSchema } from "./primitives";
-import { AuthoredPublishingIntentSchema } from "./publishing-intent";
+import {
+  AuthoredPublishingIntentSchema,
+  hasValidPublishingChapterCoverage,
+} from "./publishing-intent";
 import { ResourceIdSchema } from "./resource-catalog";
 import { RenderSpecSchema } from "./render";
 import { SceneTemplateIdSchema } from "./scene-template";
@@ -17,6 +20,10 @@ import {
   ExplicitPauseSchema,
   STORY_SPEC_SCHEMA_VERSION,
   TTSChunkSchema,
+  SilentScenePresetSchema,
+  StoryTimingSourceSchema,
+  StoryVisualAuthoringShape,
+  addStoryVisualOwnershipIssues,
 } from "./story";
 import { VisualStyleArtDirectionSchema } from "./visual-style";
 import { VisualThemeSelectionSchema } from "./visual-theme";
@@ -99,19 +106,55 @@ export const ProjectCreateNarratedBeatSchema = z
   })
   .readonly();
 
+export const ProjectCreateSilentBeatSchema = z
+  .object({
+    kind: z.literal("silent-scene"),
+    meaningId: MeaningIdSchema,
+    narrativePurpose: NonEmptyTextSchema,
+    preset: SilentScenePresetSchema.refine(
+      (preset) => preset.implementation.kind === "scene-owner",
+      "Authored visual content must use scene-owner implementation.",
+    ),
+  })
+  .strict()
+  .readonly();
+
+export const ProjectCreateBeatSchema = z.discriminatedUnion("kind", [
+  ProjectCreateNarratedBeatSchema,
+  ProjectCreateSilentBeatSchema,
+]);
+
 export const ProjectCreateStorySchema = z
   .object({
     schemaVersion: z.literal(STORY_SPEC_SCHEMA_VERSION),
     storyId: StoryIdSchema,
     title: NonEmptyTextSchema,
-    beats: z.array(ProjectCreateNarratedBeatSchema).min(1).max(256).readonly(),
+    timingSource: StoryTimingSourceSchema.optional(),
+    beats: z.array(ProjectCreateBeatSchema).min(1).max(256).readonly(),
+    ...StoryVisualAuthoringShape,
   })
   .strict()
   .superRefine((story, context) => {
+    addStoryVisualOwnershipIssues(story, context);
     const meaningIds = story.beats.map(({ meaningId }) => meaningId);
-    const chunkIds = story.beats.flatMap(({ ttsChunks }) =>
-      ttsChunks.map(({ chunkId }) => chunkId),
+    const chunkIds = story.beats.flatMap((beat) =>
+      beat.kind === "narrated-scene"
+        ? beat.ttsChunks.map(({ chunkId }) => chunkId)
+        : [],
     );
+    story.beats.forEach((beat, index) => {
+      if (
+        (story.timingSource === "authored-frames") !==
+        (beat.kind === "silent-scene")
+      ) {
+        context.addIssue({
+          code: "custom",
+          message:
+            "Project create Beats must match the explicit Story timing source.",
+          path: ["beats", index],
+        });
+      }
+    });
     if (new Set(meaningIds).size !== meaningIds.length) {
       context.addIssue({
         code: "custom",
@@ -302,6 +345,19 @@ export const ProjectCreateInputSchema = ProjectCreateInputObject.strict()
   .superRefine((input, context) => {
     addSceneHandoffAuthoringIssues(input.scenes, input.story.beats, context);
     if (
+      !hasValidPublishingChapterCoverage({
+        story: input.story,
+        chapters: input.publishing.chapters,
+      })
+    ) {
+      context.addIssue({
+        code: "custom",
+        message:
+          "Publishing chapters must cover content StoryBeats in order; only authored-frame films may omit chapters.",
+        path: ["publishing", "chapters"],
+      });
+    }
+    if (
       input.brief.storyId !== input.storyId ||
       input.story.storyId !== input.storyId
     ) {
@@ -418,4 +474,8 @@ export type PendingSceneAuthoring = z.infer<typeof PendingSceneAuthoringSchema>;
 export type ProjectCreateNarratedBeat = z.infer<
   typeof ProjectCreateNarratedBeatSchema
 >;
+export type ProjectCreateSilentBeat = z.infer<
+  typeof ProjectCreateSilentBeatSchema
+>;
+export type ProjectCreateBeat = z.infer<typeof ProjectCreateBeatSchema>;
 export type ProjectCreateTtsChunkId = z.infer<typeof TtsChunkIdSchema>;

@@ -118,7 +118,7 @@ test("fixed continuation crosses the event subscription barrier before rereading
       },
       converge: async () => {
         current = progress({ state: "succeeded" });
-        return { status: "project-production-current" } as never;
+        return { status: "project-production-current", revisionId } as never;
       },
     },
   );
@@ -132,7 +132,7 @@ test("fixed continuation crosses the event subscription barrier before rereading
   });
   releaseReady?.();
   await running;
-  assert.equal(readCalls, 3);
+  assert.equal(readCalls, 2);
 });
 
 test("fixed continuation converges exactly once after every dispatched Agent task succeeds", async () => {
@@ -158,12 +158,15 @@ test("fixed continuation converges exactly once after every dispatched Agent tas
       converge: async () => {
         convergeCalls += 1;
         current = progress({ state: "succeeded" });
-        return { status: "project-production-complete" } as never;
+        return { status: "project-production-complete", revisionId } as never;
       },
     },
   );
   assert.equal(convergeCalls, 1);
-  assert.deepEqual(result, { status: "project-production-complete" });
+  assert.deepEqual(result, {
+    status: "project-production-complete",
+    revisionId,
+  });
 });
 
 test("fixed continuation terminalizes one Agent failure and never converges", async () => {
@@ -259,7 +262,7 @@ test("fixed continuation converges immediately when prepare dispatched no Agent 
           ...current,
           state: "succeeded",
         } as ExecutionAttemptProgress;
-        return { status: "project-production-current" } as never;
+        return { status: "project-production-current", revisionId } as never;
       },
     },
   );
@@ -297,7 +300,7 @@ test("overlapping fixed continuations allow only one convergence claimant", asyn
       markConvergenceStarted?.();
       await convergenceGate;
       current = progress({ state: "succeeded" });
-      return { status: "project-production-complete" } as never;
+      return { status: "project-production-complete", revisionId } as never;
     },
   };
   const input = {
@@ -646,7 +649,7 @@ test("fixed continuation passes the remaining absolute attempt deadline into med
       converge: async () => {
         observed = resolveProcessTimeout();
         current = progress({ state: "succeeded" });
-        return { status: "project-production-current" } as never;
+        return { status: "project-production-current", revisionId } as never;
       },
     },
   );
@@ -656,4 +659,132 @@ test("fixed continuation passes the remaining absolute attempt deadline into med
     15 * 60_000,
     "deadline scope must not leak to another production",
   );
+});
+
+for (const status of [
+  "project-production-complete",
+  "project-production-current",
+] as const) {
+  test(`fixed continuation preserves ${status} when the terminal diagnostic write is lost`, async () => {
+    const current = progress({
+      outcomes: [
+        { taskRevision: taskRevision("2"), outcome: "artifact-current" },
+      ],
+    });
+    const converged = {
+      status,
+      revisionId,
+      delivery: { deliveryBuildId },
+      durationBudget,
+      attemptRecorded: false,
+    };
+    let convergeCalls = 0;
+    const result = await continueProjectProduction(
+      {
+        rootDir: "/fixture",
+        projectId: "story-example",
+        revisionId,
+        attemptId,
+      },
+      {
+        claimContinuation,
+        openEventWait: resolvedWait,
+        readProgress: async () => current,
+        converge: async () => {
+          convergeCalls += 1;
+          return converged as never;
+        },
+      },
+    );
+    assert.deepEqual(result, converged);
+    assert.equal(convergeCalls, 1);
+    assert.equal(current.state, "waiting-for-agent");
+  });
+
+  test(`candidate promotion uses verified ${status} even when the terminal diagnostic write is lost`, async () => {
+    const scope = createProjectRevisionProductionScope({
+      rootDir: "/fixture",
+      storyId: "story-example",
+      candidateId: `revision-candidate-${"c".repeat(64)}`,
+    });
+    const current = progress({
+      outcomes: [
+        { taskRevision: taskRevision("2"), outcome: "artifact-current" },
+      ],
+    });
+    let promoteCalls = 0;
+    const result = await continueProjectProduction(
+      {
+        rootDir: "/fixture",
+        projectId: "story-example",
+        revisionId,
+        attemptId,
+        scope,
+      },
+      {
+        claimContinuation,
+        openEventWait: resolvedWait,
+        readProgress: async () => current,
+        inspectCandidateRecord: async () =>
+          ({
+            candidateId: scope.candidateId,
+            input: {
+              storyId: "story-example",
+              baseRevisionId,
+              baseDeliveryBuildId,
+            },
+          }) as never,
+        converge: async () =>
+          ({
+            status,
+            revisionId,
+            delivery: { deliveryBuildId },
+            durationBudget,
+            attemptRecorded: false,
+          }) as never,
+        promoteCandidate: async (input) => {
+          promoteCalls += 1;
+          assert.equal(input.expectedRevisionId, revisionId);
+          assert.equal(input.expectedDeliveryBuildId, deliveryBuildId);
+          return { status: "project-revision-promoted" } as never;
+        },
+      },
+    );
+    assert.equal(result.status, "project-revision-complete");
+    assert.equal(promoteCalls, 1);
+  });
+}
+
+test("diagnostic success cannot turn a stale or incomplete convergence result into completion", async () => {
+  for (const converged of [
+    { status: "producer-revision-stale", currentRevisionId: baseRevisionId },
+    { status: "producer-artifacts-incomplete", revisionId },
+    { status: "project-production-complete", revisionId: baseRevisionId },
+  ]) {
+    let current = progress({
+      outcomes: [
+        { taskRevision: taskRevision("2"), outcome: "artifact-current" },
+      ],
+    });
+    await assert.rejects(
+      continueProjectProduction(
+        {
+          rootDir: "/fixture",
+          projectId: "story-example",
+          revisionId,
+          attemptId,
+        },
+        {
+          claimContinuation,
+          openEventWait: resolvedWait,
+          readProgress: async () => current,
+          converge: async () => {
+            current = progress({ state: "succeeded" });
+            return converged as never;
+          },
+        },
+      ),
+      /Fixed production convergence did not succeed/u,
+    );
+  }
 });

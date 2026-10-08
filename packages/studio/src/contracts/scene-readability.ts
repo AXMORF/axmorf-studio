@@ -2,7 +2,12 @@ import { z } from "zod";
 
 import { createFingerprint, serializeCanonicalJson } from "./fingerprint";
 import { PositiveIntegerSchema, Sha256DigestSchema } from "./primitives";
-import { StorySpecSchema, type StorySpec } from "./story";
+import {
+  StorySpecSchema,
+  StoryTimingSourceSchema,
+  type StorySpec,
+  type StoryTimingSource,
+} from "./story";
 
 export const SCENE_READABILITY_POLICY_ID = "production-readability-v2" as const;
 export const SCENE_VIEWPORT_COORDINATE_SPACE = "scene-safe-area-local" as const;
@@ -86,8 +91,18 @@ const SceneReadabilityPolicyInputObject = z
   })
   .strict();
 
-const SceneReadabilityPolicyInputSchema =
-  SceneReadabilityPolicyInputObject.readonly();
+const AuthoredFrameReadabilityPolicyInputObject =
+  SceneReadabilityPolicyInputObject.extend({
+    policyVersion: z.literal(2),
+    captionBand: z.literal("none"),
+  }).strict();
+
+const SceneReadabilityPolicyInputSchema = z
+  .discriminatedUnion("policyVersion", [
+    SceneReadabilityPolicyInputObject,
+    AuthoredFrameReadabilityPolicyInputObject,
+  ])
+  .readonly();
 
 export const computeSceneReadabilityPolicyFingerprint = (
   rawPolicy: unknown,
@@ -97,7 +112,7 @@ export const computeSceneReadabilityPolicyFingerprint = (
   const policy = SceneReadabilityPolicyInputSchema.parse(record);
   return createFingerprint({
     namespace: "production-readability-policy",
-    version: 1,
+    version: policy.policyVersion,
     value: policy,
   });
 };
@@ -106,11 +121,15 @@ const buildSceneReadabilityPolicyInput = ({
   width,
   height,
   edgeInsetPx: rawEdgeInsetPx,
+  timingSource: rawTimingSource = "sealed-narration",
 }: {
   readonly width: number;
   readonly height: number;
   readonly edgeInsetPx: number;
+  readonly timingSource?: StoryTimingSource;
 }) => {
+  const timingSource = StoryTimingSourceSchema.parse(rawTimingSource);
+  const authoredFrames = timingSource === "authored-frames";
   const parsedWidth = PositiveIntegerSchema.parse(width);
   const parsedHeight = PositiveIntegerSchema.parse(height);
   const baseEdgeInsetPx = PositiveIntegerSchema.max(1000).parse(rawEdgeInsetPx);
@@ -129,14 +148,17 @@ const buildSceneReadabilityPolicyInput = ({
       2 * captionFontSizePx * CAPTION_LINE_HEIGHT_NUMERATOR,
       CAPTION_LINE_HEIGHT_DENOMINATOR,
     ) + captionVerticalPaddingPx;
-  const sceneBottomInsetPx = roundUpToMultiple(
-    captionBottomInsetPx + captionBoxHeightPx + captionGapPx,
-    10,
-  );
+  const sceneBottomInsetPx = authoredFrames
+    ? edgeInsetPx
+    : roundUpToMultiple(
+        captionBottomInsetPx + captionBoxHeightPx + captionGapPx,
+        10,
+      );
   return SceneReadabilityPolicyInputSchema.parse({
     schemaVersion: 1,
     policyId: SCENE_READABILITY_POLICY_ID,
-    policyVersion: 1,
+    policyVersion: authoredFrames ? 2 : 1,
+    ...(authoredFrames ? { captionBand: "none" } : {}),
     width: parsedWidth,
     height: parsedHeight,
     scale: {
@@ -179,33 +201,39 @@ const buildSceneReadabilityPolicyInput = ({
   });
 };
 
-export const SceneReadabilityPolicySchema =
-  SceneReadabilityPolicyInputObject.extend({
-    policyFingerprint: Sha256DigestSchema,
-  })
-    .strict()
-    .superRefine((policy, context) => {
-      const expected = buildSceneReadabilityPolicyInput({
-        width: policy.width,
-        height: policy.height,
-        edgeInsetPx: policy.baseEdgeInsetPx,
+export const SceneReadabilityPolicySchema = z
+  .discriminatedUnion("policyVersion", [
+    SceneReadabilityPolicyInputObject.extend({
+      policyFingerprint: Sha256DigestSchema,
+    }).strict(),
+    AuthoredFrameReadabilityPolicyInputObject.extend({
+      policyFingerprint: Sha256DigestSchema,
+    }).strict(),
+  ])
+  .superRefine((policy, context) => {
+    const expected = buildSceneReadabilityPolicyInput({
+      width: policy.width,
+      height: policy.height,
+      edgeInsetPx: policy.baseEdgeInsetPx,
+      timingSource:
+        policy.policyVersion === 2 ? "authored-frames" : "sealed-narration",
+    });
+    const actual = { ...policy } as Record<string, unknown>;
+    delete actual.policyFingerprint;
+    if (
+      serializeCanonicalJson(actual) !== serializeCanonicalJson(expected) ||
+      policy.policyFingerprint !==
+        computeSceneReadabilityPolicyFingerprint(expected)
+    ) {
+      context.addIssue({
+        code: "custom",
+        message:
+          "Production readability derived fields or fingerprint are stale.",
+        path: ["policyFingerprint"],
       });
-      const actual = { ...policy } as Record<string, unknown>;
-      delete actual.policyFingerprint;
-      if (
-        serializeCanonicalJson(actual) !== serializeCanonicalJson(expected) ||
-        policy.policyFingerprint !==
-          computeSceneReadabilityPolicyFingerprint(expected)
-      ) {
-        context.addIssue({
-          code: "custom",
-          message:
-            "Production readability derived fields or fingerprint are stale.",
-          path: ["policyFingerprint"],
-        });
-      }
-    })
-    .readonly();
+    }
+  })
+  .readonly();
 
 const SceneViewportInputObject = z
   .object({
@@ -265,15 +293,18 @@ export const resolveSceneReadabilityPolicy = ({
   width,
   height,
   edgeInsetPx = 90,
+  timingSource,
 }: {
   readonly width: number;
   readonly height: number;
   readonly edgeInsetPx?: number;
+  readonly timingSource?: StoryTimingSource;
 }) => {
   const input = buildSceneReadabilityPolicyInput({
     width,
     height,
     edgeInsetPx,
+    timingSource,
   });
   return SceneReadabilityPolicySchema.parse({
     ...input,
@@ -393,6 +424,11 @@ export const validateStoryCaptionReadability = ({
 }) => {
   const story = StorySpecSchema.parse(rawStory);
   const policy = SceneReadabilityPolicySchema.parse(rawPolicy);
+  if (policy.policyVersion === 2 && story.timingSource !== "authored-frames") {
+    throw new Error(
+      "Readability without a caption band requires an authored-frame Story.",
+    );
+  }
   return story.beats.flatMap((beat) =>
     beat.kind === "narrated-scene"
       ? beat.ttsChunks.map((chunk) =>

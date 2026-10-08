@@ -9,7 +9,10 @@ import {
   SemanticTimingSchema,
   SceneSelectedResourcesFileSchema,
   StorySpecSchema,
+  aggregateSceneTimingBeat,
   buildSceneCoverageMap,
+  resolveStorySceneGroups,
+  serializeCanonicalJson,
   type SceneCoverageMap,
   type ScenePackage,
 } from "@axmorf/studio/contracts";
@@ -112,12 +115,32 @@ export const generateScenePackageFromProjectFiles = async ({
   ]);
   const taskRecord = SceneTaskInputSchema.parse(task);
   const semanticTiming = SemanticTimingSchema.parse(semanticTimingInput);
-  const timingBeat = semanticTiming.storyBeats.find(
-    (beat) => beat.meaningId === meaningId,
-  );
-  if (semanticTiming.storyId !== projectId || timingBeat === undefined) {
+  const members = taskRecord.coveredBeats ?? [
+    { storyBeat: taskRecord.storyBeat, timingBeat: taskRecord.timingBeat },
+  ];
+  const meaningIds = members.map(({ storyBeat }) => storyBeat.meaningId);
+  if (
+    taskRecord.storyId !== projectId ||
+    taskRecord.meaningId !== meaningId ||
+    semanticTiming.storyId !== projectId ||
+    members.some(({ timingBeat: expected }) => {
+      const current = semanticTiming.storyBeats.find(
+        (beat) => beat.meaningId === expected.meaningId,
+      );
+      return (
+        current === undefined ||
+        serializeCanonicalJson(current) !== serializeCanonicalJson(expected)
+      );
+    })
+  ) {
     throw new Error("Scene package SemanticTiming authority is cross-bound.");
   }
+  const timingBeat = aggregateSceneTimingBeat(
+    semanticTiming.storyBeats,
+    meaningIds,
+    taskRecord.storyBeat,
+  );
+  const ownedMeaningIds = new Set(meaningIds);
   const selectedResources = parseSceneSelectedResourcesFile(
     selectedResourceInput,
   ).selectedResources;
@@ -132,12 +155,15 @@ export const generateScenePackageFromProjectFiles = async ({
     mode,
     destination: join(sceneRoot, "generated/scene-package.generated.json"),
     input: {
-      narrationCues: semanticTiming.captionCues
-        .filter((cue) => cue.meaningId === meaningId)
-        .map((cue) => ({
-          startFrame: cue.startFrame - timingBeat.startFrame,
-          endFrame: cue.endFrame - timingBeat.startFrame,
-        })),
+      narrationCues:
+        taskRecord.storyBeat.kind === "narrated-scene"
+          ? semanticTiming.captionCues
+              .filter((cue) => ownedMeaningIds.has(cue.meaningId))
+              .map((cue) => ({
+                startFrame: cue.startFrame - timingBeat.startFrame,
+                endFrame: cue.endFrame - timingBeat.startFrame,
+              }))
+          : undefined,
       task,
       visual,
       shots,
@@ -183,20 +209,29 @@ export const generateSceneCoverageFromProjectFiles = async ({
     throw new Error("Scene coverage Story belongs to another project.");
   }
   const storyBeatOrder = story.beats.map(({ meaningId }) => meaningId);
+  const groups = resolveStorySceneGroups(story);
   const packages = [];
-  for (const meaningId of storyBeatOrder) {
-    packages.push(
-      await generateScenePackageFromProjectFiles({
-        rootDir,
-        projectId,
-        meaningId,
-        mode: "check",
-      }),
-    );
+  for (const group of groups) {
+    const scenePackage = await generateScenePackageFromProjectFiles({
+      rootDir,
+      projectId,
+      meaningId: group.meaningId,
+      mode: "check",
+    });
+    if (
+      serializeCanonicalJson(
+        scenePackage.coveredMeaningIds ?? [scenePackage.meaningId],
+      ) !==
+      serializeCanonicalJson(group.beats.map(({ meaningId }) => meaningId))
+    )
+      throw new Error(
+        "Scene package ownership is stale against current Story groups.",
+      );
+    packages.push(scenePackage);
   }
   const motionPlans = await Promise.all(
-    storyBeatOrder.map(
-      async (meaningId) =>
+    groups.map(
+      async ({ meaningId }) =>
         ShotPlanSetSchema.parse(
           await readJsonFile(
             join(projectRoot, "scenes", meaningId, "shot-plan.json"),

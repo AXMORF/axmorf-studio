@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   buildPublishingIntent,
+  buildSilentScenePreset,
   computePublishingCollectionCatalogFingerprint,
 } from "@axmorf/studio/contracts";
 import { validStorySpec } from "../fixtures/narrative";
@@ -44,6 +45,54 @@ test("publishing intent freezes one selected collection from the configured arra
     catalogFingerprint:
       computePublishingCollectionCatalogFingerprint(collections),
   });
+});
+
+test("authored-frame films accept no chapters or ordered content chapters, while narrated films still require coverage", () => {
+  const story = {
+    schemaVersion: 3,
+    storyId: validStorySpec.storyId,
+    title: "A visual film",
+    timingSource: "authored-frames",
+    beats: ["gather", "resolve"].map((meaningId) => ({
+      kind: "silent-scene",
+      meaningId,
+      narrativePurpose: meaningId,
+      preset: buildSilentScenePreset({
+        presetId: meaningId,
+        durationInFrames: 30,
+        visualIntent: "Keep one moving subject.",
+        soundIntent: "No narration.",
+        resourceIds: [],
+        implementation: { kind: "scene-owner" },
+      }),
+    })),
+  };
+  const build = (
+    chapters:
+      | typeof authored.chapters
+      | readonly { meaningId: string; name: string }[],
+  ) =>
+    buildPublishingIntent({
+      story,
+      authored: { ...authored, chapters },
+      publishingCollections: collections,
+    });
+  assert.deepEqual(build([]).chapters, []);
+  const chapters = [
+    { meaningId: "gather", name: "收束" },
+    { meaningId: "resolve", name: "结果" },
+  ];
+  assert.deepEqual(build(chapters).chapters, chapters);
+  assert.throws(() => build(chapters.slice(0, 1)));
+  assert.throws(() => build([...chapters].reverse()));
+  assert.throws(() => build([{ meaningId: "unknown", name: "未知" }]));
+  assert.throws(() =>
+    buildPublishingIntent({
+      story: validStorySpec,
+      authored: { ...authored, chapters: [] },
+      publishingCollections: collections,
+    }),
+  );
 });
 
 test("publishing intent rejects a free-text or missing collection", () => {

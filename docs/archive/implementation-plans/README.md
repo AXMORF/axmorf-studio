@@ -36,3 +36,9 @@ identity/authority。focused vertical tests 已取得 Green；完整 closeout ga
 consumer E2E、Organization transfer、Trusted Publisher 与 `v0.1.0` public release。计划中的发布前状态仅为历史
 快照；current release facts 见 [`ITERATION_STATUS.md`](../../ITERATION_STATUS.md)。计划快照见
 `2026-08-30-npm-workspace-open-source-implementation-plan.md`。
+
+2026-10-07 的连续视频创作升级完成了整片 filmPlan、可选多 Beat Scene、authored-frame 时间轴、世界相机/
+形变/语义重定时、隔离草稿与参考节奏诊断，并对齐源码、Skill、creator 和文档。完整检查、packed consumer
+与隔离真实交付通过；仍未发布，也不认证新的 native 首用或主观审片。计划快照见
+`2026-10-07-continuous-visual-authoring.md`，当前证据见
+[`连续视频升级证据`](../../evidence/2026-10-07-continuous-video-upgrade.md)。

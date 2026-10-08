@@ -125,6 +125,10 @@ export const runCli = async (
       rootDir: context.rootDir,
       projectId,
     });
+    if (projectSource.story.timingSource === "authored-frames")
+      throw new Error(
+        "Authored-frame Stories do not use narration generation; run project:produce:prepare.",
+      );
     const configPath = await resolveProducerConfigPathFromEnvironment(context);
     const dependencies = await context.createGenerationDependencies({
       rootDir: context.rootDir,
@@ -150,6 +154,10 @@ export const runCli = async (
       rootDir: context.rootDir,
       projectId,
     });
+    if (projectSource.story.timingSource === "authored-frames")
+      throw new Error(
+        "Authored-frame Stories have no narration seal; run project:produce:prepare.",
+      );
     const generationInputFingerprint = computeGenerationInputFingerprint(
       projectSource.story,
       projectSource.narration,

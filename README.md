@@ -24,6 +24,10 @@ validators 判断一次生产是否真正完成。
 生产任务冻结选定资源和指南；校验会拒绝仅声明却未调用的能力，以及调用未声明的能力。自绘仍可使用，
 需要说明与现有 API 的适配理由；这些机械检查不代替成片审片。
 
+当前源码的[连续视频创作升级](docs/guides/CONTINUOUS_VIDEO_AUTHORING.md)增加整片 filmPlan、多 Beat 共用 Scene、
+作者帧无旁白时间轴、共享世界/相机/语义事件以及正式渲染前冻结草稿。公开 npm 0.1.16 尚未包含本轮升级，
+已安装 Workspace 始终以其 public schemas/生成指南为准；既有作品不会自动重组。
+
 ## 把这段提示词交给你的 Agent
 
 复制下面一句，只需替换本地目标路径：
@@ -90,17 +94,19 @@ deliveries/<storyId>/publish.json
 
 ## 常用命令
 
-| 目标                               | 命令                                                                  |
-| ---------------------------------- | --------------------------------------------------------------------- |
-| 检查当前环境                       | `npm run doctor`                                                      |
-| 同时打开控制中心与 Remotion Studio | `npm run dev`                                                         |
-| 只打开 Web 控制中心                | `npm run web`                                                         |
-| 只打开 Remotion Studio             | `npm run preview`                                                     |
-| 创建 Project                       | `npm run project:create -- --project <story-id> --input <input.json>` |
-| 只读检查生产计划                   | `npm run project:produce:inspect -- --project <story-id>`             |
-| 开始有成本的准备                   | `npm run project:produce:prepare -- --project <story-id>`             |
-| 交付后复核每个 Scene 的关键画面     | `npm run project:scene:review -- --project <story-id>`                 |
-| 检查 Project                       | `npm run project:check -- --project <story-id>`                       |
+| 目标                                      | 命令                                                                  |
+| ----------------------------------------- | --------------------------------------------------------------------- |
+| 检查当前环境                              | `npm run doctor`                                                      |
+| 同时打开控制中心与 Remotion Studio        | `npm run dev`                                                         |
+| 只打开 Web 控制中心                       | `npm run web`                                                         |
+| 只打开 Remotion Studio                    | `npm run preview`                                                     |
+| 创建 Project                              | `npm run project:create -- --project <story-id> --input <input.json>` |
+| 只读检查生产计划                          | `npm run project:produce:inspect -- --project <story-id>`             |
+| 开始有成本的准备                          | `npm run project:produce:prepare -- --project <story-id>`             |
+| 交付后复核每个 Scene 的关键画面           | `npm run project:scene:review -- --project <story-id>`                |
+| 从有效 artifacts 生成审阅草稿（当前源码） | `npm run project:preview -- --project <story-id>`                     |
+| 本地参考视频切换/运动/帧证据（当前源码）  | `npm run reference:analyze -- --input public/<reference.mp4>`         |
+| 检查 Project                              | `npm run project:check -- --project <story-id>`                       |
 
 日常使用建议让 Agent 消费结构化输出和返回的 exact commands，不要手工拼接内部参数。完整顺序见
 [生产流程](docs/PRODUCTION_WORKFLOW.md) 和 [生产编排指南](docs/guides/PRODUCTION_ORCHESTRATION.md)。

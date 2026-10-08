@@ -3,7 +3,7 @@
 > 文档类型：合同参考。可执行 schema 与 fingerprint 逻辑以
 > `packages/studio/src/contracts/` 为准。
 >
-> 最后复核：2026-08-21
+> 最后复核：2026-10-07（当前源码升级未发布）
 
 ## Persisted source files
 
@@ -42,8 +42,8 @@ branch interprets old NarrationSpec v1. `narration-generation-input` is v3 and c
 `narrated-scene` chunks, so the clean-break
 contract cannot reuse a v1 generation identity.
 
-StorySpec v3 discriminates `narrated-scene` from `silent-scene`. Every Story still requires at least one
-real narrated Scene. A silent Scene may appear only at a timeline boundary, carries no intro/outro role,
+StorySpec v3 discriminates `narrated-scene` from `silent-scene`. Missing `timingSource` selects the existing
+`sealed-narration` branch, which requires at least one narrated Beat. In that branch, a silent Scene may appear only at a timeline boundary, carries no intro/outro role,
 binds a fixed-duration preset and never synthesizes an empty TTS
 chunk, sealed segment, CaptionCue, narration file or caption text. `ttsChunks` are authored units and are
 never split mechanically. An explicit pause is declared by
@@ -51,6 +51,17 @@ never split mechanically. An explicit pause is declared by
 pause remains an owned zero-length timeline segment; a positive pause must quantize to at least one PCM
 sample frame. Pause declarations are excluded from the generation input fingerprint but included in the
 sealed narration fingerprint.
+
+Explicit `timingSource: "authored-frames"` requires only silent scene-owner content Beats and optionally fixed
+template-copy bookends. Each preset duration is the timing authority. No provider, sealed/mastered narration,
+preparation receipt, WAV, CaptionCue or narration segment is created; `sampleRate` and `narrationStartFrame` are null.
+NarrationSpec remains configured metadata and does not create a provider request in this branch.
+
+Optional filmPlan freezes complete-film concept/subject/camera/rhythm/sound intent. Optional visualScenes exhaustively
+groups consecutive content meaningIds; the first member owns one task/source graph/package and one continuously mounted
+Renderer. Original Beat timings, briefs, resources and narration cues remain explicit immutable inputs; omission preserves
+individual Scene ownership. Fixed bookends stay separate. SceneTask v8/ScenePackage v7 carry grouped coverage, while
+single-Beat inputs retain v7/v6. Composition owns captions and narration once, independently of visual grouping.
 
 Silent Scene preset v3 discriminates `template-copy` from `scene-owner`. `project:create` atomically copies
 the selected template source and assets into the Project, then binds the template and instance fingerprints
@@ -62,6 +73,11 @@ visible credits invalidates the Scene task and all downstream identities. It als
 requirements and a derived safe-area-local SceneViewport; the raw Composition readability policy, full-frame
 dimensions and insets remain composition-owned. ScenePackage v6 binds `scene-composition-boundary-v2` and
 `scene-visual-runtime-v3`, so an old full-frame Renderer/package cannot cross the clean-break boundary.
+
+New authored-frame Projects use canonical readability policyVersion 2 with required `captionBand: "none"`; all four
+Scene safe edges equal the edge inset. Version 1 retains its original representation, caption reservation and fingerprint.
+Current validation and revisions preserve the complete frozen policy. Version 2 rejects narrated timing and active caption
+rendering; the Scene receives only its derived viewport, without raw policy or full-frame authority.
 
 ## Fingerprints
 
@@ -129,6 +145,10 @@ canonical PCM, checksum, sealing, mastering, and cumulative-sample timing pipeli
 
 ## Semantic timing
 
+`SemanticTimingSchema` is a strict union of PCM and `authored-cumulative-frames-v1`. The authored branch accumulates
+declared preset frames plus RenderSpec lead/tail and has no audio-derived fields. Shared content range resolution excludes
+fixed bookends in either branch; BGM and GlobalVisual decoration use this range. It does not retime the PCM branch.
+
 `pcm-cumulative-ceil-v1` builds one cumulative integer sample timeline and applies
 `ceilDiv(samples × fps, sampleRate)` at shared boundaries with `BigInt`. CaptionCue is one-to-one with
 TTSChunk. Explicit pauses have timing but no CaptionCue. RenderSpec timing fields are `fps`,
@@ -148,7 +168,8 @@ Configured reusable Scene templates are copied during `project:create` as Projec
 boundary and maps those safe-area-local dimensions to the frozen template component's internal `width`/`height`
 props. The adapter and its import graph are instance-bound; later shared template changes never rewrite an existing
 Project copy. The fixed Scene task validates and commits the instance without Agent dispatch. Delivery chapters
-cover only narrated StoryBeats and use their absolute SemanticTiming start frames.
+cover content StoryBeats and use their absolute SemanticTiming start frames. Authored-frame films may explicitly omit
+chapters; otherwise complete ordered content coverage is required. Narrated films still require chapters.
 
 ## Implemented commands
 
@@ -161,10 +182,14 @@ npm run baseline:evidence -- --project <story-id>
 npm run project:check -- --project <story-id> --level narrative
 ```
 
-The narration checker validates real file bytes, checksums, sample-frame totals, active seal, and
+The narration checker in the sealed branch validates real file bytes, checksums, sample-frame totals, active seal, and
 byte-equivalent SemanticTiming. Narrative Baseline validation additionally checks the
 current registry, lazy Composition metadata, transparent PNG facts, render facts, and evidence
 fingerprint.
+
+In authored-frame mode, narration:check verifies exact timing against Story/Render without seal/mastering or provider
+access. Public production/final checks use the selected timing source. Legacy Narrative Baseline audio evidence is specific
+to the PCM branch and does not serve as authored-frame sound or aesthetic verification.
 
 `project:check` aggregates `source-contracts`, `sealed-narration`,
 `semantic-timing`, `project-registry`, `narrative-baseline` and `baseline-evidence`, in that order. Default mode

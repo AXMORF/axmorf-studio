@@ -69,6 +69,28 @@ const authoring = () =>
     },
   });
 
+test("changing the second Beat brief invalidates only its shared Scene owner", () => {
+  const base = authoring();
+  const before = ProjectRevisionEditableAuthoringSchema.parse({
+    ...base,
+    story: {
+      ...base.story,
+      visualScenes: [{ meaningIds: ["meaning-one", "meaning-two"] }],
+    },
+  });
+  const after = ProjectRevisionEditableAuthoringSchema.parse({
+    ...before,
+    scenes: before.scenes.map((scene) =>
+      scene.meaningId === "meaning-two"
+        ? { ...scene, motionIntent: "Follow the same subject into the result." }
+        : scene,
+    ),
+  });
+  assert.deepEqual(affectedPriorSourceMeaningIds({ before, after }), [
+    "meaning-one",
+  ]);
+});
+
 const writeScene = async (
   rootDir: string,
   meaningId: string,

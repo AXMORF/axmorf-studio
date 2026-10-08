@@ -20,6 +20,11 @@ const StableSlugSchema = z
 
 export const STORY_SPEC_SCHEMA_VERSION = 3 as const;
 
+export const StoryTimingSourceSchema = z.enum([
+  "sealed-narration",
+  "authored-frames",
+]);
+
 export const TTSChunkSchema = z
   .object({
     chunkId: TtsChunkIdSchema,
@@ -107,10 +112,7 @@ const SilentSceneImplementationSchema = z.discriminatedUnion("kind", [
       templateFingerprint: Sha256DigestSchema,
       instanceFingerprint: Sha256DigestSchema,
       rendererSourceFingerprint: Sha256DigestSchema,
-      soundCues: z
-        .array(TemplateSceneSoundCueSchema)
-        .max(16)
-        .readonly(),
+      soundCues: z.array(TemplateSceneSoundCueSchema).max(16).readonly(),
     })
     .strict()
     .readonly(),
@@ -240,18 +242,88 @@ export const StoryBeatSchema = z.discriminatedUnion("kind", [
   SilentStoryBeatSchema,
 ]);
 
+export const FilmPlanSchema = z
+  .object({
+    concept: NonEmptyTextSchema.max(1600),
+    subject: NonEmptyTextSchema.max(1600),
+    cameraIntent: NonEmptyTextSchema.max(1600),
+    rhythmIntent: NonEmptyTextSchema.max(1600),
+    soundIntent: NonEmptyTextSchema.max(1600),
+  })
+  .strict()
+  .readonly();
+
+export const StoryVisualAuthoringShape = {
+  filmPlan: FilmPlanSchema.optional(),
+  visualScenes: z
+    .array(
+      z
+        .object({
+          meaningIds: z.array(MeaningIdSchema).min(1).max(256).readonly(),
+        })
+        .strict()
+        .readonly(),
+    )
+    .min(1)
+    .max(256)
+    .readonly()
+    .optional(),
+} as const;
+
+export const addStoryVisualOwnershipIssues = (
+  story: {
+    readonly timingSource?: string;
+    readonly beats: readonly {
+      readonly kind: string;
+      readonly meaningId: string;
+      readonly preset?: { readonly implementation: { readonly kind: string } };
+    }[];
+    readonly visualScenes?: readonly {
+      readonly meaningIds: readonly string[];
+    }[];
+  },
+  context: z.RefinementCtx,
+) => {
+  if (story.visualScenes === undefined) return;
+  const content = story.beats
+    .filter(
+      (beat) =>
+        beat.kind === "narrated-scene" ||
+        (story.timingSource === "authored-frames" &&
+          beat.preset?.implementation.kind === "scene-owner"),
+    )
+    .map((beat) => beat.meaningId);
+  const claimed = story.visualScenes.flatMap((scene) => scene.meaningIds);
+  if (
+    claimed.length !== content.length ||
+    claimed.some((id, index) => id !== content[index])
+  ) {
+    context.addIssue({
+      code: "custom",
+      message:
+        "Visual Scenes must cover content StoryBeats exactly once in consecutive Story order.",
+      path: ["visualScenes"],
+    });
+  }
+};
+
 export const StorySpecSchema = z
   .object({
     schemaVersion: z.literal(STORY_SPEC_SCHEMA_VERSION),
     storyId: StoryIdSchema,
     title: NonEmptyTextSchema,
+    timingSource: StoryTimingSourceSchema.optional(),
     beats: z.array(StoryBeatSchema).min(1).readonly(),
+    ...StoryVisualAuthoringShape,
   })
   .strict()
   .superRefine((story, context) => {
+    addStoryVisualOwnershipIssues(story, context);
     const meaningIds = new Set<string>();
     const chunkIds = new Set<string>();
     let narratedBeatCount = 0;
+    let visualContentBeatCount = 0;
+    const authoredFrames = story.timingSource === "authored-frames";
 
     story.beats.forEach((beat, beatIndex) => {
       if (meaningIds.has(beat.meaningId)) {
@@ -264,11 +336,17 @@ export const StorySpecSchema = z
       meaningIds.add(beat.meaningId);
 
       if (beat.kind === "silent-scene") {
-        if (beatIndex !== 0 && beatIndex !== story.beats.length - 1) {
+        if (beat.preset.implementation.kind === "scene-owner")
+          visualContentBeatCount += 1;
+        if (
+          (!authoredFrames ||
+            beat.preset.implementation.kind === "template-copy") &&
+          beatIndex !== 0 &&
+          beatIndex !== story.beats.length - 1
+        ) {
           context.addIssue({
             code: "custom",
-            message:
-              "Silent Scenes must stay at a Story boundary.",
+            message: "Silent Scenes must stay at a Story boundary.",
             path: ["beats", beatIndex],
           });
         }
@@ -276,6 +354,13 @@ export const StorySpecSchema = z
       }
 
       narratedBeatCount += 1;
+      if (authoredFrames) {
+        context.addIssue({
+          code: "custom",
+          message: "Authored-frame Stories cannot contain narrated Beats.",
+          path: ["beats", beatIndex],
+        });
+      }
       beat.ttsChunks.forEach((chunk, chunkIndex) => {
         if (chunkIds.has(chunk.chunkId)) {
           context.addIssue({
@@ -287,10 +372,18 @@ export const StorySpecSchema = z
         chunkIds.add(chunk.chunkId);
       });
     });
-    if (narratedBeatCount === 0) {
+    if (!authoredFrames && narratedBeatCount === 0) {
       context.addIssue({
         code: "custom",
         message: "StorySpec requires at least one narrated content Scene.",
+        path: ["beats"],
+      });
+    }
+    if (authoredFrames && visualContentBeatCount === 0) {
+      context.addIssue({
+        code: "custom",
+        message:
+          "Authored-frame Stories require at least one scene-owner visual content Beat.",
         path: ["beats"],
       });
     }
@@ -305,6 +398,151 @@ export type SilentSceneImplementation = z.infer<
 >;
 export type StoryBeat = z.infer<typeof StoryBeatSchema>;
 export type StorySpec = z.infer<typeof StorySpecSchema>;
+export type StoryTimingSource = z.infer<typeof StoryTimingSourceSchema>;
+
+export const isSceneOwnerBeat = (
+  beat:
+    | Readonly<{
+        kind: string;
+        preset?: { readonly implementation: { readonly kind: string } };
+      }>
+    | undefined,
+) =>
+  beat?.kind === "narrated-scene" ||
+  (beat?.kind === "silent-scene" &&
+    beat.preset?.implementation.kind === "scene-owner");
+
+export const resolveStorySceneGroups = (
+  story: Pick<StorySpec, "beats" | "visualScenes">,
+) => {
+  const groups = new Map(
+    story.visualScenes?.map((scene) => [
+      scene.meaningIds[0],
+      scene.meaningIds,
+    ]) ?? [],
+  );
+  const claimed = new Set(
+    story.visualScenes?.flatMap((scene) => scene.meaningIds) ?? [],
+  );
+  const byId = new Map(story.beats.map((beat) => [beat.meaningId, beat]));
+  return story.beats.flatMap((beat) => {
+    const ids = groups.get(beat.meaningId);
+    if (ids !== undefined)
+      return [
+        {
+          meaningId: beat.meaningId,
+          beats: ids.map((id) => {
+            const member = byId.get(id);
+            if (member === undefined)
+              throw new Error("Visual Scene contains an unknown StoryBeat.");
+            return member;
+          }),
+        },
+      ];
+    return claimed.has(beat.meaningId)
+      ? []
+      : [{ meaningId: beat.meaningId, beats: [beat] }];
+  });
+};
+
+export const aggregateSceneTimingBeat = <
+  T extends {
+    readonly kind: string;
+    readonly meaningId: string;
+    readonly startFrame: number;
+    readonly endFrame: number;
+  },
+>(
+  timings: readonly T[],
+  meaningIds: readonly string[],
+  storyBeat?: StoryBeat,
+): T => {
+  const members = meaningIds.map((id) => {
+    const beat = timings.find((item) => item.meaningId === id);
+    if (beat === undefined)
+      throw new Error("Visual Scene timing is incomplete.");
+    return beat;
+  });
+  if (
+    members.length === 0 ||
+    members.some(
+      (beat, index) =>
+        index > 0 &&
+        (beat.startFrame !== members[index - 1].endFrame ||
+          beat.kind !== members[0].kind),
+    )
+  )
+    throw new Error(
+      "Visual Scene timing must be contiguous with one timing source.",
+    );
+  if (members.length > 1 && members[0].kind === "silent-scene") {
+    if (storyBeat?.kind !== "silent-scene")
+      throw new Error(
+        "Authored Scene timing requires its aggregated StoryBeat.",
+      );
+    return {
+      ...members[0],
+      endFrame: members.at(-1)!.endFrame,
+      presetFingerprint: storyBeat.preset.presetFingerprint,
+      presetDurationInFrames: storyBeat.preset.durationInFrames,
+    };
+  }
+  return { ...members[0], endFrame: members.at(-1)!.endFrame };
+};
+
+export const aggregateSceneStoryBeat = (
+  beats: readonly StoryBeat[],
+): StoryBeat => {
+  if (beats.length === 0)
+    throw new Error("Visual Scene has no owned StoryBeat.");
+  if (beats.length === 1) return beats[0];
+  const first = beats[0];
+  if (
+    first.kind === "silent-scene" &&
+    first.preset.implementation.kind === "scene-owner" &&
+    beats.every(
+      (beat) =>
+        beat.kind === "silent-scene" &&
+        beat.preset.implementation.kind === "scene-owner",
+    )
+  ) {
+    const presets = beats.flatMap((beat) =>
+      beat.kind === "silent-scene" ? [beat.preset] : [],
+    );
+    return {
+      ...first,
+      preset: buildSilentScenePreset({
+        presetId: first.preset.presetId,
+        durationInFrames: presets.reduce(
+          (sum, preset) => sum + preset.durationInFrames,
+          0,
+        ),
+        visualIntent: first.preset.visualIntent,
+        soundIntent: first.preset.soundIntent,
+        resourceIds: [
+          ...new Set(presets.flatMap((preset) => preset.resourceIds)),
+        ].sort(),
+        implementation: first.preset.implementation,
+      }),
+    };
+  }
+  if (
+    first.kind !== "narrated-scene" ||
+    beats.some((beat) => beat.kind !== "narrated-scene")
+  )
+    throw new Error(
+      "Only content Beats with the same timing source can share a visual Scene.",
+    );
+  return {
+    ...first,
+    ttsChunks: beats.flatMap((beat) =>
+      beat.kind === "narrated-scene" ? beat.ttsChunks : [],
+    ),
+    explicitPauses: beats.flatMap((beat) =>
+      beat.kind === "narrated-scene" ? beat.explicitPauses : [],
+    ),
+  };
+};
 
 export const flattenTtsChunks = (story: StorySpec) =>
   story.beats.flatMap((beat) =>

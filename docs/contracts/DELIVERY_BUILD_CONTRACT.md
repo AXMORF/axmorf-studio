@@ -2,7 +2,7 @@
 
 > 文档类型：current contract 说明
 >
-> 最后复核：2026-08-21
+> 最后复核：2026-10-08（当前源码升级未发布）
 
 同步 `DeliveryBuild` 是唯一最终交付合同。它只消费当前 ProductionRevision、已验证 ArtifactSet、
 Composition metadata、build policy 与 PublishingIntent；不读取或迁移旧 Run、receipt、render-ready 或
@@ -21,7 +21,14 @@ detached launch 数据。
 - `video.mp4`、`cover-4x3.png`、`cover-3x4.png` 的固定 repository path、checksum 和 size；
 - video 的 H.264/AAC、声道、尺寸、fps、frameCount 与 EOF decode；
 - Cover 的 PNG、固定尺寸与 EOF decode；
-- current PublishingIntent 投影的 title、description、topics、collection 与 narrated chapters。
+- current PublishingIntent 投影的 title、description、topics、collection 与逐 content Beat 的 chapters；authored-frame 可显式为空。
+
+纯视觉 authored-frame 成片同样要求 H.264/AAC；无声音时 Remotion `enforceAudioTrack` 生成静音音轨。
+正式/草稿共用 PCM mix → 单次 AAC/MP4 编码，保留 priming/skip 元数据，声道在编码时选择；
+原 H.264 帧只 stream copy，绝对时间和字幕不偏移。media staging 完成后才替换输出。
+统一禁止 parallel encoding；帧渲染可并发，编码使用完整帧序列，极短片仍须通过精确 fps/frame count。
+原布局/fps/帧数/声音的低像素 draft 有独立 source/artifacts/profile identity 与 preview receipt；它在私有 view
+物化，不修改 current，不参与 DeliveryBuildId，不代替 exact-four 验证或 subjective motion/listening review。
 
 current slot 只允许上述三个媒体和 `publish.json`。同 DeliveryBuildId no-op 仍需重读 schema、hash、probe
 和 decode；任何缺失、unknown file、symlink、path drift、checksum/media drift 都使 delivery 不完整。

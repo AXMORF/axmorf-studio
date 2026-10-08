@@ -231,16 +231,6 @@ test("source fade hands the same theme to the brand at the fixed frame-120 bound
     SourceCreditsScene({ ...viewport, sceneFrame: 104, references, theme }),
   );
   assert.equal(credits.props.style?.opacity, 1);
-  assert.equal(credits.props.style?.padding, "12px 128px");
-  const [message, heading, grid] = styledChildren(credits);
-  assert.equal(message.props.style?.lineHeight, 1.1);
-  assert.equal(heading.props.style?.marginTop, 8);
-  assert.equal(
-    grid.props.style?.gridTemplateColumns,
-    "repeat(2, minmax(0, 1fr))",
-  );
-  assert.equal(grid.props.style?.marginTop, 8);
-  assert.equal(styledChildren(grid).length, 6);
   assert.equal(
     styledElement(
       SourceCreditsScene({ ...viewport, sceneFrame: 119, references, theme }),
@@ -299,62 +289,39 @@ test("follow labels stay on one line inside the centered button at the original 
   }
 });
 
-test("six mixed references reserve enough height for the observed wrapped rows in the landscape safe viewport", () => {
+test("six mixed references preserve their complete source identity in the bounded landscape layout", () => {
   const viewport = { width: 1740, height: 630 };
-  const root = styledElement(
-    SourceCreditsScene({
-      ...viewport,
-      sceneFrame: 88,
-      theme: VISUAL_THEME_PRESETS.dark,
-      references: REFERENCE_CASES["six-mixed"],
-    }),
-  );
-  const [message, heading, grid] = styledChildren(root);
-  const cards = styledChildren(grid);
-  assert.equal(cards.length, 6);
-  const verticalPadding = (style?: CSSProperties) => {
-    const values = String(style?.padding ?? "0")
-      .split(" ")
-      .map(Number.parseFloat);
-    return values[0] + (values[2] ?? values[0]);
-  };
-  // The failure still renders five text lines in row one and two in each later
-  // row. Preserve that real wrapping budget; rendered proof remains the visual gate.
-  const observedLineCounts = [5, 2, 2, 2, 2, 2];
-  const cardHeights = cards.map((card, index) => {
-    const [title, url] = styledChildren(card);
-    assert.equal(
-      title.props.children,
-      REFERENCE_CASES["six-mixed"][index].title,
+  const observed = new Map<number, { title: string; url: string }>();
+  for (const sceneFrame of [60, 80, 103]) {
+    const grid = styledChildren(
+      SourceCreditsScene({
+        ...viewport,
+        sceneFrame,
+        theme: VISUAL_THEME_PRESETS.dark,
+        references: REFERENCE_CASES["six-mixed"],
+      }),
+    ).find(
+      (child) =>
+        isValidElement<{ "data-source-credits-grid"?: boolean }>(child) &&
+        child.props["data-source-credits-grid"],
     );
-    assert.equal(url.props.children, REFERENCE_CASES["six-mixed"][index].url);
-    assert.equal(title.props.style?.fontSize, 36);
-    assert.equal(url.props.style?.fontSize, 36);
-    return (
-      observedLineCounts[index] *
-        36 *
-        Number(card.props.style?.lineHeight ?? 1.2) +
-      Number(url.props.style?.marginTop) +
-      verticalPadding(card.props.style) +
-      2
-    );
-  });
-  const requiredHeight =
-    verticalPadding(root.props.style) +
-    styledChildren(message).length *
-      48 *
-      Number(message.props.style?.lineHeight) +
-    Number(heading.props.style?.marginTop) +
-    36 * Number(heading.props.style?.lineHeight ?? 1.2) +
-    Number(grid.props.style?.marginTop) +
-    Math.max(cardHeights[0], cardHeights[1]) +
-    Math.max(cardHeights[2], cardHeights[3]) +
-    Math.max(cardHeights[4], cardHeights[5]) +
-    Number(grid.props.style?.gap) * 2;
-  assert.ok(
-    requiredHeight <= viewport.height,
-    `Reference layout requires ${requiredHeight}px but viewport has ${viewport.height}px`,
-  );
+    assert.ok(grid);
+    assert.equal(grid.props.style?.gridTemplateColumns, "minmax(0, 1fr)");
+    for (const rawCard of styledChildren(grid)) {
+      assert.ok(
+        isValidElement<{
+          "data-source-index": number;
+          "data-source-title": string;
+          "data-source-url": string;
+        }>(rawCard),
+      );
+      observed.set(rawCard.props["data-source-index"], {
+        title: rawCard.props["data-source-title"],
+        url: rawCard.props["data-source-url"],
+      });
+    }
+  }
+  assert.deepEqual([...observed.values()], REFERENCE_CASES["six-mixed"]);
 });
 
 test("a single long reference uses the complete available landscape width", () => {
@@ -367,7 +334,18 @@ test("a single long reference uses the complete available landscape width", () =
   });
   const [, , grid] = styledChildren(root);
   assert.equal(grid.props.style?.gridTemplateColumns, "minmax(0, 1fr)");
-  const [[title, url]] = styledChildren(grid).map(styledChildren);
-  assert.equal(title.props.children, REFERENCE_CASES["one-long"][0].title);
-  assert.equal(url.props.children, REFERENCE_CASES["one-long"][0].url);
+  const [card] = styledChildren(grid);
+  assert.ok(
+    isValidElement<{ "data-source-title": string; "data-source-url": string }>(
+      card,
+    ),
+  );
+  assert.equal(
+    card.props["data-source-title"],
+    REFERENCE_CASES["one-long"][0].title,
+  );
+  assert.equal(
+    card.props["data-source-url"],
+    REFERENCE_CASES["one-long"][0].url,
+  );
 });

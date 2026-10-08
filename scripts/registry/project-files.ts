@@ -151,15 +151,12 @@ export const loadProjectRegistrationEntry = async ({
     throw new Error("Composition must be a regular non-symbolic file.");
   }
 
-  const [brief, story, narration, render, rawManifest, rawTiming, source] =
+  const [brief, story, narration, render, rawTiming, source] =
     await Promise.all([
       readJson(join(projectDirectory, "brief.json")),
       readJson(join(projectDirectory, "story.json")),
       readJson(join(projectDirectory, "narration.json")),
       readJson(join(projectDirectory, "render.json")),
-      readJson(
-        join(projectDirectory, "generated/sealed-narration.generated.json"),
-      ),
       readJson(
         join(projectDirectory, "generated/semantic-timing.generated.json"),
       ),
@@ -179,7 +176,14 @@ export const loadProjectRegistrationEntry = async ({
   if (projectSource.story.storyId !== slug) {
     throw new Error("Story ID must match the fixed project directory slug.");
   }
-  const sealedNarration = SealedNarrationManifestSchema.parse(rawManifest);
+  const sealedNarration =
+    projectSource.story.timingSource === "authored-frames"
+      ? null
+      : SealedNarrationManifestSchema.parse(
+          await readJson(
+            join(projectDirectory, "generated/sealed-narration.generated.json"),
+          ),
+        );
   const semanticTiming = SemanticTimingSchema.parse(rawTiming);
   const artifactBundle = validateNarrativeArtifactBundle({
     projectSource,

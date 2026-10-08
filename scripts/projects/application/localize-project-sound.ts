@@ -125,7 +125,7 @@ export const prepareProjectSound = async ({
           descriptorFingerprint,
           volume: configured.volume,
           loop: true,
-          playbackScope: "narrated-content",
+          playbackScope: "content-window",
         },
       ],
     }),

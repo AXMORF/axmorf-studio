@@ -8,7 +8,11 @@
 | Project authoring source | `src/projects/<storyId>/` 与显式 Project-local selected media 中的可变创作输入。 |
 | Workspace capability gate | creator install/bootstrap 后由 `npm run doctor` 对当前 Workspace 声明能力执行的 readiness 检查；Agent 可准备宿主环境但不得修改 package internals、精确依赖或 validators。它不是 OS allowlist、production completion 或 Delivery evidence。 |
 | shared Workspace resource | runtime package 中由 policy、asset manifest、checksum 与 license identity 共同覆盖并随 package 分发的媒体；bootstrap 只投影到保留的 `public/assets/axmorf-shared/` 和 Catalog，相同 bytes 幂等、冲突 fail closed。它不是 Project-owned，直到 create/import 将实际使用的 bytes 本地化。 |
-| configured-authoring | `project:create` 已原子写入 Story/TTS/config 与 pending timing-bound authoring，尚未准备 narration。 |
+| configured-authoring | `project:create` 已原子写入 Story/config 与 pending timing-bound authoring，尚未准备选定时间源；只有 sealed-narration 需要 TTS。 |
+| StoryBeat | 一个 meaningId 对应的语义单元，保留独立 timing、brief 与章节定位；它不必对应独立 Renderer。 |
+| visual Scene group | `story.visualScenes` 显式声明的连续正文 Beat 所有权；第一 meaningId 拥有一个 task/source graph/ScenePackage，覆盖所有成员。缺省每 Beat 单独拥有 Scene，fixed 首尾不可合组。 |
+| filmPlan | 整片 concept、subject、cameraIntent、rhythmIntent、soundIntent 的 authored 意图，冻结进 owner contexts；不是已实现或质量通过的证据。 |
+| authored-frames | 显式选择的纯视觉时间来源，正文 silent scene-owner preset 的整数帧数累积生成时间轴；没有 provider、旁白 PCM、seal、mastered narration WAV 或字幕。导出仍生成完整声音混音。缺省时间来源是 sealed-narration。 |
 | structured authoring validation | create/revision 共用的 pre-mutation machine validation；顶层 `authoring-validation-failed` 包含 field-level issues。`caption-display-budget-exceeded` 使用 `caption-display-unit-v1`，每个 authored `ttsChunk` 上限 72 display half-units。 |
 | ProjectRevisionInput | 修改现有 Project 的 strict raw input；绑定 storyId、exact base Revision/Delivery tuple 与非空 authored patch。 |
 | revision base tuple | candidate 创建和 promotion 都必须重验的 `baseRevisionId + baseDeliveryBuildId`。 |
@@ -16,8 +20,8 @@
 | ProjectRevisionCandidateId | 由 canonical ProjectRevisionInput 内容寻址得到的 candidate routing identity；不进入 production content identities。 |
 | Project revision candidate | `.producer-revisions/<storyId>/<candidateId>/` 中隔离 source/public/narration/work/attempt/out/delivery 的 same-Project 修改；promotion 前不是 current authority。 |
 | Scene originality baseline | Project create 前其他 Project 的完整 Scene TS/TSX source graph 冻结快照；fingerprint/context 只进入 `scene-owner`，template-copy 豁免，缺失时 production fail closed。 |
-| timing-ready | verified narration PCM/seal/master/timing 已存在，但 production authoring 仍可能待 fixed projection。 |
-| production-inputs-ready | 所有 current authoring contracts 与 narration preparation receipt 齐全，可以只读计算 Revision/Task DAG。 |
+| timing-ready | selected timing source 已复验：sealed-narration 要求 PCM/seal/master/timing，authored-frames 要求作者时长生成的 timing；production authoring 仍可能待 fixed projection。 |
+| production-inputs-ready | 所有 current authoring contracts 与 selected timing source 所需输入齐全，可以只读计算 Revision/Task DAG；只有 sealed-narration 分支要求 narration preparation receipt。 |
 | narration preparation receipt | prepare 写入的 redaction-safe source-local binding；把 active seal/mastering 绑定到精确 provider-attempt identity，不含私有配置、路径、prompt 或 voice bytes。 |
 | ProductionInspection | 严格只读的 readiness、baseline、estimated cost、task explanation 与 nextAction 投影；不是 authority。 |
 | TaskDecisionExplanation | 按 task/subject 分离 artifact state、direct changes、dependency changes 与 blockedBy 的诊断事实。 |
@@ -41,11 +45,14 @@
 | attempt reissue | recovery-ready 后创建 fresh same-Revision attempt/bindings 的显式零 provider 操作；旧 attempt immutable，复用 valid artifacts/合法 drafts，不是自动 retry。 |
 | task-terminal event | task executor 对 exact attempt/TaskRevision 写入的首个 committed/current/failed 机械终态；同结果幂等，相反结果不可覆盖。 |
 | Agent execution policy | inspect 前按用户提示词明确字段、独立 settings、内置 `subagents`/4 默认解析的当前 production 编排策略；选择 Root inline 串行或最多四个 subagents，不进入 production identity。 |
-| GlobalVisual layer policy | 由 canonical SemanticTiming 固定派生的双层范围：base 覆盖完整 Composition；decoration 只覆盖首个至末个 narrated Scene 的连续窗口，并以该窗口起点作为 local frame zero。 |
+| GlobalVisual layer policy | 由 canonical SemanticTiming 固定派生的双层范围：base 覆盖完整 Composition；decoration 只覆盖首个至末个正文 Beat 的连续窗口（旁白或 authored-frame scene-owner），以该窗口起点作为 local frame zero，排除 fixed 首尾。 |
 | fixed continuation | Root 完成 inline execution 或 bounded admission 后启动的 attempt-bound 固定进程；one-shot atomic claim 后等待 immutable task-terminal event log，failure/attempt 创建起一小时 timeout 退出，all-success 内部 converge exactly once。 |
 | convergence | fixed continuation 内部的只读重算 Revision、要求全部 artifact、受控物化 Project、刷新 derived packages/Composition 并交付。 |
 | materialization | 把 attested bytes 从 Artifact Store 通过 staging/replace/rollback 写到 live Project-owned roots。 |
 | artifact set fingerprint | 当前所有 required ArtifactAttestation identity 的稳定聚合，用于 downstream identity。 |
+| frozen draft preview | 在独立私有 view 物化全部有效 fixed/owner artifacts 后，以原布局/fps/帧数/声音和降低像素的独立 profile 渲染的 preview.mp4/preview.json。它不调用 provider、不创建 attempt、不修改 live/current、不 promotion，也不是四文件交付。 |
+| PreviewBuildId | source/public/runtime/artifacts/profile 的独立草稿 identity；receipt 验证媒体 bytes/规格/EOF，motion/continuity/listening 均保持 not-assessed。 |
+| reference diagnostics | 对显式本地化视频做有界粗采样/候选区间细化、图像平移/缩放估计和时间戳彩色预览；机器测量与 Agent 相机/语义推断分开，不认证全部切镜或主观质量，不参与 production identity。 |
 | DeliveryBuildId | revisionId、artifact set、Composition metadata 与 build policy 的内容寻址 identity。 |
 | current delivery | `deliveries/<storyId>/` 下通过 exact-four-file 与 media validation 的唯一 current package。 |
 | project-production-complete | 新 identity 已同步构建、验证并提升为 current delivery。 |

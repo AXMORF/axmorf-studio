@@ -14,8 +14,8 @@ test("production Scene runtime guards current package and task schema versions",
     meaningIds: ["opening"],
     runtimeInputFingerprint: sha("a"),
   });
-  assert.match(source, /scenePackage\.schemaVersion !== 6/u);
-  assert.match(source, /task\.schemaVersion !== 7/u);
+  assert.match(source, /scenePackage\.schemaVersion === 7/u);
+  assert.match(source, /task\.schemaVersion === 8/u);
   assert.doesNotMatch(source, /task\.schemaVersion !== 6/u);
   assert.doesNotMatch(source, /width: render\.width|height: render\.height/u);
   assert.match(source, /readabilityPolicy: requirements\.readabilityPolicy/u);
@@ -24,6 +24,28 @@ test("production Scene runtime guards current package and task schema versions",
     /resolveSceneViewport\(requirements\.readabilityPolicy\)/u,
   );
   assert.match(source, /scene\.task\.sceneViewport\.viewportFingerprint/u);
+});
+
+test("authored-frame scaffold owns no narration file or invented audio", () => {
+  const source = renderProjectAuthoringBuildScaffold({
+    storyId: "story-example",
+    runtimeInputFingerprint: sha("a"),
+    timingSource: "authored-frames",
+  });
+  assert.doesNotMatch(
+    source,
+    /import .* from "\.\/generated\/(?:sealed|mastered)-narration/u,
+  );
+  assert.match(source, /const completeNarrationSrc = null/u);
+  assert.match(source, /const sealedNarration = null/u);
+  assert.match(
+    source,
+    /projectSource\.story\.timingSource !== "authored-frames"/u,
+  );
+  assert.doesNotMatch(
+    source,
+    /\bstaticFile\b|MasteredNarrationManifestSchema|SealedNarrationManifestSchema|const masteredNarration/u,
+  );
 });
 
 test("production scaffold source binds the complete runtime input identity for Studio refresh", () => {

@@ -104,8 +104,22 @@ Load `.agents/skills/remotion-best-practices/SKILL.md` before implementing a
 Scene. Render-critical motion uses Remotion frame APIs, Scene roots stay
 transparent, and the Composition alone owns narration and captions.
 
+Plan the film concept/subject/camera/rhythm/sound in `story.filmPlan`, then group consecutive content Beats with
+`story.visualScenes`. One group has one task/path owner (its first meaningId), Renderer and ScenePackage; Coverage/timing
+remain per Beat. Keep world/camera and sceneFrame continuous inside a group. Missing grouping preserves single-Beat Scenes.
+Pure motion uses explicit `timingSource: "authored-frames"` and silent scene-owner presets; no provider, narration, captions,
+seal or mastered WAV. Fixed template-copy bookends stay separate. Read the installed schemas before using optional fields.
+New authored-frame Projects use readability policyVersion 2 with captionBand none and symmetric safe insets; no empty
+caption band. Narrated and legacy frozen version 1 layouts stay unchanged. Revision preserves the frozen policy.
+
+For review before final rendering, wait for native worker terminal completion and run `npm run project:preview -- --project
+<storyId>` (preserve exact `--candidate` for a revision), then start the original continuation once. Preview validates artifacts
+and projects a private frozen view; no live source/current Delivery writes, provider calls, new attempt or promotion.
+Never pause a running continuation; its total deadline does not reset. Preview receipts mark motion/continuity/listening
+not-assessed and cannot certify creative quality or current delivery. Committed artifacts remain immutable.
+
 GlobalVisual exports a full-Composition base layer and a decoration layer that
-is sequenced from the first through last narrated Scene with local frame zero at
+is sequenced from the first through last content Beat (narrated or authored scene-owner) with local frame zero at
 that window's start. It must not read Scene output or carry Beat-specific copy.
 
 Never publish, push, delete a Project, or expose private configuration unless

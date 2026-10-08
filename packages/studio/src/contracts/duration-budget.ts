@@ -18,7 +18,12 @@ export const DurationBudgetSchema = z
     budgetState: z.enum(["narration-budget-available", "no-narration-budget"]),
     actualTotalSeconds: SecondsSchema.nullable(),
     deltaSeconds: z.number().finite().nullable(),
-    measurement: z.enum(["not-yet-sealed", "sealed-semantic-timing"]),
+    measurement: z.enum([
+      "not-yet-sealed",
+      "sealed-semantic-timing",
+      "not-yet-materialized",
+      "authored-frame-timing",
+    ]),
     comparison: z.enum([
       "not-yet-measured",
       "longer-than-target",
@@ -102,14 +107,18 @@ export const buildProjectDurationBudget = ({
   readonly story: StorySpec;
   readonly render: RenderSpec;
   readonly timing?: SemanticTiming;
-}): DurationBudget =>
-  buildDurationBudget({
+}): DurationBudget => {
+  const authoredFrames = story.timingSource === "authored-frames";
+  const budget = buildDurationBudget({
     targetDurationSeconds: brief.targetDurationSeconds,
     fps: render.fps,
     boundaryFrames: story.beats.reduce(
       (total, beat) =>
         total +
-        (beat.kind === "silent-scene" ? beat.preset.durationInFrames : 0),
+        (beat.kind === "silent-scene" &&
+        (!authoredFrames || beat.preset.implementation.kind === "template-copy")
+          ? beat.preset.durationInFrames
+          : 0),
       0,
     ),
     leadInFrames: render.leadInFrames,
@@ -118,3 +127,17 @@ export const buildProjectDurationBudget = ({
       ? {}
       : { actualDurationInFrames: timing.durationInFrames }),
   });
+  if (!authoredFrames) return budget;
+  return DurationBudgetSchema.parse({
+    ...budget,
+    availableNarratedSeconds: 0,
+    budgetState: "no-narration-budget",
+    measurement:
+      timing === undefined ? "not-yet-materialized" : "authored-frame-timing",
+    guidance: [
+      "Authored-frame Stories contain no narration. Visual content duration follows the declared per-Beat frame counts.",
+      "The total includes fixed boundary templates and render lead-in/tail. The target is advisory and never truncates authored content.",
+      "Duration changes require a Project revision; do not edit live authoring or an active attempt.",
+    ],
+  });
+};

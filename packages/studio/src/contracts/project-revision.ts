@@ -19,14 +19,17 @@ import {
   Sha256DigestSchema,
   StoryIdSchema,
 } from "./primitives";
-import { AuthoredPublishingIntentSchema } from "./publishing-intent";
+import {
+  AuthoredPublishingIntentSchema,
+  hasValidPublishingChapterCoverage,
+} from "./publishing-intent";
 
 export const PROJECT_REVISION_INPUT_VERSION =
   "project-revision-input-v1" as const;
 export const PROJECT_REVISION_CANDIDATE_RECORD_VERSION =
-  "project-revision-candidate-record-v1" as const;
+  "project-revision-candidate-record-v2" as const;
 export const PROJECT_REVISION_BASE_SNAPSHOT_VERSION =
-  "project-revision-base-snapshot-v1" as const;
+  "project-revision-base-snapshot-v2" as const;
 export const PROJECT_REVISION_CONTEXT_VERSION =
   "project-revision-context-v1" as const;
 export const PROJECT_REVISION_MATERIALIZATION_VERSION =
@@ -174,20 +177,20 @@ export const ProjectRevisionEditableAuthoringSchema = z
       context.addIssue({
         code: "custom",
         message:
-          "Project revision editable Scenes must cover narrated beats in order.",
+          "Project revision editable Scenes must cover content beats in order.",
         path: ["scenes"],
       });
     }
     if (
-      authoring.publishing.chapters.length !== meaningIds.length ||
-      authoring.publishing.chapters.some(
-        ({ meaningId }, index) => meaningId !== meaningIds[index],
-      )
+      !hasValidPublishingChapterCoverage({
+        story: authoring.story,
+        chapters: authoring.publishing.chapters,
+      })
     ) {
       context.addIssue({
         code: "custom",
         message:
-          "Project revision publishing chapters must cover narrated beats in order.",
+          "Project revision publishing chapters must cover content beats in order; only authored-frame films may omit chapters.",
         path: ["publishing", "chapters"],
       });
     }
@@ -535,34 +538,53 @@ const validateSortedUniqueLogicalPaths = (
   }
 };
 
-const ProjectRevisionBaseTreeShape = {
+const ProjectRevisionPresentBaseTreeShape = {
   scope: ProjectRevisionBaseSnapshotScopeSchema,
+  presence: z.literal("present"),
   entries: z.array(ProjectRevisionSnapshotEntrySchema).readonly(),
 } as const;
 
+const ProjectRevisionAbsentBaseTreeShape = {
+  scope: z.literal("narration"),
+  presence: z.literal("absent"),
+} as const;
+
 const ProjectRevisionBaseTreeIdentitySchema = z
-  .object(ProjectRevisionBaseTreeShape)
-  .strict()
-  .superRefine((tree, context) =>
-    validateSortedUniqueLogicalPaths(tree.entries, context),
-  )
+  .discriminatedUnion("presence", [
+    z.object(ProjectRevisionPresentBaseTreeShape).strict(),
+    z.object(ProjectRevisionAbsentBaseTreeShape).strict(),
+  ])
+  .superRefine((tree, context) => {
+    if (tree.presence === "present")
+      validateSortedUniqueLogicalPaths(tree.entries, context);
+  })
   .readonly();
 
 const computeProjectRevisionBaseTreeFingerprint = (rawTree: unknown) =>
   createFingerprint({
     namespace: "project-revision-base-tree",
-    version: 1,
+    version: 2,
     value: ProjectRevisionBaseTreeIdentitySchema.parse(rawTree),
   });
 
 export const ProjectRevisionBaseTreeSchema = z
-  .object({
-    ...ProjectRevisionBaseTreeShape,
-    treeFingerprint: Sha256DigestSchema,
-  })
-  .strict()
+  .discriminatedUnion("presence", [
+    z
+      .object({
+        ...ProjectRevisionPresentBaseTreeShape,
+        treeFingerprint: Sha256DigestSchema,
+      })
+      .strict(),
+    z
+      .object({
+        ...ProjectRevisionAbsentBaseTreeShape,
+        treeFingerprint: Sha256DigestSchema,
+      })
+      .strict(),
+  ])
   .superRefine((tree, context) => {
-    validateSortedUniqueLogicalPaths(tree.entries, context);
+    if (tree.presence === "present")
+      validateSortedUniqueLogicalPaths(tree.entries, context);
     const { treeFingerprint, ...identity } = tree;
     if (
       treeFingerprint !== computeProjectRevisionBaseTreeFingerprint(identity)
@@ -613,7 +635,7 @@ const ProjectRevisionBaseSnapshotIdentitySchema = z
 const computeProjectRevisionBaseSnapshotFingerprint = (rawSnapshot: unknown) =>
   createFingerprint({
     namespace: "project-revision-base-snapshot",
-    version: 1,
+    version: 2,
     value: ProjectRevisionBaseSnapshotIdentitySchema.parse(rawSnapshot),
   });
 
@@ -698,12 +720,9 @@ export const buildProjectRevisionCandidateRecord = ({
   baseTrees: rawBaseTrees,
 }: {
   readonly input: unknown;
-  readonly baseTrees: readonly {
-    readonly scope: z.infer<typeof ProjectRevisionBaseSnapshotScopeSchema>;
-    readonly entries: readonly z.infer<
-      typeof ProjectRevisionSnapshotEntrySchema
-    >[];
-  }[];
+  readonly baseTrees: readonly z.infer<
+    typeof ProjectRevisionBaseTreeIdentitySchema
+  >[];
 }) => {
   const input = ProjectRevisionInputSchema.parse(rawInput);
   const trees = PROJECT_REVISION_BASE_SNAPSHOT_SCOPES.map((scope) => {
@@ -713,10 +732,7 @@ export const buildProjectRevisionCandidateRecord = ({
         "Project revision base snapshot requires every scope exactly once.",
       );
     }
-    const identity = ProjectRevisionBaseTreeIdentitySchema.parse({
-      scope,
-      entries: matches[0]?.entries,
-    });
+    const identity = ProjectRevisionBaseTreeIdentitySchema.parse(matches[0]);
     return ProjectRevisionBaseTreeSchema.parse({
       ...identity,
       treeFingerprint: computeProjectRevisionBaseTreeFingerprint(identity),

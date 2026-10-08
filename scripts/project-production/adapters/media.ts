@@ -6,6 +6,7 @@ import { resolveMediaToolCommand } from "../../shared/media-tool-command";
 import { runMediaProcess } from "../../shared/media-process";
 import type { ProcessRunner } from "../../shared/process";
 import { resolveRemotionCliInvocation } from "../../shared/remotion-command";
+import { renderH264AacVideo } from "../../shared/render-h264-aac";
 
 const parseProbe = (stdout: string, label: string) => {
   try {
@@ -54,6 +55,7 @@ export const renderProjectVideo = async ({
   outputPath,
   entryPoint = join(rootDir, "src/index.ts"),
   publicDir = join(rootDir, "public"),
+  audioChannels = 2,
   runProcess = runMediaProcess,
 }: {
   readonly rootDir: string;
@@ -61,30 +63,43 @@ export const renderProjectVideo = async ({
   readonly outputPath: string;
   readonly entryPoint?: string;
   readonly publicDir?: string;
+  readonly audioChannels?: 1 | 2;
   readonly runProcess?: ProcessRunner;
 }) => {
   const invocation = await resolveRemotionCliInvocation(rootDir);
-  const result = await runProcess(
-    invocation.command,
-    [
-      ...invocation.argsPrefix,
-      "render",
-      entryPoint,
-      compositionId,
-      outputPath,
-      "--codec=h264",
-      "--audio-codec=aac",
-      "--pixel-format=yuv420p",
-      "--log=error",
-      `--public-dir=${publicDir}`,
-    ],
-    { cwd: rootDir },
-  );
-  if (result.status !== 0) {
-    throw new Error(
-      `Remotion could not render Project video: ${basename(outputPath)}.`,
-    );
-  }
+  await renderH264AacVideo({
+    rootDir,
+    outputPath,
+    audioChannels,
+    runProcess,
+    render: async ({ videoPath, pcmPath, options }) => {
+      const result = await runProcess(
+        invocation.command,
+        [
+          ...invocation.argsPrefix,
+          "render",
+          entryPoint,
+          compositionId,
+          videoPath,
+          `--codec=${options.codec}`,
+          `--audio-codec=${options.audioCodec}`,
+          `--separate-audio-to=${pcmPath}`,
+          `--sample-rate=${options.sampleRate}`,
+          "--disallow-parallel-encoding",
+          "--enforce-audio-track",
+          `--pixel-format=${options.pixelFormat}`,
+          "--log=error",
+          `--public-dir=${publicDir}`,
+        ],
+        { cwd: rootDir },
+      );
+      if (result.status !== 0) {
+        throw new Error(
+          `Remotion could not render Project video: ${basename(outputPath)}.`,
+        );
+      }
+    },
+  });
 };
 
 export const renderProjectCover = async ({

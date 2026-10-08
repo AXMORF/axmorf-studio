@@ -22,6 +22,8 @@ export type CliRunners = Readonly<{
   projectCheck: CliCommandRunner;
   projectProduction: CliCommandRunner;
   projectSceneReview: CliCommandRunner;
+  projectPreview: CliCommandRunner;
+  referenceAnalysis: CliCommandRunner;
   catalog: CliCommandRunner;
   registry: CliCommandRunner;
   renderer: CliCommandRunner;
@@ -34,7 +36,7 @@ export class CliUsageError extends Error {
 }
 
 const usage =
-  "Expected bootstrap|doctor|web|preview|dev|project <command>|catalog <command>|registry <command>|renderer <command>|scene <command>|narration <command>.";
+  "Expected bootstrap|doctor|web|preview|dev|project <command>|reference analyze|catalog <command>|registry <command>|renderer <command>|scene <command>|narration <command>.";
 
 const exactFixedCommand = async ({
   args,
@@ -87,6 +89,12 @@ const routeProject = async (input: CliCommandInput, runners: CliRunners) => {
   }
   if (group === "scene" && operation === "review") {
     return runners.projectSceneReview({ rootDir: input.rootDir, args: rest });
+  }
+  if (group === "preview") {
+    return runners.projectPreview({
+      rootDir: input.rootDir,
+      args: input.args.slice(2),
+    });
   }
   if (group === "asset" && operation === "import") {
     return runners.projectAssetImport({ rootDir: input.rootDir, args: rest });
@@ -166,6 +174,9 @@ export const routeCliCommand = async ({
     return runners.dev({ rootDir, args: args.slice(1) });
   }
   if (args[0] === "project") return routeProject(input, runners);
+  if (args[0] === "reference" && args[1] === "analyze") {
+    return runners.referenceAnalysis({ rootDir, args: args.slice(2) });
+  }
   if (args[0] === "catalog" && args.length >= 2) {
     return runners.catalog({ rootDir, args: args.slice(1) });
   }

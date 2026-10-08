@@ -107,6 +107,8 @@ export const runNarrationSeal = async ({
   readonly supersedeFingerprint?: string;
   readonly fileOperations?: NarrationSealFileOperations;
 }) => {
+  if (projectSource.story.timingSource === "authored-frames")
+    throw new Error("Authored-frame Stories have no narration seal.");
   const storyId = projectSource.story.storyId;
   const generatedDirectory = join(
     rootDir,

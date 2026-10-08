@@ -16,6 +16,7 @@ import { dirname, join } from "node:path";
 import test from "node:test";
 
 import {
+  AuthoringRequirementsSchema,
   AuthoringValidationError,
   ProjectRevisionInputSchema,
   ProjectRevisionMaterializationRecordSchema,
@@ -32,6 +33,8 @@ import {
   buildSceneVisualPlan,
   buildShotPlanSet,
   buildShotRecipeSelection,
+  buildSilentScenePreset,
+  resolveSceneViewport,
   serializeCanonicalJson,
   createDeliveryBuildId,
   type Sha256Digest,
@@ -228,9 +231,36 @@ const fixture = async (
     after: (callback: () => Promise<void>) => void;
   },
   boundaryTemplates = false,
+  authoredFrames = false,
 ) => {
   const prepared = await prepareProjectCreateFixture();
   context.after(() => rm(prepared.rootDir, { recursive: true, force: true }));
+  if (authoredFrames)
+    await writeFile(
+      prepared.inputPath,
+      JSON.stringify({
+        ...validProjectCreateInput,
+        story: {
+          ...validProjectCreateInput.story,
+          timingSource: "authored-frames",
+          beats: [
+            {
+              kind: "silent-scene",
+              meaningId: "opening",
+              narrativePurpose: "Express the timing visually.",
+              preset: buildSilentScenePreset({
+                presetId: "opening",
+                durationInFrames: 120,
+                visualIntent: "Retain one continuous visual world.",
+                soundIntent: "No narration or captions.",
+                resourceIds: [],
+                implementation: { kind: "scene-owner" },
+              }),
+            },
+          ],
+        },
+      }),
+    );
   if (boundaryTemplates)
     await writeFile(
       prepared.inputPath,
@@ -249,19 +279,25 @@ const fixture = async (
     env: { RSP_PRODUCER_CONFIG: prepared.configPath },
     runtimeResources: prepared.runtimeResources,
   });
-  await mkdir(
-    join(prepared.rootDir, ".narration-work", validProjectCreateInput.storyId),
-    { recursive: true },
-  );
-  await writeFile(
-    join(
-      prepared.rootDir,
-      ".narration-work",
-      validProjectCreateInput.storyId,
-      "sealed-source.wav",
-    ),
-    "narration-work",
-  );
+  if (!authoredFrames) {
+    await mkdir(
+      join(
+        prepared.rootDir,
+        ".narration-work",
+        validProjectCreateInput.storyId,
+      ),
+      { recursive: true },
+    );
+    await writeFile(
+      join(
+        prepared.rootDir,
+        ".narration-work",
+        validProjectCreateInput.storyId,
+        "sealed-source.wav",
+      ),
+      "narration-work",
+    );
+  }
   const publish = await writeCurrentDelivery(prepared.rootDir);
   const dependencies: ProjectRevisionStateDependencies = {
     readCurrentRevision: async () => revision,
@@ -683,7 +719,7 @@ test("revision validation rejects a handoff beyond the last narrated Scene befor
         },
       },
     }),
-    /following narrated/u,
+    /following authored/u,
   );
   assert.equal(await readFile(authoringPath, "utf8"), before);
 });
@@ -733,6 +769,154 @@ test("revision validation rejects no-ops and reports caption paths below patch.s
       );
       return true;
     },
+  );
+});
+
+test("revision cannot migrate an existing narrated Story to authored-frame timing", async (context) => {
+  const current = await fixture(context);
+  await assert.rejects(
+    validateProjectRevisionAuthoring({
+      rootDir: current.rootDir,
+      dependencies: current.dependencies,
+      input: {
+        ...current.input,
+        patch: {
+          story: {
+            ...validProjectCreateInput.story,
+            timingSource: "authored-frames",
+            beats: validProjectCreateInput.story.beats.map(
+              ({ meaningId, narrativePurpose }) => ({
+                kind: "silent-scene",
+                meaningId,
+                narrativePurpose,
+                preset: buildSilentScenePreset({
+                  presetId: meaningId,
+                  durationInFrames: 120,
+                  visualIntent: "A visual subject.",
+                  soundIntent: "No narration.",
+                  resourceIds: [],
+                  implementation: { kind: "scene-owner" },
+                }),
+              }),
+            ),
+          },
+        },
+      },
+    }),
+    /preserve the current timing source/u,
+  );
+});
+
+test("a scenes-only revision retains the exact frozen readability policy for narrated and authored Projects", async (context) => {
+  for (const authoredFrames of [false, true]) {
+    const current = await fixture(context, false, authoredFrames);
+    const requirementsPath = join(
+      current.rootDir,
+      "src/projects/story-example/production/requirements.json",
+    );
+    const requirementsBytes = await readFile(requirementsPath);
+    const previous = AuthoringRequirementsSchema.parse(
+      JSON.parse(requirementsBytes.toString("utf8")),
+    );
+    assert.equal(
+      previous.readabilityPolicy.policyVersion,
+      authoredFrames ? 2 : 1,
+    );
+    const input = {
+      ...current.input,
+      patch: {
+        scenes: validProjectCreateInput.scenes.map((scene) => ({
+          ...scene,
+          compositionIntent:
+            "Place the same subject along a readable diagonal.",
+        })),
+      },
+    };
+    const created = await createProjectRevisionCandidate({
+      rootDir: current.rootDir,
+      projectId: validProjectCreateInput.storyId,
+      input,
+      env: { RSP_PRODUCER_CONFIG: current.configPath },
+      dependencies: current.dependencies,
+    });
+    assert.equal(created.status, "project-revision-candidate-created");
+    assert.equal(created.storyChanged, false);
+    const scope = createProjectRevisionProductionScope({
+      rootDir: current.rootDir,
+      storyId: validProjectCreateInput.storyId,
+      candidateId: computeProjectRevisionCandidateId(input),
+    });
+    const candidate = AuthoringRequirementsSchema.parse(
+      JSON.parse(
+        await readFile(
+          join(
+            scope.projectSourceRoot,
+            "story-example/production/requirements.json",
+          ),
+          "utf8",
+        ),
+      ),
+    );
+    assert.deepEqual(candidate.readabilityPolicy, previous.readabilityPolicy);
+    assert.equal(
+      candidate.requirementsFingerprint,
+      previous.requirementsFingerprint,
+    );
+    assert.equal(
+      resolveSceneViewport(candidate.readabilityPolicy).height,
+      authoredFrames ? 1740 : 1470,
+    );
+    assert.deepEqual(await readFile(requirementsPath), requirementsBytes);
+    if (authoredFrames) {
+      for (const path of [
+        join(
+          current.rootDir,
+          ".narration-work",
+          validProjectCreateInput.storyId,
+        ),
+        join(scope.baseSnapshotRoot, "narration"),
+        join(scope.narrationWorkRoot, validProjectCreateInput.storyId),
+      ]) {
+        await assert.rejects(lstat(path), { code: "ENOENT" });
+      }
+      const record = JSON.parse(
+        await readFile(join(scope.definitionRoot, "candidate.json"), "utf8"),
+      );
+      const narration = record.baseSnapshot.trees.find(
+        (tree: { scope: string }) => tree.scope === "narration",
+      );
+      assert.equal(narration.presence, "absent");
+      assert.equal(Object.hasOwn(narration, "entries"), false);
+      const repeated = await createProjectRevisionCandidate({
+        rootDir: current.rootDir,
+        projectId: validProjectCreateInput.storyId,
+        input,
+        env: { RSP_PRODUCER_CONFIG: current.configPath },
+        dependencies: current.dependencies,
+      });
+      assert.equal(repeated.status, "project-revision-candidate-current");
+      await assert.rejects(
+        lstat(join(scope.narrationWorkRoot, validProjectCreateInput.storyId)),
+        { code: "ENOENT" },
+      );
+    }
+  }
+});
+
+test("revision creation still rejects missing narration roots for narrated Projects", async (context) => {
+  const current = await fixture(context);
+  await rm(join(current.rootDir, ".narration-work", current.input.storyId), {
+    recursive: true,
+  });
+  await assert.rejects(
+    createProjectRevisionCandidate({
+      rootDir: current.rootDir,
+      projectId: current.input.storyId,
+      input: current.input,
+      env: { RSP_PRODUCER_CONFIG: current.configPath },
+      dependencies: current.dependencies,
+    }),
+    /missing|real directory|ENOENT/u,
   );
 });
 

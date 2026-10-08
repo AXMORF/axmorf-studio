@@ -2,7 +2,7 @@
 
 > 文档类型：唯一导航入口
 >
-> 最后复核：2026-09-03
+> 最后复核：2026-10-08
 
 先按问题选择文档，不要从历史计划或 evidence 反推 current implementation。
 
@@ -29,6 +29,7 @@
 | 统一 Producer/TTS/Scene defaults 配置                                                                         | [guides/PRODUCER_CONFIG.md](guides/PRODUCER_CONFIG.md)                         |
 | create 后的只读 inspect、显式 prepare、dirty task delegation、attempt-bound commit/fail 与 fixed continuation | [guides/PRODUCTION_ORCHESTRATION.md](guides/PRODUCTION_ORCHESTRATION.md)       |
 | 同步 exact four-file delivery                                                                                 | [guides/LOCAL_DELIVERY.md](guides/LOCAL_DELIVERY.md)                           |
+| 整片规划、连续 Scene、纯视觉时间轴、冻结草稿与参考节奏分析                                                    | [guides/CONTINUOUS_VIDEO_AUTHORING.md](guides/CONTINUOUS_VIDEO_AUTHORING.md)   |
 | 完整 Project 数据删除                                                                                         | [PRODUCTION_WORKFLOW.md#8-作品删除](PRODUCTION_WORKFLOW.md#8-作品删除)         |
 | TTS generation cache、PCM seal 与 timing                                                                      | [guides/NARRATION_GENERATION.md](guides/NARRATION_GENERATION.md)               |
 | 机械 acceptance 与完成事实                                                                                    | [guides/REVIEW_MODEL.md](guides/REVIEW_MODEL.md)                               |
@@ -41,11 +42,14 @@
 ## 证据、提案与历史
 
 - `evidence/` 记录发生时的验收证据，不定义 current runtime。
+- 本轮未发布连续视频源码、fresh packed Workspace 与局部修订的当前验证见
+  [连续视频验收](evidence/2026-10-08-continuous-video-acceptance.md)；Oct7记录保留为前一工程快照。
 - `promotions/` 保存尚未完全达到完成定义的提案和实施计划；每份文档必须明确自身批准/实施状态。
 - npm Workspace 开源方案已经完成并
   [归档实施计划](archive/implementation-plans/2026-08-30-npm-workspace-open-source-implementation-plan.md)；当前是
-  `v0.1.3` public release，事实以 [ITERATION_STATUS.md](ITERATION_STATUS.md) 与
-  [v0.1.3 Mixkit bookend audio release](evidence/2026-09-05-v0.1.3-mixkit-bookend-audio-release.md) 为准。
+  已记录 `v0.1.16` public release；本轮连续视频升级属于未发布源码，事实以
+  [ITERATION_STATUS.md](ITERATION_STATUS.md) 与
+  [v0.1.16 公共安装证据](evidence/2026-10-03-v0.1.16-public-installation-smoke.md) 为准。
 - [archive/](archive/README.md) 保存已完成或被取代的 plans/specs，仅供追溯。
 
 ## 管理规则

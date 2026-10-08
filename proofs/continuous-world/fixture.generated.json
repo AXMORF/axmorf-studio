@@ -1,0 +1,222 @@
+{
+  "task": {
+    "schemaVersion": 8,
+    "storyId": "continuous-world-proof",
+    "meaningId": "choose",
+    "storyBeat": {
+      "kind": "silent-scene",
+      "meaningId": "choose",
+      "narrativePurpose": "Choose one route",
+      "preset": {
+        "schemaVersion": 3,
+        "presetId": "choose",
+        "durationInFrames": 150,
+        "visualIntent": "One subject and a continuous route.",
+        "soundIntent": "Silent engineering fixture.",
+        "resourceIds": [],
+        "implementation": {
+          "kind": "scene-owner"
+        },
+        "presetFingerprint": "sha256:fcbd0f171ab325893a1e1f80fe13bf50dab6ac7fcbe66c3ecacb3327507f8f31"
+      }
+    },
+    "sourceReferences": [],
+    "timingBeat": {
+      "kind": "silent-scene",
+      "presetFingerprint": "sha256:fcbd0f171ab325893a1e1f80fe13bf50dab6ac7fcbe66c3ecacb3327507f8f31",
+      "presetDurationInFrames": 150,
+      "meaningId": "choose",
+      "startFrame": 0,
+      "endFrame": 150
+    },
+    "coveredBeats": [
+      {
+        "storyBeat": {
+          "kind": "silent-scene",
+          "meaningId": "choose",
+          "narrativePurpose": "Choose one route",
+          "preset": {
+            "schemaVersion": 3,
+            "presetId": "choose",
+            "durationInFrames": 80,
+            "visualIntent": "One subject and a continuous route.",
+            "soundIntent": "Silent engineering fixture.",
+            "resourceIds": [],
+            "implementation": {
+              "kind": "scene-owner"
+            },
+            "presetFingerprint": "sha256:57f5bc15e904882b90bde7217692c32a9d452393e7fb7d36532bc249a24ffca1"
+          }
+        },
+        "timingBeat": {
+          "kind": "silent-scene",
+          "presetFingerprint": "sha256:57f5bc15e904882b90bde7217692c32a9d452393e7fb7d36532bc249a24ffca1",
+          "presetDurationInFrames": 80,
+          "meaningId": "choose",
+          "startFrame": 0,
+          "endFrame": 80
+        }
+      },
+      {
+        "storyBeat": {
+          "kind": "silent-scene",
+          "meaningId": "step",
+          "narrativePurpose": "Walk the first step",
+          "preset": {
+            "schemaVersion": 3,
+            "presetId": "step",
+            "durationInFrames": 70,
+            "visualIntent": "One subject and a continuous route.",
+            "soundIntent": "Silent engineering fixture.",
+            "resourceIds": [],
+            "implementation": {
+              "kind": "scene-owner"
+            },
+            "presetFingerprint": "sha256:0583120e29eb0d60cf528cd9d6ac07b7daf041cb767a455e48251cb8bfd76cb2"
+          }
+        },
+        "timingBeat": {
+          "kind": "silent-scene",
+          "presetFingerprint": "sha256:0583120e29eb0d60cf528cd9d6ac07b7daf041cb767a455e48251cb8bfd76cb2",
+          "presetDurationInFrames": 70,
+          "meaningId": "step",
+          "startFrame": 80,
+          "endFrame": 150
+        }
+      }
+    ],
+    "storyFingerprint": "sha256:954b1279ef3c92307edeba07b966936dd12354b6a69689df37d5aa80c4467918",
+    "renderFingerprint": "sha256:410a4158a695a5fff5ed3658c933403b7a82128cf341bf7644ffe52a14be2bea",
+    "visualStyleFingerprint": "sha256:c4f42fdef38821199a53d0f2e69de2492ce26aa043161e0095ead63cc4825628",
+    "resourceCatalogFingerprint": "sha256:f6260ee61198db4aee3c12c6de9b7118c24718550e53e1dc95092e69e8c1ab63",
+    "allowedSnapshots": [],
+    "allowedResourceIds": [],
+    "continuity": {
+      "previousMeaningId": null,
+      "previousSummary": null,
+      "nextMeaningId": null,
+      "nextSummary": null,
+      "continuityBrief": "Continuous within this one owner."
+    },
+    "allowedDirectories": {
+      "sceneRoot": "src/projects/continuous-world-proof/scenes/choose",
+      "publicAssetRoot": "public/projects/continuous-world-proof/scenes/choose"
+    },
+    "sceneRequirements": [],
+    "sceneViewport": {
+      "schemaVersion": 1,
+      "coordinateSpace": "scene-safe-area-local",
+      "width": 1740,
+      "height": 630,
+      "minFontSizePx": 36,
+      "viewportFingerprint": "sha256:6cfc517bb98ffbd9f82e0dbdbbce3e8c8c289e90a218f46fec67d4847f9c1527"
+    },
+    "sceneCompositionBoundaryVersion": "scene-composition-boundary-v2",
+    "taskInputFingerprint": "sha256:4b12b4449fd45bf6888635a9e5b534d33c8e0d55d2ec0492025dcfc93011cfeb"
+  },
+  "scenePackage": {
+    "schemaVersion": 7,
+    "storyId": "continuous-world-proof",
+    "meaningId": "choose",
+    "coveredMeaningIds": ["choose", "step"],
+    "beatFrameRange": {
+      "startFrame": 0,
+      "endFrame": 150
+    },
+    "taskInputFingerprint": "sha256:4b12b4449fd45bf6888635a9e5b534d33c8e0d55d2ec0492025dcfc93011cfeb",
+    "semanticTimingFingerprint": "sha256:8898830440853519f9fcc1f58631eabe92c844dc461e5121961e6be008edede0",
+    "visualStyleFingerprint": "sha256:c4f42fdef38821199a53d0f2e69de2492ce26aa043161e0095ead63cc4825628",
+    "resourceCatalogFingerprint": "sha256:f6260ee61198db4aee3c12c6de9b7118c24718550e53e1dc95092e69e8c1ab63",
+    "externalSnapshotFingerprints": [],
+    "selectionFingerprint": "sha256:ecc6b56dd10480951168a7fbef89fe686bd2099ed115d95a97880d38667f9cb7",
+    "fidelityReceiptFingerprint": "sha256:66f76ecc65c5980984d66e071fdfc62126192b7d289719bb1485727f4f99dfbd",
+    "visualPlanFingerprint": "sha256:70a9dfbebd857dc744bc73e4e4c887b98782acbed5f14524f61c624334ee0818",
+    "shotPlanFingerprint": "sha256:2e2b39dd5628a87c8ab7705988ff89d511e8df07d1ab5d99a8571d0e2d0181ed",
+    "syncAnchorFingerprint": "sha256:86d99cc82e73392636d89d7ee6a1c98b8574b3cf6d3cdd266e389dcf84c4efce",
+    "soundPlanFingerprint": "sha256:0fda3b97b52c367aec8a377767c3a3e98a0e4774b19a58510a1079134f16a460",
+    "rendererBinding": {
+      "rendererId": "continuous-world-proof-choose",
+      "rendererSourceFingerprint": "sha256:e068605ec6347560c6c646bbb55427093203917c21989c1e6dbacba9438f6a86"
+    },
+    "selectedResources": [],
+    "sceneAudioRuntimeVersion": "scene-audio-runtime-v2",
+    "sceneVisualFingerprint": "sha256:586fd82564e1463a6c0502a4dfda3444c28496f3aed120d935afd6e77d6b9251",
+    "sceneSoundFingerprint": "sha256:6659a2db2c9cc4b2e45358315f8cf65acc50ba02585d1e975cca9720dcb55a5c",
+    "sceneViewportFingerprint": "sha256:6cfc517bb98ffbd9f82e0dbdbbce3e8c8c289e90a218f46fec67d4847f9c1527",
+    "sceneCompositionBoundaryVersion": "scene-composition-boundary-v2",
+    "scenePresetFingerprint": "sha256:fcbd0f171ab325893a1e1f80fe13bf50dab6ac7fcbe66c3ecacb3327507f8f31",
+    "visualRuntimeVersion": "scene-visual-runtime-v3",
+    "packageFingerprint": "sha256:2486ebcc26f9edaafaeea197d24a2ac4a2363b641cfcfb43b4bff842121ba429"
+  },
+  "visualStyle": {
+    "schemaVersion": 1,
+    "storyId": "continuous-world-proof",
+    "styleProfileId": "cinematic-3d",
+    "resourceCatalogFingerprint": "sha256:f6260ee61198db4aee3c12c6de9b7118c24718550e53e1dc95092e69e8c1ab63",
+    "artDirection": {
+      "medium": "Vector route",
+      "palette": "Dark blue, sage, warm yellow",
+      "lighting": "Flat",
+      "texture": "None",
+      "compositionGrammar": "One subject",
+      "motionLanguage": "One camera",
+      "typography": "Clear sans serif"
+    },
+    "continuityRules": [],
+    "forbiddenTreatments": []
+  },
+  "visual": {
+    "schemaVersion": 1,
+    "taskInputFingerprint": "sha256:4b12b4449fd45bf6888635a9e5b534d33c8e0d55d2ec0492025dcfc93011cfeb",
+    "meaningId": "choose",
+    "semanticObjective": "A route becomes a first step.",
+    "subject": "Same dot and route",
+    "primaryAction": "The route straightens and the subject advances.",
+    "causalLink": "Selecting a route permits one step.",
+    "primaryComposition": "Shared world camera tracks the subject.",
+    "styleRealization": ["Original vector route geometry"],
+    "continuity": "One continuous owner.",
+    "orderedShotIds": ["route"],
+    "visualResourceIds": [],
+    "recipeDecision": "empty",
+    "fallbackIntent": "No replacement proof geometry.",
+    "visualPlanFingerprint": "sha256:70a9dfbebd857dc744bc73e4e4c887b98782acbed5f14524f61c624334ee0818"
+  },
+  "shots": {
+    "schemaVersion": 1,
+    "taskInputFingerprint": "sha256:4b12b4449fd45bf6888635a9e5b534d33c8e0d55d2ec0492025dcfc93011cfeb",
+    "meaningId": "choose",
+    "sceneDurationInFrames": 150,
+    "shots": [
+      {
+        "shotId": "route",
+        "order": 0,
+        "primaryRange": {
+          "startFrame": 0,
+          "endFrame": 150
+        },
+        "purpose": "Keep the subject mounted across the Beat boundary.",
+        "action": "Straighten the route, then walk one step.",
+        "visualResourceIds": [],
+        "syncAnchorIds": []
+      }
+    ],
+    "shotPlanFingerprint": "sha256:2e2b39dd5628a87c8ab7705988ff89d511e8df07d1ab5d99a8571d0e2d0181ed"
+  },
+  "anchors": {
+    "schemaVersion": 1,
+    "taskInputFingerprint": "sha256:4b12b4449fd45bf6888635a9e5b534d33c8e0d55d2ec0492025dcfc93011cfeb",
+    "meaningId": "choose",
+    "sceneDurationInFrames": 150,
+    "anchors": [],
+    "syncAnchorFingerprint": "sha256:86d99cc82e73392636d89d7ee6a1c98b8574b3cf6d3cdd266e389dcf84c4efce"
+  },
+  "sound": {
+    "schemaVersion": 2,
+    "taskInputFingerprint": "sha256:4b12b4449fd45bf6888635a9e5b534d33c8e0d55d2ec0492025dcfc93011cfeb",
+    "meaningId": "choose",
+    "sceneDurationInFrames": 150,
+    "contributions": [],
+    "soundPlanFingerprint": "sha256:0fda3b97b52c367aec8a377767c3a3e98a0e4774b19a58510a1079134f16a460"
+  }
+}

@@ -44,25 +44,38 @@ executable before creation, `doctor`, and production. The real browser render ch
 
 ## Useful commands
 
-| Goal                                        | Command                                                                                    |
-| ------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| Get a complete new Project input example    | `npm run project:create:context -- --project <story-id>`                                   |
-| Query available styles                      | `npm run catalog:query -- --kind style-profile`                                            |
-| Prepare the pinned browser                  | `npm run browser:prepare`                                                                  |
-| Inspect an interrupted continuation         | `npm run project:attempt:interrupt-inspect -- --project <story-id> --attempt <attempt-id>` |
-| Check host readiness                        | `npm run doctor`                                                                           |
-| Open Web and preview together               | `npm run dev`                                                                              |
-| Open only the Web control center            | `npm run web`                                                                              |
-| Open only Remotion Studio                   | `npm run preview`                                                                          |
-| Inspect a production without provider calls | `npm run project:produce:inspect -- --project <story-id>`                                  |
-| Review opening, middle, and final Scene frames | `npm run project:scene:review -- --project <story-id>`                                    |
-| Verify the current delivered Project        | `npm run project:check -- --project <story-id> --level final`                              |
+| Goal                                           | Command                                                                                    |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| Get a complete new Project input example       | `npm run project:create:context -- --project <story-id>`                                   |
+| Query available styles                         | `npm run catalog:query -- --kind style-profile`                                            |
+| Prepare the pinned browser                     | `npm run browser:prepare`                                                                  |
+| Inspect an interrupted continuation            | `npm run project:attempt:interrupt-inspect -- --project <story-id> --attempt <attempt-id>` |
+| Check host readiness                           | `npm run doctor`                                                                           |
+| Open Web and preview together                  | `npm run dev`                                                                              |
+| Open only the Web control center               | `npm run web`                                                                              |
+| Open only Remotion Studio                      | `npm run preview`                                                                          |
+| Inspect a production without provider calls    | `npm run project:produce:inspect -- --project <story-id>`                                  |
+| Review opening, middle, and final Scene frames | `npm run project:scene:review -- --project <story-id>`                                     |
+| Render a frozen draft from valid artifacts     | `npm run project:preview -- --project <story-id> [--candidate <candidate-id>]`             |
+| Review local reference cuts, motion and frames | `npm run reference:analyze -- --input public/<reference.mp4> [--threshold 0.3]`            |
+| Verify the current delivered Project           | `npm run project:check -- --project <story-id> --level final`                              |
 
 For Project creation, revisions, production, recovery, and deletion, use the order in `AGENTS.md` and the Workspace-local
 `axmorf-video` Skill. Prefer commands returned by structured CLI output over manually reconstructed internal parameters.
 
 For a new video, explicit orientation, dimensions, frame rate and locale requests take precedence over saved defaults.
 Unspecified fields inherit settings; a one-video override does not change your saved defaults.
+
+Plan the complete film in `story.filmPlan`, then group continuous content with `story.visualScenes`. Beat semantics, timing
+and chapters stay independent; one group has one renderer and uninterrupted sceneFrame. Explicit `authored-frames` uses
+silent scene-owner preset durations without TTS or captions. Frozen draft previews require verified fixed/owner artifacts,
+preserve layout/fps/timing/audio and reduce output pixels. They do not modify current source or Delivery or certify creative
+quality. For a review before final rendering, finish the workers and preview before starting the original continuation once.
+Authored-frame chapters may be empty or fully cover the content Beats in order. Both narrated and silent scene-owner
+boundaries can carry a frozen continuity handoff; fixed templates remain separate.
+Reference analysis refines bounded candidate intervals, estimates image translation/scale and saves timestamped color frames
+with a local review page. Camera/semantic interpretations and viewing/listening observations remain explicit Agent review,
+separate from integrity checks. Formal and draft exports mix PCM losslessly and encode AAC once into MP4.
 
 ## Completion means four verified files
 

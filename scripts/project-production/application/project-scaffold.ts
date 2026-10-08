@@ -141,12 +141,15 @@ const scenes = rawScenes.map((raw) => ({
 if (
   productionSceneCoverage.storyId !== ${JSON.stringify(storyId)} ||
   render.fps !== semanticTiming.fps ||
-  scenes.length !== productionSceneCoverage.entries.length ||
-  scenes.some((scene, index) => {
-    const coverage = productionSceneCoverage.entries[index];
-    return coverage?.status !== "ready" ||
-      coverage.meaningId !== scene.task.meaningId ||
-      coverage.packageFingerprint !== scene.scenePackage.packageFingerprint ||
+  scenes.reduce((count, scene) => count + (scene.scenePackage.coveredMeaningIds?.length ?? 1), 0) !== productionSceneCoverage.entries.length ||
+  scenes.some((scene) => {
+    const owned = scene.scenePackage.coveredMeaningIds ?? [scene.task.meaningId];
+    const taskOwned = scene.task.coveredBeats?.map(({storyBeat}) => storyBeat.meaningId) ?? [scene.task.meaningId];
+    return JSON.stringify(owned) !== JSON.stringify(taskOwned) ||
+      owned.some((meaningId) => {
+        const coverage = productionSceneCoverage.entries.find((entry) => entry.meaningId === meaningId);
+        return coverage?.status !== "ready" || coverage.packageFingerprint !== scene.scenePackage.packageFingerprint;
+      }) ||
       scene.task.sceneViewport.viewportFingerprint !== sceneViewport.viewportFingerprint ||
       scene.task.sceneCompositionBoundaryVersion !== requirements.sceneBoundaryOwnership.sceneCompositionBoundaryVersion;
   })
@@ -162,14 +165,14 @@ for (const {scenePackage} of scenes) {
 }
 if (Object.keys(currentRegistry).length !== scenes.length) throw new Error("Production RendererRegistry cardinality is stale.");
 
-const storyBeatTimings = scenes.map(({task}) => task.timingBeat);
+const storyBeatTimings = semanticTiming.storyBeats;
 const scenePackages = scenes.map(({scenePackage}) => scenePackage);
-const transitions = scenes.slice(1).map((scene, index) => ({
-  fromMeaningId: scenes[index].task.meaningId,
-  toMeaningId: scene.task.meaningId,
+const transitions = storyBeatTimings.slice(1).map((beat, index) => ({
+  fromMeaningId: storyBeatTimings[index].meaningId,
+  toMeaningId: beat.meaningId,
   kind: "hard-cut" as const,
   durationInFrames: 0,
-  boundaryFrame: scene.task.timingBeat.startFrame,
+  boundaryFrame: beat.startFrame,
 }));
 export const productionStoryVisualProjection = buildStoryVisualProjection({
   storyId: ${JSON.stringify(storyId)},
@@ -192,13 +195,14 @@ export const productionSoundDesignProjection = buildSoundDesignProjection({
   storyId: ${JSON.stringify(storyId)},
   coverage: productionSceneCoverage,
   storyBeatTimings,
+  semanticTiming,
   sceneSoundProjections,
   projectSoundPlan: projectSound,
   projectSoundResources: resourceCatalog.entries.map(({descriptor}) => descriptor).filter((descriptor) => descriptor.kind === "asset" && descriptor.mediaRole === "background-music" && projectSoundResourceIds.has(descriptor.id)),
 });
 export const productionRendererPropsByMeaning: Readonly<Record<string, SceneRendererMountProps>> = Object.fromEntries(
   scenes.map((scene) => {
-    if (scene.scenePackage.schemaVersion !== 6 || scene.task.schemaVersion !== 7) throw new Error("Production Scene package is not current.");
+    if ((scene.scenePackage.schemaVersion === 7) !== (scene.task.schemaVersion === 8)) throw new Error("Production Scene package is not current.");
     const task = scene.task;
     return [task.meaningId, {
     storyId: task.storyId,
@@ -206,6 +210,7 @@ export const productionRendererPropsByMeaning: Readonly<Record<string, SceneRend
     durationInFrames: task.timingBeat.endFrame - task.timingBeat.startFrame,
     fps: render.fps,
     storyBeat: task.storyBeat,
+    ...(task.coveredBeats === undefined ? {} : {coveredBeats: task.coveredBeats}),
     sourceReferences: task.sourceReferences,
     timingBeat: task.timingBeat,
     visualStyle,
@@ -234,24 +239,26 @@ export const renderReadabilityAwareProductionSceneRuntime = (input: {
 export const renderProjectAuthoringBuildScaffold = ({
   storyId: rawStoryId,
   runtimeInputFingerprint: rawRuntimeInputFingerprint,
+  timingSource = "sealed-narration",
 }: {
   readonly storyId: string;
   readonly runtimeInputFingerprint: string;
+  readonly timingSource?: "sealed-narration" | "authored-frames";
 }) => {
   const storyId = StoryIdSchema.parse(rawStoryId);
   const runtimeInputFingerprint = Sha256DigestSchema.parse(
     rawRuntimeInputFingerprint,
   );
   const componentName = componentNameFor(storyId);
+  const narrated = timingSource === "sealed-narration";
   return `// @generated-by project-revision-artifact-v1
 // runtime-input-fingerprint ${runtimeInputFingerprint}
 import type {FC} from "react";
-import {Sequence, staticFile} from "remotion";
-import {AuthoringRequirementsSchema, deriveGlobalVisualLayerPolicy, GlobalVisualPlanSchema, getStoryCompositionDurationInFrames, MasteredNarrationManifestSchema, parseNarrativeProjectSource, SealedNarrationManifestSchema, SemanticTimingSchema, StoryCompositionPropsSchema, VisualStyleSpecSchema, validateNarrativeArtifactBundle, type StoryCompositionProps} from "@axmorf/studio/contracts";
+import {Sequence${narrated ? ", staticFile" : ""}} from "remotion";
+import {AuthoringRequirementsSchema, deriveGlobalVisualLayerPolicy, GlobalVisualPlanSchema, getStoryCompositionDurationInFrames, ${narrated ? "MasteredNarrationManifestSchema, SealedNarrationManifestSchema, " : ""}parseNarrativeProjectSource, SemanticTimingSchema, StoryCompositionPropsSchema, VisualStyleSpecSchema, validateNarrativeArtifactBundle, type StoryCompositionProps} from "@axmorf/studio/contracts";
 import {CompositionAssembly, NarrativeCore, SoundDesignTrack, StoryVisualTrack, ThemedGlobalVisualBackground, type GlobalVisualLayersComponent, type NarrativeCoreProps} from "@axmorf/studio/remotion";
 import briefJson from "./brief.json";
-import masteredNarrationJson from "./generated/mastered-narration.generated.json";
-import sealedNarrationJson from "./generated/sealed-narration.generated.json";
+${narrated ? 'import masteredNarrationJson from "./generated/mastered-narration.generated.json";\nimport sealedNarrationJson from "./generated/sealed-narration.generated.json";' : ""}
 import semanticTimingJson from "./generated/semantic-timing.generated.json";
 import {GlobalVisualBaseLayer, GlobalVisualDecorationLayers} from "./global-visual/GlobalVisualLayers";
 import globalVisualPlanJson from "./global-visual-plan.json";
@@ -265,8 +272,8 @@ import visualStyleJson from "./visual-style.json";
 const requirements = AuthoringRequirementsSchema.parse(requirementsJson);
 const visualStyle = VisualStyleSpecSchema.parse(visualStyleJson);
 const projectSource = parseNarrativeProjectSource({brief: briefJson, story: storyJson, narration: narrationJson, render: renderJson});
-const sealedNarration = SealedNarrationManifestSchema.parse(sealedNarrationJson);
-const masteredNarration = MasteredNarrationManifestSchema.parse(masteredNarrationJson);
+const sealedNarration = ${narrated ? "SealedNarrationManifestSchema.parse(sealedNarrationJson)" : "null"};
+${narrated ? "const masteredNarration = MasteredNarrationManifestSchema.parse(masteredNarrationJson);" : ""}
 const semanticTiming = SemanticTimingSchema.parse(semanticTimingJson);
 const artifactBundle = validateNarrativeArtifactBundle({projectSource, sealedNarration, semanticTiming});
 const storyId = artifactBundle.projectSource.story.storyId;
@@ -274,12 +281,11 @@ const render = artifactBundle.projectSource.render;
 const timing = artifactBundle.semanticTiming;
 const globalVisualLayerPolicy = deriveGlobalVisualLayerPolicy(timing);
 const globalVisualPlan = GlobalVisualPlanSchema.parse(globalVisualPlanJson);
-if (storyId !== ${JSON.stringify(storyId)} || visualStyle.storyId !== storyId || render.fps !== timing.fps || requirements.readabilityPolicy.width !== render.width || requirements.readabilityPolicy.height !== render.height || globalVisualPlan.storyId !== storyId || globalVisualPlan.compositionId !== render.compositionId || masteredNarration.storyId !== storyId || masteredNarration.sealedNarrationFingerprint !== sealedNarration.sealedNarrationFingerprint) throw new Error("Project production Composition identity is stale.");
-const completeAudioLocalPath = masteredNarration.outputAudio.localPath;
-if (!completeAudioLocalPath.startsWith("public/projects/" + storyId + "/narration-mastered/")) throw new Error("Mastered narration path is outside the Project.");
+if (storyId !== ${JSON.stringify(storyId)} || visualStyle.storyId !== storyId || render.fps !== timing.fps || requirements.readabilityPolicy.width !== render.width || requirements.readabilityPolicy.height !== render.height || globalVisualPlan.storyId !== storyId || globalVisualPlan.compositionId !== render.compositionId ${narrated ? "|| masteredNarration.storyId !== storyId || masteredNarration.sealedNarrationFingerprint !== sealedNarration.sealedNarrationFingerprint" : '|| projectSource.story.timingSource !== "authored-frames"'}) throw new Error("Project production Composition identity is stale.");
+${narrated ? 'const completeAudioLocalPath = masteredNarration.outputAudio.localPath;\nif (!completeAudioLocalPath.startsWith("public/projects/" + storyId + "/narration-mastered/")) throw new Error("Mastered narration path is outside the Project.");' : ""}
 const ProductionGlobalVisualBaseLayer: GlobalVisualLayersComponent<typeof GlobalVisualBaseLayer> = GlobalVisualBaseLayer;
 const ProductionGlobalVisualDecorationLayers: GlobalVisualLayersComponent<typeof GlobalVisualDecorationLayers> = GlobalVisualDecorationLayers;
-const completeNarrationSrc = staticFile(completeAudioLocalPath.slice("public/".length));
+const completeNarrationSrc = ${narrated ? 'staticFile(completeAudioLocalPath.slice("public/".length))' : "null"};
 export const productionNarrativeCompositionMetadata = {id: render.compositionId, fps: render.fps, width: render.width, height: render.height, durationInFrames: getStoryCompositionDurationInFrames(timing.durationInFrames), defaultProps: {projectId: storyId}} as const;
 export const createProductionNarrativeCoreProps = (input: unknown): NarrativeCoreProps => { const props = StoryCompositionPropsSchema.parse(input); if (props.projectId !== storyId) throw new Error("Composition only accepts its own Project."); return {src: completeNarrationSrc, narrationStartFrame: timing.narrationStartFrame, captionCues: timing.captionCues, safeAreaPx: requirements.readabilityPolicy.captionSafeAreaPx, readabilityPolicy: requirements.readabilityPolicy}; };
 const ${componentName}: FC<StoryCompositionProps> = (props) => {
@@ -295,11 +301,13 @@ export const ensureProjectAuthoringBuildScaffold = async ({
   storyId,
   meaningIds,
   runtimeInputFingerprint,
+  timingSource,
 }: {
   readonly rootDir: string;
   readonly storyId: string;
   readonly meaningIds: readonly string[];
   readonly runtimeInputFingerprint: string;
+  readonly timingSource?: "sealed-narration" | "authored-frames";
 }) => {
   const projectRoot = join(
     rootDir,
@@ -324,6 +332,7 @@ export const ensureProjectAuthoringBuildScaffold = async ({
   const expected = renderProjectAuthoringBuildScaffold({
     storyId,
     runtimeInputFingerprint,
+    timingSource,
   });
   let current: string | null = null;
   try {

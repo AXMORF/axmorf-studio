@@ -45,13 +45,23 @@ continuation 内部 application，不是 Root 命令。
 
 ## 当前里程碑状态
 
+2026-10-08 当前源码新增整片 filmPlan、连续正文 visualScenes、authored-frame 时间轴、确定性相机/形变/语义重定时、
+artifact-backed 草稿与参考节奏诊断。它保留唯一 production/artifact/four-file delivery 主链；源码工程验证记录见
+[连续视频验收](evidence/2026-10-08-continuous-video-acceptance.md)。1270项测试和最新 packed Workspace 的 native3工程
+生产和1dirtyScene/5reuse的局部修订、自动提升与幂等复验通过；完整音频混音输出、无字幕布局和 authored narration-root
+absence 修订合同已验证。本次未发布，既有 Project 不自动迁移，
+公开包不能用源码检查或内部工程生产结果直接视为已升级。下一步独立 release/first-use gate 必须覆盖分组创建、无 provider 时间轴、
+正式导出前草稿、局部 owning Scene 修订复用、candidate 提升与真实 H.264/AAC 声道检查。
+
 从 `foundation@e52d2a5` 开始的
 [npm Workspace 开源方案](archive/implementation-plans/2026-08-30-npm-workspace-open-source-implementation-plan.md)
-已经完成并归档。当前 `@axmorf/studio@0.1.3`、`create-axmorf-studio@0.1.3` 与 GitHub `v0.1.3` Release 已通过
+已经完成并归档。最初 `@axmorf/studio@0.1.3`、`create-axmorf-studio@0.1.3` 与 GitHub `v0.1.3` Release 通过
 Trusted Publisher 纯 OIDC 公开发布；package-owned shared Workspace media、Organization transfer、default branch
 与 provenance workflow 均已完成。精确实现和验收事实只由
 [ITERATION_STATUS.md](ITERATION_STATUS.md) 与
 [v0.1.3 Mixkit bookend audio release](evidence/2026-09-05-v0.1.3-mixkit-bookend-audio-release.md) 维护。
+最近完成的两包公开安装验收记录为 0.1.16，详见 ITERATION_STATUS 和对应 2026-10-03 evidence；
+该已发布记录与本次未发布源码升级分开维护。
 
 当前用户入口是 README 的“快速开始”，或者复制一句 Agent prompt，让 Agent 根据项目最新 README 在指定
 路径完成 Workspace 搭建与可用性验收。Workspace ready 后，generated README 的独立视频 prompt 才负责接收创作需求。

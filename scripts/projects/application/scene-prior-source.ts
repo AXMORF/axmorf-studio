@@ -11,6 +11,8 @@ import {
   StoryIdSchema,
   MeaningIdSchema,
   buildSceneContinuityContract,
+  aggregateSceneStoryBeat,
+  resolveStorySceneGroups,
   buildScenePriorSource,
   computeUtf8Checksum,
   serializeCanonicalJson,
@@ -75,19 +77,44 @@ export const affectedPriorSourceMeaningIds = ({
     const byMeaning = new Map(
       authoring.scenes.map((scene) => [scene.meaningId, scene] as const),
     );
+    const groups = resolveStorySceneGroups(authoring.story);
+    const groupedBrief = (group: (typeof groups)[number]) => {
+      const first = byMeaning.get(group.meaningId)!;
+      if (group.beats.length === 1) return first;
+      const brief = { ...first };
+      delete brief.outgoingHandoff;
+      const outgoingHandoff = byMeaning.get(
+        group.beats.at(-1)!.meaningId,
+      )?.outgoingHandoff;
+      return {
+        ...brief,
+        ...(outgoingHandoff === undefined ? {} : { outgoingHandoff }),
+      };
+    };
     return new Map(
-      authoring.story.beats.map((beat, position) => {
-        const brief = byMeaning.get(beat.meaningId)!;
+      groups.map((group, position) => {
+        const beat = aggregateSceneStoryBeat(group.beats);
+        const brief = groupedBrief(group);
         const neighbor = (offset: number) => {
-          const adjacent = authoring.story.beats[position + offset];
+          const adjacent = groups[position + offset];
           return adjacent === undefined
             ? null
-            : { beat: adjacent, brief: byMeaning.get(adjacent.meaningId)! };
+            : {
+                beat: aggregateSceneStoryBeat(adjacent.beats),
+                brief: groupedBrief(adjacent),
+              };
         };
         return [
           beat.meaningId,
           {
             brief,
+            ...(group.beats.length > 1
+              ? {
+                  coveredBriefs: group.beats.map(
+                    ({ meaningId }) => byMeaning.get(meaningId)!,
+                  ),
+                }
+              : {}),
             handoffs: buildSceneContinuityContract({
               storyId: authoring.story.storyId,
               beat,
@@ -153,12 +180,14 @@ export const snapshotScenePriorSource = async ({
   storyId,
   meaningId,
   brief,
+  coveredBriefs,
 }: {
   readonly rootDir: string;
   readonly runtimeRootDir?: string;
   readonly storyId: string;
   readonly meaningId: string;
   readonly brief: ScenePriorSource["brief"];
+  readonly coveredBriefs?: ScenePriorSource["coveredBriefs"];
 }): Promise<ScenePriorSource | null> => {
   StoryIdSchema.parse(storyId);
   MeaningIdSchema.parse(meaningId);
@@ -295,6 +324,7 @@ export const snapshotScenePriorSource = async ({
     storyId,
     meaningId,
     brief,
+    ...(coveredBriefs === undefined ? {} : { coveredBriefs }),
     rendererSourceFingerprint: graph.sourceGraphFingerprint,
     scenePackageFingerprint: scenePackage.packageFingerprint,
     files,
@@ -314,10 +344,19 @@ export const freezeRevisionScenePriorSources = async ({
 }) => {
   const storyId = after.story.storyId;
   const prior = await readScenePriorSourceIndex({ rootDir, storyId });
+  const afterOwnerIds = new Set(
+    resolveStorySceneGroups(after.story).map(({ meaningId }) => meaningId),
+  );
+  const beforeGroups = resolveStorySceneGroups(before.story);
   const scenes = new Map(
-    prior?.scenes.map((scene) => [scene.meaningId, scene] as const),
+    prior?.scenes
+      .filter(({ meaningId }) => afterOwnerIds.has(meaningId))
+      .map((scene) => [scene.meaningId, scene] as const),
   );
   for (const meaningId of affectedPriorSourceMeaningIds({ before, after })) {
+    const previousGroup = beforeGroups.find(
+      (group) => group.meaningId === meaningId,
+    );
     const brief = before.scenes.find((scene) => scene.meaningId === meaningId);
     if (brief === undefined)
       throw new Error("Revision prior Scene authoring is missing.");
@@ -327,6 +366,14 @@ export const freezeRevisionScenePriorSources = async ({
       storyId,
       meaningId,
       brief,
+      ...(previousGroup !== undefined && previousGroup.beats.length > 1
+        ? {
+            coveredBriefs: previousGroup.beats.map(
+              ({ meaningId: id }) =>
+                before.scenes.find((scene) => scene.meaningId === id)!,
+            ),
+          }
+        : {}),
     });
     if (snapshot === null) scenes.delete(meaningId);
     else scenes.set(meaningId, snapshot);

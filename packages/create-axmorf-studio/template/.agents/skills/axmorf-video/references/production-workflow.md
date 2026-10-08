@@ -14,7 +14,12 @@ For Scene work, read
 `.agents/skills/remotion-best-practices/SKILL.md` and its relevant references before implementation. Correct only your own
 `agent-output` issues before terminal. On a host/fixed fault, stop and return the structured error to the Root for its exact
 failure command. Never reopen or automatically retry a terminal failed attempt.
+For new or substantially redesigned Scenes, read [film direction / Scene execution](film-direction.md#scene-execution)
+after binding; a local correction preserves priorSource and applies only its delta.
 For Scene tasks, consume `scene.brief`, `scene.visualStyle`, and Scene-local `scene.narrationCues` in the bound context.
+Grouped tasks also freeze `scene.coveredBriefs` and `scene.taskInput.coveredBeats`: implement every member in one source
+graph using continuous sceneFrame, not a new component lifetime at each semantic boundary. Authored frame timing has no
+narration; follow the supplied frame windows and semantic anchors instead of inventing TTS or caption content.
 When `scene.priorSource` exists, it is this owning Scene's verified, frozen current base graph and declarations. Compare
 its previous brief with `scene.brief`, copy its content into the declared outputs, and apply only the requested delta while
 preserving unaffected source, layout, motion, sound and resources. Output paths are initially absent. Retain license and
@@ -80,7 +85,13 @@ Before the first command, briefly tell the user the plan. Report inherited bound
 8. The assigned executor writes only contract-declared Agent/Agent-draft outputs and uses its exact returned
    describe/finalize/check/commit/failure commands; the Root is that executor only in inline mode.
    With `controller-io`, the executor uses only returned strict file-read/file-write commands.
-9. Start the exact continuation command once per attempt. Root supervises with native notifications or blocking waits on its original
+9. For review before delivery, first wait for every worker terminal completion and run `npm run project:preview -- --project
+<storyId>` with exact `--candidate` when present. Preview verifies artifacts and renders a private frozen view at reduced
+   pixels with the original fps, timing and sound. It writes no live source/current Delivery, calls no provider, creates no
+   attempt and performs no promotion; motion/continuity/listening remain not-assessed until separately observed. Its time
+   still belongs to the original attempt's one-hour deadline. Use [creative media review](film-direction.md#review-the-actual-media)
+   for action windows, internal Beat joins, camera/text extremes and actual listening; do not overwrite committed artifacts or pause a continuation.
+   Start the exact continuation command once per attempt. Root supervises with native notifications or blocking waits on its original
    handle. Normal wait timeouts only renew that wait; no child/status polling, repeated log reads or a second continuation. On an error
    notification, diagnose and guide the original executor before terminal without accessing its workspace. Report fixed completion once.
    Candidate continuation verifies an isolated exact-four Delivery before
@@ -93,13 +104,15 @@ Before the first command, briefly tell the user the plan. Report inherited bound
     same-Revision `npm run project:attempt:reissue -- --project <storyId> --attempt <failedAttemptId>` only if ready; no current Delivery is
     required. Use fresh workers and bindings. Unknown, fixed-system and external faults stop with diagnosis; no automatic program-source repair.
 
-After `project-production-complete` or `project-production-current`, the exact four files are technically verified. Generate the low-cost `project:scene:review --motion` previews described below, inspect actions/boundaries against intent and readability, then report paths and actual review scope once. Retain needs-temporal-review when perception is unavailable; never claim automatic visual approval. If a separate recheck is needed, use exactly `npm run project:check -- --project <storyId> --level final`; do not omit `--level`. `project:revise:context` starts a revision within the authorized brief and is not a delivery inspection command.
+After `project-production-complete` or `project-production-current`, the exact four files are technically verified. Use the low-cost `project:scene:review --motion` previews described below when supported by the installed version, inspect actual actions/boundaries against intent and readability, then report paths and actual review scope once. A diagnostic failure must be reported separately; never change valid chapters or rerun production to hide it. Retain needs-temporal-review when perception is unavailable; never claim automatic visual approval. If a separate recheck is needed, use exactly `npm run project:check -- --project <storyId> --level final`; do not omit `--level`. `project:revise:context` starts a revision within the authorized brief and is not a delivery inspection command.
 
-Timing comes from sealed PCM samples. Scenes do not own captions or narration.
+Narrated timing comes from sealed PCM samples; explicit authored timing comes from silent scene-owner preset frames.
+Scenes do not own captions or narration. Formal and preview media preserve the same frame clock and mix, then encode
+lossless PCM once to AAC in MP4 with actual encoder priming metadata; do not compensate with invented frame/audio offsets.
 Agent-owned Scene TS/TSX graphs must be unique against the frozen baseline and
 within the current revision; fixed template-copy Scenes are exempt.
 All visual workers read context.visualStyle and use its semantic theme roles. Composition paints theme.background and composites decoration behind Scenes in an isolated group capped at 8% opacity; GlobalVisualBaseLayer must directly return null and is not mounted. Legacy Projects without a theme retain their base layer. Its decoration export is limited
-to the continuous first-to-last narrated Scene window and receives local frame
+to the continuous first-to-last content Scene window (narrated or authored) and receives local frame
 zero at that window's start; neither layer may read Scene output or carry Beat
 copy.
 Runtime code does not call Agents, providers, Git, or the network. Delivery is
@@ -112,5 +125,11 @@ Compare each Scene's opening, change, and result with its `narrativePurpose`, Sc
 result misses the user's meaning or the focal subject is unclear, describe the specific mismatch and use the isolated
 revision flow for corrections within the authorized brief. Mechanical delivery success alone does not prove visual quality.
 
-
 `npm run project:scene:review -- --project <storyId> --motion` exports whole Scenes, boundary clips and available action windows, including cause/result/reading-hold samples. `revision-feedback.json` scopes observed defects to meaningId/actionId/frame ranges; it is diagnostic feedback, not accepted revision input or approval. Read `project:revise:context`, then use the strict isolated revision workflow; preserve sealed narration and unaffected assets. Source-plan annotations are explicitly current-source references, not attested statements about the delivered animation. Watch actual clips and compare their visible causal actions; numeric motion, static stills and generated evidence never certify aesthetics or listening. Formal release checks remain unchanged.
+
+For local reference video, `npm run reference:analyze -- --input public/<reference.mp4>` writes a checksum-bound report and
+timestamped color PNGs under ignored out. Bounded sampling/refinement can miss short or multiple cuts; nominal frame
+brackets do not establish decoded source PTS. Translation/scale fits describe image change, not semantic camera motion.
+Inspect the evidence and record an interpretation separately. Bind reviews to media checksum/DeliveryBuildId and state
+whether coverage was sampled frames, continuous playback, timing measurements or actual listening; keep unobserved items
+not-assessed. Reference reports never modify authoring, production identity, asset admission or validators.

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import {
+  lstat,
   mkdir,
   mkdtemp,
   readFile,
@@ -11,12 +12,14 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
+import { buildSilentScenePreset } from "@axmorf/studio/contracts";
 import { computeProjectRevisionCandidateId } from "../../packages/studio/src/contracts/project-revision";
 import { createProjectRevisionProductionScope } from "../../scripts/project-production/application/production-scope";
 import {
   createProjectRevisionCandidateDefinition,
   inspectProjectRevisionCandidateDefinition,
   stageProjectRevisionCandidateDefinition,
+  stageProjectRevisionCandidateAuthoring,
 } from "../../scripts/projects/application/project-revision-candidate-store";
 import { validProjectCreateInput } from "../fixtures/project-create";
 
@@ -34,9 +37,12 @@ const revisionInput = {
   },
 } as const;
 
-const fixture = async (context: {
-  after: (callback: () => Promise<void>) => void;
-}) => {
+const fixture = async (
+  context: {
+    after: (callback: () => Promise<void>) => void;
+  },
+  authoredFrames = false,
+) => {
   const root = await mkdtemp(join(tmpdir(), "axmorf-revision-store-"));
   context.after(() => rm(root, { recursive: true, force: true }));
   const baseRoot = join(root, "base-fixture");
@@ -47,22 +53,48 @@ const fixture = async (context: {
     source: join(baseRoot, "source"),
   } as const;
   await Promise.all(
-    Object.values(baseDirectories).map((directory) =>
-      mkdir(directory, { recursive: true }),
-    ),
+    Object.entries(baseDirectories)
+      .filter(([scope]) => !authoredFrames || scope !== "narration")
+      .map(([, directory]) => mkdir(directory, { recursive: true })),
   );
   await mkdir(join(baseDirectories.source, "nested"));
   await mkdir(join(baseDirectories.public, "empty"));
+  const story = authoredFrames
+    ? {
+        ...validProjectCreateInput.story,
+        timingSource: "authored-frames",
+        beats: [
+          {
+            kind: "silent-scene",
+            meaningId: "opening",
+            narrativePurpose: "Show the idea visually.",
+            preset: buildSilentScenePreset({
+              presetId: "opening",
+              durationInFrames: 120,
+              visualIntent: "One visual subject.",
+              soundIntent: "No narration.",
+              resourceIds: [],
+              implementation: { kind: "scene-owner" },
+            }),
+          },
+        ],
+      }
+    : validProjectCreateInput.story;
+  const sourceBytes = `${JSON.stringify(story)}\n`;
   await Promise.all([
-    writeFile(join(baseDirectories.source, "story.json"), '{"story":1}\n'),
+    writeFile(join(baseDirectories.source, "story.json"), sourceBytes),
     writeFile(
       join(baseDirectories.source, "nested", "scene.tsx"),
       "export {};\n",
     ),
-    writeFile(
-      join(baseDirectories.narration, "complete.wav"),
-      Buffer.from([1, 2, 3]),
-    ),
+    ...(authoredFrames
+      ? []
+      : [
+          writeFile(
+            join(baseDirectories.narration, "complete.wav"),
+            Buffer.from([1, 2, 3]),
+          ),
+        ]),
     writeFile(
       join(baseDirectories.delivery, "video.mp4"),
       Buffer.from([4, 5, 6]),
@@ -73,7 +105,7 @@ const fixture = async (context: {
     storyId: revisionInput.storyId,
     candidateId: computeProjectRevisionCandidateId(revisionInput),
   });
-  return { root, scope, baseDirectories } as const;
+  return { root, scope, baseDirectories, sourceBytes } as const;
 };
 
 test("candidate definition installs atomically and identical base bytes are idempotent", async (context) => {
@@ -103,13 +135,19 @@ test("candidate definition installs atomically and identical base bytes are idem
 });
 
 test("candidate definition rejects a same-ID base whose bytes differ", async (context) => {
-  const { scope, baseDirectories } = await fixture(context);
+  const { scope, baseDirectories, sourceBytes } = await fixture(context);
   await createProjectRevisionCandidateDefinition({
     scope,
     input: revisionInput,
     baseDirectories,
   });
-  await writeFile(join(baseDirectories.source, "story.json"), '{"story":2}\n');
+  await writeFile(
+    join(baseDirectories.source, "story.json"),
+    JSON.stringify({
+      ...validProjectCreateInput.story,
+      title: "A changed base",
+    }),
+  );
   await assert.rejects(
     createProjectRevisionCandidateDefinition({
       scope,
@@ -123,7 +161,113 @@ test("candidate definition rejects a same-ID base whose bytes differ", async (co
       join(scope.baseSnapshotRoot, "source", "story.json"),
       "utf8",
     ),
-    '{"story":1}\n',
+    sourceBytes,
+  );
+});
+
+test("authored candidates snapshot true narration absence and preserve it in isolated authoring", async (context) => {
+  const { scope, baseDirectories } = await fixture(context, true);
+  const request = { scope, input: revisionInput, baseDirectories };
+  const installed = await createProjectRevisionCandidateDefinition(request);
+  const narration = installed.record.baseSnapshot.trees.find(
+    (tree) => tree.scope === "narration",
+  );
+  assert.equal(narration?.presence, "absent");
+  assert.equal(Object.hasOwn(narration!, "entries"), false);
+  await assert.rejects(lstat(join(scope.baseSnapshotRoot, "narration")), {
+    code: "ENOENT",
+  });
+  const current = await createProjectRevisionCandidateDefinition(request);
+  assert.deepEqual(current.record, installed.record);
+  const staged = await stageProjectRevisionCandidateAuthoring({
+    scope,
+    populate: async () => undefined,
+  });
+  await assert.rejects(
+    lstat(join(staged.stagingDirectory, ".narration-work")),
+    { code: "ENOENT" },
+  );
+  assert.deepEqual(
+    await inspectProjectRevisionCandidateDefinition({ scope }),
+    installed.record,
+  );
+  await mkdir(baseDirectories.narration);
+  await assert.rejects(
+    createProjectRevisionCandidateDefinition(request),
+    /base binding differs/u,
+  );
+  await mkdir(join(scope.baseSnapshotRoot, "narration"));
+  await assert.rejects(
+    inspectProjectRevisionCandidateDefinition({ scope }),
+    /missing or unknown|presence/u,
+  );
+});
+
+test("only authored Projects may omit narration and required roots stay required", async (context) => {
+  const narrated = await fixture(context);
+  await rm(narrated.baseDirectories.narration, { recursive: true });
+  await assert.rejects(
+    createProjectRevisionCandidateDefinition({
+      scope: narrated.scope,
+      input: revisionInput,
+      baseDirectories: narrated.baseDirectories,
+    }),
+    /missing|ENOENT|real directory/u,
+  );
+  const authored = await fixture(context, true);
+  await rm(authored.baseDirectories.public, { recursive: true });
+  await assert.rejects(
+    createProjectRevisionCandidateDefinition({
+      scope: authored.scope,
+      input: revisionInput,
+      baseDirectories: authored.baseDirectories,
+    }),
+    /missing|ENOENT|real directory/u,
+  );
+});
+
+test("absent narration checks reject root and ancestor symlinks, special parents and escaped roots", async (context) => {
+  const { root, scope, baseDirectories } = await fixture(context, true);
+  const request = { scope, input: revisionInput, baseDirectories };
+  await symlink(join(root, "missing-target"), baseDirectories.narration);
+  await assert.rejects(
+    createProjectRevisionCandidateDefinition(request),
+    /real directory|unsafe|symbolic/u,
+  );
+  await rm(baseDirectories.narration);
+  const narrationParent = join(root, "narration-parent");
+  await symlink(join(root, "missing-target"), narrationParent);
+  await assert.rejects(
+    createProjectRevisionCandidateDefinition({
+      ...request,
+      baseDirectories: {
+        ...baseDirectories,
+        narration: join(narrationParent, revisionInput.storyId),
+      },
+    }),
+    /real directory|unsafe|symbolic/u,
+  );
+  await rm(narrationParent);
+  await writeFile(narrationParent, "special-parent");
+  await assert.rejects(
+    createProjectRevisionCandidateDefinition({
+      ...request,
+      baseDirectories: {
+        ...baseDirectories,
+        narration: join(narrationParent, revisionInput.storyId),
+      },
+    }),
+    /real directory|unsafe/u,
+  );
+  await assert.rejects(
+    createProjectRevisionCandidateDefinition({
+      ...request,
+      baseDirectories: {
+        ...baseDirectories,
+        narration: join(root, "..", "escaped-narration"),
+      },
+    }),
+    /escapes/u,
   );
 });
 

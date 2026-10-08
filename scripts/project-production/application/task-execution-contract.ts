@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   GlobalVisualLayerPolicySchema,
   GlobalVisualPlanSchema,
+  FilmPlanSchema,
   ReferenceFidelityReceiptSchema,
   RenderSpecSchema,
   SceneReadabilityPolicySchema,
@@ -142,6 +143,13 @@ const buildSceneContract = (rawContext: unknown) => {
           priorSource: ScenePriorSourceSchema.optional(),
           availableResources: z.array(SceneSelectedResourceSchema).default([]),
           brief: SceneProductionBriefItemSchema,
+          coveredBriefs: z
+            .array(SceneProductionBriefItemSchema)
+            .min(2)
+            .max(256)
+            .readonly()
+            .optional(),
+          filmPlan: FilmPlanSchema.optional(),
           visualStyle: VisualStyleSpecSchema,
           narrationCues: z
             .array(
@@ -163,6 +171,18 @@ const buildSceneContract = (rawContext: unknown) => {
   const { taskInput, brief, visualStyle, narrationCues, availableResources } =
     context.scene;
   const priorSource = context.scene.priorSource;
+  if (
+    (taskInput.coveredBeats === undefined) !==
+      (context.scene.coveredBriefs === undefined) ||
+    (context.scene.coveredBriefs !== undefined &&
+      JSON.stringify(
+        context.scene.coveredBriefs.map(({ meaningId }) => meaningId),
+      ) !==
+        JSON.stringify(
+          taskInput.coveredBeats!.map(({ storyBeat }) => storyBeat.meaningId),
+        ))
+  )
+    throw new Error("Scene covered briefs are stale against its ownership.");
   if (
     priorSource !== undefined &&
     (priorSource.storyId !== taskInput.storyId ||
@@ -343,8 +363,10 @@ const buildSceneContract = (rawContext: unknown) => {
   const contract = createContract({
     taskKind: "scene-owner",
     purpose:
-      "Author one meaning-local Scene renderer and its semantic visual, shot, sync, sound, resource, and recipe decisions.",
+      "Author one owning Scene renderer and the visual, shot, sync, sound, resource and recipe decisions for its consecutive semantic Beats.",
     workflow: [
+      "Follow scene.filmPlan when present: its concept, subject, camera, rhythm and sound intent guide this Scene as part of one film.",
+      "When taskInput.coveredBeats is present, this one renderer owns all listed semantic Beats. Use scene.coveredBriefs for each Beat's visual decisions; keep subjects and camera continuous across their boundaries. sceneFrame spans the complete group and never resets at an internal Beat. Split modules only within declared owning paths.",
       "Read the complete VisualStyle from inputs/context.json; when theme is present its background, primaryText, secondaryText, and accent roles are the shared color authority.",
       "Use scene.taskInput in inputs/context.json as immutable identity, timing, viewport, and allowlist authority.",
       "Use scene.brief and scene.visualStyle for the actual visual, composition, motion, sound, and continuity decisions; scene.narrationCues are Scene-local frame ranges for narrated chunks.",
@@ -355,6 +377,7 @@ const buildSceneContract = (rawContext: unknown) => {
       "Align meaningful visual changes to narrationCues and declare sync anchors for events used by shots or sound. Keep the plan, renderer, and visible result consistent; do not add motion only to fill time.",
       originalityInstruction,
       "When scene.priorSource is absent, create this Scene from the current brief; no prior implementation was frozen, so do not claim preservation of existing source.",
+      "For a local revision, compare current coveredBriefs with priorSource.coveredBriefs when present. Preserve the owning source graph outside the requested delta; a change in grouping does not authorize reading or copying other Scene source.",
       "Replace the scaffold Renderer with StoryBeat-specific creative output and write every declared output. The scaffold is an API illustration, never a finished Scene.",
       "Run the deterministic task finalizer to bind identities, canonicalize JSON, and recompute derived fields.",
       "Run the fixed task checker, correct only this workspace, then use the attempt-bound completion operation supplied by the caller.",
@@ -621,8 +644,8 @@ const buildGlobalVisualContract = (rawContext: unknown) => {
     workflow: [
       "Use Story, render, timing, layerPolicy, readability, resource pool, VisualStyle, and GlobalVisual brief from inputs/context.json.",
       theme === undefined
-        ? "Author the base for the full Composition and decoration for the fixed narrated-content window using window-local frame zero."
-        : "Composition owns the full-composition theme.background. Export GlobalVisualBaseLayer as a zero-parameter direct null return; use the resolved theme roles for decoration in the fixed narrated-content window with window-local frame zero.",
+        ? "Author the base for the full Composition and decoration for the fixed content window using window-local frame zero."
+        : "Composition owns the full-composition theme.background. Export GlobalVisualBaseLayer as a zero-parameter direct null return; use the resolved theme roles for decoration in the fixed content window with window-local frame zero.",
       "Run the deterministic task finalizer to canonicalize the plan and recompute its fingerprint.",
       "Run the fixed task checker, correct only this workspace, then use the attempt-bound completion operation supplied by the caller.",
     ],

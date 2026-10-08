@@ -25,9 +25,13 @@ import {
   ShotPlanSetSchema,
   ShotRecipeSelectionSchema,
   VisualStyleSpecSchema,
+  aggregateSceneStoryBeat,
+  aggregateSceneTimingBeat,
   computeVisualStyleFingerprint,
   createFinalMechanicalCheckReport,
   createFinalMechanicalCheckV2Report,
+  resolveStorySceneGroups,
+  serializeCanonicalJson,
   type FinalMechanicalCheckId,
   type FinalMechanicalCheckReportInput,
   type FinalMechanicalCheckV2Id,
@@ -281,8 +285,27 @@ export const loadCurrentFinalSceneBranch = async ({
   result.sceneCoverageFingerprint = coverage.coverageFingerprint;
   result.checkStatuses = { ...result.checkStatuses, "scene-coverage": "pass" };
   const ready = coverage.entries.filter((entry) => entry.status === "ready");
+  const readyByMeaning = new Map(
+    ready.map((entry) => [entry.meaningId, entry]),
+  );
+  const readyGroups = resolveStorySceneGroups(projectSource.story).filter(
+    (group) => {
+      const members = group.beats.map(({ meaningId }) =>
+        readyByMeaning.get(meaningId),
+      );
+      if (
+        members.some((member) => member !== undefined) &&
+        members.some((member) => member === undefined)
+      ) {
+        throw new Error(
+          "Ready Scene coverage only partially covers its owning Story group.",
+        );
+      }
+      return members[0] !== undefined;
+    },
+  );
   const taskCatalogFingerprints = await Promise.all(
-    ready.map(
+    readyGroups.map(
       async ({ meaningId }) =>
         SceneTaskInputSchema.parse(
           await loadProjectCheckJson(
@@ -384,8 +407,10 @@ export const loadCurrentFinalSceneBranch = async ({
 
   const packages = [];
   const soundProjections: SceneSoundProjection[] = [];
-  for (const coverageEntry of ready) {
-    const meaningId = coverageEntry.meaningId;
+  for (const group of readyGroups) {
+    const meaningId = group.meaningId;
+    const meaningIds = group.beats.map((beat) => beat.meaningId);
+    const ownedMeaningIds = new Set(meaningIds);
     const [
       rawTask,
       rawVisual,
@@ -455,6 +480,37 @@ export const loadCurrentFinalSceneBranch = async ({
       ),
     ]);
     const task = SceneTaskInputSchema.parse(rawTask);
+    if (
+      serializeCanonicalJson(
+        task.coveredBeats?.map((member) => member.storyBeat.meaningId) ?? [
+          task.meaningId,
+        ],
+      ) !== serializeCanonicalJson(meaningIds)
+    ) {
+      throw new Error(
+        "Scene task ownership is stale against current Story groups.",
+      );
+    }
+    if (
+      task.coveredBeats?.some((member) => {
+        const current = semanticTiming.storyBeats.find(
+          (beat) => beat.meaningId === member.storyBeat.meaningId,
+        );
+        return (
+          current === undefined ||
+          serializeCanonicalJson(current) !==
+            serializeCanonicalJson(member.timingBeat)
+        );
+      })
+    )
+      throw new Error(
+        "Scene task member timing is stale against current SemanticTiming.",
+      );
+    const timingBeat = aggregateSceneTimingBeat(
+      semanticTiming.storyBeats,
+      meaningIds,
+      aggregateSceneStoryBeat(group.beats),
+    );
     const visual = SceneVisualPlanSchema.parse(rawVisual);
     const shots = ShotPlanSetSchema.parse(rawShots);
     const anchors = SceneSyncAnchorSetSchema.parse(rawAnchors);
@@ -470,6 +526,15 @@ export const loadCurrentFinalSceneBranch = async ({
       rendererPath: `src/projects/${paths.storyId}/scenes/${meaningId}/Renderer.tsx`,
     });
     const rebuiltPackage = buildScenePackage({
+      narrationCues:
+        task.storyBeat.kind === "narrated-scene"
+          ? semanticTiming.captionCues
+              .filter((cue) => ownedMeaningIds.has(cue.meaningId))
+              .map((cue) => ({
+                startFrame: cue.startFrame - timingBeat.startFrame,
+                endFrame: cue.endFrame - timingBeat.startFrame,
+              }))
+          : undefined,
       task,
       visual,
       shots,
@@ -483,9 +548,7 @@ export const loadCurrentFinalSceneBranch = async ({
         rendererSourceFingerprint: graph.sourceGraphFingerprint,
       },
       current: {
-        timingBeat: semanticTiming.storyBeats.find(
-          (beat) => beat.meaningId === meaningId,
-        ),
+        timingBeat,
         semanticTimingFingerprint: semanticTiming.fingerprint,
         visualStyleFingerprint: result.visualStyleFingerprint,
         resourceCatalogFingerprint: catalog.catalogFingerprint,
@@ -500,7 +563,16 @@ export const loadCurrentFinalSceneBranch = async ({
     if (
       rebuiltPackage.packageFingerprint !==
         persistedPackage.packageFingerprint ||
-      coverageEntry.packageFingerprint !== persistedPackage.packageFingerprint
+      serializeCanonicalJson(
+        persistedPackage.coveredMeaningIds ?? [persistedPackage.meaningId],
+      ) !== serializeCanonicalJson(meaningIds) ||
+      meaningIds.some((id) => {
+        const entry = readyByMeaning.get(id);
+        return (
+          entry?.packageFingerprint !== persistedPackage.packageFingerprint ||
+          entry.rendererId !== persistedPackage.rendererBinding.rendererId
+        );
+      })
     ) {
       throw new Error("ScenePackage generated identity is stale.");
     }
@@ -655,6 +727,7 @@ export const loadCurrentFinalSceneBranch = async ({
       storyId: paths.storyId,
       coverage,
       storyBeatTimings: semanticTiming.storyBeats,
+      semanticTiming,
       sceneSoundProjections: soundProjections,
       projectSoundPlan: projectSound,
       projectSoundResources: catalog.entries

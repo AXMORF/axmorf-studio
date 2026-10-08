@@ -11,8 +11,8 @@ const wordCount = (value: string) => value.trim().split(/\s+/u).length;
 
 const PolicySchema = z
   .object({
-    schemaVersion: z.literal(19),
-    policyVersion: z.literal("axmorf-video-policy-v24"),
+    schemaVersion: z.literal(20),
+    policyVersion: z.literal("axmorf-video-policy-v27"),
     rootEndpoints: z.tuple([
       z.literal("project-production-complete"),
       z.literal("project-production-current"),
@@ -150,6 +150,18 @@ const PolicySchema = z
         globalVisualReadsSceneOutputs: z.literal(false),
         childIdentityPersisted: z.literal(false),
         timingPolicy: z.literal("pcm-cumulative-ceil-v1"),
+        authoredTimingPolicy: z.literal(
+          "authored-cumulative-frames-v1-no-provider-no-narration",
+        ),
+        sceneOwnershipPolicy: z.literal(
+          "ordered-consecutive-content-beat-groups-with-one-renderer-owner",
+        ),
+        optionalDraftReviewPolicy: z.literal(
+          "native-terminal-wait-and-frozen-preview-before-continuation",
+        ),
+        referenceAnalysisPolicy: z.literal(
+          "bounded-cut-refinement-image-motion-and-frame-evidence-v2-diagnostic-only",
+        ),
         templateCopyPolicy: z.literal("fixed-task-artifact-without-agent"),
         deliveryPolicy: z.literal(
           "synchronous-exact-four-file-controlled-promotion",
@@ -441,17 +453,76 @@ test("repository video skill uses Revision, Task DAG, artifacts, and synchronous
   );
 });
 
-test("skill directory contains only the declared operational bundle", async () => {
+test("skill directory contains only the declared production and creative bundle", async () => {
   const references = (await readdir(path.join(skillRoot, "references"))).sort();
   assert.deepEqual(references, [
     "agent-rework-and-system-hardening.md",
     "cover-agent-orchestration.md",
     "direct-production-workflow.md",
     "execution-capabilities.md",
+    "film-direction.md",
     "global-visual-agent-orchestration.md",
     "producer-config.md",
     "project-revision.md",
     "scene-agent-orchestration.md",
     "task-execution-protocol.md",
   ]);
+});
+
+test("film direction is shared with the creator and reachable by isolated Scene executors", async () => {
+  const directionPath = "references/film-direction.md";
+  const direction = await readSkillFile(directionPath);
+  const templateRoot = path.join(
+    process.cwd(),
+    "packages/create-axmorf-studio/template",
+  );
+  assert.equal(
+    await readFile(
+      path.join(templateRoot, ".agents/skills/axmorf-video", directionPath),
+      "utf8",
+    ),
+    direction,
+  );
+  for (const root of [process.cwd(), templateRoot]) {
+    const rendererSkillPath = path.join(
+      root,
+      ".agents/skills/remotion-best-practices/SKILL.md",
+    );
+    const rendererSkill = await readFile(rendererSkillPath, "utf8");
+    const route = [...rendererSkill.matchAll(/\]\(([^)]+)\)/gu)]
+      .map((match) => match[1]!)
+      .find((target) => target.endsWith("film-direction.md#scene-execution"));
+    assert.ok(route, `${rendererSkillPath} must route bound Scene work`);
+    assert.equal(
+      await readFile(
+        path.resolve(path.dirname(rendererSkillPath), route.split("#")[0]!),
+        "utf8",
+      ),
+      direction,
+    );
+  }
+
+  const policy = PolicySchema.parse(
+    JSON.parse(await readSkillFile("policy.json")),
+  );
+  // Planning and new-Scene authoring load creative guidance, not every owner workflow.
+  const planning = [
+    await readSkillFile("SKILL.md"),
+    await readSkillFile("references/producer-config.md"),
+    direction,
+  ];
+  const sceneCreation = [
+    await readSkillFile("references/scene-agent-orchestration.md"),
+    direction,
+  ];
+  for (const sources of [planning, sceneCreation]) {
+    assert.ok(
+      sources.reduce((sum, source) => sum + wordCount(source), 0) <=
+        policy.contextBudgets.normalProductionMaxWords,
+    );
+    assert.ok(
+      sources.reduce((sum, source) => sum + Array.from(source).length, 0) <=
+        policy.contextBudgets.normalProductionMaxCharacters,
+    );
+  }
 });

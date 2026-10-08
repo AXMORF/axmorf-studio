@@ -40,6 +40,7 @@ import { createProjectRevisionProductionScope } from "../../scripts/project-prod
 import { createTaskWorkspace } from "../../scripts/project-production/adapters/task-workspace";
 import { commitTaskArtifact } from "../../scripts/project-production/adapters/artifact-store";
 import { readExecutionAttempt } from "../../scripts/project-production/adapters/attempt-store";
+import { createPlanDiagnosticSnapshots } from "../../scripts/project-production/domain/plan";
 import { createTemporaryDirectory } from "../package-boundary/support";
 import {
   buildValidSealedNarrationManifest,
@@ -258,6 +259,97 @@ const inputs = ({
       }),
     ],
   }) as unknown as Parameters<typeof buildAgentTasks>[0];
+
+test("an explicit null baseline performs no diagnostic reads and preserves production identity", async (context) => {
+  const rootDir = await createTemporaryDirectory(context, "null-baseline-");
+  const attemptsRoot = join(rootDir, ".producer-attempts");
+  await mkdir(attemptsRoot, { recursive: true });
+  // Any diagnostic reader entering this root fails before inspecting attempts
+  // or current delivery. Explicit null must bypass the reader entirely.
+  await writeFile(
+    join(attemptsRoot, "story-example"),
+    "diagnostic-read-trap\n",
+  );
+  const base = inputs();
+  const sealedNarration = buildValidSealedNarrationManifest();
+  const masteredNarration = buildMasteredNarrationManifest({
+    storyId: base.projectId,
+    sealedNarrationFingerprint: sealedNarration.sealedNarrationFingerprint,
+    sourceAudio: sealedNarration.completeAudio,
+    masteringPolicy: NARRATION_MASTERING_POLICY,
+    outputAudio: {
+      ...sealedNarration.completeAudio,
+      localPath:
+        "public/projects/story-example/narration-mastered/pending/complete.wav",
+    },
+    measurements: {
+      integratedLoudnessLufs: -16,
+      truePeakDbtp: -2,
+      loudnessRangeLu: 5,
+      thresholdLufs: -26,
+    },
+  });
+  const currentInputs = {
+    ...base,
+    narration: NarrationSpecSchema.parse(validNarrationSpec),
+    sealedNarration,
+    masteredNarration,
+    assetManifest: { ...base.assetManifest, assets: [] },
+    workspaceConfigurationFingerprint: null,
+    sceneInputs: base.sceneInputs.filter(
+      ({ meaningId }) => meaningId !== "intro",
+    ),
+  };
+  const planInput = {
+    rootDir,
+    projectId: base.projectId,
+    inputs: currentInputs,
+    narration: {
+      providerAttemptFingerprint: sha("f"),
+      masteringPolicy: masteredNarration.masteringPolicy,
+    },
+  };
+  const withoutBaseline = await buildCurrentProductionPlan({
+    ...planInput,
+    baseline: null,
+  });
+  assert.equal(withoutBaseline.baseline, undefined);
+  const withBaseline = await buildCurrentProductionPlan({
+    ...planInput,
+    baseline: {
+      kind: "latest-verified-attempt",
+      revisionId: withoutBaseline.revision.revisionId,
+      taskSnapshots: createPlanDiagnosticSnapshots(withoutBaseline),
+    },
+  });
+  assert.deepEqual(withBaseline.revision, withoutBaseline.revision);
+  assert.deepEqual(withBaseline.tasks, withoutBaseline.tasks);
+  assert.equal(
+    withBaseline.plan.artifactSetFingerprint,
+    withoutBaseline.plan.artifactSetFingerprint,
+  );
+  assert.notEqual(
+    withBaseline.plan.planFingerprint,
+    withoutBaseline.plan.planFingerprint,
+  );
+  assert.deepEqual(withBaseline.plan.summary, withoutBaseline.plan.summary);
+  const dispatchDecisions = (planned: typeof withoutBaseline) =>
+    planned.plan.tasks.map(({ taskRevision, action }) => ({
+      taskRevision,
+      action,
+    }));
+  assert.deepEqual(
+    dispatchDecisions(withBaseline),
+    dispatchDecisions(withoutBaseline),
+  );
+  assert.notDeepEqual(withBaseline.plan.tasks, withoutBaseline.plan.tasks);
+  for (const automatic of [{}, { baseline: undefined }]) {
+    await assert.rejects(
+      buildCurrentProductionPlan({ ...planInput, ...automatic }),
+      /Execution attempt diagnostic root is unsafe/u,
+    );
+  }
+});
 
 test("planner dispatches only template-copy silent Scenes as fixed template tasks", () => {
   const built = buildAgentTasks(inputs(), revisionId);

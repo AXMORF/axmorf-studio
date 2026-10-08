@@ -119,7 +119,14 @@ Root-only exact `spawnFailureCommand`；immutable/controller fault 运行 `fixed
 
 ## 6. Hand off to fixed continuation
 
-inline 全部执行完或 subagents 全部 admission 后，Root 启动 exact `continuationCommand`，每个 attempt 仅一次：
+默认 inline 全部执行完或 subagents 全部 admission 后，Root 启动 exact `continuationCommand`，每个 attempt 仅一次。
+需要在正式导出前审片时，可先等待 owning workers 的原生终态，在全部 fixed/owner artifacts 有效后运行
+`npm run project:preview -- --project <storyId>`（candidate 继续携 exact `--candidate`）。草稿在冻结私有 view
+物化，不改 live/current，不调用 provider 或创建 attempt。此时唯一 continuation 尚未启动，审阅结束后才使用
+原 exact command；不暂停或重启 continuation，attempt 一小时总 deadline 仍生效。细节见
+[连续视频创作](CONTINUOUS_VIDEO_AUTHORING.md)。
+
+正式命令：
 
 ```bash
 npm run project:produce:continue -- --project <storyId> --revision <revisionId> --attempt <attemptId>

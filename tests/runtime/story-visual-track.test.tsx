@@ -6,6 +6,7 @@ import { Sequence } from "remotion";
 
 import {
   ScenePackageSchema,
+  MeaningIdSchema,
   Sha256DigestSchema,
   buildSceneCoverageMap,
   buildSceneFallbackDeclaration,
@@ -91,6 +92,98 @@ const makeProjection = () => {
   });
   return { scenePackage, fallback, coverage, projection };
 };
+
+test("two semantic Beats keep one renderer mounted across their boundary", () => {
+  const base = buildScenePackage(createScenePackageInput());
+  const input = {
+    ...base,
+    schemaVersion: 7 as const,
+    coveredMeaningIds: ["meaning-one", "meaning-two"].map((id) =>
+      MeaningIdSchema.parse(id),
+    ),
+  };
+  const scenePackage = ScenePackageSchema.parse({
+    ...input,
+    packageFingerprint: computeScenePackageFingerprint(input),
+  });
+  const coverage = buildSceneCoverageMap({
+    storyId: "synthetic-proof",
+    storyBeatOrder: ["meaning-one", "meaning-two"],
+    packages: [scenePackage],
+    fallbacks: [],
+    stalePackages: [],
+  });
+  const projectionInput = {
+    storyId: "synthetic-proof",
+    leadInFrames: 20,
+    tailFrames: 10,
+    durationInFrames: 150,
+    storyBeatTimings: [
+      { meaningId: "meaning-one", startFrame: 20, endFrame: 60 },
+      { meaningId: "meaning-two", startFrame: 60, endFrame: 140 },
+    ],
+    coverage,
+    packages: [scenePackage],
+    registryFingerprint: `sha256:${"c".repeat(64)}`,
+    transitions: [
+      {
+        fromMeaningId: "meaning-one",
+        toMeaningId: "meaning-two",
+        kind: "hard-cut",
+        durationInFrames: 0,
+      },
+    ],
+  };
+  const projection = buildStoryVisualProjection(projectionInput);
+  assert.deepEqual(
+    projection.entries.map((entry) =>
+      entry.status === "ready" ? entry.ownerMeaningId : null,
+    ),
+    ["meaning-one", "meaning-one"],
+  );
+  const rendererProps = {
+    durationInFrames: 120,
+    sceneBoundaryVersion: "scene-composition-boundary-v2",
+    readabilityPolicy: resolveSceneReadabilityPolicy({
+      width: 1080,
+      height: 1920,
+    }),
+  } as SceneRendererMountProps;
+  const Renderer = () => <div />;
+  const track = StoryVisualTrack({
+    projection,
+    registry: { [scenePackage.rendererBinding.rendererId]: Renderer },
+    rendererPropsByMeaning: { "meaning-one": rendererProps },
+  });
+  assert.ok(isValidElement<{ children: ReactNode }>(track));
+  const slots = Children.toArray(track.props.children).filter(
+    (element) => isValidElement(element) && element.type === SceneSlot,
+  );
+  assert.equal(slots.length, 1);
+  assert.ok(isValidElement<Parameters<typeof SceneSlot>[0]>(slots[0]));
+  const sequence = SceneSlot(slots[0].props);
+  assert.ok(isValidElement<ElementProps>(sequence));
+  assert.equal(sequence.props.from, 20);
+  assert.equal(sequence.props.durationInFrames, 120);
+  const sampled = renderSceneRendererMount(Renderer, rendererProps, 65);
+  assert.ok(isValidElement<{ children: ReactNode }>(sampled));
+  assert.ok(isValidElement<SceneRendererProps>(sampled.props.children));
+  assert.equal(sampled.props.children.props.sceneFrame, 65);
+  assert.throws(
+    () =>
+      buildStoryVisualProjection({
+        ...projectionInput,
+        transitions: [
+          {
+            ...projectionInput.transitions[0],
+            kind: "visual-overlay-v1",
+            durationInFrames: 1,
+          },
+        ],
+      }),
+    /transition/u,
+  );
+});
 
 test("Story visual projection is ordered fixed-duration and rejects missing stale gaps and overlaps", () => {
   const fixture = makeProjection();

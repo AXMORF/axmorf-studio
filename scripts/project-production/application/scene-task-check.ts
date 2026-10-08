@@ -230,7 +230,10 @@ void renderer;
       shots: motionShots.shots,
       anchors: motionAnchors.anchors,
       duration: motionShots.sceneDurationInFrames,
-      narrationCues: context.scene?.narrationCues,
+      narrationCues:
+        taskInput.storyBeat.kind === "narrated-scene"
+          ? context.scene?.narrationCues
+          : undefined,
     });
   }
   validateSceneArtifactBundle({

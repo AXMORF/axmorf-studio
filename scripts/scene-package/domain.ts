@@ -80,7 +80,10 @@ export const validateSceneArtifactBundle = (
       shots: shots.shots,
       anchors: anchors.anchors,
       duration: shots.sceneDurationInFrames,
-      narrationCues: rawInput.narrationCues,
+      narrationCues:
+        task.storyBeat.kind === "narrated-scene"
+          ? rawInput.narrationCues
+          : undefined,
     });
   if (
     !(
@@ -276,7 +279,15 @@ export const buildScenePackage = (
     sceneAudioRuntimeVersion: SCENE_AUDIO_RUNTIME_VERSION,
   };
   const base = {
-    schemaVersion: 6 as const,
+    schemaVersion:
+      task.coveredBeats === undefined ? (6 as const) : (7 as const),
+    ...(task.coveredBeats === undefined
+      ? {}
+      : {
+          coveredMeaningIds: task.coveredBeats.map(
+            (member) => member.storyBeat.meaningId,
+          ),
+        }),
     ...commonBase,
     visualRuntimeVersion: SCENE_VISUAL_RUNTIME_VERSION,
     sceneViewportFingerprint: task.sceneViewport.viewportFingerprint,

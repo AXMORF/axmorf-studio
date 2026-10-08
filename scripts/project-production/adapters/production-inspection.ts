@@ -6,6 +6,7 @@ import {
   ExecutionAttemptProgressSchema,
   buildProjectDurationBudget,
   type DurationBudget,
+  type SemanticTiming,
   MasteredNarrationManifestSchema,
   NarrationPreparationReceiptSchema,
   SceneProductionBriefSchema,
@@ -228,6 +229,46 @@ export type ProductionSourceReadiness = Readonly<{
   durationBudget?: DurationBudget;
 }>;
 
+const inspectTimingAuthoring = async ({
+  projectRoot,
+  projectSource,
+  semanticTiming,
+}: {
+  readonly projectRoot: string;
+  readonly projectSource: Awaited<
+    ReturnType<typeof loadNarrationProjectFiles>
+  >["projectSource"];
+  readonly semanticTiming: SemanticTiming;
+}): Promise<ProductionSourceReadiness> => {
+  const durationBudget = buildProjectDurationBudget({
+    ...projectSource,
+    timing: semanticTiming,
+  });
+  const sceneBrief = "production/scene-production-brief.json";
+  if (!(await isRegularFile(join(projectRoot, sceneBrief))))
+    return {
+      sourceState: "timing-ready",
+      durationBudget,
+      missingAuthoringInputs: [sceneBrief],
+    };
+  const parsed = await readJsonContract(
+    join(projectRoot, sceneBrief),
+    SceneProductionBriefSchema,
+    "SceneProductionBrief",
+  );
+  return parsed.semanticTimingFingerprint === semanticTiming.fingerprint
+    ? {
+        sourceState: "production-inputs-ready",
+        durationBudget,
+        missingAuthoringInputs: [],
+      }
+    : {
+        sourceState: "timing-ready",
+        durationBudget,
+        missingAuthoringInputs: [sceneBrief],
+      };
+};
+
 export const inspectProductionSourceReadiness = async ({
   rootDir,
   projectId: rawProjectId,
@@ -273,6 +314,39 @@ export const inspectProductionSourceReadiness = async ({
             }),
         }),
   });
+
+  if (projectSource.story.timingSource === "authored-frames") {
+    const path = join(projectRoot, "generated/semantic-timing.generated.json");
+    if (!(await isRegularFile(path)))
+      return {
+        sourceState: "configured-authoring",
+        durationBudget,
+        missingAuthoringInputs: [],
+      };
+    const semanticTiming = await readJsonContract(
+      path,
+      SemanticTimingSchema,
+      "SemanticTiming",
+    );
+    try {
+      validateNarrativeArtifactBundle({
+        projectSource,
+        sealedNarration: null,
+        semanticTiming,
+      });
+    } catch {
+      return {
+        sourceState: "configured-authoring",
+        durationBudget,
+        missingAuthoringInputs: [],
+      };
+    }
+    return inspectTimingAuthoring({
+      projectRoot,
+      projectSource,
+      semanticTiming,
+    });
+  }
 
   const timing = await Promise.all(
     TIMING_FILES.map((path) => isRegularFile(join(projectRoot, path))),
@@ -349,37 +423,7 @@ export const inspectProductionSourceReadiness = async ({
       missingAuthoringInputs: [],
     };
   }
-  const measuredDurationBudget = buildProjectDurationBudget({
-    ...projectSource,
-    timing: semanticTiming,
-  });
-  const sceneBrief = "production/scene-production-brief.json";
-  if (!(await isRegularFile(join(projectRoot, sceneBrief)))) {
-    return {
-      sourceState: "timing-ready",
-      durationBudget: measuredDurationBudget,
-      missingAuthoringInputs: [sceneBrief],
-    };
-  }
-  const parsedSceneBrief = await readJsonContract(
-    join(projectRoot, sceneBrief),
-    SceneProductionBriefSchema,
-    "SceneProductionBrief",
-  );
-  if (
-    parsedSceneBrief.semanticTimingFingerprint !== semanticTiming.fingerprint
-  ) {
-    return {
-      sourceState: "timing-ready",
-      durationBudget: measuredDurationBudget,
-      missingAuthoringInputs: [sceneBrief],
-    };
-  }
-  return {
-    sourceState: "production-inputs-ready",
-    durationBudget: measuredDurationBudget,
-    missingAuthoringInputs: [],
-  };
+  return inspectTimingAuthoring({ projectRoot, projectSource, semanticTiming });
 };
 
 const createExpectedNarration = ({
@@ -420,6 +464,7 @@ const createExpectedNarration = ({
 };
 
 export type NarrationCacheInspection = Readonly<{
+  timingSource?: "sealed-narration" | "authored-frames";
   providerRequests: number | null;
   providerCacheHits: number;
   narrationReady?: boolean;
@@ -448,6 +493,13 @@ export const inspectNarrationCache = async ({
     rootDir: scope.isolatedRoot,
     projectId,
   });
+  if (projectSource.story.timingSource === "authored-frames")
+    return {
+      timingSource: "authored-frames",
+      providerRequests: 0,
+      providerCacheHits: 0,
+      narrationReady: true,
+    };
   const inspection = await resolveProducerNarrationInspection({
     rootDir: scope.shared.runtimeRoot,
     env,

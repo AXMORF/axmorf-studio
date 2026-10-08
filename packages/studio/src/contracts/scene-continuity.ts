@@ -2,6 +2,7 @@ import { z } from "zod";
 import { createFingerprint } from "./fingerprint";
 import { MeaningIdSchema, StoryIdSchema } from "./primitives";
 import { MotionObjectStateSchema, type SceneMotionPlan } from "./scene-motion";
+import { isSceneOwnerBeat, type SilentScenePreset } from "./story";
 
 const Text = z.string().trim().min(1).max(1600);
 
@@ -59,6 +60,7 @@ export const computeSceneContinuityId = (
 type Beat = Readonly<{
   kind: "narrated-scene" | "silent-scene";
   meaningId: string;
+  preset?: Pick<SilentScenePreset, "implementation">;
 }>;
 type Brief = Readonly<{
   meaningId: string;
@@ -88,11 +90,12 @@ export const buildSceneContinuityContract = ({
       throw new Error("Scene continuity authoring is cross-bound.");
     if (from.brief.outgoingHandoff === undefined) return null;
     if (
-      from.beat.kind !== "narrated-scene" ||
-      to?.beat.kind !== "narrated-scene"
+      !isSceneOwnerBeat(from.beat) ||
+      to === null ||
+      !isSceneOwnerBeat(to.beat)
     )
       throw new Error(
-        "Continuous handoffs require two adjacent authored narrated Scenes.",
+        "Continuous handoffs require two adjacent authored Scenes; fixed template boundaries cannot promise continuity.",
       );
     return ContinuousHandoffSchema.parse({
       ...from.brief.outgoingHandoff,
