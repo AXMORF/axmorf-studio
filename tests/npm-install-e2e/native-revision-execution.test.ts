@@ -1561,9 +1561,69 @@ for (let i=0;i<results.length;i++) text({index:i,result:results[i]});`;
       workspace: "/workspace",
     });
   assert.equal(audit(rows).trace.outputs.length, 3);
+  const schemaRead = structuredClone(rows);
+  schemaRead[1]!.payload.input = source.replace(
+    "cat execution-capabilities.md",
+    "npm run project:create -- --schema",
+  );
+  assert.equal(audit(schemaRead).trace.outputs.length, 3);
+  const spread = structuredClone(rows);
+  const spreadSource = source.replace(
+    "{index:i,result:results[i]}",
+    "{i,...results[i]}",
+  );
+  spread[1]!.payload.input = spreadSource;
+  const spreadBlocks = spread[4]!.payload.output as Array<{ text: string }>;
+  for (const block of spreadBlocks.slice(1)) {
+    const row = JSON.parse(block.text);
+    block.text = JSON.stringify({ i: row.index, ...row.result });
+  }
+  assert.deepEqual(audit(spread).trace.outputs, audit(rows).trace.outputs);
+  const summary = structuredClone(spread);
+  summary[1]!.payload.input =
+    spreadSource +
+    '\ntext(load("context").soundResources.map(x=>({id:x.descriptor.id,description:x.descriptor.description})));';
+  (summary[4]!.payload.output as Array<{ type: string; text: string }>).push({
+    type: "input_text",
+    text: JSON.stringify([{ id: "impact", description: "Impact" }]),
+  });
+  assert.deepEqual(audit(summary).trace.outputs, audit(rows).trace.outputs);
+  for (const suffix of [
+    '\ntext(load("context").execute());',
+    '\ntext(await tools.exec_command({cmd:"npm run project:produce:prepare -- --project story"}));',
+  ]) {
+    const changed = structuredClone(summary);
+    changed[1]!.payload.input = spreadSource + suffix;
+    assert.throws(() => audit(changed));
+  }
+  for (const invalid of [
+    spreadSource.replace(
+      "{i,...results[i]}",
+      '{i,...results[i],status:"fulfilled"}',
+    ),
+    spreadSource.replace("{i,...results[i]}", "{i,...results[0]}"),
+    spreadSource.replace("{i,...results[i]}", "{i,...another[i]}"),
+    spreadSource.replace("{i,...results[i]}", "{i:0,...results[i]}"),
+  ]) {
+    const changed = structuredClone(spread);
+    changed[1]!.payload.input = invalid;
+    assert.throws(() => audit(changed));
+  }
+  const rewritten = structuredClone(spread);
+  const rewrittenBlocks = rewritten[4]!.payload.output as Array<{
+    text: string;
+  }>;
+  const rewrittenRow = JSON.parse(rewrittenBlocks[1]!.text);
+  rewrittenRow.extra = true;
+  rewrittenBlocks[1]!.text = JSON.stringify(rewrittenRow);
+  assert.throws(() => audit(rewritten));
   const passiveSource = `${source}\nstore("batch-results",results);`;
   for (const input of [
     passiveSource,
+    source.replace(
+      "text({index:i,result:results[i]});",
+      '{if(results[i].status==="fulfilled")store("init"+i,results[i].value);text({index:i,result:results[i]});}',
+    ),
     passiveSource.replace(
       "text({index:i,result:results[i]});",
       '{store("item-"+i,results[i]);text({index:i,result:results[i]});}',
@@ -1602,6 +1662,14 @@ for (let i=0;i<results.length;i++) text({index:i,result:results[i]});`;
       'results[0]=another;store("batch-results",results)',
     ),
     passiveSource.replace("index:i", "index:0"),
+    source.replace(
+      "text({index:i,result:results[i]});",
+      '{store("init"+i,results[i].value);text({index:i,result:results[i]});}',
+    ),
+    source.replace(
+      "text({index:i,result:results[i]});",
+      '{if(results[i].status==="rejected")store("init"+i,results[i].value);text({index:i,result:results[i]});}',
+    ),
     passiveSource.replace('cmd:"npm run doctor"', 'cmd:load("command")'),
     `${passiveSource}\nresults[0]=another;`,
   ]) {
@@ -4187,6 +4255,243 @@ store("prepareStructured",captures.map(x=>x.output).join("").split("\\n").filter
   }
 });
 
+test("failed JSON projection retains its completed native diagnostic without promoting its output", () => {
+  const stdout = '{"images":"broken\n"}';
+  let message = "";
+  try {
+    JSON.parse(stdout);
+  } catch (error) {
+    message = (error as Error).message;
+  }
+  const source = `const r=await tools.exec_command({cmd:"printf image-json",workdir:"/workspace",yield_time_ms:10000});
+store("frames",r);
+if(r.exit_code!==0){text(r);throw new Error("sampling failed");}
+const data=JSON.parse(r.output);
+text(data);`;
+  const failed = tool("failed-json", 1, {});
+  failed[0]!.payload.name = "functions.exec";
+  failed[0]!.payload.input = source;
+  for (const row of failed)
+    row.payload.internal_chat_message_metadata_passthrough = {
+      turn_id: "root-turn",
+    };
+  failed[1]!.timestamp = at(2);
+  failed[1]!.payload.output = [
+    {
+      type: "input_text",
+      text: "Script failed\nWall time 1.0 seconds\nOutput:\n",
+    },
+    {
+      type: "input_text",
+      text: `Script error:\nSyntaxError: ${message}\n    at JSON.parse (<anonymous>)\n    at exec_main.mjs:4:17`,
+    },
+  ];
+  const records: Row[] = [
+    {
+      type: "session_meta",
+      timestamp: at(0),
+      payload: { id: "parent", cwd: "/workspace" },
+    },
+    ...failed,
+  ];
+  const item = {
+    type: "commandExecution",
+    id: "diagnostic",
+    processId: "100",
+    command: "/bin/zsh -lc 'printf image-json'",
+    cwd: "/workspace",
+  };
+  const params = { threadId: "parent", turnId: "root-turn" };
+  const ui: Array<{ method: string; params: Record<string, unknown> }> = [
+    {
+      method: "turn/started",
+      params: {
+        threadId: "parent",
+        turn: {
+          id: "root-turn",
+          status: "inProgress",
+          startedAt: Date.parse(at(0)) / 1000,
+        },
+      },
+    },
+    {
+      method: "item/started",
+      params: {
+        ...params,
+        startedAtMs: Date.parse(at(1.1)),
+        item: { ...item, status: "inProgress" },
+      },
+    },
+    {
+      method: "item/commandExecution/outputDelta",
+      params: { ...params, itemId: item.id, delta: stdout },
+    },
+    {
+      method: "item/completed",
+      params: {
+        ...params,
+        completedAtMs: Date.parse(at(1.5)),
+        item: {
+          ...item,
+          status: "completed",
+          exitCode: 0,
+          aggregatedOutput: stdout,
+        },
+      },
+    },
+    {
+      method: "turn/completed",
+      params: {
+        threadId: "parent",
+        turn: {
+          id: "root-turn",
+          status: "completed",
+          startedAt: Date.parse(at(0)) / 1000,
+          completedAt: Date.parse(at(10)) / 1000,
+        },
+      },
+    },
+  ];
+  const audit = (rows: Row[], rpc: unknown[] = ui) =>
+    authenticateCodexCommands(nativeTrace("codex", text(rows)), {
+      rpc: rpc.map((row) => JSON.stringify(row)).join("\n"),
+      sessionId: "parent",
+      workspace: "/workspace",
+    });
+  const actual = audit(records);
+  assert.deepEqual(actual.trace.records, records);
+  assert.deepEqual(actual.trace.outputs[0]!.objects, []);
+  assert.equal(actual.failedOuterTools!.length, 1);
+  assert.equal(auditProductionAttempts(actual.trace), null);
+  assert.ok(
+    shellCommands("functions.exec", { code: source }).includes(
+      "printf image-json",
+    ),
+  );
+  const head = '{"images":"' + "A".repeat(512 * 1024 - 11);
+  const tail = "B".repeat(512 * 1024 - 2) + '"}';
+  const excerpt = head + "\n... 131072 bytes omitted ...\n" + tail;
+  let excerptError = "";
+  try {
+    JSON.parse(excerpt);
+  } catch (error) {
+    excerptError = (error as Error).message;
+  }
+  const bounded = structuredClone(records);
+  (bounded[2]!.payload.output as Array<{ text: string }>)[1]!.text =
+    `Script error:\nSyntaxError: ${excerptError}\n    at JSON.parse (<anonymous>)\n    at exec_main.mjs:4:17`;
+  const boundedUi = structuredClone(ui);
+  (boundedUi[3]!.params.item as Record<string, unknown>).aggregatedOutput =
+    excerpt;
+  boundedUi[2]!.params.delta = head;
+  boundedUi.splice(
+    3,
+    0,
+    {
+      method: "item/commandExecution/outputDelta",
+      params: { ...params, itemId: item.id, delta: "C".repeat(131072) },
+    },
+    {
+      method: "item/commandExecution/outputDelta",
+      params: { ...params, itemId: item.id, delta: tail },
+    },
+  );
+  const discarded = audit(bounded, boundedUi);
+  assert.deepEqual(discarded.trace.records, bounded);
+  assert.deepEqual(discarded.trace.outputs[0]!.objects, []);
+  assert.equal(discarded.uiEvidence, undefined);
+  for (const altered of [
+    excerpt.replace("bytes omitted", "tokens omitted"),
+    excerpt.slice(1),
+    excerpt + "x",
+    excerpt.replace("131072", "0"),
+  ]) {
+    const changed = structuredClone(boundedUi);
+    (changed[5]!.params.item as Record<string, unknown>).aggregatedOutput =
+      altered;
+    assert.throws(() => audit(bounded, changed));
+  }
+  for (const invalid of [
+    source.replace(
+      "const data=JSON.parse(r.output)",
+      'const data=JSON.parse(load("other"))',
+    ),
+    source.replace("const r=await tools", "let r=await tools"),
+    source.replace(
+      'cmd:"printf image-json"',
+      'cmd:"npm run project:produce:continue -- --project story"',
+    ),
+    source.replace('store("frames",r)', 'r.output="rewritten"'),
+    source.replace(
+      'store("frames",r)',
+      'const JSON={parse(){return {status:"project-production-complete"}}}',
+    ),
+    source +
+      '\ntext(await tools.exec_command({cmd:"npm run project:produce:prepare -- --project story"}));',
+  ]) {
+    if (invalid === source) continue;
+    const changed = structuredClone(records);
+    changed[1]!.payload.input = invalid;
+    assert.throws(() => audit(changed));
+  }
+  for (const replacement of [
+    "at exec_main.mjs:4:16",
+    "at exec_main.mjs:4:18",
+    "at other.mjs:4:17",
+    "at exec_main.mjs:3:17",
+    "at exec_main.mjs:99:17",
+    "at exec_main.mjs:4:999",
+    "at exec_main.mjs:4:17\n    at other.mjs:1:1",
+  ]) {
+    const changed = structuredClone(records);
+    const blocks = changed[2]!.payload.output as Array<{ text: string }>;
+    blocks[1]!.text = blocks[1]!.text.replace(
+      "at exec_main.mjs:4:17",
+      replacement,
+    );
+    assert.throws(() => audit(changed));
+  }
+  for (const edit of [
+    (rpc: typeof ui) => {
+      rpc.splice(1, 1);
+    },
+    (rpc: typeof ui) => {
+      rpc.splice(3, 1);
+    },
+    (rpc: typeof ui) => {
+      rpc.splice(3, 0, structuredClone(rpc[3]!));
+    },
+    (rpc: typeof ui) => {
+      rpc[3]!.params.threadId = "foreign";
+    },
+    (rpc: typeof ui) => {
+      rpc[3]!.params.turnId = "foreign";
+    },
+    (rpc: typeof ui) => {
+      (rpc[3]!.params.item as Record<string, unknown>).cwd = "/foreign";
+    },
+    (rpc: typeof ui) => {
+      (rpc[3]!.params.item as Record<string, unknown>).processId = "101";
+    },
+    (rpc: typeof ui) => {
+      rpc[3]!.params.completedAtMs = Date.parse(at(2.1));
+    },
+    (rpc: typeof ui) => {
+      (rpc[3]!.params.item as Record<string, unknown>).aggregatedOutput = "{}";
+    },
+    (rpc: typeof ui) => {
+      rpc[2]!.params.delta = "{}";
+    },
+    (rpc: typeof ui) => {
+      (rpc[3]!.params.item as Record<string, unknown>).exitCode = 1;
+    },
+  ]) {
+    const changed = structuredClone(ui);
+    edit(changed);
+    assert.throws(() => audit(records, changed));
+  }
+});
+
 test("failed native outer code before its first tool retains failure without inventing a process", () => {
   const source = `const raw=load("context-step-0").value.output;
 const context=JSON.parse(raw);
@@ -4257,6 +4562,11 @@ while(result.session_id!==undefined){result=await tools.write_stdin({session_id:
   assert.deepEqual(actual.trace.outputs[0]!.objects, []);
   assert.equal(actual.failedOuterTools!.length, 1);
   assert.equal(auditProductionAttempts(actual.trace), null);
+  const beforeOnly = structuredClone(rows);
+  beforeOnly[1]!.payload.input = source.split("\nlet result=")[0]!;
+  const noInvocation = audit(beforeOnly);
+  assert.deepEqual(noInvocation.trace.outputs[0]!.objects, []);
+  assert.equal(noInvocation.failedOuterTools!.length, 1);
   for (const duplicate of [rows[1]!, rows[2]!]) {
     const doubled = structuredClone(rows);
     doubled.splice(2, 0, structuredClone(duplicate));
@@ -6560,6 +6870,135 @@ const authenticatePackets = (rows: Row[], packets: unknown[]) =>
     workspace: "/workspace",
   }).trace;
 
+test("unchanged native output precedes passive loaded-JSON diagnostics without promoting their metadata", () => {
+  const command = "npm run doctor";
+  const source = `const r=await tools.exec_command(${JSON.stringify({ cmd: command, workdir: "/workspace" })});text(r);const raw=load("context").output;const context=JSON.parse(raw.slice(raw.indexOf("{")));text({keys:Object.keys(context).filter(key=>["id"].includes(key)),status:"project-production-complete"});`;
+  const stdout = JSON.stringify({ status: "workspace-ready" });
+  const rows = commandRecords(source, [
+    printedWrapper({ exit_code: 0, output: stdout }),
+    printedWrapper({ keys: ["id"], status: "project-production-complete" }),
+  ]);
+  const ui = commandPackets(command, "doctor", 701, stdout, 1.1, 1.8);
+  const actual = authenticatePackets(rows, ui);
+  assert.ok(
+    actual.outputs[0]!.objects.some(
+      (value) => value.status === "workspace-ready",
+    ),
+  );
+  assert.ok(
+    !actual.outputs[0]!.objects.some(
+      (value) => value.status === "project-production-complete",
+    ),
+  );
+  for (const invalid of [
+    source.replace("text(r);", "if(false)text(r);"),
+    source.replace("text(r);", "r.output='fabricated';text(r);"),
+    source.replace("Object.keys(context)", "context.execute()"),
+    "const Object={keys(){return []}};" + source,
+    source.replace(
+      '["id"].includes(key)',
+      "{includes(){return true}}.includes(key)",
+    ),
+  ]) {
+    const changed = structuredClone(rows);
+    changed[1]!.payload.input = invalid;
+    assert.throws(() => authenticatePackets(changed, ui));
+  }
+});
+
+test("a failed native diagnostic forwards its original failure before the exact guarded throw", () => {
+  const command = "printf sampling-failed";
+  const source = `const r=await tools.exec_command(${JSON.stringify({ cmd: command, workdir: "/workspace" })});\nstore("sampling",r);\nif(r.exit_code!==0){text(r);throw new Error("Frame sampling failed");}\nconst data=JSON.parse(r.output);for(const b of data.images)image({image_url:"data:image/png;base64,"+b});`;
+  const stdout = "sampling-failed";
+  const rows = commandRecords(source, [
+    printedWrapper({ exit_code: 1, output: stdout }),
+  ]);
+  const blocks = rows[2]!.payload.output as Array<{
+    type: string;
+    text: string;
+  }>;
+  blocks[0]!.text = "Script failed\nWall time 1.0 seconds\nOutput:\n";
+  const column = source.split("\n")[2]!.indexOf("new Error") + 1;
+  blocks.push({
+    type: "input_text",
+    text: `Script error:\nError: Frame sampling failed\n    at exec_main.mjs:3:${column}`,
+  });
+  const ui = commandPackets(command, "sampling", 702, stdout, 1.1, 1.8);
+  ui[2]!.params.item!.status = "failed";
+  ui[2]!.params.item!.exitCode = 1;
+  const actual = authenticatePackets(rows, ui);
+  assert.ok(actual.outputs[0]!.objects.some((value) => value.exit_code === 1));
+  assert.ok(!actual.outputs[0]!.objects.some((value) => value.exit_code === 0));
+  for (const invalid of [
+    source.replace("r.exit_code!==0", "r.exit_code===0"),
+    source.replace("text(r);throw", "text(r.output);throw"),
+    source.replace('store("sampling",r)', 'r.output="fabricated"'),
+    source.replace("Frame sampling failed", "Different error"),
+  ]) {
+    const changed = structuredClone(rows);
+    changed[1]!.payload.input = invalid;
+    assert.throws(() => authenticatePackets(changed, ui));
+  }
+});
+
+test("sequential direct diagnostic commands keep their separate original results before passive summaries", () => {
+  const commands = [
+    "cat package.json",
+    "npm run project:execution:resolve -- --runtime-max-concurrency 4 --worker-transport shared-workspace",
+  ];
+  const source =
+    commands
+      .map(
+        (cmd) =>
+          `text(await tools.exec_command(${JSON.stringify({ cmd, workdir: "/workspace" })}));`,
+      )
+      .join("\n") +
+    '\nconst raw=load("schema").output;const schema=JSON.parse(raw.slice(raw.indexOf("{")));text({keys:Object.keys(schema),status:"project-production-complete"});';
+  const stdout = [
+    JSON.stringify({ name: "workspace" }),
+    JSON.stringify(resolution),
+  ];
+  const rows = commandRecords(source, [
+    ...stdout.map((output) => printedWrapper({ exit_code: 0, output })),
+    printedWrapper({ keys: ["type"], status: "project-production-complete" }),
+  ]);
+  const ui = [
+    ...commandPackets(commands[0]!, "package", 703, stdout[0]!, 1.1, 1.3),
+    ...commandPackets(commands[1]!, "resolve", 704, stdout[1]!, 1.4, 1.8),
+  ];
+  const actual = authenticatePackets(rows, ui);
+  assert.ok(
+    actual.outputs[0]!.objects.some((value) => value.status === "ready"),
+  );
+  assert.ok(
+    !actual.outputs[0]!.objects.some(
+      (value) => value.status === "project-production-complete",
+    ),
+  );
+  for (const invalid of [
+    source.replace(
+      commands[0]!,
+      "npm run project:produce:prepare -- --project story",
+    ),
+    source.replace("Object.keys(schema)", "schema.execute()"),
+    source.replace(
+      "text({keys:Object.keys(schema)",
+      'text(await tools.exec_command({cmd:"npm run doctor"}));text({keys:Object.keys(schema)',
+    ),
+  ]) {
+    const changed = structuredClone(rows);
+    changed[1]!.payload.input = invalid;
+    assert.throws(() => authenticatePackets(changed, ui));
+  }
+  const missing = structuredClone(rows);
+  (missing[2]!.payload.output as unknown[]).splice(2, 1);
+  assert.throws(() => authenticatePackets(missing, ui));
+  const reordered = structuredClone(rows);
+  const values = reordered[2]!.payload.output as unknown[];
+  [values[1], values[2]] = [values[2], values[1]];
+  assert.throws(() => authenticatePackets(reordered, ui));
+});
+
 test("image diagnostic forwarding retains the literal command envelope without trusting alias metadata", () => {
   const command = "npm run catalog:query -- --kind asset";
   const source = `const results=await Promise.allSettled([tools.exec_command(${JSON.stringify({ cmd: command, workdir: "/workspace" })}),tools.view_image({path:"/workspace/cover.png"})]);for(let i=0;i<results.length;i++){const r=results[i];text({index:i,status:r.status});if(r.status==="fulfilled"){if(i===0)text(r.value);else image(r.value.image_url);}else text(r.reason);}`;
@@ -6575,6 +7014,30 @@ test("image diagnostic forwarding retains the literal command envelope without t
       (value) => value.status === "catalog-query",
     ),
   );
+  const imageFirst = `const results=await Promise.allSettled([tools.view_image({path:"/workspace/cover.png"}),tools.exec_command(${JSON.stringify({ cmd: command, workdir: "/workspace" })})]);for(let i=0;i<results.length;i++){const res=results[i];if(res.status==="fulfilled"&&i<1){image(res.value.image_url);text({i,detail:res.value.detail});}else{text({i,...res});}}`;
+  const imageFirstRows = commandRecords(imageFirst, [
+    printedWrapper({ i: 0, detail: "high" }),
+    printedWrapper({
+      i: 1,
+      status: "fulfilled",
+      value: { exit_code: 0, output: stdout },
+    }),
+  ]);
+  assert.ok(
+    authenticatePackets(imageFirstRows, ui).outputs[0]!.objects.some(
+      (value) => value.status === "catalog-query",
+    ),
+  );
+  for (const invalid of [
+    imageFirst.replace("...res}", "...res,output:'fabricated'}"),
+    imageFirst.replace("image(res.value.image_url)", "image(load('image'))"),
+    imageFirst.replace("const res=results[i]", "const res=results[0]"),
+    imageFirst.replace("i<1", "i<2"),
+  ]) {
+    const changed = structuredClone(imageFirstRows);
+    changed[1]!.payload.input = invalid;
+    assert.throws(() => authenticatePackets(changed, ui));
+  }
   for (const changedSource of [
     source.replace("text(r.value)", "text({...r.value,output:'fabricated'})"),
     source.replace(
@@ -6597,6 +7060,176 @@ test("image diagnostic forwarding retains the literal command envelope without t
   assert.throws(() => authenticatePackets(incomplete, ui));
 });
 
+test("temporal image diagnostics require their bounded source and exact original UI image bytes", () => {
+  for (const inline of [false, true]) {
+    const groups = inline
+      ? [
+          [2, 3, 4, 5],
+          [6, 7, 8, 9],
+        ]
+      : [
+          [2, 3, 4],
+          [6, 7, 8],
+        ];
+    const path = inline
+      ? "deliveries/story/video.mp4"
+      : `out/story/preview/preview-${"a".repeat(64)}/preview.mp4`;
+    const prefix = `python3 - <<'PY'\nimport subprocess,base64\np='${path}'\ng=`;
+    const suffix =
+      "\nfilt='select='+ '+'.join('eq(n\\\\,%d)'%n for n in g)+'," +
+      (inline ? "scale=640:360," : "") +
+      `tile=${groups[0]!.length}x1'` +
+      "\nr=subprocess.run(['ffmpeg','-v','error','-i',p,'-vf',filt,'-frames:v','1','-f','image2pipe','-vcodec','mjpeg','-q:v','2','pipe:1'],capture_output=True,check=True)\nprint(base64.b64encode(r.stdout).decode())\nPY";
+    const execute =
+      "tools.exec_command({cmd,max_output_tokens:150000,yield_time_ms:10000})";
+    const source = `const groups=${JSON.stringify(groups)};const results=await Promise.allSettled(groups.map(async(g)=>{const cmd=${JSON.stringify(prefix)}+JSON.stringify(g)+${JSON.stringify(suffix)};${inline ? `return{g,r:await ${execute}};` : `const r=await ${execute};return{g,r};`}}));for(let i=0;i<results.length;i++){const item=results[i];if(item.status!=="fulfilled"){text(item);continue;}const {g,r}=item.value;store("row"+i,r);text({frames:g,exit_code:r.exit_code,session_id:r.session_id});if(r.exit_code===0)image({image_url:"data:image/jpeg;base64,"+r.output.trim(),detail:"original"});else text(r);}`;
+    const imageBytes = ["/9j/2Q==", "/9gA/9k="];
+    const rows = commandRecords(
+      source,
+      groups.flatMap((group, index) => [
+        printedWrapper({ frames: group, exit_code: 0 }),
+        {
+          type: "input_image",
+          image_url: "data:image/jpeg;base64," + imageBytes[index],
+        },
+      ]),
+    );
+    (rows[2]!.payload.output as Array<{ text?: string }>)[0]!.text =
+      "Script completed\nWall time 1 seconds\nOutput:\n";
+    const ui = groups.flatMap((group, index) =>
+      commandPackets(
+        prefix + JSON.stringify(group) + suffix,
+        `sheet-${index}`,
+        901 + index,
+        imageBytes[index] + "\n",
+        1.1,
+        1.8,
+      ),
+    );
+    const actual = authenticatePackets(rows, ui);
+    assert.deepEqual(actual.records, rows);
+    assert.ok(actual.outputs.every((output) => output.objects.length === 0));
+    for (const invalid of [
+      source.replace("+r.output.trim()", '+"/9j/2Q=="'),
+      source.replace("exit_code:r.exit_code", "exit_code:0"),
+      source.replace("JSON.stringify(g)", "JSON.stringify(groups[0])"),
+      source.replace(
+        'store("row"+i,r)',
+        "store(\"row\"+i,r);tools.exec_command({cmd:'hidden'})",
+      ),
+      source.replace("out/story/", "out/../"),
+    ].filter((invalid) => invalid !== source)) {
+      const changed = structuredClone(rows);
+      changed[1]!.payload.input = invalid;
+      assert.throws(() => authenticatePackets(changed, ui));
+    }
+    const changed = structuredClone(rows);
+    (
+      changed[2]!.payload.output as Array<{ image_url?: string }>
+    )[2]!.image_url = "data:image/jpeg;base64,fake";
+    assert.throws(() => authenticatePackets(changed, ui));
+    const missing = structuredClone(ui);
+    missing.splice(1, 1);
+    assert.throws(() => authenticatePackets(rows, missing));
+    const reused = structuredClone(ui);
+    reused[3]!.params.item!.processId = "901";
+    reused[5]!.params.item!.processId = "901";
+    assert.throws(() => authenticatePackets(rows, reused));
+  }
+});
+
+test("serialized authoring stays separate from a directly forwarded create result", () => {
+  const command =
+    "npm run project:create -- --project story --input inputs/story.json";
+  const source = `const input=JSON.parse(JSON.stringify(load("context").example));const specs=[{id:"first",sfx:["click"]}];const audioId=s=>"asset."+s;input.story={beats:specs.map(s=>({meaningId:s.id}))};input.scenes=specs.map(s=>({meaningId:s.id,resources:s.sfx.map(audioId)}));input.resources={ids:[...new Set(input.scenes.flatMap(s=>s.resources))].sort()};store("input",input);text(await tools.apply_patch("*** Begin Patch\\n*** Add File: inputs/story.json\\n+"+JSON.stringify(input,null,2).split("\\n").join("\\n+")+"\\n*** End Patch"));text({status:"project-production-complete"});text(await tools.exec_command(${JSON.stringify({ cmd: command, workdir: "/workspace" })}));`;
+  const stdout = JSON.stringify({
+    status: "error",
+    code: "schema-validation-failed",
+  });
+  const rows = commandRecords(source, [
+    printedWrapper({}),
+    printedWrapper({ status: "project-production-complete" }),
+    printedWrapper({ exit_code: 2, output: stdout }),
+  ]);
+  const ui = commandPackets(command, "create", 801, stdout, 1.1, 1.8);
+  ui.at(-1)!.params.item!.exitCode = 2;
+  ui.at(-1)!.params.item!.status = "failed";
+  const actual = authenticatePackets(rows, ui);
+  assert.ok(
+    actual.outputs[0]!.objects.some(
+      (value) => value.code === "schema-validation-failed",
+    ),
+  );
+  assert.ok(
+    !actual.outputs[0]!.objects.some(
+      (value) => value.status === "project-production-complete",
+    ),
+  );
+  for (const invalid of [
+    source.replace(
+      'const audioId=s=>"asset."+s',
+      'const audioId=s=>load("hidden")(s)',
+    ),
+    source.replace(
+      'const audioId=s=>"asset."+s',
+      'const audioId=s=>tools.exec_command({cmd:"hidden"})',
+    ),
+    source.replace("const specs=", 'const Set=load("hidden");const specs='),
+    source.replace("input.story=", "tools.exec_command="),
+    source.replace(
+      "text(await tools.exec_command(",
+      "if(false)text(await tools.exec_command(",
+    ),
+  ]) {
+    const changed = structuredClone(rows);
+    changed[1]!.payload.input = invalid;
+    assert.throws(() => authenticatePackets(changed, ui));
+  }
+});
+
+test("a stdout string accumulator retains every unchanged native result and keeps its parsed copy diagnostic", () => {
+  const command = "npm run project:produce:prepare -- --project story";
+  const stdout = JSON.stringify({
+    status: "project-production-prepared",
+    storyId: "story",
+  });
+  const source = `let r=await tools.exec_command(${JSON.stringify({ cmd: command, workdir: "/workspace" })});text(r);let captured=r.output;while(r.session_id!==undefined){r=await tools.write_stdin({session_id:r.session_id,chars:"",yield_time_ms:60000});text(r);captured+=r.output;}store("complete",{...r,output:captured});if(r.exit_code!==0)throw new Error("Prepare failed");const parsed=JSON.parse(captured.slice(captured.indexOf('{"')));store("prepared",parsed);`;
+  const rows = commandRecords(source, [
+    printedWrapper({ session_id: 601, output: "preparing\n" }),
+    printedWrapper({ exit_code: 0, output: stdout }),
+  ]);
+  const ui = commandPackets(
+    command,
+    "prepare",
+    601,
+    "preparing\n" + stdout,
+    1.1,
+    1.8,
+  );
+  const actual = authenticatePackets(rows, ui);
+  assert.deepEqual(actual.records, rows);
+  assert.ok(
+    actual.outputs[0]!.objects.some(
+      (value) => value.status === "project-production-prepared",
+    ),
+  );
+  for (const invalid of [
+    source.replace("captured+=r.output", 'captured="fake"'),
+    source.replace("captured+=r.output", "captured+=JSON.stringify(r)"),
+    source.replace("text(r);captured+=", "captured+="),
+    source.replace("let captured=r.output", 'let captured="fake"'),
+    source.replace(
+      "{...r,output:captured}",
+      "{...r,output:captured,exit_code:0}",
+    ),
+    source.replace('store("prepared",parsed)', "text(parsed)"),
+  ]) {
+    const changed = structuredClone(rows);
+    changed[1]!.payload.input = invalid;
+    assert.throws(() => authenticatePackets(changed, ui));
+  }
+});
+
 test("ordered multiline authoring command accepts authentic null stdout and preserves the separate create process", () => {
   const author = "node --input-type=module <<'NODE'\nconst n=1;\nvoid n;\nNODE";
   const create = "npm run project:create -- --input input.json";
@@ -6616,6 +7249,29 @@ test("ordered multiline authoring command accepts authentic null stdout and pres
   ];
   const authenticated = authenticatePackets(rows, ui);
   assert.deepEqual(authenticated.records, rows);
+  const singleSource = source.slice(source.indexOf("let r="));
+  const singleUi = commandPackets(create, "created", 402, stdout, 1.1, 1.8);
+  const authored = commandRecords(
+    'const input=load("input");delete input.story.timingSource;store("input",input);\n' +
+      singleSource,
+    [printedWrapper({ exit_code: 0, output: stdout })],
+  );
+  assert.ok(
+    authenticatePackets(authored, singleUi).outputs[0]!.objects.some(
+      (value) => value.status === "project-created",
+    ),
+  );
+  for (const prefix of [
+    "delete tools.exec_command;",
+    'const input={story:{get timingSource(){return "hidden"}}};delete input.story.timingSource;',
+    'const input=load("input");delete input.__proto__;',
+    'const input=load("input");delete input[load("key")];',
+    'const input=load("input");delete input.story.compute();',
+  ]) {
+    const invalid = structuredClone(authored);
+    invalid[1]!.payload.input = prefix + singleSource;
+    assert.throws(() => authenticatePackets(invalid, singleUi), prefix);
+  }
   assert.ok(
     authenticated.outputs[0]!.objects.some(
       (value) => value.status === "project-created",

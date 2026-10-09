@@ -1,0 +1,133 @@
+{
+  "schemaVersion": 1,
+  "kind": "release-source-and-package-verification",
+  "version": "0.1.20",
+  "baseTag": "v0.1.18",
+  "baseCommit": "968b42d6755f66e6d91ce57789ba9ec1cd87cb45",
+  "repositoryCheck": {
+    "command": "npm run check",
+    "exitCode": 0,
+    "tests": 1411,
+    "passed": 1411,
+    "failed": 0,
+    "skipped": 0,
+    "logChecksum": "sha256:911f321c9c2b616dbee494cceabf4fb9f660cb97a3c540c91c74073ac554b41e",
+    "stages": [
+      "tests",
+      "typecheck",
+      "lint",
+      "docs-links",
+      "scene-template-audio",
+      "catalog",
+      "registry",
+      "settings-build",
+      "remotion-bundle",
+      "compositions",
+      "current-project-source"
+    ]
+  },
+  "focusedNativeRecorder": {
+    "tests": 97,
+    "passed": 97,
+    "failed": 0,
+    "skipped": 0,
+    "logChecksum": "sha256:bf3d46678a67cfe506f431498ea1582f020de0e6ecb6e884fc029108348ac0c8"
+  },
+  "packageChecks": {
+    "typecheck": "pass",
+    "build": "pass",
+    "packageLocalReadiness": {
+      "runtime": "ready",
+      "creator": "ready"
+    },
+    "finalRepackMatchesFrozenCandidates": true,
+    "finalRepackTarballBytesMatch": true,
+    "packages": [
+      {
+        "kind": "runtime",
+        "name": "@axmorf/studio",
+        "version": "0.1.20",
+        "fileCount": 291,
+        "fingerprint": "sha256:a7059170ad1c26039383f95bd14412e91ea3f8d176b3598e5fb40c6783d2dec0",
+        "tarballChecksum": "sha256:9541d298779060a7482797453b57b2b2dca6263dfb565278b189c77031919302",
+        "frozenTarballChecksum": "sha256:9541d298779060a7482797453b57b2b2dca6263dfb565278b189c77031919302",
+        "exactContentMatches": true
+      },
+      {
+        "kind": "creator",
+        "name": "create-axmorf-studio",
+        "version": "0.1.20",
+        "fileCount": 42,
+        "fingerprint": "sha256:78de5dc913898c3c669a50d808334aa0a590f7a3b7803d97b7caf854e05b3891",
+        "tarballChecksum": "sha256:0ceab2730c82bb4c2cd4043455003f4ad154f13a3a7013c6774478c5f23fc5e7",
+        "frozenTarballChecksum": "sha256:0ceab2730c82bb4c2cd4043455003f4ad154f13a3a7013c6774478c5f23fc5e7",
+        "exactContentMatches": true
+      }
+    ]
+  },
+  "audit": {
+    "vulnerabilities": 0,
+    "logChecksum": "sha256:f3170a7d2bf9d5bbdf8b88b66d26e74a6af97ecd92273acefb4034f577733d15"
+  },
+  "sourceFiles": [
+    {
+      "path": "scripts/release/native-execution.ts",
+      "checksum": "sha256:8b24177a82581ef1387377d46f02b477d9891b71abf59a60ec2b223d26f47520"
+    },
+    {
+      "path": "tests/npm-install-e2e/native-revision-execution.test.ts",
+      "checksum": "sha256:e72cb232ec32ae97aa99e2b6e77650b6e43cfa6e3fecf97f2c19a109c6451a89"
+    }
+  ],
+  "retainedFailedChecks": [
+    {
+      "logChecksum": "sha256:3baa458afefc288baa91481e3f5990279dd923f8203dd0cc9a8de834da10bbe5",
+      "reason": "Two incorrect fixture-only TypeScript assertions; corrected without changing runtime behavior.",
+      "originalRetained": true
+    },
+    {
+      "logChecksum": "sha256:9307c3bebdc8b53bbc746c87c95dfb668b5718065055d454a733ed60ff4cc19b",
+      "reason": "Two process-fixture deadlines expired while large verification commands overlapped.",
+      "originalRetained": true
+    },
+    {
+      "logChecksum": "sha256:b69e9d4847311c9665d6b532e4df63661d0b87ab0fd3485a288e96d96726d290",
+      "reason": "Two DOM diagnostic deadlines and one FFmpeg deadline expired under overlapping large checks.",
+      "originalRetained": true
+    }
+  ],
+  "contentionDiagnosticRechecks": {
+    "domAndFfmpeg": {
+      "tests": 21,
+      "passed": 21,
+      "logChecksum": "sha256:de14fd13803e80e5e73805ba0779a564e1479fd666c50ad001c037c6a2659d10"
+    },
+    "browser": {
+      "tests": 10,
+      "passed": 10,
+      "logChecksum": "sha256:f32b5a313648c91a23bece06c5314388656b0c27eb0f3ea4a4ac2e59deb8b6c2"
+    },
+    "testThresholdsChanged": false,
+    "finalFullCheckRunSeparately": true
+  },
+  "freshNativeAcceptance": "v0.1.20-first-use.json",
+  "filmVerification": "2026-10-09-v0.1.20-native-video-verification.json",
+  "verifiedAt": "2026-10-09T10:46:05.418Z",
+  "scope": "Local verification. Public registry, CI and official provenance are verified separately after publication.",
+  "releaseRegressionInventory": {
+    "paths": 66,
+    "allRegularExistingFiles": true,
+    "command": "release-gate.ts regressions docs/evidence/v0.1.20-release-plan.json",
+    "exitCode": 0,
+    "tests": 627,
+    "pass": 627,
+    "fail": 0,
+    "skipped": 0,
+    "logChecksum": "sha256:338cc6722c75a2ab2e28b96423426844052fa5646cb9c2721726936cc07f7db2",
+    "runSeparatelyAfterFullCheck": true
+  },
+  "finalFormatting": {
+    "scope": "Formatting-only fixture type assertions after full check; no semantic changes.",
+    "verified": true
+  }
+}

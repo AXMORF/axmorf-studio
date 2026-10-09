@@ -1,0 +1,246 @@
+{
+  "schemaVersion": 1,
+  "hosts": [
+    {
+      "schemaVersion": 1,
+      "host": "codex",
+      "model": "gpt-6.1-sol",
+      "sessionId": "01a11d51-5290-73d0-b25d-76e05a54d4f3",
+      "environment": {
+        "platform": "darwin",
+        "arch": "x64",
+        "node": "v22.22.3"
+      },
+      "startedAt": "2026-10-08T21:00:30.033064+00:00",
+      "endedAt": "2026-10-08T21:32:52.474688+00:00",
+      "packages": {
+        "runtime": {
+          "name": "@axmorf/studio",
+          "version": "0.1.20",
+          "fingerprint": "sha256:a7059170ad1c26039383f95bd14412e91ea3f8d176b3598e5fb40c6783d2dec0",
+          "fileCount": 291
+        },
+        "creator": {
+          "name": "create-axmorf-studio",
+          "version": "0.1.20",
+          "fingerprint": "sha256:78de5dc913898c3c669a50d808334aa0a590f7a3b7803d97b7caf854e05b3891",
+          "fileCount": 42
+        }
+      },
+      "prompt": "制作一条约 40 秒、横屏 1280×720、30 fps、无旁白的中文创意短片，主题是“小发明，让动作发生”。需要六个独立场景，每个场景有不同的空间、主角和构图，不使用一个长镜头串起全部内容：一颗滚珠启动多米诺；折叠纸片展开成小桥让小车通过；磁铁引导散落铁片组成箭头；齿轮组改变风车转速；滑轮把沉重方块抬起；光束点亮一颗星。各段都要用清楚的起因、动作、结果来解释，配少量中文标题和稳定的阅读停留。统一深色底、暖橙和青绿色的原创矢量风格，每段有动机明确的推近、跟随或尺度变化，场景之间自然转换，并在关键动作落点使用当前可用的授权音效。引入融入第一段，总结融入最后一段，不使用品牌片头片尾模板。请完成完整视频和横版、竖版两张封面。\n",
+      "promptChecksum": "sha256:31afaf51c0c587561a39b5f4925faf0cfcb59771409ac98a9f405019e9e295ef",
+      "transcriptChecksum": "sha256:971e2829ba10627dd6d556ae9367182deba16c3874a91bcb9228b79f0d52a177",
+      "runChecksum": "sha256:2de95b03e4525765bbf8939466e95f77925cccc290929ca3360e55a979a82070",
+      "snapshotChecksum": "sha256:fcbe4c649b22315e94da51b280b8fc32bde179feaca6eaca9d55ae1e3016b72f",
+      "creation": {
+        "method": "npm-exec-candidate",
+        "runtimeTarballChecksum": "sha256:9541d298779060a7482797453b57b2b2dca6263dfb565278b189c77031919302",
+        "creatorTarballChecksum": "sha256:0ceab2730c82bb4c2cd4043455003f4ad154f13a3a7013c6774478c5f23fc5e7",
+        "installLogChecksum": "sha256:621934ca6702e35478f6289d1eebef62484bc3eaf10cb1b65168bc39e2cb578f"
+      },
+      "sessionChecksum": null,
+      "transcriptAudit": {
+        "businessUserMessages": 1,
+        "toolCalls": 78,
+        "followUpMessages": 0,
+        "nativeCompletionMessages": 0
+      },
+      "unchangedPackageFiles": 291,
+      "nativeExecution": {
+        "mode": "subagents",
+        "workerTransport": "shared-workspace",
+        "modeSource": "builtin-default",
+        "concurrencySource": "builtin-default",
+        "requestedMaxConcurrency": 4,
+        "effectiveMaxConcurrency": 4,
+        "peakActiveChildren": 4,
+        "peakBoundTasks": 4,
+        "fourWayBoundOverlapMs": 420923,
+        "dirtyTaskCount": 8,
+        "productionChildCount": 8,
+        "probeChildCount": 4,
+        "refillAdmissions": 4,
+        "attemptId": "ad0542a6-6672-45fc-9bf0-5d50ada8fb13",
+        "childEvidence": [
+          {
+            "sessionId": "01a11d52-4d62-7d71-b609-2eb88aea073f",
+            "transcriptChecksum": "sha256:9ce2e863edc669f324b9e25078c58697f17b6ae452a09546f06bdb56107237b8",
+            "sessionChecksum": null,
+            "taskRevision": null
+          },
+          {
+            "sessionId": "01a11d52-6454-70f2-80df-57e833b69ae8",
+            "transcriptChecksum": "sha256:e07af181f215487d7518818722aa8302979a1e37ba8e9e43d85f1c2726faffa5",
+            "sessionChecksum": null,
+            "taskRevision": null
+          },
+          {
+            "sessionId": "01a11d52-7ba4-70b3-bbe1-b3c5773d3d0b",
+            "transcriptChecksum": "sha256:5e22828430c8c090da4d25658aee38250eba24bcb74aac10d6733ac0decb97d9",
+            "sessionChecksum": null,
+            "taskRevision": null
+          },
+          {
+            "sessionId": "01a11d52-914c-7660-97db-6d32e3ead243",
+            "transcriptChecksum": "sha256:7149f341a31cea1f635a16365d162810cb458a4cfad992131d9e945667e91aaa",
+            "sessionChecksum": null,
+            "taskRevision": null
+          },
+          {
+            "sessionId": "01a11d58-28c8-7230-a9fb-bd8de49f7e4d",
+            "transcriptChecksum": "sha256:5c89d98623c929d80d3713aa24fd7d774a6757578026eddee30531de6d4c09ce",
+            "sessionChecksum": null,
+            "taskRevision": "task-1234df33542795488b1a3a665bfd5537bdd00f81333b9cde0cfa83b917e76f99"
+          },
+          {
+            "sessionId": "01a11d58-485e-7322-8b2a-f57276dff362",
+            "transcriptChecksum": "sha256:ccdb46f3e11d9714278726383092e7fe714fc181b1681080699c1af1a66703c5",
+            "sessionChecksum": null,
+            "taskRevision": "task-2017f855be8bbeb0aa5a573a9330cf7640645afe62e1d2723ffa3f73a8a33e41"
+          },
+          {
+            "sessionId": "01a11d58-6541-7b20-b91d-6c5f4760d396",
+            "transcriptChecksum": "sha256:844a4231a0f13a80b08811d0a411414f66da112066caf71dceac363d776d974c",
+            "sessionChecksum": null,
+            "taskRevision": "task-35fd9614c40db4758ec9ad5e1c3f13c1eeccaf7ad15a2dfb821aa9025cd08e28"
+          },
+          {
+            "sessionId": "01a11d58-80e2-7c02-8453-4818e3c997f4",
+            "transcriptChecksum": "sha256:de23f1a1728bd6d53ba294fcef84e9b54f59873ce846fa91e3ddb81c651e287e",
+            "sessionChecksum": null,
+            "taskRevision": "task-4eff1f503779858e175d2bd7e2e83986f7f64134128712b1118f22138c00f56f"
+          },
+          {
+            "sessionId": "01a11d5a-828f-7e22-b959-8b4ba49658e4",
+            "transcriptChecksum": "sha256:94d84ce3d99986f6579ef3ec16f0755d0b7947bccc334ff9392e00e5e08bd045",
+            "sessionChecksum": null,
+            "taskRevision": "task-520295074d5002d69533a39f195ba18b6afc3be53830123b9ddda9c48786d89c"
+          },
+          {
+            "sessionId": "01a11d5b-30c8-72c0-a011-959d0d249b5f",
+            "transcriptChecksum": "sha256:708a3714e2e4ffec37d0ab1657409931d9db09cad41105be05fcaacbd6b34cfa",
+            "sessionChecksum": null,
+            "taskRevision": "task-6f901dcee61fd5f30b39f61dceed96f5873ef63ec5f978499af141863ae3bee2"
+          },
+          {
+            "sessionId": "01a11d5f-ad8e-7741-a77d-e290855c445f",
+            "transcriptChecksum": "sha256:85fe1cad8d2d650032afd92f36a8ff5c452a164080e2128ce2be3db34a673df5",
+            "sessionChecksum": null,
+            "taskRevision": "task-7428e540b08d199918bf6cb653cb2f778a324f20a21d753512831a0a432fd617"
+          },
+          {
+            "sessionId": "01a11d61-348b-7bd0-a8e3-2c31539d36f5",
+            "transcriptChecksum": "sha256:03dbbce58210eb611a201d74a2d6e0debadc16d6b644240c1a160763b7d1e492",
+            "sessionChecksum": null,
+            "taskRevision": "task-b1151d9b6c9da4b4b5dac6afda80b6567f44ec37908b52d72ceb4a8da2646f97"
+          }
+        ],
+        "delegationChecksum": null,
+        "notificationFormatterChecksum": null,
+        "uiEvidence": {
+          "checksum": "sha256:8f40cf0bb92baea6257bfa00f9a0f6b137575b9a6d7841ba1bef783d76cfa4d2",
+          "sessionId": "01a11d51-5290-73d0-b25d-76e05a54d4f3",
+          "commandResults": 5
+        }
+      },
+      "supervision": {
+        "schemaVersion": 1,
+        "source": "codex",
+        "reportedBeforeCreate": true,
+        "reportedBeforePrepare": true,
+        "continuationCalls": 1,
+        "pollingCalls": 0,
+        "asyncBatches": 0,
+        "completedAsyncBatches": 0
+      },
+      "unchangedGuideFiles": 13,
+      "finalCheck": {
+        "status": "project-final-check",
+        "storyId": "little-inventions-motion",
+        "aggregateStatus": "pass",
+        "deliveryBuildId": "delivery-fe5349ded1df250551363f5d0bedfa840a13591424f9bb85930bf99327ebc055",
+        "checks": [
+          {
+            "checkId": "artifacts",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "delivery",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "revision",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "artifact-set",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "delivery-build",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "audio-channels",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "snapshot",
+            "status": "pass",
+            "code": null,
+            "message": null
+          }
+        ],
+        "schemaVersion": 1,
+        "level": "final",
+        "scope": "current-production",
+        "revisionId": "revision-07cd11fdab3fc6c1fe7939070cc8a2ba8b8f531dcff836a50863902333783cc3",
+        "artifactSetFingerprint": "sha256:21190438aa69006c50c836df27c0f12a28ffbf52a96b93934a2b2bb2c010f83c"
+      },
+      "delivery": {
+        "storyId": "little-inventions-motion",
+        "deliveryBuildId": "delivery-fe5349ded1df250551363f5d0bedfa840a13591424f9bb85930bf99327ebc055",
+        "files": {
+          "video.mp4": {
+            "checksum": "sha256:02ff7893f1951137731ce8e1c306d90d7166f27add106ab74b00db2a1d93300d",
+            "sizeBytes": 6739646
+          },
+          "cover-4x3.png": {
+            "checksum": "sha256:47b90816f6dbc79fd3952ed30fc5610ed49bf302db50f09015e20c7cc7cf8839",
+            "sizeBytes": 159852
+          },
+          "cover-3x4.png": {
+            "checksum": "sha256:2e1afb5d24f118cff38edd8b12e3fd8b696b8ff4f12c8cdf444c167e77cf611a",
+            "sizeBytes": 157465
+          },
+          "publish.json": {
+            "checksum": "sha256:b8573df19f7076dd08b51a77e39c72b1b98f72109534baab37b9a3129f18c082",
+            "sizeBytes": 2558
+          }
+        },
+        "video": {
+          "codec": "h264",
+          "audioCodec": "aac",
+          "audioChannels": 2,
+          "width": 1280,
+          "height": 720,
+          "fps": 30,
+          "frameCount": 1200
+        },
+        "decodedFiles": ["video.mp4", "cover-4x3.png", "cover-3x4.png"]
+      }
+    }
+  ]
+}

@@ -213,6 +213,33 @@ An ordered multiline authoring-input command retains its own start/terminal befo
 public create process. The protocol's `aggregatedOutput:null` means empty buffered stdout;
 it cannot replace nonempty observed bytes or contradictory streamed deltas.
 
+Indexed settled-result spreads retain their original value and separate command ordinal;
+conditional storage may copy only the unchanged fulfilled value. Passive summaries and image
+display before or after the separately forwarded command remain diagnostic. A string stdout
+accumulator must forward every original result before concatenation and may only store its
+parsed copy. A synchronous create may follow a pure serialized authoring-field deletion only
+with its own original terminal-before-yield UI proof.
+
+Direct create calls may also follow serialized JSON authoring with field assignments,
+pure string formatters and array/Set resource selection. Native result bindings and
+callable aliases remain excluded. Ordered diagnostic commands keep separate original
+results before passive summaries. Bounded temporal contact-sheet batches are excluded
+from command-result authority only when their exact read-only FFmpeg source, original
+UI command inventory, frame metadata and displayed image bytes all agree.
+
+A failed JSON projection after a non-production diagnostic is retained as a failed tool,
+with no recovered stdout, exit code or production-result authority. Admission requires the
+exact native error stack, immutable parse receiver and literal command, complete Root turn and
+unique matching UI process. If the host emits its bounded byte-omission excerpt, the excerpt
+geometry, observed stream ends and parse error must agree; incomplete streaming is never
+restored or used as successful command evidence. Production CLI calls cannot use this path.
+
+The 0.1.20 candidate [native receipt](../evidence/v0.1.20-first-use.json) also exercises serialized
+authoring, passive summaries and exact temporal image diagnostics with unchanged package files.
+Its fresh native run retained eight creative children, four refill admissions, 420.923 seconds
+of four-way bound overlap, one continuation and independently revalidated four-file delivery.
+The failed 0.1.19 CI/tag and original diagnostic failures remain preserved.
+
 The 0.1.19 candidate [native receipt](../evidence/v0.1.19-first-use.json) exercises these actual
 code-mode formats using unchanged 291-file runtime and 42-file creator candidates. One ordinary
 40-second six-scene prompt produced eight fresh creative children, peak four bound tasks,

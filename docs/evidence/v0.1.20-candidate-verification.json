@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "kind": "release-candidate-verification",
+  "version": "0.1.20",
+  "previousUnpublishedTag": "v0.1.19",
+  "previousPublishedTag": "v0.1.18",
+  "correctedRegressionInventory": {
+    "paths": 66,
+    "allRegularExistingFiles": true,
+    "command": "release-gate.ts regressions docs/evidence/v0.1.20-release-plan.json",
+    "exitCode": 0,
+    "tests": 627,
+    "pass": 627,
+    "fail": 0,
+    "skipped": 0,
+    "logChecksum": "sha256:338cc6722c75a2ab2e28b96423426844052fa5646cb9c2721726936cc07f7db2",
+    "runSeparatelyAfterFullCheck": true
+  },
+  "packages": {
+    "runtime": {
+      "name": "@axmorf/studio",
+      "version": "0.1.20",
+      "files": 291,
+      "fingerprint": "sha256:a7059170ad1c26039383f95bd14412e91ea3f8d176b3598e5fb40c6783d2dec0"
+    },
+    "creator": {
+      "name": "create-axmorf-studio",
+      "version": "0.1.20",
+      "files": 42,
+      "fingerprint": "sha256:78de5dc913898c3c669a50d808334aa0a590f7a3b7803d97b7caf854e05b3891"
+    }
+  },
+  "onlyVersionMetadataChanges": {
+    "runtime": [
+      "package.json",
+      "dist/assets/policy/runtime-policy.json"
+    ],
+    "creator": [
+      "package.json"
+    ]
+  },
+  "nonVersionPackageContentsUnchanged": true,
+  "retainedFullProgramChecks": {
+    "evidence": "v0.1.20-source-verification.json",
+    "scope": "Current version and release controller; final full 1411-test and complete check passed. Earlier failed records are retained."
+  },
+  "packageLocalReadiness": "ready",
+  "auditVulnerabilities": 0,
+  "freshNativeAcceptance": "verified",
+  "ciAndPublicRegistry": "pending",
+  "verifiedAt": "2026-10-09T10:50:38.459Z",
+  "nativeReceipt": "v0.1.20-first-use.json",
+  "filmVerification": "2026-10-09-v0.1.20-native-video-verification.json"
+}

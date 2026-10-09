@@ -813,6 +813,7 @@ const isSelfDraining = (source: ts.SourceFile, calls: ts.CallExpression[]) => {
   const partsDeclaration = partsDeclarations[0];
   let parts: string | undefined;
   let capturesWrappers = false;
+  let capturesText = false;
   if (partsDeclaration) {
     if (
       partsDeclaration.declarationList.declarations.length !== 1 ||
@@ -823,14 +824,17 @@ const isSelfDraining = (source: ts.SourceFile, calls: ts.CallExpression[]) => {
     )
       return false;
     const binding = partsDeclaration.declarationList.declarations[0]!;
-    if (
-      !ts.isIdentifier(binding.name) ||
-      !binding.initializer ||
-      !ts.isArrayLiteralExpression(binding.initializer) ||
-      binding.initializer.elements.length !== 1
-    )
-      return false;
-    const element = binding.initializer.elements[0]!;
+    if (!ts.isIdentifier(binding.name) || !binding.initializer) return false;
+    const array = ts.isArrayLiteralExpression(binding.initializer);
+    if (array && binding.initializer.elements.length !== 1) return false;
+    capturesText =
+      !array &&
+      !!resultField(binding.initializer, "output") &&
+      !!(partsDeclaration.declarationList.flags & ts.NodeFlags.Let);
+    if (!array && !capturesText) return false;
+    const element = array
+      ? binding.initializer.elements[0]!
+      : binding.initializer;
     const initial =
       ts.isIdentifier(element) && element.text === variable
         ? element
@@ -843,13 +847,14 @@ const isSelfDraining = (source: ts.SourceFile, calls: ts.CallExpression[]) => {
     )
       return false;
     parts = binding.name.text;
-    capturesWrappers = ts.isIdentifier(element);
+    capturesWrappers = array && ts.isIdentifier(element);
     passiveParts.add(binding.name);
     passiveResults.add(initial);
   }
   const partCall = (node: ts.Node, method: "join" | "push") => {
     if (
       !parts ||
+      capturesText ||
       !partsDeclaration ||
       node.pos < partsDeclaration.pos ||
       !ts.isCallExpression(node) ||
@@ -892,9 +897,53 @@ const isSelfDraining = (source: ts.SourceFile, calls: ts.CallExpression[]) => {
       passiveParts.add(node);
       return true;
     }
+    if (
+      capturesText &&
+      ts.isObjectLiteralExpression(node) &&
+      node.properties.length === 2
+    ) {
+      const [spread, output] = node.properties;
+      if (
+        spread &&
+        ts.isSpreadAssignment(spread) &&
+        ts.isIdentifier(spread.expression) &&
+        spread.expression.text === variable &&
+        output &&
+        ts.isPropertyAssignment(output) &&
+        ts.isIdentifier(output.name) &&
+        output.name.text === "output" &&
+        ts.isIdentifier(output.initializer) &&
+        output.initializer.text === parts
+      ) {
+        passiveResults.add(spread.expression);
+        passiveParts.add(output.initializer);
+        return true;
+      }
+    }
     return partCall(node, "join");
   };
+  const appendText = (node: ts.Statement) => {
+    if (
+      !capturesText ||
+      !ts.isExpressionStatement(node) ||
+      !ts.isBinaryExpression(node.expression)
+    )
+      return false;
+    const expression = node.expression;
+    const result = resultField(expression.right, "output");
+    if (
+      expression.operatorToken.kind !== ts.SyntaxKind.PlusEqualsToken ||
+      !ts.isIdentifier(expression.left) ||
+      expression.left.text !== parts ||
+      !result
+    )
+      return false;
+    passiveParts.add(expression.left);
+    passiveResults.add(result);
+    return true;
+  };
   const passive = (node: ts.Statement, allowPush = false) => {
+    if (allowPush && appendText(node)) return true;
     if (
       !ts.isExpressionStatement(node) ||
       !ts.isCallExpression(node.expression)
@@ -927,9 +976,10 @@ const isSelfDraining = (source: ts.SourceFile, calls: ts.CallExpression[]) => {
   if (!afterPrint.every((node) => passive(node, true))) return false;
   if (
     parts &&
-    afterPrint.filter(
-      (node) =>
-        ts.isExpressionStatement(node) && partCall(node.expression, "push"),
+    afterPrint.filter((node) =>
+      capturesText
+        ? appendText(node)
+        : ts.isExpressionStatement(node) && partCall(node.expression, "push"),
     ).length !== 1
   )
     return false;
@@ -1076,7 +1126,7 @@ const isSelfDraining = (source: ts.SourceFile, calls: ts.CallExpression[]) => {
   };
   const projectionJson = new Set<ts.Node>();
   const captureReadOnlyProjection = () => {
-    if (!capturesWrappers || !parts) return 0;
+    if ((!capturesWrappers && !capturesText) || !parts) return 0;
     const start = afterLoop.findIndex(
       (node) =>
         ts.isVariableStatement(node) ||
@@ -1102,7 +1152,7 @@ const isSelfDraining = (source: ts.SourceFile, calls: ts.CallExpression[]) => {
         // Native result wrappers are JSON data. Reuse the pure diagnostic
         // validator for copies after the terminal; no output/native call is
         // allowed in this suffix and it supplies no process authority.
-        arguments: `const ${parts}=load("native-result-wrappers");\n${suffix.map((node) => node.getText(source)).join("\n")}`,
+        arguments: `const ${parts}=${capturesText ? 'String(load("native-output").output)' : 'load("native-result-wrappers")'};\n${suffix.map((node) => node.getText(source)).join("\n")}`,
       })
     )
       return 0;
@@ -2147,6 +2197,7 @@ const imageDiagnosticBatch = (
   )
     return null;
   const elements = join.arguments[0].elements;
+  let execIndex = -1;
   for (let index = 0; index < elements.length; index++) {
     const element = elements[index]!;
     if (
@@ -2156,14 +2207,18 @@ const imageDiagnosticBatch = (
       element.expression.questionDotToken ||
       !ts.isIdentifier(element.expression.expression) ||
       element.expression.expression.text !== "tools" ||
-      element.expression.name.text !==
-        (index === 0 ? "exec_command" : "view_image") ||
+      !["exec_command", "view_image"].includes(element.expression.name.text) ||
       element.arguments.length !== 1 ||
       !ts.isObjectLiteralExpression(element.arguments[0]!) ||
       !nativeLiteral(element.arguments[0]!)
     )
       return null;
+    if (element.expression.name.text === "exec_command") {
+      if (execIndex >= 0) return null;
+      execIndex = index;
+    }
   }
+  if (execIndex !== 0 && execIndex !== elements.length - 1) return null;
   if (
     !loop.initializer ||
     !ts.isVariableDeclarationList(loop.initializer) ||
@@ -2189,7 +2244,9 @@ const imageDiagnosticBatch = (
     return null;
   const expected = ts.createSourceFile(
     "image-forwarding.ts",
-    `for(let ${counter.text}=0;${counter.text}<${binding.name.text}.length;${counter.text}++){const ${result}=${binding.name.text}[${counter.text}];text({index:${counter.text},status:${result}.status});if(${result}.status==="fulfilled"){if(${counter.text}===0)text(${result}.value);else image(${result}.value.image_url);}else text(${result}.reason);}`,
+    execIndex === 0
+      ? `for(let ${counter.text}=0;${counter.text}<${binding.name.text}.length;${counter.text}++){const ${result}=${binding.name.text}[${counter.text}];text({index:${counter.text},status:${result}.status});if(${result}.status==="fulfilled"){if(${counter.text}===0)text(${result}.value);else image(${result}.value.image_url);}else text(${result}.reason);}`
+      : `for(let ${counter.text}=0;${counter.text}<${binding.name.text}.length;${counter.text}++){const ${result}=${binding.name.text}[${counter.text}];if(${result}.status==="fulfilled"&&${counter.text}<${execIndex}){image(${result}.value.image_url);text({${counter.text},detail:${result}.value.detail});}else{text({${counter.text},...${result}});}}`,
     ts.ScriptTarget.Latest,
     true,
   );
@@ -2200,12 +2257,20 @@ const imageDiagnosticBatch = (
     return null;
   const operation = nativeOperations({
     name: "exec",
-    arguments: `text(await ${elements[0]!.getText(source)});`,
+    arguments: `text(await ${elements[execIndex]!.getText(source)});`,
   })[0];
   if (!operation || operation.kind !== "exec") return null;
   const wrappers = texts.flatMap((text) => {
     try {
-      const value = object(JSON.parse(text));
+      let value = object(JSON.parse(text));
+      if (execIndex > 0 && value[counter.text] === execIndex) {
+        assert.deepEqual(
+          Object.keys(value).sort(),
+          [counter.text, "status", "value"].sort(),
+        );
+        assert.equal(value.status, "fulfilled");
+        value = object(value.value);
+      }
       return typeof value.output === "string" &&
         (value.session_id !== undefined || typeof value.exit_code === "number")
         ? [value]
@@ -2259,7 +2324,12 @@ const indexedBatchResult = (
   });
   const envelopes = rows.filter(
     (row): row is Row =>
-      !Array.isArray(row) && ("index" in row || "result" in row),
+      !Array.isArray(row) &&
+      ("index" in row ||
+        "result" in row ||
+        (["fulfilled", "rejected"].includes(String(row.status)) &&
+          Object.keys(row).length === 3 &&
+          ("value" in row || "reason" in row))),
   );
   if (!envelopes.length) return null;
   const fail = `Indexed native results need their unchanged original batch forwarding (${origin?.callId ?? "unknown"})`;
@@ -2334,12 +2404,36 @@ const indexedBatchResult = (
     assert.ok(operations.length <= 1, fail);
     return operations[0] ?? null;
   });
-  let directorySummaries = 0;
+  const summaryKinds: Array<"directory" | "passive"> = [];
   assert.ok(
     tails.every((statement) => {
       if (toolDirectorySummary(statement)) {
-        directorySummaries++;
+        summaryKinds.push("directory");
         return true;
+      }
+      if (
+        ts.isExpressionStatement(statement) &&
+        ts.isCallExpression(statement.expression) &&
+        ts.isIdentifier(statement.expression.expression) &&
+        statement.expression.expression.text === "text" &&
+        statement.expression.arguments.length === 1
+      ) {
+        let usesTools = false;
+        const inspect = (node: ts.Node) => {
+          if (ts.isIdentifier(node) && node.text === "tools") usesTools = true;
+          ts.forEachChild(node, inspect);
+        };
+        inspect(statement);
+        if (
+          !usesTools &&
+          readOnlyDiagnostic({
+            name: "exec",
+            arguments: statement.getText(source),
+          })
+        ) {
+          summaryKinds.push("passive");
+          return true;
+        }
       }
       if (passiveBatchJsonCopy(statement, binding, operations)) return true;
       return (
@@ -2375,18 +2469,19 @@ const indexedBatchResult = (
     (row) => Array.isArray(row) || !envelopes.includes(row),
   );
   assert.ok(
-    summaries.length === directorySummaries &&
+    summaries.length === summaryKinds.length &&
       summaries.every(
-        (row) =>
-          Array.isArray(row) &&
-          row.every(
-            (entry) =>
-              entry &&
-              typeof entry === "object" &&
-              Object.keys(entry).sort().join(",") === "description,name" &&
-              typeof object(entry).name === "string" &&
-              typeof object(entry).description === "string",
-          ),
+        (row, index) =>
+          summaryKinds[index] === "passive" ||
+          (Array.isArray(row) &&
+            row.every(
+              (entry) =>
+                entry &&
+                typeof entry === "object" &&
+                Object.keys(entry).sort().join(",") === "description,name" &&
+                typeof object(entry).name === "string" &&
+                typeof object(entry).description === "string",
+            )),
       ),
     fail,
   );
@@ -2569,6 +2664,7 @@ const indexedBatchResult = (
     properties.length === 2 &&
       properties.every(
         (property) =>
+          ts.isSpreadAssignment(property) ||
           ts.isPropertyAssignment(property) ||
           (ts.isShorthandPropertyAssignment(property) &&
             !property.objectAssignmentInitializer),
@@ -2601,12 +2697,33 @@ const indexedBatchResult = (
         )
       ? index
       : undefined;
+  const settledSpread = properties.some(
+    (property) =>
+      ts.isSpreadAssignment(property) && forwarded(property.expression),
+  );
   assert.ok(
     indexField &&
       indexField !== "result" &&
-      fields.some(([key, value]) => key === "result" && forwarded(value)),
+      (settledSpread ||
+        fields.some(([key, value]) => key === "result" && forwarded(value))),
     fail,
   );
+  if (settledSpread) {
+    for (const row of envelopes) {
+      const valueField = row.status === "fulfilled" ? "value" : "reason";
+      assert.deepEqual(
+        Object.keys(row).sort(),
+        [indexField, "status", valueField].sort(),
+        fail,
+      );
+      assert.ok(["fulfilled", "rejected"].includes(String(row.status)), fail);
+      // This is a projection of parsed native text, never a transcript edit.
+      // The exact spread carries the original settled value without rewriting it.
+      row.result = { status: row.status, [valueField]: row[valueField] };
+      delete row.status;
+      delete row[valueField];
+    }
+  }
   // The built-in store only serializes a copy; it cannot mutate the forwarded
   // result. No alias, computed callback, or write to the result is accepted.
   const key = (node: ts.Node): boolean =>
@@ -2616,18 +2733,38 @@ const indexedBatchResult = (
       node.operatorToken.kind === ts.SyntaxKind.PlusToken &&
       key(node.left) &&
       key(node.right));
-  const storeCopy = (statement: ts.Statement) =>
+  const storeCopy = (statement: ts.Statement, fulfilled = false) =>
     ts.isExpressionStatement(statement) &&
     ts.isCallExpression(statement.expression) &&
     ts.isIdentifier(statement.expression.expression) &&
     statement.expression.expression.text === "store" &&
     statement.expression.arguments.length === 2 &&
     key(statement.expression.arguments[0]!) &&
-    forwarded(statement.expression.arguments[1]);
+    (fulfilled
+      ? ts.isPropertyAccessExpression(statement.expression.arguments[1]!) &&
+        statement.expression.arguments[1]!.name.text === "value" &&
+        forwarded(statement.expression.arguments[1]!.expression)
+      : forwarded(statement.expression.arguments[1]));
   assert.ok(
     statements.every((statement) => {
       if (!ts.isIfStatement(statement)) return storeCopy(statement);
       const condition = statement.expression;
+      if (
+        !statement.elseStatement &&
+        ts.isBinaryExpression(condition) &&
+        condition.operatorToken.kind ===
+          ts.SyntaxKind.EqualsEqualsEqualsToken &&
+        ts.isPropertyAccessExpression(condition.left) &&
+        condition.left.name.text === "status" &&
+        forwarded(condition.left.expression) &&
+        ts.isStringLiteral(condition.right) &&
+        condition.right.text === "fulfilled"
+      ) {
+        const body = ts.isBlock(statement.thenStatement)
+          ? statement.thenStatement.statements
+          : [statement.thenStatement];
+        return body.length === 1 && storeCopy(body[0]!, true);
+      }
       if (
         statement.elseStatement ||
         !ts.isBinaryExpression(condition) ||
@@ -2766,6 +2903,7 @@ const indexedBatchResult = (
       (operation, index) =>
         index === index_ ||
         operation?.kind !== "exec" ||
+        restorableDiagnostic(operation) ||
         !["create", "revise", "produce:prepare", "produce:continue"].some(
           (action) =>
             productionCommands([operation.command ?? ""], action).length,
@@ -2786,7 +2924,7 @@ const indexedBatchResult = (
 };
 
 type NativeTrace = ReturnType<typeof nativeTrace>;
-const unstartedOuterProofs = new WeakMap<NativeTrace, Map<number, string>>();
+const discardedOuterProofs = new WeakMap<NativeTrace, Map<number, string>>();
 const outerFailureChecksum = (trace: NativeTrace, index: number) => {
   const output = trace.outputs.find((value) => value.index === index)!;
   const call = trace.calls.get(output.callId)!;
@@ -2845,7 +2983,102 @@ const outerSource = (call: { arguments: string }) => {
   );
 };
 
-const proveUnstartedOuterFailures = (
+// A failed JSON projection may follow a completed diagnostic command. Prove
+// the literal call and immutable parse receiver, then discard its output;
+// this never supplies a missing production result or successful CLI terminal.
+const failedJsonInvocation = (source: ts.SourceFile, point: number) => {
+  const first = source.statements[0];
+  if (
+    !first ||
+    !ts.isVariableStatement(first) ||
+    !(first.declarationList.flags & ts.NodeFlags.Const) ||
+    first.declarationList.declarations.length !== 1
+  )
+    return null;
+  const binding = first.declarationList.declarations[0]!;
+  if (
+    !ts.isIdentifier(binding.name) ||
+    !binding.initializer ||
+    !ts.isAwaitExpression(binding.initializer)
+  )
+    return null;
+  const launch = binding.initializer.expression;
+  if (
+    !ts.isCallExpression(launch) ||
+    launch.questionDotToken ||
+    !ts.isPropertyAccessExpression(launch.expression) ||
+    launch.expression.questionDotToken ||
+    !ts.isIdentifier(launch.expression.expression) ||
+    launch.expression.expression.text !== "tools" ||
+    launch.expression.name.text !== "exec_command" ||
+    launch.arguments.length !== 1 ||
+    !ts.isObjectLiteralExpression(launch.arguments[0]!) ||
+    !nativeLiteral(launch.arguments[0]!)
+  )
+    return null;
+  const statement = source.statements.find(
+    (node) => node.getStart(source) <= point && point < node.end,
+  );
+  if (
+    !statement ||
+    !ts.isVariableStatement(statement) ||
+    !(statement.declarationList.flags & ts.NodeFlags.Const) ||
+    statement.declarationList.declarations.length !== 1
+  )
+    return null;
+  const parse = statement.declarationList.declarations[0]!.initializer;
+  if (
+    !parse ||
+    !ts.isCallExpression(parse) ||
+    parse.questionDotToken ||
+    !ts.isPropertyAccessExpression(parse.expression) ||
+    parse.expression.questionDotToken ||
+    !ts.isIdentifier(parse.expression.expression) ||
+    parse.expression.expression.text !== "JSON" ||
+    parse.expression.name.text !== "parse" ||
+    point !== parse.expression.name.getStart(source) ||
+    parse.arguments.length !== 1
+  )
+    return null;
+  const receiver = parse.arguments[0]!;
+  if (
+    !ts.isPropertyAccessExpression(receiver) ||
+    receiver.questionDotToken ||
+    !ts.isIdentifier(receiver.expression) ||
+    receiver.expression.text !== binding.name.text ||
+    receiver.name.text !== "output"
+  )
+    return null;
+  let toolCount = 0;
+  const count = (node: ts.Node) => {
+    if (ts.isIdentifier(node) && node.text === "tools") toolCount++;
+    ts.forEachChild(node, count);
+  };
+  count(source);
+  if (toolCount !== 1) return null;
+  const prefix = source.text.slice(0, statement.end);
+  const diagnostic =
+    prefix.slice(0, binding.initializer.getStart(source)) +
+    'load("__failedNativeResult")' +
+    prefix.slice(binding.initializer.end);
+  if (!readOnlyDiagnostic({ name: "exec", arguments: diagnostic })) return null;
+  const operations = nativeOperations({
+    name: "exec",
+    arguments: first.getText(source),
+  });
+  const operation = operations[0];
+  if (
+    operations.length !== 1 ||
+    !operation ||
+    operation.kind !== "exec" ||
+    !operation.command ||
+    /\bnpm\s+run\s+project:/u.test(operation.command)
+  )
+    return null;
+  return operation;
+};
+
+const proveOuterFailures = (
   trace: NativeTrace,
   input: CodexUiInput,
   rows: Row[],
@@ -2957,10 +3190,21 @@ const proveUnstartedOuterFailures = (
       String(object(blocks[0]).text),
       /^Script failed\nWall time \d+(?:\.\d+)? seconds\nOutput:\n$/u,
     );
-    const stack =
-      /^Script error:\n(ReferenceError|TypeError|Error): ([^\n]+)\n\s+at exec_main\.mjs:(\d+):(\d+)$/u.exec(
+    const jsonStack =
+      /^Script error:\nSyntaxError: ([^\n]+)\n\s+at JSON\.parse \(<anonymous>\)\n\s+at exec_main\.mjs:(\d+):(\d+)$/u.exec(
         String(object(blocks[1]).text),
       );
+    const stack = jsonStack
+      ? [
+          jsonStack[0],
+          "SyntaxError",
+          jsonStack[1]!,
+          jsonStack[2]!,
+          jsonStack[3]!,
+        ]
+      : /^Script error:\n(ReferenceError|TypeError|Error): ([^\n]+)\n\s+at exec_main\.mjs:(\d+):(\d+)$/u.exec(
+          String(object(blocks[1]).text),
+        );
     assert.ok(stack, "Failed outer tool has no exact native source stack");
     assert.ok(
       !output.objects.some(
@@ -2985,6 +3229,12 @@ const proveUnstartedOuterFailures = (
       point < (starts[line] ?? source.end),
       "Failed outer source position is outside its line",
     );
+    const diagnostic = jsonStack ? failedJsonInvocation(source, point) : null;
+    if (jsonStack)
+      assert.ok(
+        diagnostic,
+        "Failed JSON projection needs its immutable literal diagnostic origin",
+      );
     const statement = source.statements.find(
       (node) => node.getStart(source) <= point && point < node.end,
     );
@@ -3030,7 +3280,8 @@ const proveUnstartedOuterFailures = (
       stack[1] === "TypeError" &&
       unavailableFirstNativeCall(source, firstCall, point, unavailable?.[1]);
     assert.ok(
-      valid && (unavailable ? unavailableFirstTool : point < firstTool),
+      diagnostic ||
+        (valid && (unavailable ? unavailableFirstTool : point < firstTool)),
       "Failed outer stack does not precede its first real tool invocation",
     );
     const origin = object(trace.records[call.index]!.payload);
@@ -3153,6 +3404,23 @@ const proveUnstartedOuterFailures = (
     }
     const starts_ = commands.filter(({ row }) => row.method === "item/started");
     const ends = commands.filter(({ row }) => row.method === "item/completed");
+    const diagnosticStarts = diagnostic
+      ? starts_.filter(
+          ({ item, params }) =>
+            shellBody(String(item.command)) === diagnostic.command &&
+            item.cwd === (diagnostic.cwd ?? input.workspace) &&
+            Number(params.startedAtMs) >= launchAt &&
+            Number(params.startedAtMs) <= output.timestamp,
+        )
+      : [];
+    if (diagnostic) {
+      assert.equal(diagnostic.cwd ?? input.workspace, input.workspace);
+      assert.equal(
+        diagnosticStarts.length,
+        1,
+        "Failed JSON diagnostic needs one original UI invocation",
+      );
+    }
     assert.equal(
       starts_.length,
       ends.length,
@@ -3184,15 +3452,344 @@ const proveUnstartedOuterFailures = (
           completedAt <= turnEnd,
         "Failed outer native command uses a different clock window",
       );
-      assert.ok(
-        completedAt < launchAt || startedAt > output.timestamp,
-        "Failed outer call overlaps an actual native command invocation",
-      );
+      if (diagnosticStarts[0] === start) {
+        for (const entry of [start, end]) {
+          assert.equal(entry.params.threadId, input.sessionId);
+          assert.equal(entry.params.turnId, turnId);
+          assert.equal(entry.item.cwd, input.workspace);
+          assert.equal(
+            shellBody(String(entry.item.command)),
+            diagnostic!.command,
+          );
+        }
+        const processId = z.string().min(1).parse(end.item.processId);
+        assert.equal(String(start.item.processId), processId);
+        assert.equal(
+          nativeItems.filter(
+            ({ row, item }) =>
+              row.method === "item/completed" &&
+              String(item.processId) === processId,
+          ).length,
+          1,
+        );
+        assert.ok(launchAt <= startedAt && completedAt <= output.timestamp);
+        assert.equal(start.item.status, "inProgress");
+        assert.equal(end.item.status, "completed");
+        assert.equal(end.item.exitCode, 0);
+        const stdout = commandStdout(end.item);
+        const deltas = rows
+          .map((row, index) => ({ row, index, params: object(row.params) }))
+          .filter(
+            ({ row, params }) =>
+              row.method === "item/commandExecution/outputDelta" &&
+              params.itemId === start.item.id,
+          );
+        for (const delta of deltas) {
+          assert.ok(start.index < delta.index && delta.index < end.index);
+          assert.equal(delta.params.threadId, input.sessionId);
+          assert.equal(delta.params.turnId, turnId);
+        }
+        if (deltas.length) {
+          const stream = deltas.map(({ params }) =>
+            z.string().parse(params.delta),
+          );
+          if (stream.join("") !== stdout) {
+            // The host bounds large diagnostic buffers to two 512 KiB ends.
+            // Streaming capture can also be incomplete; neither representation
+            // is restored or promoted to command/production output authority.
+            const excerpt =
+              /^([\s\S]*)\n\.\.\. ([1-9]\d*) bytes omitted \.\.\.\n([\s\S]*)$/u.exec(
+                stdout,
+              );
+            assert.ok(excerpt, "Failed JSON diagnostic changed native stdout");
+            assert.equal(Buffer.byteLength(excerpt[1]!), 512 * 1024);
+            assert.equal(Buffer.byteLength(excerpt[3]!), 512 * 1024);
+            assert.ok(excerpt[1]!.startsWith(stream[0]!));
+            assert.ok(excerpt[3]!.endsWith(stream.at(-1)!));
+          }
+        }
+        let parseError: unknown;
+        try {
+          JSON.parse(stdout);
+        } catch (error) {
+          parseError = error;
+        }
+        assert.ok(
+          parseError instanceof SyntaxError,
+          "Failed JSON projection contradicts native stdout",
+        );
+        assert.equal(
+          parseError.message,
+          stack[2],
+          "Failed JSON projection changed its native error",
+        );
+      } else
+        assert.ok(
+          completedAt < launchAt || startedAt > output.timestamp,
+          "Failed outer call overlaps an actual native command invocation",
+        );
     }
     proofs.set(output.index, outerFailureChecksum(trace, output.index));
     failures.push({ callId: output.callId, line, column, error: stack[2]! });
   }
   return { proofs, failures };
+};
+
+// Temporal contact sheets are observations, not CLI terminals. Their bounded
+// literal frame groups, exact read-only FFmpeg command and original image bytes
+// must all agree before excluding these results from production authority.
+const proveTemporalImageDiagnostics = (
+  trace: NativeTrace,
+  input: CodexUiInput,
+  rows: Row[],
+) => {
+  const proofs = new Map<number, string>();
+  const owners: Array<{ item: Row; owner: string }> = [];
+  for (const output of commandOutputs(trace)) {
+    const call = trace.calls.get(output.callId)!;
+    if (!/(?:^|[._])exec$/u.test(call.name)) continue;
+    const source = outerSource(call);
+    const [groupsDeclaration, resultsDeclaration] = source.statements;
+    if (
+      source.statements.length !== 3 ||
+      !groupsDeclaration ||
+      !ts.isVariableStatement(groupsDeclaration) ||
+      groupsDeclaration.declarationList.declarations.length !== 1 ||
+      !resultsDeclaration ||
+      !ts.isVariableStatement(resultsDeclaration)
+    )
+      continue;
+    const groupsBinding = groupsDeclaration.declarationList.declarations[0]!;
+    if (
+      !ts.isIdentifier(groupsBinding.name) ||
+      groupsBinding.name.text !== "groups" ||
+      !groupsBinding.initializer ||
+      !ts.isArrayLiteralExpression(groupsBinding.initializer) ||
+      !nativeLiteral(groupsBinding.initializer)
+    )
+      continue;
+    const resultsBinding = resultsDeclaration.declarationList.declarations[0];
+    if (
+      !resultsBinding?.initializer ||
+      !ts.isAwaitExpression(resultsBinding.initializer)
+    )
+      continue;
+    const join = resultsBinding.initializer.expression;
+    if (
+      !ts.isCallExpression(join) ||
+      join.arguments.length !== 1 ||
+      !ts.isCallExpression(join.arguments[0]!)
+    )
+      continue;
+    const mapped = join.arguments[0]!;
+    const callback = mapped.arguments[0];
+    if (
+      !callback ||
+      !ts.isArrowFunction(callback) ||
+      !ts.isBlock(callback.body)
+    )
+      continue;
+    const cmdStatement = callback.body.statements[0];
+    if (!cmdStatement || !ts.isVariableStatement(cmdStatement)) continue;
+    const cmd = cmdStatement.declarationList.declarations[0]?.initializer;
+    if (
+      !cmd ||
+      !ts.isBinaryExpression(cmd) ||
+      cmd.operatorToken.kind !== ts.SyntaxKind.PlusToken ||
+      !ts.isStringLiteral(cmd.right) ||
+      !ts.isBinaryExpression(cmd.left) ||
+      cmd.left.operatorToken.kind !== ts.SyntaxKind.PlusToken ||
+      !ts.isStringLiteral(cmd.left.left)
+    )
+      continue;
+    const prefix = cmd.left.left,
+      suffix = cmd.right;
+    const media =
+      /^python3 - <<'PY'\nimport subprocess,base64\np='(out\/[a-z0-9][a-z0-9-]*\/preview\/preview-[a-f0-9]{64}\/preview\.mp4|deliveries\/[a-z0-9][a-z0-9-]*\/video\.mp4)'\ng=$/u.exec(
+        prefix.text,
+      );
+    if (!media) continue;
+    const groups = z
+      .array(z.array(z.number().int().nonnegative()).min(1).max(8))
+      .min(1)
+      .max(8)
+      .parse(JSON.parse(groupsBinding.initializer.getText(source)));
+    assert.ok(
+      groups.every(
+        (group) =>
+          group.length === groups[0]!.length &&
+          new Set(group).size === group.length,
+      ),
+    );
+    const scaled = suffix.text.includes(",scale=640:360,tile=");
+    const expectedSuffix =
+      "\nfilt='select='+ '+'.join('eq(n\\\\,%d)'%n for n in g)+'," +
+      (scaled ? "scale=640:360," : "") +
+      `tile=${groups[0]!.length}x1'` +
+      "\nr=subprocess.run(['ffmpeg','-v','error','-i',p,'-vf',filt,'-frames:v','1','-f','image2pipe','-vcodec','mjpeg','-q:v','2','pipe:1'],capture_output=True,check=True)\nprint(base64.b64encode(r.stdout).decode())\nPY";
+    assert.equal(
+      suffix.text,
+      expectedSuffix,
+      "Temporal image diagnostic changed its read-only command",
+    );
+    const storeCalls: ts.CallExpression[] = [];
+    const gatherStores = (node: ts.Node) => {
+      if (
+        ts.isCallExpression(node) &&
+        ts.isIdentifier(node.expression) &&
+        node.expression.text === "store"
+      )
+        storeCalls.push(node);
+      ts.forEachChild(node, gatherStores);
+    };
+    gatherStores(source);
+    const storeKey = storeCalls[0]?.arguments[0];
+    assert.ok(
+      storeCalls.length === 1 &&
+        storeKey &&
+        ts.isBinaryExpression(storeKey) &&
+        storeKey.operatorToken.kind === ts.SyntaxKind.PlusToken &&
+        ts.isStringLiteral(storeKey.left) &&
+        /^[a-z][a-zA-Z0-9-]{0,31}$/u.test(storeKey.left.text),
+    );
+    const cacheKey = storeKey.left.getText(source);
+    const execute =
+      "tools.exec_command({cmd,max_output_tokens:150000,yield_time_ms:10000})";
+    const returnResult =
+      callback.body.statements.length === 2
+        ? `return{g,r:await ${execute}};`
+        : `const r=await ${execute};return{g,r};`;
+    const expected = ts.createSourceFile(
+      "temporal-images.ts",
+      `${groupsDeclaration.getText(source)}
+const results=await Promise.allSettled(groups.map(async(g)=>{const cmd=${prefix.getText(source)}+JSON.stringify(g)+${suffix.getText(source)};${returnResult}}));
+for(let i=0;i<results.length;i++){const item=results[i];if(item.status!=="fulfilled"){text(item);continue;}const {g,r}=item.value;store(${cacheKey}+i,r);text({frames:g,exit_code:r.exit_code,session_id:r.session_id});if(r.exit_code===0)image({image_url:"data:image/jpeg;base64,"+r.output.trim(),detail:"original"});else text(r);}`,
+      ts.ScriptTarget.Latest,
+      true,
+    );
+    const shape = (node: ts.Node): unknown => {
+      const children: unknown[] = [];
+      ts.forEachChild(node, (child) => {
+        children.push(shape(child));
+      });
+      return [
+        node.kind,
+        ts.isIdentifier(node) ||
+        ts.isStringLiteralLike(node) ||
+        ts.isNumericLiteral(node)
+          ? node.text
+          : null,
+        children,
+      ];
+    };
+    assert.ok(
+      JSON.stringify(shape(source)) === JSON.stringify(shape(expected)),
+      "Temporal image diagnostic source changed its bounded forwarding",
+    );
+    const blocks = object(trace.records[output.index]!.payload).output;
+    assert.ok(Array.isArray(blocks));
+    assert.equal(blocks.length, 1 + 2 * groups.length);
+    assert.match(
+      String(object(blocks[0]).text),
+      /^Script completed\nWall time \d+(?:\.\d+)? seconds\nOutput:\n$/u,
+    );
+    const turnId = object(
+      object(trace.records[call.index]!.payload)
+        .internal_chat_message_metadata_passthrough,
+    ).turn_id;
+    assert.equal(typeof turnId, "string");
+    const launchAt = time(trace.records[call.index]!.timestamp);
+    const commands = rows
+      .map((row, index) => ({
+        row,
+        index,
+        params: object(row.params),
+        item: object(object(row.params).item),
+      }))
+      .filter(
+        ({ row, params, item }) =>
+          ["item/started", "item/completed"].includes(String(row.method)) &&
+          params.threadId === input.sessionId &&
+          params.turnId === turnId &&
+          item.type === "commandExecution" &&
+          (row.method === "item/started"
+            ? Number(params.startedAtMs)
+            : Number(params.completedAtMs)) >= launchAt &&
+          (row.method === "item/started"
+            ? Number(params.startedAtMs)
+            : Number(params.completedAtMs)) <= output.timestamp,
+      );
+    assert.equal(
+      commands.length,
+      2 * groups.length,
+      "Temporal image diagnostic needs its complete original UI inventory",
+    );
+    for (const [index, group] of groups.entries()) {
+      const command = prefix.text + JSON.stringify(group) + suffix.text;
+      const entries = commands.filter(
+        ({ item }) => shellBody(String(item.command)) === command,
+      );
+      const starts = entries.filter(({ row }) => row.method === "item/started"),
+        ends = entries.filter(({ row }) => row.method === "item/completed");
+      assert.equal(starts.length, 1);
+      assert.equal(ends.length, 1);
+      const start = starts[0]!,
+        end = ends[0]!;
+      assert.ok(start.index < end.index);
+      for (const entry of [start, end]) {
+        assert.equal(entry.item.cwd, input.workspace);
+        assert.equal(entry.item.id, start.item.id);
+        assert.equal(
+          String(entry.item.processId),
+          String(start.item.processId),
+        );
+      }
+      assert.equal(start.item.status, "inProgress");
+      assert.equal(end.item.status, "completed");
+      assert.equal(end.item.exitCode, 0);
+      assert.ok(
+        Number(start.params.startedAtMs) <= Number(end.params.completedAtMs) &&
+          Number(end.params.completedAtMs) - Number(start.params.startedAtMs) <=
+            10000,
+      );
+      const stdout = commandStdout(end.item);
+      const deltas = rows
+        .map((row, ordinal) => ({ row, ordinal, params: object(row.params) }))
+        .filter(
+          ({ row, params }) =>
+            row.method === "item/commandExecution/outputDelta" &&
+            params.itemId === start.item.id,
+        );
+      for (const delta of deltas) {
+        assert.ok(start.index < delta.ordinal && delta.ordinal < end.index);
+        assert.equal(delta.params.threadId, input.sessionId);
+        assert.equal(delta.params.turnId, turnId);
+      }
+      assert.equal(
+        deltas.map(({ params }) => z.string().parse(params.delta)).join(""),
+        stdout,
+      );
+      assert.equal(object(blocks[1 + 2 * index]).type, "input_text");
+      assert.deepEqual(JSON.parse(String(object(blocks[1 + 2 * index]).text)), {
+        frames: group,
+        exit_code: 0,
+      });
+      const image = object(blocks[2 + 2 * index]);
+      assert.equal(image.type, "input_image");
+      assert.match(stdout.trim(), /^[A-Za-z0-9+/]+={0,2}$/u);
+      assert.equal(
+        image.image_url,
+        "data:image/jpeg;base64," + stdout.trim(),
+        "Temporal image diagnostic differs from original UI bytes",
+      );
+      owners.push({
+        item: end.item,
+        owner: JSON.stringify(["temporal-image", output.callId, index]),
+      });
+    }
+    proofs.set(output.index, outerFailureChecksum(trace, output.index));
+  }
+  return { proofs, owners };
 };
 
 type SynchronousInvocation = {
@@ -3259,10 +3856,21 @@ const synchronousInvocations = (
         ts.isCallExpression(call) &&
         call.arguments[0] === callback &&
         ts.isPropertyAccessExpression(call.expression) &&
-        call.expression.name.text === "map";
+        ["map", "flatMap"].includes(call.expression.name.text);
+      const formatter =
+        ts.isArrowFunction(callback) &&
+        ts.isVariableDeclaration(call) &&
+        call.initializer === callback &&
+        ts.isVariableDeclarationList(call.parent) &&
+        !!(call.parent.flags & ts.NodeFlags.Const) &&
+        callback.parameters.length === 1;
       gatherBinding(
         node.name,
-        mapped ? call.expression.expression : undefined,
+        mapped
+          ? call.expression.expression
+          : formatter
+            ? ts.factory.createStringLiteral("")
+            : undefined,
         true,
       );
     }
@@ -3479,10 +4087,11 @@ const synchronousInvocations = (
     "JSON",
     "String",
     "Math",
+    "Set",
     "undefined",
     "Error",
   ]);
-  type DataKind = "data" | "array" | "object" | "string" | "scalar";
+  type DataKind = "data" | "array" | "object" | "string" | "scalar" | "set";
   // A bound name does not prove it is callable. Outside the exact native
   // result regions, only serialized authoring values and pure data calls may
   // supply members; custom helpers, methods, and closures remain unproven.
@@ -3506,6 +4115,21 @@ const synchronousInvocations = (
       const value = data(binding.initializer, new Set([...seen, node.text]));
       return value && (binding.projected ? "data" : value);
     }
+    if (ts.isSpreadElement(node)) {
+      const value = read(node.expression);
+      return value && ["array", "data", "set"].includes(value)
+        ? "data"
+        : undefined;
+    }
+    if (
+      ts.isNewExpression(node) &&
+      ts.isIdentifier(node.expression) &&
+      node.expression.text === "Set" &&
+      !bindings.has("Set") &&
+      node.arguments?.length === 1 &&
+      ["data", "array"].includes(read(node.arguments[0]!) ?? "")
+    )
+      return "set";
     if (ts.isArrayLiteralExpression(node))
       return node.elements.every((value) => read(value)) ? "array" : undefined;
     if (ts.isObjectLiteralExpression(node))
@@ -3561,6 +4185,15 @@ const synchronousInvocations = (
         ts.isStringLiteral(args[0]!)
       )
         return "data";
+      const formatter = dataBindings.get(callee.text)?.initializer;
+      if (
+        formatter &&
+        ts.isArrowFunction(formatter) &&
+        pureFormatter(formatter, seen) &&
+        args.length === 1 &&
+        read(args[0]!)
+      )
+        return "string";
       return callee.text === "String" &&
         args.length <= 1 &&
         args.every((value) => read(value))
@@ -3582,15 +4215,24 @@ const synchronousInvocations = (
           : undefined;
     const receiver = read(callee.expression);
     if (
-      callee.name.text === "map" &&
+      ["map", "flatMap"].includes(callee.name.text) &&
       (receiver === "data" || receiver === "array") &&
       args.length === 1 &&
-      ts.isArrowFunction(args[0]!) &&
-      !args[0]!.modifiers?.some(
-        (modifier) => modifier.kind === ts.SyntaxKind.AsyncKeyword,
-      ) &&
-      !ts.isBlock(args[0]!.body) &&
-      read(args[0]!.body)
+      ((ts.isArrowFunction(args[0]!) &&
+        !args[0]!.modifiers?.some(
+          (modifier) => modifier.kind === ts.SyntaxKind.AsyncKeyword,
+        ) &&
+        !ts.isBlock(args[0]!.body) &&
+        read(args[0]!.body)) ||
+        (ts.isIdentifier(args[0]!) &&
+          (() => {
+            const formatter = dataBindings.get(args[0]!.text)?.initializer;
+            return (
+              formatter &&
+              ts.isArrowFunction(formatter) &&
+              pureFormatter(formatter, seen)
+            );
+          })()))
     )
       return "array";
     if (!args.every((value) => read(value))) return undefined;
@@ -3614,6 +4256,28 @@ const synchronousInvocations = (
       return "scalar";
     return undefined;
   };
+  // A const scalar formatter can only construct a string from serialized data.
+  // It cannot carry a native result, launch tools, or supply a callable member.
+  const pureFormatter = (node: ts.ArrowFunction, seen = new Set<string>()) => {
+    const declaration = node.parent;
+    return (
+      ts.isVariableDeclaration(declaration) &&
+      declaration.initializer === node &&
+      ts.isIdentifier(declaration.name) &&
+      !seen.has(declaration.name.text) &&
+      ts.isVariableDeclarationList(declaration.parent) &&
+      !!(declaration.parent.flags & ts.NodeFlags.Const) &&
+      !node.modifiers?.some(
+        (modifier) => modifier.kind === ts.SyntaxKind.AsyncKeyword,
+      ) &&
+      node.parameters.length === 1 &&
+      ts.isIdentifier(node.parameters[0]!.name) &&
+      !node.parameters[0]!.initializer &&
+      !node.parameters[0]!.dotDotDotToken &&
+      !ts.isBlock(node.body) &&
+      data(node.body, new Set([...seen, declaration.name.text])) === "string"
+    );
+  };
   let valid = true;
   const visit = (node: ts.Node) => {
     const inRegion = regions.some(
@@ -3627,10 +4291,25 @@ const synchronousInvocations = (
         ts.isMethodDeclaration(node) ||
         ts.isGetAccessorDeclaration(node) ||
         ts.isSetAccessorDeclaration(node) ||
-        ts.isDeleteExpression(node) ||
+        (ts.isDeleteExpression(node) &&
+          !(
+            ts.isExpressionStatement(node.parent) &&
+            ts.isPropertyAccessExpression(node.expression) &&
+            node.expression.questionDotToken === undefined &&
+            data(node.expression.expression) === "data"
+          )) ||
         (ts.isBinaryExpression(node) &&
           node.operatorToken.kind >= ts.SyntaxKind.FirstAssignment &&
-          node.operatorToken.kind <= ts.SyntaxKind.LastAssignment) ||
+          node.operatorToken.kind <= ts.SyntaxKind.LastAssignment &&
+          !(
+            node.operatorToken.kind === ts.SyntaxKind.EqualsToken &&
+            ts.isExpressionStatement(node.parent) &&
+            node.parent.parent === source &&
+            ts.isPropertyAccessExpression(node.left) &&
+            !node.left.questionDotToken &&
+            ["data", "object"].includes(data(node.left.expression) ?? "") &&
+            data(node.right)
+          )) ||
         ((ts.isForOfStatement(node) || ts.isForInStatement(node)) &&
           !ts.isVariableDeclarationList(node.initializer)) ||
         ((ts.isPrefixUnaryExpression(node) ||
@@ -3639,11 +4318,13 @@ const synchronousInvocations = (
             node.operator,
           )) ||
         (ts.isArrowFunction(node) &&
-          !(ts.isCallExpression(node.parent) && data(node.parent))) ||
+          !(ts.isCallExpression(node.parent) && data(node.parent)) &&
+          !pureFormatter(node)) ||
         (ts.isNewExpression(node) &&
           !(
             ts.isIdentifier(node.expression) && node.expression.text === "Error"
-          ))
+          ) &&
+          !data(node))
       )
         valid = false;
       if (ts.isCallExpression(node)) {
@@ -3718,19 +4399,23 @@ const synchronousInvocations = (
             ? direct
             : node.text === "Error"
               ? ts.isNewExpression(parent) && parent.expression === node
-              : node.text === "undefined"
-                ? ts.isBinaryExpression(parent) &&
-                  parent.right === node &&
-                  parent.operatorToken.kind ===
-                    ts.SyntaxKind.ExclamationEqualsEqualsToken
-                : member &&
-                  (node.text === "tools"
-                    ? ["exec_command", "write_stdin", "apply_patch"].includes(
-                        parent.name.text,
-                      )
-                    : node.text === "JSON"
-                      ? ["parse", "stringify"].includes(parent.name.text)
-                      : node.text === "Math");
+              : node.text === "Set"
+                ? ts.isNewExpression(parent) &&
+                  parent.expression === node &&
+                  !!data(parent)
+                : node.text === "undefined"
+                  ? ts.isBinaryExpression(parent) &&
+                    parent.right === node &&
+                    parent.operatorToken.kind ===
+                      ts.SyntaxKind.ExclamationEqualsEqualsToken
+                  : member &&
+                    (node.text === "tools"
+                      ? ["exec_command", "write_stdin", "apply_patch"].includes(
+                          parent.name.text,
+                        )
+                      : node.text === "JSON"
+                        ? ["parse", "stringify"].includes(parent.name.text)
+                        : node.text === "Math");
           if (!accepted) valid = false;
         } else if (!bindings.has(node.text)) valid = false;
       }
@@ -4353,6 +5038,93 @@ const orderedNativeInvocations = (call: {
   return invocations.length > 1 ? invocations : null;
 };
 
+// Sequential diagnostic calls may end in pure summaries of the serialized
+// store. Every command still owns its original complete wrapper; summary rows
+// are counted from the source and never interpreted as process results.
+const orderedDiagnosticCalls = (call: { name: string; arguments: string }) => {
+  if (!/(?:^|[._])exec$/u.test(call.name)) return null;
+  const source = outerSource(call);
+  const invocations: OrderedInvocation[] = [];
+  let index = 0;
+  for (const statement of source.statements) {
+    if (
+      !ts.isExpressionStatement(statement) ||
+      !ts.isCallExpression(statement.expression) ||
+      !ts.isIdentifier(statement.expression.expression) ||
+      statement.expression.expression.text !== "text" ||
+      statement.expression.arguments.length !== 1 ||
+      !ts.isAwaitExpression(statement.expression.arguments[0]!)
+    )
+      break;
+    const native = statement.expression.arguments[0].expression;
+    if (
+      !ts.isCallExpression(native) ||
+      !ts.isPropertyAccessExpression(native.expression) ||
+      !ts.isIdentifier(native.expression.expression) ||
+      native.expression.expression.text !== "tools" ||
+      native.expression.name.text !== "exec_command" ||
+      native.arguments.length !== 1 ||
+      !ts.isObjectLiteralExpression(native.arguments[0]!) ||
+      !nativeLiteral(native.arguments[0]!)
+    )
+      return null;
+    const operations = nativeOperations({
+      name: "exec",
+      arguments: statement.getText(source),
+    });
+    const operation = operations[0];
+    if (
+      operations.length !== 1 ||
+      !operation ||
+      operation.kind !== "exec" ||
+      !operation.command ||
+      /[`$;&|\r\n]/u.test(operation.command) ||
+      /\bnpm\s+run\s+project:(?:create|revise|produce:prepare|produce:continue)(?=\s|$)/u.test(
+        operation.command,
+      )
+    )
+      return null;
+    invocations.push({ operation, throwsOnFailure: false });
+    index++;
+  }
+  if (invocations.length < 2 || index === source.statements.length) return null;
+  const tail = source.statements.slice(index);
+  let summaryCount = 0,
+    usesTools = false;
+  const inspect = (node: ts.Node) => {
+    if (ts.isIdentifier(node) && node.text === "tools") usesTools = true;
+    ts.forEachChild(node, inspect);
+  };
+  for (const statement of tail) {
+    if (
+      ts.isVariableStatement(statement) &&
+      statement.declarationList.flags & ts.NodeFlags.Const
+    ) {
+      inspect(statement);
+      continue;
+    }
+    if (
+      !ts.isExpressionStatement(statement) ||
+      !ts.isCallExpression(statement.expression) ||
+      !ts.isIdentifier(statement.expression.expression) ||
+      !["store", "text"].includes(statement.expression.expression.text)
+    )
+      return null;
+    if (statement.expression.expression.text === "text") summaryCount++;
+    inspect(statement);
+  }
+  if (
+    usesTools ||
+    !summaryCount ||
+    !readOnlyDiagnostic({
+      name: "exec",
+      arguments: tail.map((node) => node.getText(source)).join("\n"),
+    })
+  )
+    return null;
+  return { invocations, summaryCount };
+};
+
 type SynchronousProof = Array<{
   operation: NativeOperation;
   wrapper: Row;
@@ -4467,6 +5239,7 @@ const readOnlyDiagnostic = (call: { name: string; arguments: string }) => {
     "load",
     "image",
     "String",
+    "Object",
     "JSON",
     "Promise",
     "Error",
@@ -4612,7 +5385,9 @@ const readOnlyDiagnostic = (call: { name: string; arguments: string }) => {
       return read(node.expression)
         ? node.name.text === "length"
           ? "number"
-          : "data"
+          : node.name.text === "output" && fromSerializedStore(node)
+            ? "string"
+            : "data"
         : undefined;
     if (ts.isElementAccessExpression(node))
       return read(node.expression) && read(node.argumentExpression)
@@ -4661,6 +5436,13 @@ const readOnlyDiagnostic = (call: { name: string; arguments: string }) => {
     }
     if (!ts.isPropertyAccessExpression(callee)) return undefined;
     if (ts.isIdentifier(callee.expression)) {
+      if (
+        callee.expression.text === "Object" &&
+        ["keys", "values", "entries"].includes(callee.name.text) &&
+        args.length === 1 &&
+        ["data", "object"].includes(read(args[0]!) ?? "")
+      )
+        return "array";
       if (callee.expression.text === "tools") {
         if (
           callee.name.text === "view_image" &&
@@ -4714,6 +5496,13 @@ const readOnlyDiagnostic = (call: { name: string; arguments: string }) => {
     )
       return "array";
     if (!args.every((value) => read(value))) return undefined;
+    if (
+      callee.name.text === "includes" &&
+      ["array", "string"].includes(receiver ?? "") &&
+      args.length >= 1 &&
+      args.length <= 2
+    )
+      return "scalar";
     if (callee.name.text === "join" && receiver === "array" && args.length <= 1)
       return "string";
     if (
@@ -4835,6 +5624,7 @@ const readOnlyDiagnostic = (call: { name: string; arguments: string }) => {
 const unchangedNativeForwarding = (
   call: { name: string; arguments: string },
   cwd: string,
+  failure?: { point: number; message: string },
 ) => {
   const operations = nativeOperations(call);
   if (!/(?:^|[._])exec$/u.test(call.name))
@@ -4849,21 +5639,11 @@ const unchangedNativeForwarding = (
       operations[0]!.kind !== "cell" &&
       operations[0]!.selfDraining) ||
     orderedNativeInvocations(call) ||
+    orderedDiagnosticCalls(call) ||
     synchronousInvocations(call, cwd)
   )
     return true;
-  let input: Row;
-  try {
-    input = object(JSON.parse(call.arguments));
-  } catch {
-    input = { code: call.arguments };
-  }
-  const source = ts.createSourceFile(
-    "native-original-forwarding.ts",
-    String(input.code ?? ""),
-    ts.ScriptTarget.Latest,
-    true,
-  );
+  const source = outerSource(call);
   const literalCall = (node: ts.Node | undefined) =>
     node &&
     ts.isAwaitExpression(node) &&
@@ -4886,6 +5666,80 @@ const unchangedNativeForwarding = (
     node.expression.arguments.length === 1
       ? node.expression.arguments[0]
       : undefined;
+  const first = source.statements[0];
+  if (
+    operations.length === 1 &&
+    first &&
+    ts.isVariableStatement(first) &&
+    first.declarationList.flags & ts.NodeFlags.Const &&
+    first.declarationList.declarations.length === 1
+  ) {
+    const binding = first.declarationList.declarations[0]!;
+    if (
+      ts.isIdentifier(binding.name) &&
+      binding.initializer &&
+      literalCall(binding.initializer)
+    ) {
+      const name = binding.name.text;
+      const original = (node: ts.Node | undefined) =>
+        node && ts.isIdentifier(node) && node.text === name;
+      const normalized =
+        source.text.slice(0, binding.initializer.getStart(source)) +
+        'load("native-forwarded-result")' +
+        source.text.slice(binding.initializer.end);
+      if (readOnlyDiagnostic({ name: "exec", arguments: normalized })) {
+        if (original(printed(source.statements[1]))) return true;
+        if (failure) {
+          const index = source.statements.findIndex(ts.isIfStatement);
+          const guard = source.statements[index];
+          if (
+            guard &&
+            ts.isIfStatement(guard) &&
+            !guard.elseStatement &&
+            ts.isBinaryExpression(guard.expression) &&
+            guard.expression.operatorToken.kind ===
+              ts.SyntaxKind.ExclamationEqualsEqualsToken &&
+            ts.isPropertyAccessExpression(guard.expression.left) &&
+            guard.expression.left.name.text === "exit_code" &&
+            original(guard.expression.left.expression) &&
+            ts.isNumericLiteral(guard.expression.right) &&
+            guard.expression.right.text === "0" &&
+            ts.isBlock(guard.thenStatement) &&
+            guard.thenStatement.statements.length === 2
+          ) {
+            const [print, thrown] = guard.thenStatement.statements;
+            if (
+              original(printed(print)) &&
+              thrown &&
+              ts.isThrowStatement(thrown) &&
+              thrown.expression &&
+              ts.isNewExpression(thrown.expression) &&
+              ts.isIdentifier(thrown.expression.expression) &&
+              thrown.expression.expression.text === "Error" &&
+              thrown.expression.arguments?.length === 1 &&
+              ts.isStringLiteral(thrown.expression.arguments[0]!) &&
+              thrown.expression.arguments[0]!.text === failure.message &&
+              thrown.expression.getStart(source) <= failure.point &&
+              failure.point < thrown.expression.end &&
+              source.statements
+                .slice(1, index)
+                .every(
+                  (node) =>
+                    ts.isExpressionStatement(node) &&
+                    ts.isCallExpression(node.expression) &&
+                    ts.isIdentifier(node.expression.expression) &&
+                    node.expression.expression.text === "store" &&
+                    node.expression.arguments.length === 2 &&
+                    ts.isStringLiteral(node.expression.arguments[0]!) &&
+                    original(node.expression.arguments[1]),
+                )
+            )
+              return true;
+          }
+        }
+      }
+    }
+  }
   // Direct text(await exec) has the same immutable forwarding as a const
   // launch plus text(binding). Give the existing authoring proof that region;
   // pure tool metadata and patch returns remain separate diagnostics.
@@ -5004,12 +5858,13 @@ const proveSynchronousInvocations = (
   }> = [];
   const used = new Set<string>();
   for (const output of commandOutputs(trace)) {
+    if (discardedOuterProofs.get(trace)?.has(output.index)) continue;
     const call = trace.calls.get(output.callId)!;
     const operations = nativeOperations(call);
     if (operations.length === 0 && /(?:^|[._])exec$/u.test(call.name)) {
       assert.ok(
         readOnlyDiagnostic(call),
-        "Code-mode output needs a read-only native diagnostic origin",
+        `Code-mode output needs a read-only native diagnostic origin (${output.callId})`,
       );
       const raw = object(trace.records[output.index]!.payload);
       const blocks = raw.output ?? raw.content;
@@ -5302,7 +6157,7 @@ const proveSynchronousInvocations = (
     const provisional = { ...trace };
     const indexed = indexedNativeOriginals.get(trace);
     if (indexed) indexedNativeOriginals.set(provisional, indexed);
-    unstartedOuterProofs.set(provisional, unstartedOuterProofs.get(trace)!);
+    discardedOuterProofs.set(provisional, discardedOuterProofs.get(trace)!);
     rememberSynchronousProofs(provisional, new Map(proofs));
     const original = commandOrigins(provisional);
     for (const { launched, began, start, end } of priorProcesses) {
@@ -5425,6 +6280,7 @@ function commandOrigins(trace: ReturnType<typeof nativeTrace>) {
       invocations: OrderedInvocation[];
       next: number;
       processes: Map<number, string>;
+      diagnosticTailCount?: number;
     };
   };
   const cells = new Map<string, Owner>();
@@ -5444,7 +6300,7 @@ function commandOrigins(trace: ReturnType<typeof nativeTrace>) {
           stdout: "",
           objects: [] as Row[],
         };
-      const failure = unstartedOuterProofs.get(trace)?.get(output.index);
+      const failure = discardedOuterProofs.get(trace)?.get(output.index);
       if (failure !== undefined) {
         assert.equal(
           outerFailureChecksum(trace, output.index),
@@ -5570,8 +6426,11 @@ function commandOrigins(trace: ReturnType<typeof nativeTrace>) {
       );
       if (!owner && operation?.kind === "cell")
         owner = cells.get(operation.handle ?? "");
+      const diagnostic = orderedDiagnosticCalls(call);
       const ordered =
-        owner?.sequence?.invocations ?? orderedNativeInvocations(call);
+        owner?.sequence?.invocations ??
+        orderedNativeInvocations(call) ??
+        diagnostic?.invocations;
       if (ordered) {
         if (!owner) {
           const first = ordered[0]!.operation;
@@ -5588,6 +6447,9 @@ function commandOrigins(trace: ReturnType<typeof nativeTrace>) {
               invocations: ordered,
               next: 0,
               processes: new Map(),
+              ...(diagnostic
+                ? { diagnosticTailCount: diagnostic.summaryCount }
+                : {}),
             },
           };
         }
@@ -5605,7 +6467,19 @@ function commandOrigins(trace: ReturnType<typeof nativeTrace>) {
           ].map((match) => match[1]!),
         );
         assert.ok(running.length <= 1, "Ambiguous native cell result");
-        const wrappers = forwardedNativeWrappers(nativeTexts);
+        let resultTexts = nativeTexts;
+        if (sequence.diagnosticTailCount) {
+          assert.equal(
+            running.length,
+            0,
+            "Sequential diagnostic summaries need a completed original cell",
+          );
+          const summaries = nativeTexts.slice(-sequence.diagnosticTailCount);
+          assert.equal(summaries.length, sequence.diagnosticTailCount);
+          for (const summary of summaries) JSON.parse(summary);
+          resultTexts = nativeTexts.slice(0, -sequence.diagnosticTailCount);
+        }
+        const wrappers = forwardedNativeWrappers(resultTexts);
         const results = wrappers.map((wrapper) => {
           const ordinal = sequence.next;
           const invocation = sequence.invocations[ordinal];
@@ -5931,7 +6805,7 @@ function commandOrigins(trace: ReturnType<typeof nativeTrace>) {
         }
         assert.ok(
           (pending.length === 0 || selfDraining) && cell.length === 0,
-          "A completed native process cannot retain a running handle",
+          `A completed native process cannot retain a running handle (${output.callId})`,
         );
         if (owner.operation.kind === "process")
           processes.delete(owner.operation.handle!);
@@ -6094,8 +6968,11 @@ export function authenticateCodexCommands(
     .trim()
     .split("\n")
     .map((line) => object(JSON.parse(line)));
-  const failedOuter = proveUnstartedOuterFailures(trace, input, rows);
-  unstartedOuterProofs.set(trace, failedOuter.proofs);
+  const failedOuter = proveOuterFailures(trace, input, rows);
+  const temporalImages = proveTemporalImageDiagnostics(trace, input, rows);
+  for (const [index, proof] of temporalImages.proofs)
+    failedOuter.proofs.set(index, proof);
+  discardedOuterProofs.set(trace, failedOuter.proofs);
   indexedNativeOriginals.set(trace, {
     input: Object.freeze({ ...input }),
     checksum: nativeProjectionChecksum(trace),
@@ -6156,6 +7033,8 @@ export function authenticateCodexCommands(
     }
   };
   const owners = new Map<(typeof native)[number], string>();
+  for (const diagnostic of temporalImages.owners)
+    claimUiOwner(diagnostic.item, diagnostic.owner);
   const launches = new Map<string, { owner: string; callId: string }>();
   const forwarding = new Set<string>();
   for (const result of native) {
@@ -6168,10 +7047,36 @@ export function authenticateCodexCommands(
     for (const callId of new Set([result.callId, result.originCallId])) {
       if (forwarding.has(callId)) continue;
       const call = trace.calls.get(callId)!;
+      let failure: { point: number; message: string } | undefined;
+      if (callId === result.callId) {
+        const raw = object(trace.records[result.index]!.payload).output;
+        if (
+          Array.isArray(raw) &&
+          String(object(raw[0]).text).startsWith("Script failed\n")
+        ) {
+          const error = raw
+            .map((block) => String(object(block).text))
+            .find((value) => value.startsWith("Script error:\n"));
+          const stack =
+            /^Script error:\nError: ([^\n]+)\n\s+at exec_main\.mjs:(\d+):(\d+)$/u.exec(
+              error ?? "",
+            );
+          if (stack) {
+            const source = outerSource(call);
+            const starts = source.getLineStarts();
+            const start = starts[Number(stack[2]) - 1];
+            if (start !== undefined)
+              failure = {
+                point: start + Number(stack[3]) - 1,
+                message: stack[1]!,
+              };
+          }
+        }
+      }
       assert.ok(
         "indexedBatch" in result ||
           "parallelBatch" in result ||
-          unchangedNativeForwarding(call, input.workspace),
+          unchangedNativeForwarding(call, input.workspace, failure),
         `Native source needs its unchanged literal forwarding (${callId})`,
       );
       forwarding.add(callId);
@@ -6709,7 +7614,7 @@ export function authenticateCodexCommands(
     input: Object.freeze({ ...input }),
     checksum: nativeProjectionChecksum(authenticated),
   });
-  unstartedOuterProofs.set(authenticated, failedOuter.proofs);
+  discardedOuterProofs.set(authenticated, failedOuter.proofs);
   rememberSynchronousProofs(authenticated, synchronous, true);
   return {
     trace: authenticated,

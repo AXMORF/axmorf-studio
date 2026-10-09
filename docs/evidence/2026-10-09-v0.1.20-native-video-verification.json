@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "kind": "fresh-candidate-independent-video-verification",
+  "packageVersion": "0.1.20",
+  "storyId": "little-inventions-motion",
+  "revisionId": "revision-07cd11fdab3fc6c1fe7939070cc8a2ba8b8f531dcff836a50863902333783cc3",
+  "deliveryBuildId": "delivery-fe5349ded1df250551363f5d0bedfa840a13591424f9bb85930bf99327ebc055",
+  "production": {
+    "status": "project-production-complete",
+    "exactFiles": [
+      "video.mp4",
+      "cover-4x3.png",
+      "cover-3x4.png",
+      "publish.json"
+    ],
+    "sceneOwners": 6,
+    "authoredFrames": true,
+    "providerCalls": 0,
+    "finalChecks": {
+      "pass": 7,
+      "total": 7
+    }
+  },
+  "media": {
+    "schemaVersion": 1,
+    "kind": "independent-controller-media-inspection",
+    "storyId": "little-inventions-motion",
+    "revisionId": "revision-07cd11fdab3fc6c1fe7939070cc8a2ba8b8f531dcff836a50863902333783cc3",
+    "deliveryBuildId": "delivery-fe5349ded1df250551363f5d0bedfa840a13591424f9bb85930bf99327ebc055",
+    "checksum": "sha256:02ff7893f1951137731ce8e1c306d90d7166f27add106ab74b00db2a1d93300d",
+    "sizeBytes": 6739646,
+    "width": 1280,
+    "height": 720,
+    "fps": "30/1",
+    "frameCount": 1200,
+    "duration": 40,
+    "videoCodec": "h264",
+    "audioCodec": "aac",
+    "audioChannels": 2,
+    "eofDecode": true,
+    "audio": {
+      "decodedSampleFrames": 1920000,
+      "peakLinear": 0.11707453429698944,
+      "peakDbfs": -18.630751221872156,
+      "rmsDbfs": -44.24728175110155,
+      "clippedSampleCount": 0,
+      "scope": "Decoded AAC sample metrics only; no subjective listening certification."
+    },
+    "verifiedAt": "2026-10-08T21:33:52.182Z"
+  },
+  "browserReview": {
+    "muted": true,
+    "ended": true,
+    "duration": 40,
+    "currentTime": 40,
+    "error": null,
+    "quality": {
+      "totalVideoFrames": 1200,
+      "droppedVideoFrames": 43,
+      "corruptedVideoFrames": 0
+    },
+    "temporalFramesActuallyViewed": 80,
+    "contactSheetsActuallyViewed": 6,
+    "officialCoversActuallyViewed": ["cover-4x3.png", "cover-3x4.png"],
+    "scope": "Sampled causal actions, camera changes, scene boundaries, text readability and cover composition. Browser reports dropped frames; continuous perceptual smoothness and subjective listening are not certified.",
+    "captureChecksum": "sha256:e0b64faafd3ff688031b767c1367300f7cbdc1066ce1ef6815ba056cd3918e55"
+  },
+  "originalRecords": "Private unmodified native sessions, app-server RPC, failed diagnostics and browser capture retained; no media or private host profiles committed.",
+  "verifiedAt": "2026-10-09T09:09:08.756Z"
+}

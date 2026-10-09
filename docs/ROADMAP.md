@@ -55,7 +55,10 @@ artifact-backed 草稿与参考节奏诊断已随 0.1.18 发布，保留唯一 p
 [合并后成片复验](evidence/2026-10-09-post-merge-video-verification.json)已完成 60 秒连续场景正式四文件交付、
 真实 H.264/AAC 双声道、1800 帧 EOF 与完整静音技术播放。另一个空 Workspace 的 40 秒六场景
 [原生首用](evidence/v0.1.19-first-use.json)已通过：四路 bound overlap、8 个独立创作 child、4 次补位、
-唯一 continuation 和正式四文件完成。候选包与生成指南未变，最终 1404 项测试和完整全仓检查通过，公开发布待完成；
+唯一 continuation 和正式四文件完成。候选包与生成指南未变，最终 1404 项测试和完整全仓检查通过。
+0.1.19 的发布 CI 因回归清单中的不存在路径失败，未发布包；原 tag 和成片证据保留，新的 0.1.20
+修正清单并重新冻结候选，[全新原生首用](evidence/v0.1.20-first-use.json)已通过，四路 bound overlap 为
+420.923 秒、8 个独立创作 child、4 次补位；新生成的 40 秒六场景成片及四文件已复验，公开发布待完成；
 主观听审、局部修订与稳定审美各保留自己的验证范围，既有 Project 不自动迁移。
 
 从 `foundation@e52d2a5` 开始的
@@ -66,7 +69,7 @@ Trusted Publisher 纯 OIDC 公开发布；package-owned shared Workspace media�
 [ITERATION_STATUS.md](ITERATION_STATUS.md) 与
 [v0.1.3 Mixkit bookend audio release](evidence/2026-09-05-v0.1.3-mixkit-bookend-audio-release.md) 维护。
 当前两包公开 latest 为 0.1.18，见 ITERATION_STATUS 和对应 v0.1.18-publication evidence；
-0.1.19 候选尚未公开，发布完成后以实际 registry 回读更新。
+0.1.19 发布尝试失败且标签保留，0.1.20 候选尚未公开；发布完成后以实际 registry 回读更新。
 
 当前用户入口是 README 的“快速开始”，或者复制一句 Agent prompt，让 Agent 根据项目最新 README 在指定
 路径完成 Workspace 搭建与可用性验收。Workspace ready 后，generated README 的独立视频 prompt 才负责接收创作需求。
