@@ -1,6 +1,6 @@
 # Iteration Status
 
-## 0.1.20 候选验收（2026-10-09，成片和原生首用通过，发布待完成）
+## 当前发布：0.1.20（2026-10-09，成片、原生首用和公开安装通过）
 
 0.1.19 已通过下方成片和原生首用验收，但发布 CI 的回归清单包含一个不存在的测试文件，
 在 publish 前以 ENOENT 终止，两个包都未发布。保留原标签 `v0.1.19`、源码和
@@ -18,7 +18,16 @@ JSON 作者输入、原样 stdout 累积、诊断摘要与逐时图片来源校�
 类型/lint/构建/宿主检查、包发行准备和零漏洞审计通过，重新打包的内容及 tarball bytes 与验收候选一致。
 早期 fixture 类型错误与两组大检查同时运行的诊断超时保留；31 项诊断单独复验及最终完整检查通过，未改测试门槛。
 见[源码与包复验](evidence/v0.1.20-source-verification.json)。66 个真实测试文件的精确发布回归为 627/627 通过，
-零失败/skip。公开发布与 registry 回读待完成，公开两包 latest 仍为 0.1.18。
+零失败/skip。
+
+不可变 `v0.1.20` 指向默认分支已推送提交 `e6b5408`。两个官方 npm 包的 `latest` 已回读为 0.1.20，
+[发布 CI](https://github.com/AXMORF/axmorf-studio/actions/runs/37920395999) 与
+[GitHub Release](https://github.com/AXMORF/axmorf-studio/releases/tag/v0.1.20) 成功。
+Linux CI 全量 1411 项为 1409 pass、0 fail、2 项 Darwin 专属 skip；精确回归 627 项为 626 pass、
+0 fail、1 项 Darwin 专属 skip。类型/lint/构建、审计零漏洞、60 帧真实 H.264/AAC 双声道渲染与 EOF 通过。
+已下载 CI 归档，两个 CI tarball、公开包与成片验收候选逐 byte 一致，官方 provenance 对应同一源码、标签和工作流。
+全新公开 `npm create axmorf-studio@latest` 安装与 13 份指南比对、六项 doctor、compositions 均通过；
+公开安装后未重复原生制片，已验收成片使用的包 bytes 与公开包完全相同。见[发布记录](evidence/v0.1.20-publication.json)。
 
 ## 0.1.19 候选验证（2026-10-09，成片通过、发布 CI 失败）
 
@@ -62,7 +71,7 @@ start/terminal/visible bytes/output deltas 校验。新增回归覆盖缺失、�
 本次不复用 0.1.18 的旧首用证据；最终全仓检查已通过，未声明主观听审或稳定审美通过。
 该候选包的完整成片证据保留；发布尝试及其清单错误见上方，后续发布改用 0.1.20。
 
-## 当前发布：0.1.18（2026-10-08，两包 latest 已回读）
+## 0.1.18 已发布（2026-10-08，当时两包 latest 已回读）
 
 当前默认分支曾停在 0.1.16 的发布收口 `c3431f6`；0.1.17 标签与发布分支均保留，发布分支
 `axmorf/visual-narrative-quality` 的收口 `d323d69` 当时没有合回默认分支。本次将它与连续创作升级

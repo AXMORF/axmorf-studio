@@ -1,0 +1,248 @@
+{
+  "schemaVersion": 1,
+  "status": "published-public-installation-and-candidate-contents-verified",
+  "version": "0.1.20",
+  "verifiedAt": "2026-10-09T11:17:25.468Z",
+  "sourceCommit": "e6b54086b75f6212e1928ed1f4ce04cc44dc51fc",
+  "tag": "v0.1.20",
+  "tagObject": "64ee408f5409161ab8b64f1c234f778e20b64188",
+  "tagMovedAfterPublication": false,
+  "defaultBranch": "axmorf/npm-workspace-open-source",
+  "previousPublishedTag": "v0.1.18",
+  "previousUnpublishedTag": {
+    "tag": "v0.1.19",
+    "reason": "Release regression inventory referenced a nonexistent test; both npm publishes were skipped.",
+    "evidence": "v0.1.19-ci-failure.json",
+    "retained": true
+  },
+  "workflow": {
+    "path": ".github/workflows/npm-publish.yml",
+    "url": "https://github.com/AXMORF/axmorf-studio/actions/runs/37920395999",
+    "runId": 37920395999,
+    "attempt": 1,
+    "conclusion": "success",
+    "startedAt": "2026-10-09T10:53:49Z",
+    "completedAt": "2026-10-09T11:08:30Z",
+    "completeLogChecksum": "sha256:1286659b78f15a466574523cb4cde517e2691a5e61f8fe032fe6fdc729240829",
+    "artifact": {
+      "id": 11611648577,
+      "name": "npm-release-37920395999",
+      "reportedArchiveDigest": "sha256:aacbd20755cb3598651892735c3a01730a2f6fe5d4526e38b088e68f221a22c4",
+      "sizeBytes": 3863846,
+      "downloaded": true,
+      "packages": [
+        {
+          "role": "runtime",
+          "files": 291,
+          "fingerprint": "sha256:a7059170ad1c26039383f95bd14412e91ea3f8d176b3598e5fb40c6783d2dec0",
+          "tarballChecksum": "sha256:9541d298779060a7482797453b57b2b2dca6263dfb565278b189c77031919302",
+          "publishedBytesMatchCiTarball": true,
+          "candidateBytesMatchCiTarball": true
+        },
+        {
+          "role": "creator",
+          "files": 42,
+          "fingerprint": "sha256:78de5dc913898c3c669a50d808334aa0a590f7a3b7803d97b7caf854e05b3891",
+          "tarballChecksum": "sha256:0ceab2730c82bb4c2cd4043455003f4ad154f13a3a7013c6774478c5f23fc5e7",
+          "publishedBytesMatchCiTarball": true,
+          "candidateBytesMatchCiTarball": true
+        }
+      ],
+      "firstUseAndReleasePlanBytesMatchSource": true
+    }
+  },
+  "githubRelease": {
+    "url": "https://github.com/AXMORF/axmorf-studio/releases/tag/v0.1.20",
+    "draft": false,
+    "prerelease": false,
+    "publishedAt": "2026-10-09T11:13:52Z"
+  },
+  "packages": [
+    {
+      "role": "runtime",
+      "name": "@axmorf/studio",
+      "version": "0.1.20",
+      "latest": "0.1.20",
+      "files": 291,
+      "fingerprint": "sha256:a7059170ad1c26039383f95bd14412e91ea3f8d176b3598e5fb40c6783d2dec0",
+      "tarball": "https://registry.npmjs.org/@axmorf/studio/-/studio-0.1.20.tgz",
+      "integrity": "sha512-9l3TLJAPE4b1CQyF/8xr+YysHJ+WaqtupjLHHAe5RIeVgjYQMyDdITNttKULv+zUWrBTRyZbiYOQ/RBMffgEjw==",
+      "tarballChecksum": "sha256:9541d298779060a7482797453b57b2b2dca6263dfb565278b189c77031919302",
+      "candidateContentsMatchPublishedPackage": true,
+      "officialProvenanceSubjectAndSourceMatch": true,
+      "attestationChecksum": "sha256:ba1d73adaf25eaf8bed0a034c0546fd303d4bbca93bdcc2f9f0fc56d108d0723"
+    },
+    {
+      "role": "creator",
+      "name": "create-axmorf-studio",
+      "version": "0.1.20",
+      "latest": "0.1.20",
+      "files": 42,
+      "fingerprint": "sha256:78de5dc913898c3c669a50d808334aa0a590f7a3b7803d97b7caf854e05b3891",
+      "tarball": "https://registry.npmjs.org/create-axmorf-studio/-/create-axmorf-studio-0.1.20.tgz",
+      "integrity": "sha512-VPBEay1+doTSpqKewFWcBwYzx5QW+d0HtkohE0AOqnP2RMbE2Vr5Qyn/pqGxFOvb4+Cs0KjDk+VjcHnF+V5wAQ==",
+      "tarballChecksum": "sha256:0ceab2730c82bb4c2cd4043455003f4ad154f13a3a7013c6774478c5f23fc5e7",
+      "candidateContentsMatchPublishedPackage": true,
+      "officialProvenanceSubjectAndSourceMatch": true,
+      "attestationChecksum": "sha256:b1aba7f25fe3734188c7f6f06900be19f9ee7234fe32ed8a0f617963d62b842e"
+    }
+  ],
+  "officialProvenance": {
+    "status": "pass",
+    "sourceCommit": "e6b54086b75f6212e1928ed1f4ce04cc44dc51fc",
+    "tag": "v0.1.20",
+    "workflow": ".github/workflows/npm-publish.yml",
+    "runId": 37920395999,
+    "bothSubjectsMatchPublishedTarballs": true,
+    "verificationScope": "Official registry SLSA statements matched to published bytes, source, tag and workflow; no independent Sigstore signature verification claimed."
+  },
+  "acceptance": {
+    "mode": "fresh-native",
+    "gateStatus": "release-gate-passed",
+    "nativeFirstUseVerified": true,
+    "host": "codex",
+    "businessPrompts": 1,
+    "peakActiveChildren": 4,
+    "peakBoundTasks": 4,
+    "fourWayBoundOverlapMs": 420923,
+    "productionChildCount": 8,
+    "probeChildCount": 4,
+    "refillAdmissions": 4,
+    "continuationCalls": 1,
+    "pollingCalls": 0,
+    "receipt": "v0.1.20-first-use.json",
+    "receiptChecksum": "sha256:18314336e0f0fba8a234ff734fc4c51a3699967f4531cb34107af5f52692f14d",
+    "finalChecks": 7,
+    "finalAggregateStatus": "pass",
+    "video": {
+      "codec": "h264",
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "width": 1280,
+      "height": 720,
+      "fps": 30,
+      "frameCount": 1200
+    },
+    "filmVerification": "2026-10-09-v0.1.20-native-video-verification.json",
+    "continuousFilmVerification": "2026-10-09-post-merge-video-verification.json",
+    "subjectiveListeningAssessed": false,
+    "continuousPerceptualSmoothnessCertified": false
+  },
+  "checks": {
+    "localSourceVerification": "v0.1.20-source-verification.json",
+    "localCompleteTests": {
+      "tests": 1411,
+      "pass": 1411,
+      "fail": 0,
+      "skipped": 0
+    },
+    "localScopedTests": {
+      "tests": 627,
+      "pass": 627,
+      "fail": 0,
+      "skipped": 0
+    },
+    "ci": {
+      "node": "24.16.0",
+      "completeRepositoryTests": {
+        "tests": 1411,
+        "pass": 1409,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 2,
+        "skipReasons": [
+          "public creator lock binds npm's Darwin tmp alias to the exact physical package owner",
+          "Darwin sandbox process inspection reports the real spawnSync EPERM"
+        ]
+      },
+      "scopedTests": {
+        "tests": 627,
+        "pass": 626,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 1,
+        "skipReasons": [
+          "public creator lock binds npm's Darwin tmp alias to the exact physical package owner"
+        ]
+      },
+      "packageTypecheckBuildAudit": "pass",
+      "sourceTypecheckLintBuildAndHostGate": "pass",
+      "minimalRealRender": {
+        "schemaVersion": 1,
+        "status": "pass",
+        "compositionId": "DefaultIntroPreview",
+        "checksum": "sha256:55d3f4fc336ea393ebdf7d2bf35f78c7592177f57d1d2ca72a727bd0be2fc2f8",
+        "width": 1080,
+        "height": 1920,
+        "fps": 30,
+        "durationInFrames": 60,
+        "audioCodec": "aac",
+        "audioChannels": 2,
+        "eofDecode": true
+      },
+      "freshExternalCandidateInstallation": {
+        "status": "pass",
+        "doctor": {
+          "status": "workspace-ready",
+          "workspaceVersion": 1,
+          "checks": {
+            "layout": "pass",
+            "runtimeResources": "pass",
+            "remotionCli": "pass",
+            "browserRender": "pass",
+            "producerConfig": "pass",
+            "resourceCatalog": "pass"
+          }
+        },
+        "compositions": "pass"
+      },
+      "exactCandidateContentGate": "release-gate-passed",
+      "auditVulnerabilities": 0
+    },
+    "postPublicationPublicInstallation": {
+      "status": "pass",
+      "method": "npm-create-public-registry",
+      "command": [
+        "npm",
+        "create",
+        "--yes",
+        "axmorf-studio@latest",
+        "workspace",
+        "--",
+        "--yes"
+      ],
+      "registry": "https://registry.npmjs.org",
+      "environment": {
+        "platform": "darwin",
+        "arch": "x64",
+        "node": "v22.22.3"
+      },
+      "exactRuntimeAndCreatorContentsVerified": true,
+      "unchangedGuides": 13,
+      "doctor": {
+        "status": "workspace-ready",
+        "workspaceVersion": 1,
+        "checks": {
+          "layout": "pass",
+          "runtimeResources": "pass",
+          "remotionCli": "pass",
+          "browserRender": "pass",
+          "producerConfig": "pass",
+          "resourceCatalog": "pass"
+        }
+      },
+      "compositions": [
+        "CapabilityGallery",
+        "DefaultIntroPreview",
+        "DefaultOutroPreview"
+      ],
+      "snapshotChecksum": "sha256:277b005dd43af22cc84d0f3cfbbdf55231597bb0ab095cfa18e483c844276851",
+      "installLogChecksum": "sha256:ff9e73f74df928a1d9773b9fcdfb681cc48fc332694f579f4c1a4d9dd83dd92f",
+      "doctorLogChecksum": "sha256:8b6e0e2f4ac20277603523fa084aa04f2219e85bdebce46c3bb92c63d2941f6f",
+      "compositionsLogChecksum": "sha256:c3d549c71b4a3db5188ec8dad84d31a91cd4dc9cecb874230c7f9ff1dd090a4d",
+      "workspaceLockChecksum": "sha256:c855a10c60b6d8d5834902d324eaeedd69a1793151355b647d8929a121edaeec",
+      "creatorLockChecksum": "sha256:2a7293c87fa6d91fe1d4c0ed36e11ef935a959de12c0e5bcd108738ab6aba709",
+      "nativeProductionRepeatedAfterPublication": false
+    }
+  }
+}

@@ -49,12 +49,14 @@
 - `evidence/` 记录发生时的验收证据，不定义 current runtime。
 - 连续视频源码、fresh packed Workspace 与局部修订的原工程验证见
   [连续视频验收](evidence/2026-10-08-continuous-video-acceptance.md)；Oct7记录保留为前一工程快照。
-- 0.1.19 候选的[合并后完整成片](evidence/2026-10-09-post-merge-video-verification.json)和
-  [新 Workspace 原生首用](evidence/v0.1.19-first-use.json)分别验证连续正文与六个独立场景；公开发布另记。
+- [合并后完整成片](evidence/2026-10-09-post-merge-video-verification.json)验证 60 秒连续正文；
+  0.1.20 的[新 Workspace 原生首用](evidence/v0.1.20-first-use.json)与
+  [六场景成片](evidence/2026-10-09-v0.1.20-native-video-verification.json)已通过。
+  0.1.19 未发布，原标签和[失败记录](evidence/v0.1.19-ci-failure.json)保留。
 - `promotions/` 保存尚未完全达到完成定义的提案和实施计划；每份文档必须明确自身批准/实施状态。
 - npm Workspace 开源方案已经完成并
   [归档实施计划](archive/implementation-plans/2026-08-30-npm-workspace-open-source-implementation-plan.md)；当前是
-  `v0.1.18` public release，见[发布证据](evidence/v0.1.18-publication.json)。当前事实和验收边界以
+  `v0.1.20` public release，见[发布证据](evidence/v0.1.20-publication.json)。当前事实和验收边界以
   [ITERATION_STATUS.md](ITERATION_STATUS.md) 为准，历史 release evidence 只认证各自冻结范围。
 - [archive/](archive/README.md) 保存已完成或被取代的 plans/specs，仅供追溯。
 
