@@ -3,7 +3,9 @@
 New Workspaces can automatically select approved global loop music at Project creation, or explicitly select/disable a score.
 One top-level Project track loops continuously across content, excluding template bookends and lead/tail. Template music and
 Scene effects remain independent. Existing scopes are preserved; a strict sound revision can narrow composition music to content.
-Missing music is reported explicitly, and private user libraries remain outside the published package.
+Missing music is reported explicitly. The current source bundles five original loop masters under the commissioning user's
+permission for Workspace distribution and video BGM use; this addition awaits npm publication. Other private user libraries
+remain outside the package.
 
 The runtime, CLI, contracts, Remotion components, and local Web control center behind AXMORF Studio workspaces.
 
@@ -41,7 +43,9 @@ commands.
 The package also carries a policy-covered Workspace seed for shared media. `axmorf bootstrap` projects only its
 manifested bytes into reserved Workspace paths, generates the Resource Catalog, and refuses conflicting files or symlinks. The
 current seed includes a Mixkit cinematic opening impact excerpt, an eight-second Mixkit “Deep Urban” closing excerpt, an AXMORF
-mark SVG, and 24 original AXMORF motion sound effects, including mouse clicks, press/release and scrolling cues. Scenes select
+mark SVG, 24 original AXMORF motion sound effects, including mouse clicks, press/release and scrolling cues, and five original
+loop masters: Neon Motion, Easy Day, Next Question, Sunlit Drive and Signal Sprint. The loop WAVs retain their original bytes
+and become automatic Project BGM candidates after bootstrap. Scenes select
 prebuilt effects from the Catalog and schedule them by
 event anchor or local frame; they do not synthesize audio during production. Selected template audio becomes Project-local during
 creation. See `THIRD_PARTY_NOTICES.md` for source and license details.
@@ -89,4 +93,4 @@ Published 0.1.17 adds authored-frame visual content, licensed sound discovery, o
 public action timing and bound pre-commit Scene previews. It also adds narrow revisions for immutable template playback
 windows and existing music gain/envelopes. Inspect the installed
 public schemas and local instructions before use. Technical validation does not certify aesthetics, complete playback
-review or the subjective mix. User-local music and Library attachments are not bundled Workspace seed resources.
+review or the subjective mix. Other user-local music and private Library attachments remain outside the shared seed.

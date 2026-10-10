@@ -266,6 +266,11 @@ package 仍拥有发行 authority，Workspace 不能写 package directory；pack
 和 render 不执行合成。Root 在 authoring 时选择素材并收窄 Scene 的 candidateResourceIds，Scene executor 从冻结
 availableResources 声明 sound-plan 的 anchor/frame、时长与音量，顶层 SoundDesignTrack 统一播放。
 
+当前源码还沿该路径发行五首获用户授权的原始循环 BGM：源 WAV 位于 package seed，公共 manifest 冻结
+checksum、PCM 元数据和单独分发许可，build 纳入 runtime policy；bootstrap 无需访问用户本地库即可登记
+`asset.axmorf.music.*-loop-v1` 候选。create 沿既有流程选曲并冻结为 Project-owned bytes。
+旧私有 ID 与公共 ID 分开，既有 Project 不迁移；此素材扩充尚未 npm 发布。
+
 公开 revision context/validate/create 与手动、continuation 自动 promotion 均把已验证的 runtime policy manifest
 传入共享 Revision 读取；candidate 与 live base 使用同一 policy authority。普通 npm Workspace 不提供开发仓库的
 `src/contracts` 等源码树，不能丢弃 manifest 后回落到开发源码扫描。

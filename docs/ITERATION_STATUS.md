@@ -1,5 +1,20 @@
 # Iteration Status
 
+## 未发布共享循环 BGM 素材（2026-10-10）
+
+按用户本次公开上传要求，将 Neon Motion、Easy Day、Next Question、Sunlit Drive、Signal Sprint 五首
+原始循环 WAV 纳入 package-owned Workspace seed，共 27,922,344 bytes，checksum 与本地原曲一致。
+公共 manifest 使用新的 `asset.axmorf.music.*-loop-v1` ID、runtime-approved、loop 标签和单独的 Workspace
+分发/视频配乐授权记录；不复制私有 Library 身份、导入报告或已退役试听版。既有本地库及 Project 不修改。
+构建沿现有 manifest/checksum/runtime-policy 主链纳入 npm tarball，bootstrap 自动登记为 auto BGM 候选。
+GitHub 上传与 npm 发布是两个步骤；当前 npm latest 仍为 0.1.20，此扩充尚未发布。
+
+验证：27/27 focused tests、source/package typecheck、package build/check、focused lint 与文档链接检查通过。
+实际 tarball 含完整五首及 runtime policy；使用本地候选 tarball 创建的独立新 Workspace 完成 install、
+bootstrap、重复 bootstrap 和 doctor，context 返回 auto/available 与五首候选。零 provider 的 create 按主题
+自动选中 Next Question，Project-owned checksum 与原曲一致，冻结为单个 content-window 循环音轨。
+这是本地候选安装验证，未运行 production 或成片听审，见[证据](evidence/2026-10-10-shared-bgm-verification.json)。
+
 ## 未发布工作区优化：正文 BGM 与模板配乐隔离（2026-10-10）
 
 新 Project 的自动、指定与文件 BGM 统一冻结为 content-window，跨正文 Scene 连续播放，不覆盖首尾模板及 lead/tail。

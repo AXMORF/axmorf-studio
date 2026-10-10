@@ -42,12 +42,23 @@ const motionSoundEffectNames = [
   "warning-blip",
   "success-arpeggio",
 ];
+const backgroundMusicNames = [
+  "neon-motion",
+  "easy-day",
+  "next-question",
+  "sunlit-drive",
+  "signal-sprint",
+];
 const sharedResourcePaths = [
   "dist/assets/workspace-seed/public/assets/axmorf-shared/audio/music/mixkit-deep-urban-623-outro-8s.mp3",
   "dist/assets/workspace-seed/public/assets/axmorf-shared/audio/sound-effects/mixkit-movie-trailer-epic-impact-2908-intro-2s.wav",
   ...motionSoundEffectNames.map(
     (name) =>
       `dist/assets/workspace-seed/public/assets/axmorf-shared/audio/sound-effects/axmorf-${name}-v1.wav`,
+  ),
+  ...backgroundMusicNames.map(
+    (name) =>
+      `dist/assets/workspace-seed/public/assets/axmorf-shared/audio/music/axmorf-${name}-loop-v1.wav`,
   ),
   "dist/assets/workspace-seed/public/assets/axmorf-shared/brand/axmorf-mark.svg",
   "dist/assets/workspace-seed/src/remotion/catalog/assets.manifest.json",
@@ -128,8 +139,22 @@ assert.deepEqual(
     "asset.mixkit.movie-trailer-epic-impact-2908-intro-2s",
     "asset.mixkit.deep-urban-623-outro-8s",
     ...motionSoundEffectNames.map((name) => `asset.axmorf.sfx.${name}-v1`),
+    ...backgroundMusicNames.map((name) => `asset.axmorf.music.${name}-loop-v1`),
   ],
 );
+for (const name of backgroundMusicNames) {
+  const music = sharedManifest.assets.find(
+    ({ id }) => id === `asset.axmorf.music.${name}-loop-v1`,
+  );
+  assert.equal(music.allowedUse, "runtime-approved");
+  assert.equal(music.mediaRole, "background-music");
+  assert.equal(music.tags.includes("loop"), true);
+  assert.equal(music.tags.includes("scene-template"), false);
+  assert.equal(music.license.id, "AXMORF Studio bundled music permission");
+  assert.equal(music.license.verificationStatus, "verified");
+  assert.equal(music.media.codec, "pcm_s16le");
+  assert.equal(music.media.sampleRate, 44100);
+}
 const packagedIntroAudio = sharedManifest.assets.find(
   ({ id }) => id === "asset.mixkit.movie-trailer-epic-impact-2908-intro-2s",
 );

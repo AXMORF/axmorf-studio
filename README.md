@@ -47,6 +47,8 @@ Scene 选择音效并对齐实际起音或声势中心；新 Project 默认从�
 当前源码另含两项未发布修复：新 Project 全局 BGM 只覆盖正文，保留首尾模板配乐；旧 composition 音轨可通过
 正式 sound revision 显式收窄。commit 对明确输出缺失或 JSON/TypeScript 语法错误保存结构化恢复证据，
 无证据的历史通用失败仍阻塞。源码提交与推送不更新已安装的 0.1.20；验证及限制见[当前实现状态](docs/ITERATION_STATUS.md)。
+当前源码还将五首原始循环 BGM 纳入共享 Workspace seed，可随 runtime 打包并自动进入新 Workspace 的
+Catalog；曲目及单独授权见[音乐指南](docs/guides/SCENE_SOUND_EFFECTS.md#循环音乐与试听版本)。此素材扩充尚未发布到 npm。
 
 ## 把这段提示词交给你的 Agent
 
@@ -71,6 +73,7 @@ creator 会安装精确依赖、生成 `package-lock.json`，并在原子提升�
 `bootstrap`/`doctor`。`bootstrap` 同时从 runtime package 投影经过清单与 checksum 验证的共享素材；当前包括
 片头 cinematic impact、片尾 8 秒电子 BGM、可复用 AXMORF 标记，以及
 [24 条预制动效音效](docs/guides/SCENE_SOUND_EFFECTS.md)，含鼠标单击/双击、按下/松开与滚轮声。
+源码版本另含五首原始循环 BGM；安装包含此扩充的 runtime 后，bootstrap 自动投影并登记，默认 auto 即可选曲。
 默认首尾 Scene 会在 Project 创建时把所用音频复制为
 Project-local 资产；正文 Scene 从 Catalog 选择已制作的音效并按帧安排卡点。
 新 Project 的全局 BGM 只在正文连续播放，片头、片尾保留模板配乐；旧整片音轨可通过

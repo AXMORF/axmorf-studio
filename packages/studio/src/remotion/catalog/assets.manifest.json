@@ -1090,6 +1090,278 @@
         "codec": "pcm_s16le",
         "sampleRate": 48000
       }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "asset.axmorf.music.neon-motion-loop-v1",
+      "kind": "asset",
+      "status": "approved",
+      "title": "动感电子 / Neon Motion · 循环版",
+      "description": "Original user-commissioned instrumental loop, 118 BPM, 16 bars in 4/4. Unchanged 44.1 kHz stereo 16-bit PCM WAV for continuous Workspace video background music. Technical loop checks were recorded at import; human listening review has not been performed.",
+      "useCases": [
+        "Energetic product or process sequence / 动感产品与流程展示",
+        "Original loop for video music / 视频使用的原始循环版",
+        "Rhythmic technology explainer / 节奏鲜明的科技讲解"
+      ],
+      "tags": [
+        "axmorf",
+        "background-music",
+        "bpm-118",
+        "bundled-music",
+        "electronic",
+        "energetic",
+        "instrumental",
+        "loop",
+        "loop-only-selection",
+        "not-listening-reviewed",
+        "pcm-wav",
+        "procedural-synthesis",
+        "rhythmic",
+        "technical-loop-checked"
+      ],
+      "authority": {
+        "kind": "repository-file",
+        "repositoryPath": "src/remotion/catalog/assets.manifest.json"
+      },
+      "allowedUse": "runtime-approved",
+      "assetKind": "audio",
+      "mediaRole": "background-music",
+      "localPath": "public/assets/axmorf-shared/audio/music/axmorf-neon-motion-loop-v1.wav",
+      "checksum": "sha256:45ec445cc27956827a683c78f1ea954215c606db096184740f1d9922fde50e17",
+      "license": {
+        "id": "AXMORF Studio bundled music permission",
+        "verificationStatus": "verified",
+        "sourceUrl": "https://github.com/AXMORF/axmorf-studio/blob/HEAD/packages/studio/THIRD_PARTY_NOTICES.md#axmorf-studio-bundled-music-permission",
+        "attributionRequired": false,
+        "attributionText": null,
+        "verifiedAt": "2026-10-10T00:00:00.000Z",
+        "sourceEvidenceFingerprint": "sha256:c251716397899a3cb5ca552ab0c1dbd5de94ac7200f4a844069494f89fed002d"
+      },
+      "media": {
+        "mimeType": "audio/wav",
+        "sizeBytes": 5740520,
+        "durationInSeconds": 32.54238095238095,
+        "codec": "pcm_s16le",
+        "sampleRate": 44100
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "asset.axmorf.music.easy-day-loop-v1",
+      "kind": "asset",
+      "status": "approved",
+      "title": "轻快律动 / Easy Day · 循环版",
+      "description": "Original user-commissioned instrumental loop, 98 BPM, 12 bars in 4/4. Unchanged 44.1 kHz stereo 16-bit PCM WAV for continuous Workspace video background music. Technical loop checks were recorded at import; human listening review has not been performed.",
+      "useCases": [
+        "Friendly everyday process / 日常流程与轻松展示",
+        "Light upbeat explainer / 轻快讲解",
+        "Original loop for video music / 视频使用的原始循环版"
+      ],
+      "tags": [
+        "axmorf",
+        "background-music",
+        "bpm-98",
+        "bundled-music",
+        "groove",
+        "instrumental",
+        "light",
+        "loop",
+        "loop-only-selection",
+        "not-listening-reviewed",
+        "pcm-wav",
+        "procedural-synthesis",
+        "technical-loop-checked",
+        "upbeat"
+      ],
+      "authority": {
+        "kind": "repository-file",
+        "repositoryPath": "src/remotion/catalog/assets.manifest.json"
+      },
+      "allowedUse": "runtime-approved",
+      "assetKind": "audio",
+      "mediaRole": "background-music",
+      "localPath": "public/assets/axmorf-shared/audio/music/axmorf-easy-day-loop-v1.wav",
+      "checksum": "sha256:64d3bfa3598325b8a9a4d9cf035940fc5587d8ce3fbeb8a3cf8a2475e1510c43",
+      "license": {
+        "id": "AXMORF Studio bundled music permission",
+        "verificationStatus": "verified",
+        "sourceUrl": "https://github.com/AXMORF/axmorf-studio/blob/HEAD/packages/studio/THIRD_PARTY_NOTICES.md#axmorf-studio-bundled-music-permission",
+        "attributionRequired": false,
+        "attributionText": null,
+        "verifiedAt": "2026-10-10T00:00:00.000Z",
+        "sourceEvidenceFingerprint": "sha256:c251716397899a3cb5ca552ab0c1dbd5de94ac7200f4a844069494f89fed002d"
+      },
+      "media": {
+        "mimeType": "audio/wav",
+        "sizeBytes": 5184044,
+        "durationInSeconds": 29.387755102040817,
+        "codec": "pcm_s16le",
+        "sampleRate": 44100
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "asset.axmorf.music.next-question-loop-v1",
+      "kind": "asset",
+      "status": "approved",
+      "title": "悬念推进 / Next Question · 循环版",
+      "description": "Original user-commissioned instrumental loop, 106 BPM, 16 bars in 4/4. Unchanged 44.1 kHz stereo 16-bit PCM WAV for continuous Workspace video background music. Technical loop checks were recorded at import; human listening review has not been performed.",
+      "useCases": [
+        "Original loop for video music / 视频使用的原始循环版",
+        "Question-driven explainer / 问题驱动讲解",
+        "Suspenseful progression or discovery / 悬念推进与逐步揭示"
+      ],
+      "tags": [
+        "axmorf",
+        "background-music",
+        "bpm-106",
+        "bundled-music",
+        "forward-motion",
+        "instrumental",
+        "loop",
+        "loop-only-selection",
+        "not-listening-reviewed",
+        "pcm-wav",
+        "procedural-synthesis",
+        "rhythmic",
+        "suspense",
+        "technical-loop-checked"
+      ],
+      "authority": {
+        "kind": "repository-file",
+        "repositoryPath": "src/remotion/catalog/assets.manifest.json"
+      },
+      "allowedUse": "runtime-approved",
+      "assetKind": "audio",
+      "mediaRole": "background-music",
+      "localPath": "public/assets/axmorf-shared/audio/music/axmorf-next-question-loop-v1.wav",
+      "checksum": "sha256:21ee2f57f9137db5d2dc7c59ea600dbc4179d6311fd2df4ac8ed36c2463cae28",
+      "license": {
+        "id": "AXMORF Studio bundled music permission",
+        "verificationStatus": "verified",
+        "sourceUrl": "https://github.com/AXMORF/axmorf-studio/blob/HEAD/packages/studio/THIRD_PARTY_NOTICES.md#axmorf-studio-bundled-music-permission",
+        "attributionRequired": false,
+        "attributionText": null,
+        "verifiedAt": "2026-10-10T00:00:00.000Z",
+        "sourceEvidenceFingerprint": "sha256:c251716397899a3cb5ca552ab0c1dbd5de94ac7200f4a844069494f89fed002d"
+      },
+      "media": {
+        "mimeType": "audio/wav",
+        "sizeBytes": 6390384,
+        "durationInSeconds": 36.22641723356009,
+        "codec": "pcm_s16le",
+        "sampleRate": 44100
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "asset.axmorf.music.sunlit-drive-loop-v1",
+      "kind": "asset",
+      "status": "approved",
+      "title": "晴光推进 / Sunlit Drive · 循环版",
+      "description": "Original user-commissioned instrumental loop, 122 BPM, 16 bars in 4/4. Unchanged 44.1 kHz stereo 16-bit PCM WAV for continuous Workspace video background music. Technical loop checks were recorded at import; human listening review has not been performed.",
+      "useCases": [
+        "Bright rhythmic explainer / 明亮节奏讲解",
+        "Forward-moving product sequence / 清爽产品与流程推进",
+        "Original loop for video music / 视频使用的原始循环版"
+      ],
+      "tags": [
+        "axmorf",
+        "background-music",
+        "bpm-122",
+        "bright",
+        "bundled-music",
+        "forward-motion",
+        "instrumental",
+        "loop",
+        "loop-only-selection",
+        "not-listening-reviewed",
+        "pcm-wav",
+        "procedural-synthesis",
+        "rhythmic",
+        "technical-loop-checked",
+        "upbeat"
+      ],
+      "authority": {
+        "kind": "repository-file",
+        "repositoryPath": "src/remotion/catalog/assets.manifest.json"
+      },
+      "allowedUse": "runtime-approved",
+      "assetKind": "audio",
+      "mediaRole": "background-music",
+      "localPath": "public/assets/axmorf-shared/audio/music/axmorf-sunlit-drive-loop-v1.wav",
+      "checksum": "sha256:4b8576f2bc78cd028d4b5c4cbbb60a0d0f8c0ad2141ef9c999bf35ebe43bd924",
+      "license": {
+        "id": "AXMORF Studio bundled music permission",
+        "verificationStatus": "verified",
+        "sourceUrl": "https://github.com/AXMORF/axmorf-studio/blob/HEAD/packages/studio/THIRD_PARTY_NOTICES.md#axmorf-studio-bundled-music-permission",
+        "attributionRequired": false,
+        "attributionText": null,
+        "verifiedAt": "2026-10-10T00:00:00.000Z",
+        "sourceEvidenceFingerprint": "sha256:c251716397899a3cb5ca552ab0c1dbd5de94ac7200f4a844069494f89fed002d"
+      },
+      "media": {
+        "mimeType": "audio/wav",
+        "sizeBytes": 5552308,
+        "durationInSeconds": 31.475419501133786,
+        "codec": "pcm_s16le",
+        "sampleRate": 44100
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "asset.axmorf.music.signal-sprint-loop-v1",
+      "kind": "asset",
+      "status": "approved",
+      "title": "信号冲刺 / Signal Sprint · 循环版",
+      "description": "Original user-commissioned instrumental loop, 134 BPM, 16 bars in 4/4. Unchanged 44.1 kHz stereo 16-bit PCM WAV for continuous Workspace video background music. Technical loop checks were recorded at import; human listening review has not been performed.",
+      "useCases": [
+        "Energetic process or progress / 动感流程与推进",
+        "Fast rhythmic technology sequence / 快节奏科技展示",
+        "Original loop for video music / 视频使用的原始循环版"
+      ],
+      "tags": [
+        "axmorf",
+        "background-music",
+        "bpm-134",
+        "bundled-music",
+        "electronic",
+        "energetic",
+        "instrumental",
+        "loop",
+        "loop-only-selection",
+        "not-listening-reviewed",
+        "pcm-wav",
+        "procedural-synthesis",
+        "rhythmic",
+        "sprint",
+        "technical-loop-checked"
+      ],
+      "authority": {
+        "kind": "repository-file",
+        "repositoryPath": "src/remotion/catalog/assets.manifest.json"
+      },
+      "allowedUse": "runtime-approved",
+      "assetKind": "audio",
+      "mediaRole": "background-music",
+      "localPath": "public/assets/axmorf-shared/audio/music/axmorf-signal-sprint-loop-v1.wav",
+      "checksum": "sha256:217c3d5d103f0df713aa325a235c3f7088c6083069c1ac07fa32861188be6e0a",
+      "license": {
+        "id": "AXMORF Studio bundled music permission",
+        "verificationStatus": "verified",
+        "sourceUrl": "https://github.com/AXMORF/axmorf-studio/blob/HEAD/packages/studio/THIRD_PARTY_NOTICES.md#axmorf-studio-bundled-music-permission",
+        "attributionRequired": false,
+        "attributionText": null,
+        "verifiedAt": "2026-10-10T00:00:00.000Z",
+        "sourceEvidenceFingerprint": "sha256:c251716397899a3cb5ca552ab0c1dbd5de94ac7200f4a844069494f89fed002d"
+      },
+      "media": {
+        "mimeType": "audio/wav",
+        "sizeBytes": 5055088,
+        "durationInSeconds": 28.65671201814059,
+        "codec": "pcm_s16le",
+        "sampleRate": 44100
+      }
     }
   ]
 }

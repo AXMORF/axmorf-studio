@@ -79,7 +79,28 @@ SoundDesignTrack 实际播放，Renderer 不再重复挂载 Audio。
 
 ## 循环音乐与试听版本
 
-用户本地音乐库不属于 npm 的共享 seed。选曲以当前 Catalog 及许可为准，循环 BGM 优先使用已批准的原始循环
+当前源码将用户授权公开分发的五首原始循环 WAV 纳入 runtime 的共享 seed，GitHub 保存原始媒体，构建后随
+npm tarball 分发，bootstrap 自动投影到 `public/assets/axmorf-shared/audio/music/` 并登记 Catalog。
+该扩充尚未发布到 npm，既有 `0.1.20` 安装不会因 GitHub 推送自动获得这些曲目。
+
+| 曲目 | Catalog ID | BPM | 用途 |
+| --- | --- | ---: | --- |
+| Neon Motion | asset.axmorf.music.neon-motion-loop-v1 | 118 | 科技与节奏推进 |
+| Easy Day | asset.axmorf.music.easy-day-loop-v1 | 98 | 轻快讲解与日常流程 |
+| Next Question | asset.axmorf.music.next-question-loop-v1 | 106 | 悬念与逐步揭示 |
+| Sunlit Drive | asset.axmorf.music.sunlit-drive-loop-v1 | 122 | 明亮产品与流程推进 |
+| Signal Sprint | asset.axmorf.music.signal-sprint-loop-v1 | 134 | 动感科技与快速推进 |
+
+五首保持原始 44.1 kHz 双声道 16-bit PCM bytes，无试听淡出处理。随 Workspace 分发和视频配乐使用的授权记录见
+[runtime notices](../../packages/studio/THIRD_PARTY_NOTICES.md#axmorf-studio-bundled-music-permission)，与代码的 Apache-2.0 许可分开。
+新 package-owned ID 与用户本地旧 ID 分开，既有 Project 和本地音乐库保持原样。可用以下命令核对安装后的候选：
+
+```bash
+npm run catalog:query -- --kind asset --tag bundled-music
+npm run project:create:context -- --project my-video
+```
+
+其他用户本地音乐库仍不属于 npm 的共享 seed。选曲以当前 Catalog 及许可为准，循环 BGM 优先使用已批准的原始循环
 WAV；带淡出、裁剪或试听处理的 MP3 不应冒充循环原音。新 Workspace 的 `audioDefaults.globalBgm` 默认 auto；
 context 返回 `backgroundMusic.candidates`，Agent 按主题、能量和情绪显式选择 `{mode:"selected",resourceId,volume?}`，
 省略时按 brief 自动匹配。只有全局许可已核验的 loop 可候选，排除模板音乐、Project-owned 音乐及试听版；空库明确报告缺曲。
@@ -98,8 +119,8 @@ contribution 时间，循环不会每次重启淡入。它不修改原音和 sea
 
 退役旧试听版本前，检查其 resource ID、路径和 checksum 在 current Catalog、Project-owned manifests、源码、
 sealed snapshots 和 delivery 依赖中的引用。有依赖时保留兼容资源，不自动迁移既有作品；无依赖且用户已授权时，
-使用可恢复的废纸篓并复验当前目录、Catalog 和原作品。历史报告按原状态保留。音乐文件、私有 Library 标识和
-操作报告留在用户 Workspace，不因维护公共指南而提交到源码仓库。
+使用可恢复的废纸篓并复验当前目录、Catalog 和原作品。历史报告按原状态保留。共享曲库只收录获授权的原始
+WAV 及公共描述；其他音乐文件、私有 Library 标识和操作报告留在用户 Workspace。
 
 ## 开发与验证
 

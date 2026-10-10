@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-10",
+  "status": "shared-bgm-source-and-local-package-verified",
+  "baseCommit": "3cd5c5eace8a07577db63a40a06d60b3e48664aa",
+  "publication": {
+    "npm": "not-published",
+    "publicLatestVerified": "0.1.20",
+    "candidateVersion": "0.1.20",
+    "installedFrom": "local-source-tarballs"
+  },
+  "media": {
+    "trackCount": 5,
+    "totalBytes": 27922344,
+    "codec": "pcm_s16le",
+    "sampleRate": 44100,
+    "channels": 2,
+    "originalWavBytesUnchanged": true,
+    "originalSharedDescriptorsUnchanged": true,
+    "tracks": [
+      {
+        "id": "asset.axmorf.music.neon-motion-loop-v1",
+        "localPath": "public/assets/axmorf-shared/audio/music/axmorf-neon-motion-loop-v1.wav",
+        "checksum": "sha256:45ec445cc27956827a683c78f1ea954215c606db096184740f1d9922fde50e17",
+        "sizeBytes": 5740520,
+        "durationInSeconds": 32.54238095238095
+      },
+      {
+        "id": "asset.axmorf.music.easy-day-loop-v1",
+        "localPath": "public/assets/axmorf-shared/audio/music/axmorf-easy-day-loop-v1.wav",
+        "checksum": "sha256:64d3bfa3598325b8a9a4d9cf035940fc5587d8ce3fbeb8a3cf8a2475e1510c43",
+        "sizeBytes": 5184044,
+        "durationInSeconds": 29.387755102040817
+      },
+      {
+        "id": "asset.axmorf.music.next-question-loop-v1",
+        "localPath": "public/assets/axmorf-shared/audio/music/axmorf-next-question-loop-v1.wav",
+        "checksum": "sha256:21ee2f57f9137db5d2dc7c59ea600dbc4179d6311fd2df4ac8ed36c2463cae28",
+        "sizeBytes": 6390384,
+        "durationInSeconds": 36.22641723356009
+      },
+      {
+        "id": "asset.axmorf.music.sunlit-drive-loop-v1",
+        "localPath": "public/assets/axmorf-shared/audio/music/axmorf-sunlit-drive-loop-v1.wav",
+        "checksum": "sha256:4b8576f2bc78cd028d4b5c4cbbb60a0d0f8c0ad2141ef9c999bf35ebe43bd924",
+        "sizeBytes": 5552308,
+        "durationInSeconds": 31.475419501133786
+      },
+      {
+        "id": "asset.axmorf.music.signal-sprint-loop-v1",
+        "localPath": "public/assets/axmorf-shared/audio/music/axmorf-signal-sprint-loop-v1.wav",
+        "checksum": "sha256:217c3d5d103f0df713aa325a235c3f7088c6083069c1ac07fa32861188be6e0a",
+        "sizeBytes": 5055088,
+        "durationInSeconds": 28.65671201814059
+      }
+    ]
+  },
+  "package": {
+    "name": "@axmorf/studio",
+    "version": "0.1.20",
+    "checksum": "sha256:ca6e7a70d0f60db17504eecbc59eaf278b10a636f307419b973e95b4371b97f1",
+    "integrity": "sha512-kaREHmy3seUjUIQn6nVgW6k33lA2UttkcRtIn7ztuORMkZMAfVp9UPBab/w8gY8ZsblB4dcu23Jt58i76HwNDA==",
+    "allFiveTarMembersAndPolicyChecksumsVerified": true,
+    "privateLibraryRecordsExcluded": true
+  },
+  "verification": {
+    "focusedTests": {
+      "total": 27,
+      "passed": 27,
+      "failed": 0
+    },
+    "sourceTypecheck": "pass",
+    "packageTypecheck": "pass",
+    "packageBuild": "pass",
+    "packageCheck": "pass",
+    "focusedLint": "pass",
+    "docsLinks": "pass",
+    "freshWorkspace": {
+      "doctor": {
+        "layout": "pass",
+        "runtimeResources": "pass",
+        "remotionCli": "pass",
+        "browserRender": "pass",
+        "producerConfig": "pass",
+        "resourceCatalog": "pass"
+      },
+      "bootstrapAndRepeatedBootstrap": "pass",
+      "context": {
+        "status": "available",
+        "mode": "auto",
+        "candidates": [
+          "asset.axmorf.music.easy-day-loop-v1",
+          "asset.axmorf.music.neon-motion-loop-v1",
+          "asset.axmorf.music.next-question-loop-v1",
+          "asset.axmorf.music.signal-sprint-loop-v1",
+          "asset.axmorf.music.sunlit-drive-loop-v1"
+        ]
+      },
+      "allFiveWorkspaceChecksums": "pass",
+      "automaticSelection": "asset.axmorf.music.next-question-loop-v1",
+      "projectOwnedChecksumVerified": true,
+      "contributionCount": 1,
+      "playbackScope": "content-window",
+      "loop": true,
+      "volume": 0.15
+    },
+    "providerCalls": 0
+  },
+  "limitations": [
+    "Local candidate installation only; npm latest does not yet contain these five loops.",
+    "No production attempt or video render was performed for this media distribution change.",
+    "Human listening review was not performed."
+  ]
+}
