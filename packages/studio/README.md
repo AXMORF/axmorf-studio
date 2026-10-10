@@ -1,8 +1,9 @@
 # @axmorf/studio
 
 New Workspaces can automatically select approved global loop music at Project creation, or explicitly select/disable a score.
-One top-level Project track spans the complete composition; Scene effects remain independent. Missing music is reported explicitly,
-and private user libraries remain outside the published package.
+One top-level Project track loops continuously across content, excluding template bookends and lead/tail. Template music and
+Scene effects remain independent. Existing scopes are preserved; a strict sound revision can narrow composition music to content.
+Missing music is reported explicitly, and private user libraries remain outside the published package.
 
 The runtime, CLI, contracts, Remotion components, and local Web control center behind AXMORF Studio workspaces.
 

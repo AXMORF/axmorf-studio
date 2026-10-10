@@ -26,6 +26,7 @@ Desktop、Electron、Runtime Pack 或 `rsp` control plane。唯一主链是：
 ExecutionAttempt 只记录一次执行诊断。它的失败或丢失不拥有产物、不改变 content identity，也不阻止
 后续 attempt 复用已经验证的 artifact。Root 负责定位视频任务错误并指导原 executor；terminal 后仅在旧 workers 全退出、
 只读恢复检查通过时最多自动恢复一次，使用新 attempt 和新 workers。底层程序及外部故障诊断后报告，不自动修程序。
+commit 失败的恢复资格必须由原始受检输出诊断证明；缺证据的历史通用失败不能由后补文件或聊天说明放行。
 
 修改现有 Project 不是 live in-place edit：strict revision input 必须绑定 exact current Revision 与已复验
 four-file Delivery，先在隔离 candidate 中走同一 production 主链。candidate Delivery 完整后才受控提升 current
@@ -44,6 +45,7 @@ source/public/narration/delivery 四个 Project-owned roots；失败完整 rollb
   GlobalVisual。GlobalVisual base 覆盖完整 Composition；decoration 仅覆盖正文 Beat 的连续
   窗口，不进入 silent boundary。Scene 只在本地 viewport 内布局，不感知 full-frame inset。
 - template-copy Scene 是 Project-local immutable instance，由 fixed task 产出，不派发 Agent。
+- 新 Project 的全局 BGM 连续覆盖正文窗口，保留首尾模板配乐、旁白及音效；旧计划只通过显式受检修订收窄范围。
 - package-owned shared Workspace resources 只通过 runtime policy、manifest、checksum 与 license gate 发行；
   bootstrap 投影到保留的 Workspace paths 和 Catalog，template-copy Scene 只把实际使用的资源复制为
   Project-local bytes。用户修改或冲突的保留路径必须 fail closed，不能静默覆盖。

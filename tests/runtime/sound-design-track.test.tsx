@@ -267,6 +267,221 @@ test("one composition music track spans lead/tail and unvoiced boundaries, suppr
   assert.equal(inherited.contributions.length, 2);
 });
 
+for (const mode of ["narrated", "visual", "authored-frames"] as const) {
+  test(`${mode} content-window music preserves template scores, suppresses grouped body scores and excludes lead/tail`, () => {
+    const fixture = createSoundRuntimeFixture();
+    const windows = [
+      { meaningId: "intro", startFrame: 10, endFrame: 70 },
+      { meaningId: "body-one", startFrame: 70, endFrame: 130 },
+      { meaningId: "body-two", startFrame: 130, endFrame: 190 },
+      { meaningId: "outro", startFrame: 190, endFrame: 430 },
+    ];
+    const semanticTiming =
+      mode === "authored-frames"
+        ? generateAuthoredFrameTiming({
+            story: StorySpecSchema.parse({
+              schemaVersion: 3,
+              storyId: "synthetic-proof",
+              title: "Independent boundary music",
+              timingSource: "authored-frames",
+              beats: windows.map((window, index) => ({
+                kind: "silent-scene",
+                meaningId: window.meaningId,
+                narrativePurpose: "Show the current action.",
+                preset: buildSilentScenePreset({
+                  presetId: window.meaningId,
+                  durationInFrames: window.endFrame - window.startFrame,
+                  visualIntent: "Show the current action.",
+                  soundIntent: "Keep the boundary score independent.",
+                  resourceIds: [],
+                  implementation:
+                    index === 0 || index === 3
+                      ? {
+                          kind: "template-copy",
+                          templateId: "boundary",
+                          templateFingerprint: `sha256:${"a".repeat(64)}`,
+                          instanceFingerprint: `sha256:${"b".repeat(64)}`,
+                          rendererSourceFingerprint: `sha256:${"c".repeat(64)}`,
+                          soundCues: [],
+                        }
+                      : { kind: "scene-owner" },
+                }),
+              })),
+            }),
+            render: RenderSpecSchema.parse({
+              ...validRenderSpec,
+              leadInFrames: 10,
+              tailFrames: 10,
+            }),
+          })
+        : undefined;
+    const owners = [
+      windows[0]!,
+      { ...windows[1]!, endFrame: 190 },
+      windows[3]!,
+    ];
+    const packages = owners.map(
+      ({ meaningId, startFrame, endFrame }, index) => {
+        const input = {
+          ...fixture.scenePackage,
+          meaningId: MeaningIdSchema.parse(meaningId),
+          beatFrameRange: { startFrame, endFrame },
+          ...(index === 1
+            ? {
+                schemaVersion: 7 as const,
+                coveredMeaningIds: ["body-one", "body-two"].map((id) =>
+                  MeaningIdSchema.parse(id),
+                ),
+              }
+            : {}),
+        };
+        return {
+          ...input,
+          packageFingerprint: computeScenePackageFingerprint(input),
+        };
+      },
+    );
+    const projections = packages.map((scenePackage) => ({
+      ...fixture.projection,
+      meaningId: scenePackage.meaningId,
+      coveredMeaningIds: scenePackage.coveredMeaningIds,
+      packageFingerprint: scenePackage.packageFingerprint,
+      beatStartFrame: scenePackage.beatFrameRange.startFrame,
+      beatEndFrame: scenePackage.beatFrameRange.endFrame,
+      contributions: [
+        ...fixture.projection.contributions,
+        {
+          ...fixture.projection.contributions[0]!,
+          contributionId: "score",
+          role: "background-music" as const,
+          startFrame: 0,
+          endFrame:
+            scenePackage.beatFrameRange.endFrame -
+            scenePackage.beatFrameRange.startFrame,
+          sourceStartFrame: 12,
+          volume: 0.65,
+          fadeOutFrames: 10,
+        },
+      ],
+    }));
+    const resource = {
+      ...fixture.descriptor,
+      mediaRole: "background-music",
+    } as const;
+    const plan = buildProjectSoundPlan({
+      storyId: "synthetic-proof",
+      contributions: [
+        {
+          contributionId: "background-music",
+          resourceId: resource.id,
+          descriptorFingerprint: computeResourceDescriptorFingerprint(resource),
+          volume: 0.16,
+          loop: true,
+          playbackScope: "content-window",
+          fadeInFrames: 5,
+          fadeOutFrames: 10,
+        },
+      ],
+    });
+    const before = JSON.stringify({ plan, projections });
+    const input = {
+      storyId: "synthetic-proof",
+      durationInFrames: 440,
+      coverage: buildSceneCoverageMap({
+        storyId: "synthetic-proof",
+        storyBeatOrder: windows.map(({ meaningId }) => meaningId),
+        packages,
+        stalePackages: [],
+        fallbacks: [],
+      }),
+      storyBeatTimings:
+        semanticTiming?.storyBeats ??
+        windows.map((window, index) => ({
+          ...window,
+          kind:
+            index === 0 || index === 3
+              ? "silent-scene"
+              : mode === "visual"
+                ? "visual-scene"
+                : "narrated-scene",
+        })),
+      semanticTiming,
+      sceneSoundProjections: projections,
+    };
+    const result = buildSoundDesignProjection({
+      ...input,
+      projectSoundPlan: plan,
+      projectSoundResources: [resource],
+    });
+    assert.deepEqual(
+      result.contributions.map(({ contributionId }) => contributionId),
+      [
+        "intro:pulse",
+        "intro:score",
+        "body-one:pulse",
+        "outro:pulse",
+        "outro:score",
+        "project:background-music",
+      ],
+    );
+    assert.deepEqual(result.contributions.at(-1), {
+      contributionId: "project:background-music",
+      resourceId: resource.id,
+      publicPath: resource.localPath,
+      checksum: resource.checksum,
+      startFrame: 70,
+      endFrame: 190,
+      volume: 0.16,
+      loop: true,
+      fadeInFrames: 5,
+      fadeOutFrames: 10,
+    });
+    const outro = result.contributions.find(
+      ({ contributionId }) => contributionId === "outro:score",
+    )!;
+    assert.equal(outro.startFrame, 190);
+    assert.equal(outro.endFrame, 430);
+    assert.equal(outro.sourceStartFrame, 12);
+    assert.equal(outro.volume, 0.65);
+    assert.equal(outro.fadeOutFrames, 10);
+    assert.equal(JSON.stringify({ plan, projections }), before);
+    const legacy = buildSoundDesignProjection({
+      ...input,
+      projectSoundPlan: buildProjectSoundPlan({
+        storyId: plan.storyId,
+        contributions: plan.contributions.map((track) => ({
+          ...track,
+          playbackScope: "composition",
+        })),
+      }),
+      projectSoundResources: [resource],
+    });
+    assert.deepEqual(
+      legacy.contributions.map(({ contributionId }) => contributionId),
+      [
+        "intro:pulse",
+        "body-one:pulse",
+        "outro:pulse",
+        "project:background-music",
+      ],
+    );
+    assert.equal(legacy.contributions.at(-1)?.startFrame, 0);
+    assert.equal(legacy.contributions.at(-1)?.endFrame, 440);
+    assert.equal(buildSoundDesignProjection(input).contributions.length, 6);
+    assert.deepEqual(
+      buildSoundDesignProjection({
+        ...input,
+        projectSoundPlan: buildProjectSoundPlan({
+          storyId: "synthetic-proof",
+          sceneMusicPolicy: "mute",
+          contributions: [],
+        }),
+      }).contributions.map(({ contributionId }) => contributionId),
+      ["intro:pulse", "body-one:pulse", "outro:pulse"],
+    );
+  });
+}
+
 test("zero, one-frame and overlapping fades stay finite and preserve unspecified playback", () => {
   const contribution = {
     contributionId: "short",

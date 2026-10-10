@@ -41,11 +41,13 @@
 | ArtifactAttestation | fixed validator 成功后对 TaskRevision、dependencies、policy 和 exact output bytes 的证明。 |
 | Artifact Store | `.producer-artifacts/<storyId>/...` 中的 immutable、可跨 attempt 复用的 validated artifacts。 |
 | ExecutionAttempt | `.producer-attempts/<storyId>/...` 中由 prepare 创建的等待/收敛诊断；不拥有 artifact 或 delivery。 |
-| attempt recovery inspection | 对 terminal failed attempt 的严格只读、零 provider eligibility 检查；要求 same current Revision、无 active successor、无 fixed dirty/blocked flow，不要求 current Delivery。 |
+| attempt recovery inspection | 对 terminal failed attempt 的严格只读、零 provider eligibility 检查；要求 same current Revision、无 active successor、无 dirty fixed work；下游 dependency-only blocked 须经完整无环图追溯到可恢复 Agent root。不要求 current Delivery。 |
 | attempt reissue | recovery-ready 后创建 fresh same-Revision attempt/bindings 的显式零 provider 操作；旧 attempt immutable，复用 valid artifacts/合法 drafts，不是自动 retry。 |
 | task-terminal event | task executor 对 exact attempt/TaskRevision 写入的首个 committed/current/failed 机械终态；同结果幂等，相反结果不可覆盖。 |
+| TaskOutputFailure | commit 对明确输出缺失或 JSON/TypeScript 语法错误记录的可选结构化诊断；agent-output owner、受限 code 与 task-local outputPaths 必须匹配原 Agent task 声明。没有该证据的通用 commit failure 保持阻断，不从后补文件推断原因。 |
 | Agent execution policy | inspect 前按用户提示词明确字段、独立 settings、内置 `subagents`/4 默认解析的当前 production 编排策略；选择 Root inline 串行或最多四个 subagents，不进入 production identity。 |
 | GlobalVisual layer policy | 由 canonical SemanticTiming 固定派生的双层范围：base 覆盖完整 Composition；decoration 只覆盖首个至末个正文 Beat 的连续窗口（旁白或 authored-frame scene-owner），以该窗口起点作为 local frame zero，排除 fixed 首尾。 |
+| Project BGM content window | 新 Project 全局音乐的 content-window 连续播放范围，由 canonical SemanticTiming 正文首尾确定，排除 fixed 模板与 lead/tail；只抑制正文 Scene 配乐。旧 composition 范围仅能经正式 revision 显式收窄，其他旧 scope 不自动迁移。 |
 | fixed continuation | Root 完成 inline execution 或 bounded admission 后启动的 attempt-bound 固定进程；one-shot atomic claim 后等待 immutable task-terminal event log，failure/attempt 创建起一小时 timeout 退出，all-success 内部 converge exactly once。 |
 | convergence | fixed continuation 内部的只读重算 Revision、要求全部 artifact、受控物化 Project、刷新 derived packages/Composition 并交付。 |
 | materialization | 把 attested bytes 从 Artifact Store 通过 staging/replace/rollback 写到 live Project-owned roots。 |

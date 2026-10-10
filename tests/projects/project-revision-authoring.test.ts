@@ -18,10 +18,12 @@ import test from "node:test";
 import {
   AuthoringRequirementsSchema,
   AuthoringValidationError,
+  NarrationSpecSchema,
   ProjectCreateInputSchema,
   ProjectRevisionInputSchema,
   ProjectRevisionMaterializationRecordSchema,
   RenderSpecSchema,
+  SealedNarrationManifestSchema,
   ScenePriorSourceIndexSchema,
   SCENE_PRIOR_SOURCE_PATH,
   StorySpecSchema,
@@ -31,6 +33,9 @@ import {
   buildProductionRevision,
   buildProjectSoundPlan,
   computeStoryFingerprint,
+  computeGenerationInputFingerprint,
+  computeSealedNarrationFingerprint,
+  generateSemanticTiming,
   ProjectSceneTemplateInstantiationSchema,
   buildNotApplicableFidelityReceipt,
   buildSceneSoundPlan,
@@ -72,10 +77,12 @@ import {
 import { buildRuntimePolicyManifest } from "../../packages/studio/src/runtime/policy-manifest";
 import { snapshotPolicyRoots } from "../../scripts/project-production/adapters/project-input-snapshot";
 import { computeProjectRevisionCandidateId } from "../../packages/studio/src/contracts/project-revision";
+import { generateAuthoredFrameTiming } from "../../packages/studio/src/contracts/semantic-timing";
 import { createProjectRevisionProductionScope } from "../../scripts/project-production/application/production-scope";
 import { collectRendererSourceGraph } from "../../scripts/renderer-registry/domain";
 import { buildScenePackage } from "../../scripts/scene-package/domain";
 import { createScenePackageInput } from "../fixtures/scene/package-input";
+import { buildValidSealedNarrationManifest } from "../fixtures/narrative";
 import {
   prepareProjectCreateFixture,
   validProjectCreateInput,
@@ -673,6 +680,214 @@ test("composition music revisions preserve score policy and validate fades again
     /playback window/u,
   );
 });
+
+for (const mode of ["visual", "authored-frames", "narrated"] as const) {
+  test(`${mode} music revision can narrow a legacy composition score without changing current source or media`, async (context) => {
+    const current =
+      mode === "visual"
+        ? await visualFixture(context)
+        : await fixture(context, false, mode === "authored-frames");
+    const storyId = current.input.storyId;
+    const projectRoot = join(current.rootDir, "src/projects", storyId);
+    const baseSound = buildProjectSoundPlan({
+      storyId,
+      contributions: [
+        {
+          contributionId: "music",
+          resourceId: `res-project-${storyId}-music`,
+          descriptorFingerprint: sha("8"),
+          volume: 0.16,
+          loop: true,
+          playbackScope: "composition",
+        },
+      ],
+    });
+    const soundBytes = `${serializeCanonicalJson(baseSound)}\n`;
+    await writeFile(join(projectRoot, "sound.json"), soundBytes);
+    const storyBytes = await readFile(join(projectRoot, "story.json"));
+    const narrationBytes = await readFile(join(projectRoot, "narration.json"));
+    if (mode !== "visual") {
+      const story = StorySpecSchema.parse(JSON.parse(storyBytes.toString()));
+      const render = RenderSpecSchema.parse(
+        JSON.parse(await readFile(join(projectRoot, "render.json"), "utf8")),
+      );
+      const narration =
+        mode === "narrated"
+          ? NarrationSpecSchema.parse(JSON.parse(narrationBytes.toString()))
+          : null;
+      const { sealedNarrationFingerprint: _sealFingerprint, ...baseSeal } =
+        buildValidSealedNarrationManifest();
+      void _sealFingerprint;
+      const beat = story.beats.find((beat) => beat.kind === "narrated-scene");
+      const sealInput =
+        narration === null
+          ? null
+          : {
+              ...baseSeal,
+              narrationSpec: narration,
+              generationInputFingerprint: computeGenerationInputFingerprint(
+                story,
+                narration,
+              ),
+              segments: [
+                {
+                  ...baseSeal.segments[0],
+                  kind: "chunk",
+                  meaningId: beat!.meaningId,
+                  chunkId: beat!.ttsChunks[0]!.chunkId,
+                  ttsText: beat!.ttsChunks[0]!.ttsText,
+                  sampleFrameCount: 192_000,
+                },
+              ],
+              completeAudio: {
+                ...baseSeal.completeAudio,
+                sampleFrameCount: 192_000,
+              },
+            };
+      const timing =
+        narration === null
+          ? generateAuthoredFrameTiming({ story, render })
+          : generateSemanticTiming({
+              story,
+              render,
+              narration,
+              sealedNarration: SealedNarrationManifestSchema.parse({
+                ...sealInput,
+                sealedNarrationFingerprint:
+                  computeSealedNarrationFingerprint(sealInput),
+              }),
+            });
+      await mkdir(join(projectRoot, "generated"), { recursive: true });
+      await writeFile(
+        join(projectRoot, "generated/semantic-timing.generated.json"),
+        serializeCanonicalJson(timing),
+      );
+    }
+    const revisionContext = await readProjectRevisionContext({
+      rootDir: current.rootDir,
+      projectId: storyId,
+      dependencies: current.dependencies,
+    });
+    assert.equal(
+      revisionContext.editable.sound?.contributions[0]?.playbackScope,
+      "composition",
+    );
+    const sound = {
+      ...revisionContext.editable.sound!,
+      contributions: baseSound.contributions.map((track) => ({
+        ...track,
+        playbackScope: "content-window" as const,
+        fadeOutFrames: 120,
+      })),
+    };
+    const input = {
+      schemaVersion: 1,
+      contractVersion: "project-revision-input-v1",
+      storyId,
+      baseRevisionId: revisionContext.baseRevisionId,
+      baseDeliveryBuildId: revisionContext.baseDeliveryBuildId,
+      patch: { sound },
+    };
+    for (const change of [
+      { playbackScope: "content" },
+      { resourceId: "asset.unapproved-replacement" },
+      { descriptorFingerprint: sha("9") },
+      { contributionId: "replacement" },
+      { loop: false },
+    ]) {
+      await assert.rejects(
+        validateProjectRevisionAuthoring({
+          rootDir: current.rootDir,
+          dependencies: current.dependencies,
+          input: {
+            ...input,
+            patch: {
+              sound: {
+                ...sound,
+                contributions: sound.contributions.map((track) => ({
+                  ...track,
+                  ...change,
+                })),
+              },
+            },
+          },
+        }),
+        /existing tracks/u,
+      );
+    }
+    await assert.rejects(
+      validateProjectRevisionAuthoring({
+        rootDir: current.rootDir,
+        dependencies: current.dependencies,
+        input: {
+          ...input,
+          patch: {
+            sound: {
+              ...sound,
+              contributions: sound.contributions.map((track) => ({
+                ...track,
+                fadeOutFrames: 121,
+              })),
+            },
+          },
+        },
+      }),
+      /playback window/u,
+    );
+    const candidate = await createProjectRevisionCandidate({
+      rootDir: current.rootDir,
+      projectId: storyId,
+      input,
+      env: { RSP_PRODUCER_CONFIG: current.configPath },
+      dependencies: current.dependencies,
+    });
+    assert.deepEqual(candidate.changedSections, ["sound"]);
+    assert.equal(candidate.storyChanged, false);
+    const scope = createProjectRevisionProductionScope({
+      rootDir: current.rootDir,
+      storyId,
+      candidateId: candidate.candidateId,
+    });
+    const candidateRoot = join(scope.projectSourceRoot, storyId);
+    const scopedSound = buildProjectSoundPlan(sound);
+    assert.deepEqual(
+      JSON.parse(await readFile(join(candidateRoot, "sound.json"), "utf8")),
+      scopedSound,
+    );
+    assert.notEqual(
+      scopedSound.soundPlanFingerprint,
+      baseSound.soundPlanFingerprint,
+    );
+    assert.equal(
+      await readFile(join(projectRoot, "sound.json"), "utf8"),
+      soundBytes,
+    );
+    assert.deepEqual(
+      await readFile(join(projectRoot, "story.json")),
+      storyBytes,
+    );
+    assert.deepEqual(
+      await readFile(join(projectRoot, "narration.json")),
+      narrationBytes,
+    );
+    assert.deepEqual(
+      await readFile(join(candidateRoot, "narration.json")),
+      narrationBytes,
+    );
+    await writeFile(
+      join(projectRoot, "sound.json"),
+      `${serializeCanonicalJson(scopedSound)}\n`,
+    );
+    await assert.rejects(
+      validateProjectRevisionAuthoring({
+        rootDir: current.rootDir,
+        dependencies: current.dependencies,
+        input: { ...input, patch: { sound: revisionContext.editable.sound } },
+      }),
+      /existing tracks/u,
+    );
+  });
+}
 
 test("boundary and music revision retains immutable source bytes and isolates a 75-frame ending", async (context) => {
   const current = await visualFixture(context);

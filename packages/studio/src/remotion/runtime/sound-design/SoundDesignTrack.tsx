@@ -195,21 +195,6 @@ export const buildSoundDesignProjection = (rawInput: {
       ({ playbackScope }) => playbackScope === "composition",
     ) ??
       false);
-  const sceneContributions = ownerOrder.flatMap((ownerId) => {
-    const projection = projections.get(ownerId)!;
-    return projection.contributions
-      .filter(
-        (contribution) =>
-          !suppressSceneMusic || contribution.role !== "background-music",
-      )
-      .map((contribution) => ({
-        ...contribution,
-        contributionId: `${ownerId}:${contribution.contributionId}`,
-        startFrame: projection.beatStartFrame + contribution.startFrame,
-        endFrame: projection.beatStartFrame + contribution.endFrame,
-        loop: false,
-      }));
-  });
   const narratedTimings = timings.filter(
     ({ kind }) => kind === "narrated-scene" || kind === "visual-scene",
   );
@@ -247,6 +232,31 @@ export const buildSoundDesignProjection = (rawInput: {
             endFrame: lastNarrated.endFrame,
           }
       : resolveSemanticContentFrameRange(semanticTiming);
+  const suppressContentMusic =
+    projectSound?.contributions.some(
+      ({ playbackScope }) => playbackScope === "content-window",
+    ) ?? false;
+  const sceneContributions = ownerOrder.flatMap((ownerId) => {
+    const projection = projections.get(ownerId)!;
+    const suppressMusic =
+      suppressSceneMusic ||
+      (suppressContentMusic &&
+        contentFrameRange !== null &&
+        projection.beatStartFrame >= contentFrameRange.startFrame &&
+        projection.beatEndFrame <= contentFrameRange.endFrame);
+    return projection.contributions
+      .filter(
+        (contribution) =>
+          !suppressMusic || contribution.role !== "background-music",
+      )
+      .map((contribution) => ({
+        ...contribution,
+        contributionId: `${ownerId}:${contribution.contributionId}`,
+        startFrame: projection.beatStartFrame + contribution.startFrame,
+        endFrame: projection.beatStartFrame + contribution.endFrame,
+        loop: false,
+      }));
+  });
   const projectResources = (rawInput.projectSoundResources ?? []).map(
     (resource) => ResourceAssetDescriptorSchema.parse(resource),
   );

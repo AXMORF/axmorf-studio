@@ -86,6 +86,7 @@ Before the first command, briefly tell the user the plan. Report inherited bound
    The assigned executor writes only contract-declared Agent/Agent-draft outputs and uses its exact returned
    describe/finalize/check/commit/failure commands; the Root is that executor only in inline mode.
    With `controller-io`, the executor uses only returned strict file-read/file-write commands.
+   Repair declared output issues and rerun finalize/check successfully before commit; a failed finalize is not permission to commit.
 9. For review before delivery, first wait for every worker terminal completion and run `npm run project:preview -- --project
 <storyId>` with exact `--candidate` when present. Preview verifies artifacts and renders a private frozen view at reduced
    pixels with the original fps, timing and sound. It writes no live source/current Delivery, calls no provider, creates no

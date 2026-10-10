@@ -32,7 +32,7 @@ validators 判断一次生产是否真正完成。
 Scene 内的因果动作、其他 SVG/Canvas/3D 仍自由创作。实际消费检查不代替连续播放审阅。
 create context 同时提供已核验许可的 `soundResources` 和不含私有路径的音乐配置状态。
 Scene 选择音效并对齐实际起音或声势中心；新 Project 默认从已批准的全局循环曲库选一首，冻结为 Project-local 资源，
-由顶层跨 Scene 连续播放到整片结束。可明确静音、指定获批曲目或继承自定义文件；缺曲会报告 unavailable。
+0.1.17 发布时由顶层跨 Scene 连续覆盖整片。可明确静音、指定获批曲目或继承自定义文件；缺曲会报告 unavailable。
 还可通过 strict revision 调整 immutable 首尾模板的播放区间及既有音乐增益/包络，不修改模板或旁白 bytes。
 该新增修订已有回归测试，正式整片 candidate 和听审尚待验证，见 [修订指南](docs/guides/PROJECT_REVISION.md)。
 这些能力已随两个官方 npm 包的 0.1.17 发布。发布及公共安装证据见
@@ -43,6 +43,10 @@ Scene 选择音效并对齐实际起音或声势中心；新 Project 默认从�
 并保留 0.1.17 的已发布能力。0.1.20 修复分组 Scene 的 bound preview 与作者帧模式旁白读取，
 已验证 60 秒连续场景和新 Workspace 的 40 秒六场景成片。见[0.1.20 发布记录](docs/evidence/v0.1.20-publication.json)。
 已安装 Workspace 始终以其 public schemas/生成指南为准；既有作品不会自动重组。
+
+当前源码另含两项未发布修复：新 Project 全局 BGM 只覆盖正文，保留首尾模板配乐；旧 composition 音轨可通过
+正式 sound revision 显式收窄。commit 对明确输出缺失或 JSON/TypeScript 语法错误保存结构化恢复证据，
+无证据的历史通用失败仍阻塞。源码提交与推送不更新已安装的 0.1.20；验证及限制见[当前实现状态](docs/ITERATION_STATUS.md)。
 
 ## 把这段提示词交给你的 Agent
 
@@ -69,6 +73,8 @@ creator 会安装精确依赖、生成 `package-lock.json`，并在原子提升�
 [24 条预制动效音效](docs/guides/SCENE_SOUND_EFFECTS.md)，含鼠标单击/双击、按下/松开与滚轮声。
 默认首尾 Scene 会在 Project 创建时把所用音频复制为
 Project-local 资产；正文 Scene 从 Catalog 选择已制作的音效并按帧安排卡点。
+新 Project 的全局 BGM 只在正文连续播放，片头、片尾保留模板配乐；旧整片音轨可通过
+[正式音乐修订](docs/guides/PROJECT_REVISION.md#边界播放与音乐包络)收窄范围。
 `npm run dev` 会同时启动 loopback-only Web 控制中心和 Remotion Studio：前者用于配置、诊断、
 进度和 current Delivery，后者用于 Composition 实时预览。
 
@@ -178,6 +184,9 @@ same-Revision reissue fresh attempt；它不要求 current delivery：
 npm run project:attempt:recover-inspect -- --project <story-id> --attempt <failed-attempt-id>
 npm run project:attempt:reissue -- --project <story-id> --attempt <failed-attempt-id>
 ```
+
+commit 对明确的输出缺失、JSON/TypeScript 语法错误保留 task-local `outputFailure`，恢复时复核原任务声明的
+输出路径。仅有通用 `producer-task-commit-failed` 的历史记录仍阻塞；不从后来补写的文件或文字说明猜测原故障。
 
 Project 删除是破坏性操作，必须由用户明确授权，并且只能使用完整 storyId-owned 清理命令：
 

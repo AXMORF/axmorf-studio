@@ -123,7 +123,8 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
   不顺手改全局 VisualStyle/GlobalVisual/Story/TTS，不虚构 Cover-only API。候选隔离 source/public/
   narration/work/attempt/out/delivery；promote 前 current Project/Delivery 始终是 authority。
   `patch.boundaryScenes` 只按 context 的完整 boundary meaningId/order 选择既有 immutable template 的受检播放区间，
-  保留源码/素材/身份；`patch.sound` 只改既有 track 的音量与首尾包络，不新增或替换媒体。运行时升级后先正式复验
+  保留源码/素材/身份；`patch.sound` 只改既有 track 的音量与首尾包络，或将 composition 范围收窄到 content-window，
+  不新增或替换媒体。运行时升级后先正式复验
   current 交付再修订；artifact missing 且完整 Scene task input 未变时，planner 可冻结已复验的 owning current Scene，
   供 bound executor 保留源码并重新 finalization/validation，不扫描历史或伪造 artifact hit。
 - `ttsChunks` 是 Agent 已确定的原子朗读单元。sealed PCM 实测 samples 是绝对时间 authority；frame
@@ -139,9 +140,9 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
   旁白与既有 policyVersion 1 保持原几何/fingerprint；current validation/revision 保留完整 frozen policy，不自动迁移。
 - 新 Project 的 `VisualStyleSpec.theme` 固化已校验四角色配色，Composition 实际绘制 background；themed GlobalVisual base 必须直接返回 null，正文/首尾共用主题。旧 immutable 模板不静默迁移；不兼容主题在 create/revision 前置拒绝。
 - 旁白独占 narration track；非旁白声音都是独立 `SoundContribution`。新 Project 的 BGM 在 create 时从已批准的全局
-  loop 音乐库自动选曲或按明确选择冻结，单个 contribution 覆盖完整 Composition（含首尾与 lead/tail），跨 Scene 不重启。
-  有整片 BGM 时抑制 Scene 的 background-music，保留独立音效；显式 `backgroundMusic:null` 抑制全部背景音乐。
-  缺曲必须报告 unavailable，不把资源发现当作播放成功；旧 Plan 的 narrated-content/content scope 保留，不自动迁移。
+  loop 音乐库自动选曲或按明确选择冻结，单个 content-window contribution 只覆盖正文，跨 Scene 不重启，不覆盖首尾模板或 lead/tail。
+  正文 BGM 只抑制正文 Scene 的 background-music，保留模板配乐与所有独立音效；显式 `backgroundMusic:null` 抑制全部背景音乐。
+  缺曲必须报告 unavailable，不把资源发现当作播放成功；旧 Plan 的 composition/narrated-content/content scope 保留，不自动迁移。
 - JSON/数据文件不包含 executable expression；renderer 由 composition-local static registry 绑定。
   render runtime 不调用 Agent、Skill、MCP、Git、网络或目录扫描。
 - 所有媒体都位于当前 Workspace `public/`、具有 manifest identity 并通过检查。render-critical motion
@@ -276,8 +277,10 @@ Root 优先整段转发 prepare/reissue 的 `workerPrompts`；进程工具返回
   `project:attempt:interrupt` 追加 failed event 并归档匹配的遗留锁。原 claim/attempt inputs 不改；legacy/unknown
   owner fail closed，不手动删锁。随后沿既有 recover-inspect/reissue 新建 attempt。进程诊断不进入 content identity。
 - terminal failed attempt 永远 immutable。每个用户制作请求（含 candidate）最多自动恢复一次，且只覆盖已证明的
-  Agent-authored output fault；普通退出码或 recovery-ready 本身不能证明故障归属。先等待原 continuation 退出，
-  通过原生完成通知或 stop 后确认所有旧 workers 已退出；无法证明就报告 blocker，禁止新旧 writer 重叠。再运行
+  Agent-authored output fault；普通退出码或 recovery-ready 本身不能证明故障归属。
+  commit 的受检 outputFailure 只证明 declared output 缺失或 JSON/TypeScript 语法错误；无证据的通用 commit failure 仍阻塞，
+  不能从后来补写的文件或文字说明追认原故障。
+  先等待原 continuation 退出，通过原生完成通知或 stop 后确认所有旧 workers 已退出；无法证明就报告 blocker，禁止新旧 writer 重叠。再运行
   严格只读、零 provider 的 `npm run project:attempt:recover-inspect`，报告原因、修正方案和复用情况；只有
   `attempt-recovery-ready`、同一 current Revision、无 active/fixed blocker 时才运行 `npm run project:attempt:reissue`。
   reissue 不要求 current delivery，复用 valid artifacts/drafts，返回 fresh attempt/bindings/continuation；使用 fresh workers

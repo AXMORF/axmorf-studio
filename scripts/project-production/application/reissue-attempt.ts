@@ -321,28 +321,44 @@ const inspectRecovery = async ({
   const failedOutcomes = failed.taskOutcomes.filter(
     ({ outcome }) => outcome === "failed",
   );
+  const isRecoverableAgentFailure = (
+    outcome: ExecutionAttemptProgress["taskOutcomes"][number],
+  ) => {
+    const task = failedTaskByRevision.get(outcome.taskRevision);
+    if (
+      task?.action !== "dispatch-agent" ||
+      task.taskKind !== outcome.taskKind ||
+      !["scene-owner", "global-visual-owner", "cover-owner"].includes(
+        task.taskKind,
+      )
+    )
+      return false;
+    if (outcome.diagnosticCode === "producer-agent-task-failed") return true;
+    const snapshot = failed.taskSnapshots.find(
+      ({ taskRevision, taskKind }) =>
+        taskRevision === outcome.taskRevision && taskKind === outcome.taskKind,
+    );
+    return (
+      outcome.diagnosticCode === "producer-task-commit-failed" &&
+      outcome.outputFailure !== undefined &&
+      snapshot !== undefined &&
+      outcome.outputFailure.outputPaths.every(
+        (path) =>
+          snapshot.declaredOutputSet.includes(path) &&
+          !snapshot.declaredReadSet.includes(path),
+      )
+    );
+  };
   if (
     failedOutcomes.length === 0 ||
-    failedOutcomes.some(({ diagnosticCode, taskKind, taskRevision }) => {
-      const task = failedTaskByRevision.get(taskRevision);
-      return (
-        diagnosticCode !== "producer-agent-task-failed" ||
-        task?.action !== "dispatch-agent" ||
-        task.taskKind !== taskKind
-      );
-    })
+    failedOutcomes.some((outcome) => !isRecoverableAgentFailure(outcome))
   )
     fail(
       "attempt-recovery-plan-not-recoverable",
       "The failed attempt contains a fixed, host, or unsupported task failure.",
     );
   const recoverableAgentTaskKeys = new Set(
-    failed.taskOutcomes
-      .filter(
-        ({ outcome, diagnosticCode }) =>
-          outcome === "failed" &&
-          diagnosticCode === "producer-agent-task-failed",
-      )
+    failedOutcomes
       .map(({ taskRevision }) => failedTaskByRevision.get(taskRevision))
       .filter((task): task is NonNullable<typeof task> => task !== undefined)
       .map((task) => `${task.taskKind}:${task.subject.id}`),

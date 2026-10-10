@@ -2,6 +2,7 @@ import { pathToFileURL } from "node:url";
 import type {
   ProducerTaskSpec,
   Sha256Digest,
+  TaskOutputFailure,
   TaskWorkerTransport,
 } from "@axmorf/studio/contracts";
 import type { RuntimePolicyManifest } from "../../packages/studio/src/runtime/policy-manifest";
@@ -47,6 +48,7 @@ import {
 } from "./application/task-worker-binding";
 import { acquireRepositoryOperationLock } from "../shared/repository-operation-lock";
 import { buildTaskDiagnosticSnapshots } from "./domain/task-explanation";
+import { TaskOutputValidationError } from "./domain/task-output-validation";
 import {
   resolveProductionScope,
   type ProductionScope,
@@ -278,6 +280,7 @@ const recordTaskOutcome = async ({
           | "producer-agent-task-failed"
           | "producer-agent-host-failed"
           | "producer-agent-fixed-failed";
+        outputFailure?: TaskOutputFailure;
       }>;
   readonly appendTaskOutcome?: typeof appendExecutionAttemptTaskOutcome;
 }) =>
@@ -520,6 +523,9 @@ export const runProjectProductionCli = async (
           outcome: "failed",
           artifactFingerprint: null,
           diagnosticCode: "producer-task-commit-failed",
+          ...(error instanceof TaskOutputValidationError
+            ? { outputFailure: error.diagnostic }
+            : {}),
         },
         appendTaskOutcome: context.appendTaskOutcome,
       });

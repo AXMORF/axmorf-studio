@@ -2,19 +2,23 @@
 
 > 文档类型：架构 authority
 
-## 0.1.17 的视觉与音频扩展
+## 视觉、音频与局部修订
 
 边界修订使用 Story preset 中可选、fingerprint-covered 的 template playback window：immutable instance 与 copied bytes 不变，
 fixed artifact 派生局部 shot/anchor 和音轨源起点，SceneSlot 保持实际 Beat Sequence 时长并偏移模板 source clock。
 Project/Scene 音轨可选首尾线性包络；循环 BGM 的包络延续到整条 contribution，不能每轮重置。
-正式 revision 只开放既有 template 区间与既有 track 的增益/包络。运行时升级后须正式重验 current delivery；
+正式 revision 开放既有 template 区间、既有 track 的增益/包络，以及 composition→content-window 的单向范围收窄。
+运行时升级后须正式重验 current delivery；
 missing artifact 的 owning Scene task input 完全不变时可冻结其已验证 current source 为 bound priorSource，
 保留既有画面后重新执行 validators 和提交，不能把 current source 当 artifact hit。
 
 无旁白正文沿同一 production 主链：`visual-scene` 的 authored frames 生成 `authored-frames-v1`
 SemanticTiming，旁白 source/两份 manifest 明确为 null，不创建 provider/narration tasks。Composition
-省略 NarrationAudioTrack，保留顶层 caption ownership；空 captions 回收字幕预留区。GlobalVisual 和
-新 Project BGM 使用完整 Composition 窗口，GlobalVisual decoration 仍使用正文窗口。Scene 可通过公开 action timing helper 消费计划，并接收冻结 continuity。
+省略 NarrationAudioTrack，保留顶层 caption ownership；空 captions 回收字幕预留区。
+新 Project BGM 与 GlobalVisual decoration 使用正文窗口；GlobalVisual base 仍覆盖完整 Composition。
+正文 BGM 跨 Scene 连续播放，只抑制正文 Scene 配乐，保留首尾模板配乐及独立音效。
+旧 composition scope 继续覆盖完整影片；正式 sound revision 可显式将其收窄到 content-window，保留媒体身份与 bytes。
+Scene 可通过公开 action timing helper 消费计划，并接收冻结 continuity。
 可选 `outgoingHandoff.visual` 是自由 SVG 数据，与相邻任务共享同一 immutable seam；公开
 `SceneContinuityVisual` 只绘制该主体。声明进入 Scene input fingerprint，语义 handoff ID 保持原定义。
 有 visual 时独立检查首/末帧的实际 DOM、输入消费与 viewport 字号；没有 visual 的旧任务不改变。
@@ -24,8 +28,8 @@ identity，也不扩展 worker 文件权限。详见[视觉叙事](guides/VISUAL
 create context 的 `soundResources` 只投影当前 Catalog 已批准、runtime-approved、许可 verified 的
 音效与音乐；`backgroundMusic` 另投影已核验的全局 loop 候选、自动/文件/禁用模式及缺曲状态，不暴露私有配置路径。
 create input 可选 `backgroundMusic`：省略继承，auto 按当前 brief 匹配候选，selected 指定 resourceId，null 明确关闭背景音乐。
-create-time 本地化冻结 checksum/license/Project-owned bytes；一个 composition-scope 音轨覆盖首尾和 lead/tail，抑制 Scene 的第二条音乐，
-音效仍按独立 anchor 混音。旧 narrated-content/content Plan 不改语义，空曲库返回 unavailable 和空 Project 音轨。
+create-time 本地化冻结 checksum/license/Project-owned bytes；一个 content-window 音轨覆盖正文，抑制正文 Scene 的第二条音乐，
+首尾模板配乐保留，音效仍按独立 anchor 混音。旧 composition/narrated-content/content Plan 不自动迁移，空曲库返回 unavailable 和空 Project 音轨。
 
 发布控制器独立于生产 runtime：`scripts/release/release-gate.ts` 由已审核 release plan 与 baseline tag diff
 决定普通或 native scope；两包内容 fingerprint 始终复验。production/合同/scaffold 变更要求主宿主原生首用，
@@ -362,7 +366,11 @@ Agent execution preferences 使用独立 strict contract 与 `0600` 原子存储
 terminal failed attempt 保持 immutable。显式 recovery 先做 read-only/zero-provider recover inspection，再在 lock
 内按 same current Revision reissue fresh attempt/bindings；它不要求 current delivery，复用 valid artifacts/drafts，
 并拒绝 active、stale 或 fixed-flow recovery。
-当前 recovery 要求明确的 `producer-agent-task-failed` outcome；fixed/host/unknown 或缺少失败任务证据仍阻塞。
+当前 recovery 接受明确的 `producer-agent-task-failed` outcome，或带有受检 `outputFailure` 的
+`producer-task-commit-failed`。后者只由明确的输出缺失、JSON/TypeScript 语法校验产生，包含安全的错误种类和
+排序去重的 task-local 输出路径；恢复时要求匹配原 failed Agent task snapshot 的 declared outputs，不能指向 immutable inputs。
+该可选字段兼容旧 v3 event，不进入 content identity；CLI 同时返回结构化诊断。unknown file、symlink、输入完整性、
+权限、Artifact Store 和未知异常不获此证据。缺少证据的历史通用 commit failure 仍阻塞，不回读现有 draft 来猜原故障。
 下游 dependency-only `blocked` 仅在完整、无环、identity 匹配的依赖图可追溯到该失败 Agent task 时放行；
 dirty fixed work、独立或未知 blocker 不放行。`recovery-ready` 仍不替代 Root 对原故障与旧 workers 全部退出的核实。
 

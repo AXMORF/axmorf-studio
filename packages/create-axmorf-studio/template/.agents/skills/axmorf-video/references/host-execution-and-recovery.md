@@ -28,6 +28,11 @@ retries and candidate changes do not reset this allowance. Only a proven Agent-a
 code or recovery-ready response alone. Unknown, fixed-system, provider, host, permission and integrity/identity faults stop with
 Root diagnosis and a concise report; program source, installed packages, dependencies and validators are outside auto-repair scope.
 
+Commit records strict `outputFailure` evidence only for missing declared outputs or JSON/TypeScript syntax failures. Recovery checks
+the immutable event's owner/code/output paths against the original Agent task snapshot during inspection and locked reissue.
+A generic `producer-task-commit-failed` without this evidence remains blocked, including legacy records. Later draft edits or
+narrative reports cannot replace the original validator evidence. Unknown files, symlinks, immutable drift and I/O faults remain blockers.
+
 For an eligible terminal task failure:
 
 1. Wait for the original continuation to exit and establish that **all previous workers have exited** using native completion,

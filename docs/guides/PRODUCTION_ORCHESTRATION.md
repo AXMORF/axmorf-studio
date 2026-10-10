@@ -163,7 +163,9 @@ promotion 在锁内重验 base/current 与 expected candidate tuple，受控替�
 | `project-production-current`    | 同 identity current package 已复验，media 未重写  |
 
 terminal failed attempt 永远 immutable。按 [Skill recovery](../../.agents/skills/axmorf-video/references/agent-rework-and-system-hardening.md)
-先分类故障；仅已证明的视频任务错误允许每个用户请求自动恢复一次（candidate/重试不重置额度）。确认原 continuation 与
+分类 task outcome；commit 只为明确输出缺失或 JSON/TypeScript 语法错误保存受检 outputFailure，
+无该证据的通用 producer-task-commit-failed 仍阻塞，不能用后补文件或文字报告追认。
+仅已证明的视频任务错误允许每个用户请求自动恢复一次（candidate/重试不重置额度）。确认原 continuation 与
 所有旧 workers 经原生完成或 stop 后确认退出，才能运行并报告严格只读、零 provider inspection：
 
 ```bash
@@ -172,7 +174,8 @@ npm run project:attempt:reissue -- --project <storyId> --attempt <failedAttemptI
 ```
 
 recover inspection 只在 failed terminal、无其他 active attempt、same current Revision 且 current plan 没有
-dirty/blocked fixed tasks 时返回 `attempt-recovery-ready`。reissue 在 lock 内重检，不要求 current delivery，复用
+dirty fixed work 时返回 `attempt-recovery-ready`；下游 dependency-only blocked 必须经完整无环图追溯到可恢复 Agent root。
+reissue 在 lock 内重检，不要求 current delivery，复用
 valid artifacts/drafts，创建 fresh attempt/bindings 并返回 `project-production-reissued` 与 continuation。active/
 stale/fixed-flow failure 拒绝。恢复使用 fresh workers 与 exact 新 bindings，只派 dirty tasks；再次失败、未知、系统或外部错误停止报告。
 不能 rerun prepare/旁白绕过恢复额度。不要 provider fallback、跨 Project reuse、复制 identity、手改

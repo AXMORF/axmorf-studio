@@ -71,7 +71,9 @@ Revision commands have no `--schema`; validate accepts no `--project`. Read the 
 For a local Scene layout fix, change only that Scene's authoring in the full `patch.scenes` list; preserve unrelated Scenes,
 VisualStyle, GlobalVisual, Story and TTS. Do not invent a Cover-only patch API. Carry the candidate ID through production.
 If the installed schema supports boundary/music revisions, preserve the complete context lists and all immutable identities.
-Only choose existing template source frames or alter existing track gain/envelopes; do not admit new media or change sealed audio.
+Only choose existing template source frames, alter existing track gain/envelopes, or narrow composition music to content-window;
+do not admit new media or change sealed audio. New Project BGM covers only content, preserving template scores and all effects.
+Legacy playback scopes remain frozen until an explicit revision.
 Read the authoring reference for raw input shapes and runtime-upgrade base verification.
 The bound `scene.priorSource`, when present, is only the owning Scene's verified, frozen current base graph and declarations.
 Compare its previous brief with the current brief and apply the delta while preserving unaffected behavior and exact license/lineage
@@ -97,6 +99,8 @@ Agent-authored output faults, after the continuation and all previous workers ha
 plus diagnosis/reuse reporting precedes zero-provider same-Revision `project:attempt:reissue` only if ready. Use fresh workers and
 bindings; stop on repeated/no-progress failures. Unknown, system and external faults are diagnosed and reported, not automatically
 repaired or retried. No package/source/dependency/validator changes belong to video-task recovery.
+Commit preserves validated outputFailure evidence for missing declared outputs or JSON/TypeScript syntax errors.
+Generic commit failures without that evidence remain blocked; later draft edits or narrative reports cannot establish the original cause.
 
 An external interruption without terminal first stops with diagnosis. After a later explicit user recovery request, use
 `project:attempt:interrupt-inspect`, then its returned `project:attempt:interrupt`

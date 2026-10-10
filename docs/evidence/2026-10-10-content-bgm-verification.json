@@ -1,0 +1,196 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-10",
+  "status": "unreleased-source-verification",
+  "scope": "Project BGM content window and independent template scores",
+  "rootCause": "Create froze composition playbackScope; runtime suppressed all Scene background-music whenever composition music existed.",
+  "changes": [
+    "Create freezes content-window music.",
+    "Content-window music suppresses only content Scene scores.",
+    "Explicit sound revision may narrow composition to content-window while retaining track and media identity."
+  ],
+  "providerRequests": 0,
+  "realVideoWorkspaceModified": false,
+  "audioSmoke": {
+    "renderer": "Remotion 4.0.489 with host Chromium; PCM WAV decoded with FFmpeg",
+    "sampleRate": 48000,
+    "audioChannels": 1,
+    "fps": 30,
+    "durationInFrames": 480,
+    "introFrames": 60,
+    "bodyFrames": 120,
+    "outroFrames": 240,
+    "method": "Synthetic 880 Hz intro, 220 Hz global body loop, 660 Hz outro, and suppressed 440 Hz body Scene score. Measure each full window with sinusoid projection and RMS.",
+    "criteria": {
+      "expectedToneAmplitudeMinimum": 0.05,
+      "unexpectedToneAmplitudeMaximum": 0.001,
+      "silentRmsMaximum": 0.0001
+    },
+    "measurements": [
+      {
+        "label": "lead",
+        "startFrame": 0,
+        "endFrame": 30,
+        "expectedHz": null,
+        "rms": 0,
+        "toneAmplitude": {
+          "220": 0,
+          "440": 0,
+          "660": 0,
+          "880": 0
+        }
+      },
+      {
+        "label": "intro",
+        "startFrame": 30,
+        "endFrame": 90,
+        "expectedHz": 880,
+        "rms": 0.06103563710341184,
+        "toneAmplitude": {
+          "220": 1.0569283198166029e-17,
+          "440": 9.558649538657046e-17,
+          "660": 2.2663174565758766e-17,
+          "880": 0.08631742476890672
+        }
+      },
+      {
+        "label": "body-first-loop",
+        "startFrame": 90,
+        "endFrame": 150,
+        "expectedHz": 220,
+        "rms": 0.08630997961893679,
+        "toneAmplitude": {
+          "220": 0.12206074304414302,
+          "440": 2.966001597616124e-16,
+          "660": 3.6646712254012555e-06,
+          "880": 5.208761880187646e-16
+        }
+      },
+      {
+        "label": "body-second-loop",
+        "startFrame": 150,
+        "endFrame": 210,
+        "expectedHz": 220,
+        "rms": 0.08630997961893679,
+        "toneAmplitude": {
+          "220": 0.12206074304414208,
+          "440": 5.295465280157288e-16,
+          "660": 3.6646712253795635e-06,
+          "880": 1.0423343586065e-15
+        }
+      },
+      {
+        "label": "outro",
+        "startFrame": 210,
+        "endFrame": 450,
+        "expectedHz": 660,
+        "rms": 0.061034721029637265,
+        "toneAmplitude": {
+          "220": 3.0410740701971956e-17,
+          "440": 8.789767550135381e-17,
+          "660": 0.08631612932444134,
+          "880": 2.166763242414329e-16
+        }
+      },
+      {
+        "label": "tail",
+        "startFrame": 450,
+        "endFrame": 480,
+        "expectedHz": null,
+        "rms": 0,
+        "toneAmplitude": {
+          "220": 0,
+          "440": 0,
+          "660": 0,
+          "880": 0
+        }
+      }
+    ],
+    "limitations": [
+      "Integer-second boundaries only; this is a runtime audio mix proof, not complete Project production or subjective listening.",
+      "A preliminary fractional-second probe observed 16-sample Remotion time quantization; sample-perfect arbitrary-frame cuts were not changed or certified."
+    ],
+    "decodedSampleFrames": 768000,
+    "decodedPcmChecksum": "sha256:16307570f8f5d2618959beb113282188a04bc071576b1e1631abcc3ffb361c21"
+  },
+  "regressionCoverage": [
+    "Narrated, visual and authored-frame content windows with grouped body owners.",
+    "Intro/outro music, effects, offsets and envelopes are retained.",
+    "No-music policy remains global; legacy composition playback remains unchanged.",
+    "Existing-track scope narrowing uses an isolated candidate and leaves current sound, Story and narration bytes unchanged.",
+    "Media, loop, identity and unsupported scope changes remain rejected; fades must fit the content window.",
+    "Under unchanged runtime policies, a sound-only scope revision preserves Scene/template/GlobalVisual/Cover TaskRevision even across a new Revision; only composition and delivery identities change."
+  ],
+  "sourceChecksums": {
+    "scripts/projects/application/localize-project-sound.ts": "sha256:39b7534c78c68298c7b0cea9e835884a3b5e2e08269dd0cc64deb8e5faba7243",
+    "packages/studio/src/remotion/runtime/sound-design/SoundDesignTrack.tsx": "sha256:0b2efcb48cd5a40b3622ae46bafe8d176e4a3feb46184773f08735647c028f13",
+    "scripts/projects/application/project-revision.ts": "sha256:cbc3aa2c13433b4d211504d647e4f9acfd00c1614cc9a9e145bc3c0c9d111c8d"
+  },
+  "verification": {
+    "fullCheck": {
+      "command": "npm run check",
+      "exitCode": 0,
+      "tests": 1432,
+      "pass": 1432,
+      "fail": 0,
+      "skip": 0,
+      "checks": [
+        "typecheck",
+        "lint",
+        "docs",
+        "catalog",
+        "registry",
+        "settings build",
+        "Remotion bundle",
+        "host compositions",
+        "source Project gate"
+      ]
+    },
+    "priorFullCheck": {
+      "tests": 1431,
+      "pass": 1430,
+      "fail": 1,
+      "reason": "Revision Skill documentation exceeded the existing 220-word limit; condensed it to 219 words and reran the full check without changing the limit."
+    },
+    "focusedChecks": {
+      "initialRelatedTests": 65,
+      "pass": 65,
+      "addedNarratedNarrowing": "passed",
+      "addedOwnerArtifactIdentityReuse": "passed",
+      "skillDocumentation": "3/3 passed"
+    },
+    "packagesBuild": {
+      "command": "npm run packages:build",
+      "exitCode": 0
+    },
+    "packageReadiness": {
+      "command": "npm run check:package --workspaces --if-present",
+      "exitCode": 0,
+      "packages": [
+        "@axmorf/studio",
+        "create-axmorf-studio"
+      ]
+    },
+    "packagedRemotionSmoke": {
+      "status": "packaged-remotion-passed",
+      "providerRequests": 0,
+      "contributions": [
+        {
+          "contributionId": "intro:score",
+          "startFrame": 30,
+          "endFrame": 90
+        },
+        {
+          "contributionId": "outro:score",
+          "startFrame": 210,
+          "endFrame": 450
+        },
+        {
+          "contributionId": "project:background-music",
+          "startFrame": 90,
+          "endFrame": 210
+        }
+      ]
+    }
+  }
+}

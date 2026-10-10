@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   ExecutionAttemptSchema,
+  ExecutionAttemptTaskOutcomeSchema,
   TaskDiagnosticSnapshotSchema,
 } from "@axmorf/studio/contracts";
 
@@ -58,6 +59,51 @@ test("diagnostic task snapshot is strict, sorted, and decision-bound", () => {
       decision: { ...decision, taskRevision: `task-${"5".repeat(64)}` },
     }),
   );
+});
+
+test("commit output evidence is optional for legacy outcomes, strict, and limited to failed Agent commits", () => {
+  const legacy = {
+    taskRevision,
+    taskKind: "cover-owner",
+    outcome: "failed",
+    artifactFingerprint: null,
+    diagnosticCode: "producer-task-commit-failed",
+  };
+  const outputFailure = {
+    failureOwner: "agent-output",
+    code: "missing-output",
+    outputPaths: ["src/Root.tsx"],
+  };
+  assert.deepEqual(ExecutionAttemptTaskOutcomeSchema.parse(legacy), legacy);
+  assert.doesNotThrow(() =>
+    ExecutionAttemptTaskOutcomeSchema.parse({ ...legacy, outputFailure }),
+  );
+  for (const invalid of [
+    { ...legacy, outputFailure, taskKind: "scene-template" },
+    { ...legacy, outputFailure, diagnosticCode: "producer-agent-host-failed" },
+    {
+      ...legacy,
+      outputFailure,
+      outcome: "artifact-committed",
+      diagnosticCode: null,
+      artifactFingerprint: sha("8"),
+    },
+    ...[
+      { ...outputFailure, failureOwner: "fixed" },
+      { ...outputFailure, code: "EACCES" },
+      { ...outputFailure, code: "unknown" },
+      { ...outputFailure, outputPaths: [] },
+      { ...outputFailure, outputPaths: ["../private/secret"] },
+      { ...outputFailure, outputPaths: ["/tmp/secret"] },
+      { ...outputFailure, outputPaths: ["src/b.ts", "src/a.ts"] },
+      { ...outputFailure, outputPaths: ["src/Root.tsx", "src/Root.tsx"] },
+      { ...outputFailure, message: "raw provider or source content" },
+    ].map((outputFailure) => ({ ...legacy, outputFailure })),
+  ])
+    assert.equal(
+      ExecutionAttemptTaskOutcomeSchema.safeParse(invalid).success,
+      false,
+    );
 });
 
 test("execution attempt v3 persists chunk-distinct diagnostic snapshots", () => {

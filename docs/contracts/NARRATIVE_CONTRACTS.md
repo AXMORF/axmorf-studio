@@ -155,8 +155,8 @@ canonical PCM, checksum, sealing, mastering, and cumulative-sample timing pipeli
 `SemanticTimingSchema` preserves three strict algorithms: PCM, published `authored-frames-v1` visual Scene durations,
 and explicit `authored-cumulative-frames-v1` silent owner presets. Both authored branches accumulate their declared
 frames plus RenderSpec lead/tail without audio-derived fields. Shared content range resolution excludes fixed bookends
-for GlobalVisual decoration and explicit `content-window` tracks. New Project BGM uses the complete Composition;
-existing track scopes keep their original meaning. None of these paths retimes sealed PCM.
+for GlobalVisual decoration and `content-window` tracks, including new Project BGM. Existing track scopes keep their original
+meaning unless a strict revision explicitly narrows `composition` to `content-window`. None of these paths retimes sealed PCM.
 
 `pcm-cumulative-ceil-v1` builds one cumulative integer sample timeline and applies
 `ceilDiv(samples × fps, sampleRate)` at shared boundaries with `BigInt`. CaptionCue is one-to-one with
@@ -186,18 +186,20 @@ chapters; otherwise complete ordered content coverage is required. Narrated film
 
 ## Sound playback
 
-Composition owns Project BGM, narration and Scene sound contributions. New Project music uses `playbackScope:"composition"`,
-one looping contribution from frame zero through the exact SemanticTiming duration, including unvoiced boundaries and lead/tail.
-Legacy `narrated-content` and `content` retain their narrower windows. A composition score suppresses Scene background-music,
-while effects remain independent; optional `sceneMusicPolicy:"mute"` suppresses Scene scores for an explicit no-music request.
+Composition owns Project BGM, narration and Scene sound contributions. New Project music uses `playbackScope:"content-window"`,
+one looping contribution across the canonical SemanticTiming content window, excluding template boundaries and lead/tail.
+It suppresses background-music only in content Scene owners, preserving template scores and all effects.
+Legacy `composition`, `narrated-content` and `content` retain their windows; a composition score still suppresses all Scene music.
+Optional `sceneMusicPolicy:"mute"` suppresses all Scene scores for an explicit no-music request.
 Create input `backgroundMusic` inherits when omitted, selects automatically with `{mode:"auto"}`, selects an approved global loop with
 `{mode:"selected",resourceId,volume?}`, or disables music with null. Automatic candidates are global approved licensed loop assets;
 creation freezes their Project-local bytes and original license. An empty library reports unavailable rather than enabled BGM.
 Optional `sourceStartFrame` selects an audio source offset; `fadeInFrames`/`fadeOutFrames` define contribution-local
 linear gain. Looping music uses the full contribution clock, so a fade does not restart each loop. Omitted optional
 fields preserve the previous canonical identity. Plans remain JSON data; playback uses static Remotion components.
-Strict revision can change only existing Project music gain/envelopes and immutable boundary playback windows/music,
-preserving track/resource identities, source bytes, loop and playbackScope. It cannot change sealed narration.
+Strict revision can change existing Project music gain/envelopes, narrow `composition` to `content-window`, and change immutable
+boundary playback windows/music. Track/resource identities, source bytes, order and loop remain frozen; other scope changes
+are rejected. Envelopes must fit the selected window. Revision cannot change sealed narration.
 
 ## Maintainer diagnostics and public verification
 

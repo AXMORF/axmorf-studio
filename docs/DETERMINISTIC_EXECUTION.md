@@ -118,6 +118,11 @@ FIFO/device 和 checksum drift。ArtifactAttestation 由实际 output bytes 构�
 TaskRevision 的首个 task-terminal outcome 不可被相反结果覆盖，相同结果重复提交只读幂等。相同 artifact
 identity/bytes 保持 byte/mtime 稳定；冲突 fail closed。
 
+commit 对明确的 declared output 缺失或 JSON/TypeScript 语法错误保留 strict `outputFailure` 到 immutable terminal event，
+仅含 agent-output owner、受限 code 与安全的 task-local outputPaths；它不进入 content identity。
+恢复按原 Agent task snapshot 复核这些路径，recover-inspect 与锁内 reissue 使用同一分类规则。
+无证据的通用 commit failure、unknown file、symlink、immutable drift、权限/I/O 与未知错误仍阻塞；不从后补 draft 猜测原因。
+
 ## 5. Narration 与 timing
 
 无旁白正文以 `visual-scene.durationInFrames` 为时序 authority，算法 `authored-frames-v1` 从 Story/Render
@@ -141,6 +146,9 @@ Scene/CaptionCue/Composition 消费同一 timing artifact；transition 不移动
 anchors 和 cue 相交区间确定性裁剪，保留 renderer/source audio offset，不改变 copied bytes。Project 音乐的可选
 增益/淡入/淡出进入声音计划 identity，包络沿 contribution 全程应用，不随 loop 重启；未提供可选字段时保持旧指纹。
 这类修订不能改变 sealed/mastered narration。
+新 Project BGM 使用同一 canonical content window，只抑制正文 Scene 配乐，保留首尾模板及独立音效。
+composition→content-window 的显式 sound revision 进入 Project 声音 identity；同 policy 下不改变 owner artifacts，
+只更新合成与交付。运行时升级仍可能改变 policy、Revision 与 Task identity，不能承诺跨版本无条件复用。
 
 bound Scene preview 先验证并快照 owning source/media，按固定 fps 渲染并复验 frame count、EOF 和漂移。
 预览目录、clip、时间戳和 source diagnostic 不进入 TaskRevision、ArtifactAttestation 或 DeliveryBuildId；它既不授予
@@ -208,7 +216,8 @@ no-op。
   candidate 供独立 promote retry；
   narration 的合法 absence 同样保持，并在失败 rollback 后恢复缺失；
 - attempt recovery inspection：同 failed attempt/current Revision snapshot → 相同只读、零 provider 结论；active、
-  stale、non-terminal 或 fixed dirty/blocked flow 明确拒绝；
+  stale、non-terminal 或 dirty fixed work 明确拒绝；下游 dependency-only blocked 须经完整无环图追溯到可恢复 Agent root；
+  commit failure 还须有上述受检输出证据，旧无证据事件保持阻断且不改写；
 - attempt reissue：只在 recovery-ready 时创建 fresh attempt/bindings，旧 failed attempt immutable；不要求 current
   delivery，provider request 为零，并复用 valid artifacts/合法 drafts；相同 failed attempt 已有 active successor
   时 fail closed；CLI 不自动 retry，Root 仅按 Skill 的一次有界视频任务恢复规则显式调用；

@@ -41,6 +41,8 @@ mechanical validation does not establish visual quality, and a complete video st
 `npm run bootstrap` maintains package-owned shared media under `public/assets/axmorf-shared/` and registers it in the Resource
 Catalog. New Projects inherit the configured opening/closing templates unless the create input explicitly overrides them; the
 template audio actually used is copied into that Project, so an existing Project never depends on a later package update.
+New Project global music loops continuously across content, preserving template music and all effects. Legacy scopes remain
+unchanged; a strict sound revision may narrow composition playback to content-window without replacing media or narration.
 
 Creator installation prepares the pinned browser and runs a real tiny render before claiming readiness. If browser preparation was
 explicitly skipped or the browser was removed, run `npm run browser:prepare`, then `npm run doctor`. Preparation has a bounded

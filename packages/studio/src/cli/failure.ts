@@ -5,6 +5,7 @@ import {
   buildAuthoringValidationFailure,
 } from "../contracts/authoring-validation";
 import { AUTHORING_REQUIREMENT_EXAMPLE } from "../contracts/authoring-requirements";
+import { TaskOutputFailureSchema } from "../contracts/execution-attempt";
 
 const errorCode = (error: unknown) => {
   if (
@@ -59,6 +60,21 @@ const isAgentOutputFinalizationFailure = (
 };
 
 export const describeCliFailure = (error: unknown) => {
+  if (
+    error instanceof Error &&
+    error.name === "TaskOutputValidationError" &&
+    "diagnostic" in error
+  ) {
+    const diagnostic = TaskOutputFailureSchema.safeParse(error.diagnostic);
+    if (diagnostic.success) {
+      return {
+        status: "error",
+        code: "task-output-invalid",
+        message: error.message,
+        diagnostic: diagnostic.data,
+      } as const;
+    }
+  }
   if (isAgentOutputFinalizationFailure(error)) {
     return {
       status: "error",

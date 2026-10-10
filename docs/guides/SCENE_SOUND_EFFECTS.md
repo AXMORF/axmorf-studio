@@ -57,8 +57,8 @@ npm run catalog:query -- --kind asset --tag motion-sync
 npm run catalog:query -- --kind asset --tag mouse
 ```
 
-本开发分支的 `project:create:context` 同时返回许可已核验的 `soundResources` 与不含私有路径的 BGM 配置状态。
-公开 npm 0.1.16 尚无此投影，仍使用当前 Catalog 查询。发现素材不代表已将它准入 Project 或启用 BGM。
+0.1.17 起 `project:create:context` 同时返回许可已核验的 `soundResources` 与不含私有路径的 BGM 配置状态。
+更早版本仍使用当前 Catalog 查询。发现素材不代表已将它准入 Project 或启用 BGM。
 
 新建 Project 时把选定 ID 同时写入 `resources.allowedResourceIds` 和需要使用该音效的 Scene
 `candidateResourceIds`，并在 `soundIntent` 描述动作与卡点。已绑定的 Scene executor 只使用
@@ -84,7 +84,8 @@ WAV；带淡出、裁剪或试听处理的 MP3 不应冒充循环原音。新 Wo
 context 返回 `backgroundMusic.candidates`，Agent 按主题、能量和情绪显式选择 `{mode:"selected",resourceId,volume?}`，
 省略时按 brief 自动匹配。只有全局许可已核验的 loop 可候选，排除模板音乐、Project-owned 音乐及试听版；空库明确报告缺曲。
 单片 `backgroundMusic:null` 关闭全部背景音乐；自定义全局文件预设仍优先于默认自动选择。create 冻结为 Project-local
-contribution，覆盖完整 Composition（首尾、lead/tail），有整片音乐时只保留 Scene 音效，避免叠曲；旧 scope 不迁移。
+content-window contribution，跨正文 Scene 连续播放，不进入首尾模板及 lead/tail；仅抑制正文 Scene 配乐，保留模板音乐和所有音效。
+旧 scope 不自动迁移；可通过[正式 sound revision](PROJECT_REVISION.md#边界播放与音乐包络) 显式收窄 composition 范围。
 循环由 `@remotion/media` 提取音频 samples，并把完整源时长以微小播放速率调整对齐到最近视频帧，避免非整帧
 循环边界漏掉部分音频帧。32.542 秒曲目在 30 fps 的速率变化约 0.028%；源 bytes 不变，旁白和音效不调速。
 不要在各 Scene 重复挂载同一 BGM。执行任务更快不授权改变音频速度、

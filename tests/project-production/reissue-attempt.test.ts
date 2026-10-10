@@ -476,6 +476,62 @@ test("recovery refuses fixed, host, unknown and missing failed-task evidence eve
   }
 });
 
+test("recovery accepts commit validation evidence only for the failed task's declared outputs", async () => {
+  for (const code of [
+    "missing-output",
+    "invalid-json",
+    "invalid-typescript",
+  ] as const) {
+    const input = withDownstreamBlocks();
+    const failed = ExecutionAttemptProgressSchema.parse({
+      ...input.failed,
+      taskOutcomes: input.failed.taskOutcomes.map((outcome) => ({
+        ...outcome,
+        diagnosticCode: "producer-task-commit-failed",
+        outputFailure: {
+          failureOwner: "agent-output",
+          code,
+          outputPaths: input.task.declaredOutputSet,
+        },
+      })),
+    });
+    const { dependencies, calls } = dependenciesFor(input, {
+      readAttempt: async () => failed,
+    });
+    const before = JSON.stringify(failed);
+    assert.equal(
+      (await inspectAttemptRecovery(recoveryInput(input, dependencies))).status,
+      "attempt-recovery-ready",
+    );
+    assert.equal(
+      (await reissueAttempt(recoveryInput(input, dependencies))).attemptId,
+      FRESH_ATTEMPT_ID,
+    );
+    assert.equal(calls.createAttempt, 1);
+    assert.equal(JSON.stringify(failed), before);
+
+    const crossBound = ExecutionAttemptProgressSchema.parse({
+      ...failed,
+      taskOutcomes: failed.taskOutcomes.map((outcome) => ({
+        ...outcome,
+        outputFailure: {
+          ...outcome.outputFailure,
+          outputPaths: ["inputs/context.json"],
+        },
+      })),
+    });
+    const blocked = dependenciesFor(input, {
+      readAttempt: async () => crossBound,
+    });
+    await assert.rejects(
+      reissueAttempt(recoveryInput(input, blocked.dependencies)),
+      rejectsWithCode("attempt-recovery-plan-not-recoverable"),
+    );
+    assert.equal(blocked.calls.createAttempt, 0);
+    assert.equal(blocked.calls.recoverWorkspace, 0);
+  }
+});
+
 test("recovery rejects unknown, cross-revision, cyclic and independent downstream blockers", async () => {
   for (const variant of [
     "unknown",

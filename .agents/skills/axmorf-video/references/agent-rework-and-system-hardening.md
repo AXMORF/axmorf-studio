@@ -30,6 +30,11 @@ production request**, including revision candidates; a retry or candidate change
 Agent-authored output fault qualifies. A generic exit code or recovery-ready response alone does not classify the original fault.
 Unknown, fixed-system, provider, host, permission, identity or integrity faults stop with diagnosis and a concise blocker.
 
+Commit preserves `outputFailure` only for explicit missing declared outputs or JSON/TypeScript syntax failures. The immutable
+task-terminal evidence binds safe task-local output paths; recovery checks them against the failed Agent task snapshot under
+the same policy during inspect and locked reissue. A legacy `producer-task-commit-failed` without this evidence remains blocked.
+Do not infer its original cause from a later draft, generic exit code, or narrative handoff, and never amend old terminal events.
+
 For an eligible terminal task failure:
 
 1. Wait for the original continuation to exit and use native worker completion, or native stop followed by confirmed exit, to

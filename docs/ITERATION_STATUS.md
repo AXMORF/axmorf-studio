@@ -1,5 +1,29 @@
 # Iteration Status
 
+## 未发布工作区优化：正文 BGM 与模板配乐隔离（2026-10-10）
+
+新 Project 的自动、指定与文件 BGM 统一冻结为 content-window，跨正文 Scene 连续播放，不覆盖首尾模板及 lead/tail。
+混音只抑制正文 Scene 配乐，保留模板音乐、音效和旁白；显式 null 仍关闭全部背景音乐。
+旧 composition Plan 不自动迁移；正式 sound revision 可显式收窄为 content-window，保留素材、身份、顺序和 loop，
+并按正文时长复验包络。其他范围变更与媒体替换仍拒绝。视频 Workspace 未修改，未发布。
+完整 `npm run check` 通过：1432/1432 tests、零失败/skip，类型/lint/文档/构建/宿主检查通过。
+两包构建、package readiness 与打包 Remotion 导出的正文隔离 smoke 通过。
+同一 policy 下仅收窄 BGM 不改变 Scene/模板/GlobalVisual/Cover artifact identity，只更新合成与交付。
+隔离 Chromium/FFmpeg 合成音频验证 2 秒片头、4 秒正文两轮循环、8 秒片尾及留白的混音隔离，零 provider；
+未做真实 Project 升级或主观听审。测量与验证边界见[音频记录](evidence/2026-10-10-content-bgm-verification.json)。
+文档收口同步 root/runtime/Workspace README、七份权威文档、配置/音效/修订/恢复指南及 creator Skill；
+文档与 scaffold 回归 44/44、链接及命令引用检查、两包重新构建与 package readiness 全部通过。
+
+## 未发布工作区修复：commit 输出失败恢复（2026-10-10）
+
+明确的 declared output 缺失或 JSON/TypeScript 语法错误，现在由 commit 保存受检 `outputFailure` 到不可变
+task-terminal event，recover-inspect/reissue 按原 Agent task snapshot 的输出路径分类，继续要求同 current Revision、
+无 active/fixed blocker。新 attempt/binding 复用有效 artifacts，旧 attempt 不变；权限、完整性、系统和未知故障仍阻塞。
+缺证据的历史通用 commit failure 不追认。源码及生成 Workspace 指南已对齐；未修改发布版本或视频 Workspace，未发布。
+该封面修复阶段完整 `npm run check` 通过，1425/1425 tests、零失败/skip；针对性回归 26/26、包构建、包检查及
+打包 npm bin 的结构化终态诊断 smoke 通过，未调用真实 TTS。
+根因、历史限制与验证范围见[事件记录](evidence/2026-10-10-cover-output-recovery-incident.md)。
+
 ## 当前发布：0.1.20（2026-10-09，成片、原生首用和公开安装通过）
 
 0.1.19 已通过下方成片和原生首用验收，但发布 CI 的回归清单包含一个不存在的测试文件，
@@ -1069,7 +1093,8 @@ isolated Project revision flow：外部能力只按
 - continuation 启动后 Root 不参与 barrier；event-driven fixed continuation 读取 immutable event log，在 task
   failure 或 attempt 创建起一小时 terminal deadline 到期时直接退出，在全部成功后只调用一次 converge，fixed failure 不自动重试。Root 按 Skill 诊断，有界恢复只覆盖视频任务错误。
 - terminal failed attempt immutable；`project:attempt:recover-inspect` 严格只读、零 provider，并要求 failed terminal、
-  no active attempt、same current Revision、no fixed dirty/blocked。`project:attempt:reissue` 在 lock 内重检，零
+  no active attempt、same current Revision、no dirty fixed work；下游 blocked 必须追溯到可恢复 Agent root。
+  `project:attempt:reissue` 在 lock 内重检，零
   provider、不要求 current delivery，复用 valid artifacts/drafts 并创建 fresh attempt/bindings；stale/active/
   fixed-flow recovery 拒绝。
 

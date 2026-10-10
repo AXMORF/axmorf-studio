@@ -42,6 +42,8 @@ continuation 内部 application，不是 Root 命令。
 - 每个用户请求最多自动恢复一次已证明的视频任务错误；旧 continuation/workers 全退出后，显式 read-only/zero-provider
   recover inspection ready 才 same-Revision reissue，使用 fresh workers。旧 attempt immutable，reissue 不要求 current delivery；
   active/stale/fixed-flow recovery fail closed，系统/外部/未知故障只诊断报告。
+  commit 对明确输出缺失或 JSON/TypeScript 语法错误保存受检 outputFailure；无证据的历史通用 commit failure 继续阻塞。
+- 新 Project 全局 BGM 只覆盖正文，保留模板配乐与音效；旧 composition 范围仅经正式 sound revision 显式收窄。
 
 ## 当前里程碑状态
 
@@ -61,6 +63,10 @@ artifact-backed 草稿与参考节奏诊断已随 0.1.18 发布，保留唯一 p
 420.923 秒、8 个独立创作 child、4 次补位；新生成的 40 秒六场景成片及四文件已复验。
 0.1.20 两包已公开发布，CI 完整检查、精确候选和 registry 来源复验通过，见
 [发布记录](evidence/v0.1.20-publication.json)。
+
+当前源码已补输出失败恢复证据和正文 BGM 隔离，尚未发布或安装至用户视频 Workspace。
+完整 1432 项检查、隔离回归与合成音频测量通过；历史失败证据不足及实际成片/听审限制见
+[当前实现状态](ITERATION_STATUS.md)。
 主观听审、局部修订与稳定审美各保留自己的验证范围，既有 Project 不自动迁移。
 
 从 `foundation@e52d2a5` 开始的

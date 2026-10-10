@@ -48,7 +48,7 @@ After binding:
    It finalizes/checks and snapshots the same outputs; inspect actual action timing and reading holds, then amend
    only your declared outputs. Preview fingerprints are diagnostics, not acceptance. Controller-IO has no preview
    filesystem access. Report playback/listening limits and leave final seam/music review to the Root.
-5. Commit through the exact bound command. Use `taskFailureCommand` only for unrecoverable authored output.
+5. Commit through the exact bound command only after finalize/check succeed. Use `taskFailureCommand` only for unrecoverable authored output.
 
 For a Scene revision, `scene.priorSource` in the bound context contains only the owning Scene's verified, frozen current
 base source graph and declarations. Compare its previous brief with `scene.brief`, preserve the existing implementation,

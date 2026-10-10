@@ -19,6 +19,7 @@ import {
   buildScenePriorSource,
   buildMasteredNarrationManifest,
   buildProducerTaskSpec,
+  buildProjectSoundPlan,
   deriveGlobalVisualLayerPolicy,
   createFingerprint,
   computeUtf8Checksum,
@@ -1043,6 +1044,79 @@ test("GlobalVisual task revision binds RenderSpec identity", () => {
     )?.task.taskRevision;
 
   assert.notEqual(revisionFor(currentInputs), revisionFor(changedInputs));
+});
+
+test("narrowing only Project BGM preserves all owner artifact identities and rebuilds composition and delivery", () => {
+  const base = inputs();
+  const withScope = (playbackScope: "composition" | "content-window") => {
+    const sound = buildProjectSoundPlan({
+      storyId: base.projectId,
+      contributions: [
+        {
+          contributionId: "background-music",
+          resourceId: "asset.story-example.music",
+          descriptorFingerprint: sha("a"),
+          volume: 0.16,
+          loop: true,
+          playbackScope,
+        },
+      ],
+    });
+    return {
+      ...base,
+      sound,
+      fingerprints: { ...base.fingerprints, sound: sound.soundPlanFingerprint },
+    };
+  };
+  const original = withScope("composition");
+  const revised = withScope("content-window");
+  const owners = buildAgentTasks(original, revisionId);
+  const newOwners = buildAgentTasks(
+    revised,
+    ProductionRevisionIdSchema.parse(`revision-${"2".repeat(64)}`),
+  );
+  assert.deepEqual(
+    newOwners.map(({ task }) => [
+      task.taskKind,
+      task.semanticId,
+      task.taskRevision,
+    ]),
+    owners.map(({ task }) => [
+      task.taskKind,
+      task.semanticId,
+      task.taskRevision,
+    ]),
+  );
+  const timingTask = buildProducerTaskSpec({
+    taskKind: "semantic-timing",
+    storyId: base.projectId,
+    semanticId: null,
+    revisionId,
+    dependencyArtifacts: [],
+    inputFingerprints: [{ id: "timing", fingerprint: sha("8") }],
+    declaredReadSet: [],
+    declaredOutputSet: ["project/timing.json"],
+    validatorPolicyVersion: "semantic-timing-validator-v1",
+  });
+  const downstream = (loaded: typeof original) =>
+    buildDownstreamTasks({
+      inputs: loaded,
+      revisionId,
+      timingTask,
+      timingAttestation: null,
+      ownerTasks: owners.map(({ task }) => task),
+      ownerInspections: new Map(),
+    });
+  const before = downstream(original);
+  const after = downstream(revised);
+  assert.notEqual(
+    before.composition.task.taskRevision,
+    after.composition.task.taskRevision,
+  );
+  assert.notEqual(
+    before.delivery.task.taskRevision,
+    after.delivery.task.taskRevision,
+  );
 });
 
 test("task-local runtime policies invalidate only the owning branch", () => {

@@ -40,6 +40,9 @@ the original continuation and all workers have exited, diagnose/report and run r
 permits same-Revision, zero-provider reissue with fresh bindings/workers and valid artifact/draft reuse. Recovery failure stops;
 unknown, fixed-system and external faults are diagnosed and reported. Interruption recovery still requires explicit authorization.
 The CLI does not add a retry loop, and this policy never authorizes installed-package, dependency or validator modification.
+Commit failures qualify only with validated `outputFailure` evidence for missing declared outputs or JSON/TypeScript syntax faults.
+Recovery checks the original immutable task declaration; generic legacy failures remain blocked. Later draft edits cannot prove
+the original cause. See [recovery diagnostics](../PRODUCTION_WORKFLOW.md#7-progress-与失败后继续) for the exact gates.
 
 
 ## First-use authoring and duration feedback

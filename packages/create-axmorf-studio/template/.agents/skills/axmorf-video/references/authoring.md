@@ -89,7 +89,7 @@ its outgoing seam; internal Beat handoffs do not become external transitions. Fi
 - Narration provider, voice and publishing defaults come from settings. Context deliberately omits connections and credentials.
 - Source assets must have Workspace ownership and validated manifests. Do not download random files to bypass asset admission.
 - For motion sound effects, query `npm run catalog:query -- --kind asset --tag motion-sync`. The bundled AXMORF effects are prebuilt audio, not a generation task. Put selected IDs in both resources.allowedResourceIds and the Scene candidateResourceIds; describe their visible action in soundIntent. At execution, select only availableResources and follow the descriptor's onset or swell-center timing hint in sound-plan.json. SoundDesignTrack owns playback; do not also mount the same audio in the Renderer.
-- Choose an approved loop from `backgroundMusic.candidates` by topic/energy/mood; set create input `backgroundMusic:{mode:"selected",resourceId,volume?}`. Omission inherits auto/file/null settings (new Workspaces default auto); auto matches the current brief. Explicit `backgroundMusic:null` disables all scores, retaining narration/effects. Report create's actual selection or unavailable state before preparation. A selected score is frozen Project-local and loops across the entire composition, including unvoiced boundaries and lead/tail; Scene effects stay independent and second Scene scores are suppressed. Catalog discovery alone never proves enabled BGM. Prefer approved loop masters over previews; private user music is separate from bundled media. Review the complete mix; task execution speed does not control music playback.
+- Choose an approved loop from `backgroundMusic.candidates` by topic/energy/mood; set create input `backgroundMusic:{mode:"selected",resourceId,volume?}`. Omission inherits auto/file/null settings (new Workspaces default auto); auto matches the current brief. Explicit `backgroundMusic:null` disables all scores, retaining narration/effects. Report create's actual selection or unavailable state before preparation. A selected score is frozen Project-local and loops continuously across the content window, excluding template bookends and lead/tail. Only content Scene scores are suppressed; template music and all effects remain independent. Legacy playback scopes remain frozen until an explicit revision. Catalog discovery alone never proves enabled BGM. Prefer approved loop masters over previews; private user music is separate from bundled media. Review the complete mix; task execution speed does not control music playback.
 
 Once the input is complete, execute its returned `nextCommand`. A successful `project-created` response is authoring only.
 For existing authoring, use `project:revise:context`, `project:revise:validate`, and `project:revise`; never overwrite the live Project.
@@ -147,8 +147,9 @@ For boundary playback, copy the full context list and preserve identities/order.
 `playbackRange`: a source-frame `{startFrame, endFrame}` window (end exclusive), or null to restore the full immutable template.
 Optional `musicVolume`, `musicFadeInFrames`, `musicFadeOutFrames` inside the range affect only its background music.
 Do not submit derived duration/fingerprints or edit template bytes. `patch.sound` takes the full context ProjectSoundPlan;
-only existing volume/fadeInFrames/fadeOutFrames may change. Preserve track/resource IDs, descriptor fingerprints, order,
-loop and playbackScope. Revision admits no new media. A runtime policy upgrade may require formal unchanged-current
+existing volume/fadeInFrames/fadeOutFrames may change, and composition playbackScope may narrow to content-window to preserve template music.
+Preserve track/resource IDs, descriptor fingerprints, order, loop and sceneMusicPolicy; reject other scope changes and fit fades to the new window.
+Revision admits no new media. A runtime policy upgrade may require formal unchanged-current
 production before a fresh revision context; never patch publish.json or sealed audio to bypass a stale base.
 
 ```bash

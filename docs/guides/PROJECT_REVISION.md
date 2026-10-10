@@ -65,8 +65,10 @@ Project-owned media。
 只影响模板的 background-music contribution，不改变音效。不要提交派生的 `sourceDurationInFrames` 或指纹。
 固定生成器裁剪 shots、anchors 和 cues，renderer 使用 source clock；模板源码、媒体与许可 bytes 保持冻结。
 
-`patch.sound` 使用 context 的完整 ProjectSoundPlan，仅修改已有 contribution 的 `volume`、`fadeInFrames`、
-`fadeOutFrames`。trackId、顺序、resourceId、descriptor fingerprint、loop 和 playbackScope 必须保持相同。
+`patch.sound` 使用 context 的完整 ProjectSoundPlan，可修改已有 contribution 的 `volume`、`fadeInFrames`、
+`fadeOutFrames`，或显式将 `playbackScope:"composition"` 收窄为 `"content-window"`，让全局 BGM 只覆盖正文，保留模板配乐。
+contributionId、顺序、resourceId、descriptor fingerprint、loop 与 sceneMusicPolicy 必须保持相同；其他范围变更拒绝。
+旧 Plan 不自动迁移，收窄后的包络必须适合正文时长。
 包络覆盖 contribution 的完整播放时间，循环时不逐次重启淡入；旁白及 sealed/mastered audio 不变。
 这两个输入均不开放新素材准入，也不提供后处理剪辑 API。
 

@@ -76,8 +76,9 @@ boundary，task executors 与 runtime 不感知。
 
 创建前查看 context 的 `backgroundMusic`：从获批全局 loop 候选按主题选择 `backgroundMusic:{mode:"selected",resourceId,volume?}`，
 或省略以继承新 Workspace 的自动选曲。明确无背景音乐才用 null；旧自定义文件/禁用设置继续继承。
-创建后报告真实选曲或 unavailable 再进入 inspect/prepare。选中音乐冻结为一个完整 Composition 的连续音轨，
-包括首尾与 lead/tail；不在 Scene 中重复播放，镜头音效独立配合。用户私有曲库不随 npm 包发行。
+创建后报告真实选曲或 unavailable 再进入 inspect/prepare。选中音乐冻结为一个 content-window 连续音轨，
+只覆盖正文，不覆盖首尾模板或 lead/tail；只抑制正文 Scene 的配乐，模板配乐与镜头音效独立保留。
+旧 composition scope 不自动迁移，可通过正式 sound revision 显式收窄为 content-window。用户私有曲库不随 npm 包发行。
 
 ```bash
 npm run project:create -- --project <storyId> --input <repository-relative-json>
@@ -386,12 +387,21 @@ transport 永远不保存。
 candidate）最多一次，重试或换 candidate 不重置额度。先等待原 continuation 及所有旧 workers 经原生完成或 stop 后
 确认退出，无法证明就阻塞；禁止新旧 writer 重叠。再运行只读、零 provider 的
 `npm run project:attempt:recover-inspect -- --project <storyId> --attempt <failedAttemptId>`；只有 failed terminal、
-无 active attempt、current Revision exact same 且没有 dirty/blocked fixed task，报告诊断、修正和复用结果并得到
+无 active attempt、current Revision exact same 且没有 dirty fixed work，dependency-only blocked 需经完整无环图
+追溯到可恢复 Agent root；报告诊断、修正和复用结果并得到
 `attempt-recovery-ready` 时，才运行
 `npm run project:attempt:reissue -- --project <storyId> --attempt <failedAttemptId>`。reissue 在 lock 内重检，
 不要求 current delivery，复用 valid artifacts 与合法 draft，并返回 fresh attempt/bindings/continuation；只派 dirty tasks
 到 fresh workers。恢复再次失败、相同错误无新修正或原因不明时停止报告，不重跑 prepare/旁白绕过额度。后续用户明确恢复
 另算授权；active/stale/fixed-flow recovery fail closed，不重开旧 attempt。此策略属于 Agent 编排规则，不是 CLI 自动重试循环。
+
+commit 的输出校验仅在明确发现 declared output 缺失或 JSON/TypeScript 语法错误时，在 task-terminal event
+保留 `outputFailure`（`failureOwner: agent-output`、具体 code 和 task-local outputPaths）。recover-inspect 与
+reissue 使用同一分类，并在 reissue lock 内重新验证其输出路径属于原 Agent task snapshot。
+unknown file、symlink、输入漂移、权限、Artifact Store 和未知异常仍阻塞；不把全部 commit failure 当成可恢复。
+旧 v3 event 可继续读取，但没有该证据的 `producer-task-commit-failed` 无法安全追溯；后来补写的 draft 或诊断文字
+不能追认原故障，不修改旧 attempt/events/claim 来补证。升级后的 runtime 仍须通过 same-current-Revision gate。
+
 delivery 若在生成 video 后失败，再次 prepare 不重跑已验证 TTS/Agent artifacts，converge 复用已验证 staging
 video，只生成缺失媒体。这不是自动 retry；每次都由显式 inspect/report/prepare 与 content inspection 得出。
 

@@ -112,7 +112,7 @@ const create = (fixture: Awaited<ReturnType<typeof musicFixture>>) =>
     env: { RSP_PRODUCER_CONFIG: fixture.configPath },
   });
 
-test("automatic library music selects by the current brief, localizes verified bytes and freezes one full-composition track", async (t) => {
+test("automatic library music selects by the current brief, localizes verified bytes and freezes one content-window track", async (t) => {
   const fixture = await musicFixture();
   t.after(() => rm(fixture.rootDir, { recursive: true, force: true }));
   await writeProjectCreateJson(fixture.inputPath, {
@@ -134,7 +134,7 @@ test("automatic library music selects by the current brief, localizes verified b
     JSON.parse(await readFile(join(root, "sound.json"), "utf8")),
   );
   assert.equal(plan.contributions.length, 1);
-  assert.equal(plan.contributions[0]?.playbackScope, "composition");
+  assert.equal(plan.contributions[0]?.playbackScope, "content-window");
   assert.equal(plan.contributions[0]?.loop, true);
   assert.equal(plan.contributions[0]?.volume, 0.12);
   const manifest = JSON.parse(
@@ -186,6 +186,7 @@ test("per-project silence and selected resources override automatic defaults wit
         backgroundMusic.resourceId,
       );
       assert.equal(plan.contributions[0].volume, 0.08);
+      assert.equal(plan.contributions[0].playbackScope, "content-window");
     }
   }
 });

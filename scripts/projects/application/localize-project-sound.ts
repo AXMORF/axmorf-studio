@@ -192,7 +192,7 @@ export const prepareProjectSound = async ({
           descriptorFingerprint,
           volume,
           loop: true,
-          playbackScope: "composition",
+          playbackScope: "content-window",
         },
       ],
     }),

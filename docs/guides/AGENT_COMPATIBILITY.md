@@ -99,6 +99,8 @@ commands；当前宿主负责已解析的 inline 执行或 bounded child admissi
 terminal failed attempt 不由宿主重开。显式 recovery 依次使用 read-only/zero-provider
 `npm run project:attempt:recover-inspect` 与 same-Revision `npm run project:attempt:reissue`；fresh attempt 可复用 valid
 artifacts/drafts，不要求 current delivery。active、stale、fixed-flow failure 均不能 reissue。
+commit failure 须有原 task-terminal 的受检 outputFailure，证明 declared output 缺失或 JSON/TypeScript 语法错误；
+无该证据的历史通用错误仍阻塞，不能用宿主聊天或后补文件替代。
 
 ## npm Workspace reliability
 

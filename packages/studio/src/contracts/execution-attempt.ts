@@ -147,6 +147,28 @@ export const TaskDiagnosticSnapshotListSchema = z
   })
   .readonly();
 
+export const TaskOutputFailureSchema = z
+  .object({
+    failureOwner: z.literal("agent-output"),
+    code: z.enum(["missing-output", "invalid-json", "invalid-typescript"]),
+    outputPaths: z.array(DiagnosticLogicalPathSchema).min(1).readonly(),
+  })
+  .strict()
+  .superRefine(({ outputPaths }, context) => {
+    const sorted = [...new Set(outputPaths)].sort();
+    if (
+      sorted.length !== outputPaths.length ||
+      sorted.some((path, index) => path !== outputPaths[index])
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Output failure paths must be sorted and unique.",
+        path: ["outputPaths"],
+      });
+    }
+  })
+  .readonly();
+
 export const ExecutionAttemptTaskOutcomeSchema = z
   .object({
     taskRevision: TaskRevisionSchema,
@@ -154,6 +176,7 @@ export const ExecutionAttemptTaskOutcomeSchema = z
     outcome: z.enum(["artifact-committed", "artifact-current", "failed"]),
     artifactFingerprint: Sha256DigestSchema.nullable(),
     diagnosticCode: ExecutionDiagnosticCodeSchema.nullable(),
+    outputFailure: TaskOutputFailureSchema.optional(),
   })
   .strict()
   .superRefine((outcome, context) => {
@@ -170,6 +193,21 @@ export const ExecutionAttemptTaskOutcomeSchema = z
         code: "custom",
         message: "Only successful task outcomes bind an artifact.",
         path: ["artifactFingerprint"],
+      });
+    }
+    if (
+      outcome.outputFailure !== undefined &&
+      (!failed ||
+        outcome.diagnosticCode !== "producer-task-commit-failed" ||
+        !["scene-owner", "global-visual-owner", "cover-owner"].includes(
+          outcome.taskKind,
+        ))
+    ) {
+      context.addIssue({
+        code: "custom",
+        message:
+          "Only an Agent task commit failure can carry output validation evidence.",
+        path: ["outputFailure"],
       });
     }
   })
@@ -403,6 +441,7 @@ export type ExecutionAttemptEvent = z.infer<typeof ExecutionAttemptEventSchema>;
 export type ExecutionAttemptTaskOutcome = z.infer<
   typeof ExecutionAttemptTaskOutcomeSchema
 >;
+export type TaskOutputFailure = z.infer<typeof TaskOutputFailureSchema>;
 export type ExecutionAttemptDeliveryResult = z.infer<
   typeof ExecutionAttemptDeliveryResultSchema
 >;

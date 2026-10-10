@@ -16,8 +16,9 @@ patch 支持 brief/story/visualStyle/scenes/globalVisual/publishing，以及边�
 `boundaryScenes` 必须按 context 给出的完整边界 meaningId/order 提交；`playbackRange: null` 恢复完整模板，
 非空区间使用 `[startFrame,endFrame)`，只能选择已有 immutable instance 的帧，不改变源码、素材或身份。
 模板配乐的可选 `musicVolume/musicFadeInFrames/musicFadeOutFrames` 仅作用于该区间；fixed 同步裁剪计划和音轨源起点。
-`sound` 使用 context 的完整 ProjectSoundPlan input，只能修改已有 contribution 的 volume/fadeInFrames/fadeOutFrames；
-resourceId、descriptorFingerprint、ID/order、loop 与 playbackScope 必须保留，不能在 candidate 接入新媒体。
+`sound` 复制 context 的完整 ProjectSoundPlan input，可改 volume/fadeInFrames/fadeOutFrames，或显式收窄
+playbackScope（composition→content-window），只覆盖正文、保留模板配乐；其他范围变更拒绝。
+resourceId、descriptorFingerprint、ID/order、loop 与 sceneMusicPolicy 必须保留，包络须适合选定范围，不能在 candidate 接入新媒体。
 升级后先复验现稿，再取 project:revise:context。缺 artifact 且完整 Scene task input 未变时可冻结当前 owning 源码为
 bound priorSource；不读取其他 Project 或历史。
 

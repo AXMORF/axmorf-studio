@@ -932,7 +932,7 @@ test("project:create localizes packaged template sounds inside the new Project",
       "utf8",
     ),
   );
-  assert.equal(soundPlan.contributions[0]?.playbackScope, "composition");
+  assert.equal(soundPlan.contributions[0]?.playbackScope, "content-window");
   await stat(
     join(
       fixture.rootDir,

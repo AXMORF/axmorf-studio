@@ -52,8 +52,9 @@ Root 在 `project:create:context` 的完整输入中填写 `story.filmPlan`：
 所有正文都是这种 Beat，不能混入 narrated-scene。配置首尾 template-copy 可保留或按用户要求禁用，仍不参与正文分组。
 该分支没有 provider call、seal、mastered WAV 或字幕；`sampleRate`/`narrationStartFrame` 是 null。
 publishing.chapters 可为空；需要章节时仍逐正文 Beat 完整按序声明，固定首尾不进入章节。旁白分支继续要求完整章节。
-GlobalVisual decoration 只使用正文范围。新建 Project 的自动/选定 BGM 使用完整 Composition；
-显式 `content-window` 音轨仍排除 fixed 首尾，旧 `content`/`narrated-content` 范围保留。
+GlobalVisual decoration 与新建 Project 的自动/选定/文件 BGM 都使用正文范围；content-window 音轨跨 Scene 不重启，
+排除 fixed 首尾和 lead/tail，只抑制正文 Scene 配乐。旧 composition/content/narrated-content 范围保留；
+[正式 sound revision](PROJECT_REVISION.md#边界播放与音乐包络) 可显式将 composition 收窄为 content-window，保留模板配乐。
 `backgroundMusic:null` 禁用配乐，音效与旁白独立。交付保留 H.264/AAC，纯静音内容输出静音音轨。
 
 Story `resources.allowedResourceIds` 是准入池；silent preset 的 `resourceIds` 则要求实际精确消费，不能把候选池

@@ -41,6 +41,7 @@ import {
   computeProjectRevisionCandidateId,
   computeVisualStyleFingerprint,
   isVisualStory,
+  resolveSemanticContentFrameRange,
   serializeCanonicalJson,
   validateStoryResourcePool,
   type DeliveryPublish,
@@ -647,15 +648,24 @@ const inspectProjectRevisionAuthoring = async ({
         resourceId: contribution.resourceId,
         descriptorFingerprint: contribution.descriptorFingerprint,
         loop: contribution.loop,
-        playbackScope: contribution.playbackScope,
       })),
     });
     if (
       serializeCanonicalJson(audioIdentity(next)) !==
-      serializeCanonicalJson(audioIdentity(current))
+        serializeCanonicalJson(audioIdentity(current)) ||
+      next.contributions.some((contribution, index) => {
+        const previousScope = current.contributions[index]?.playbackScope;
+        return (
+          contribution.playbackScope !== previousScope &&
+          !(
+            previousScope === "composition" &&
+            contribution.playbackScope === "content-window"
+          )
+        );
+      })
     ) {
       throw new Error(
-        "Revision sound may change gain and fades of existing tracks only.",
+        "Revision sound may change gain and fades or narrow composition playback to content-window for existing tracks only.",
       );
     }
     const authoredStory = input.patch.story ?? state.context.editable.story;
@@ -699,29 +709,53 @@ const inspectProjectRevisionAuthoring = async ({
             : range.endFrame - range.startFrame)
       );
     }, 0);
+    const contentRange =
+      measuredTiming === null
+        ? null
+        : resolveSemanticContentFrameRange(measuredTiming);
+    const contentDuration =
+      contentRange !== null
+        ? contentRange.endFrame - contentRange.startFrame
+        : isVisualStory(authoredStory) ||
+            authoredStory.timingSource === "authored-frames"
+          ? authoredStory.beats.reduce(
+              (frames, beat) =>
+                frames +
+                (beat.kind === "visual-scene"
+                  ? beat.durationInFrames
+                  : beat.kind === "silent-scene" &&
+                      beat.preset.implementation.kind === "scene-owner"
+                    ? beat.preset.durationInFrames
+                    : 0),
+              0,
+            )
+          : undefined;
     for (const track of next.contributions) {
-      const duration = isVisualStory(authoredStory)
-        ? (track.playbackScope === "composition"
-            ? render.leadInFrames + render.tailFrames + boundaryFrames
-            : 0) +
-          authoredStory.beats.reduce(
-            (frames, beat) =>
-              frames +
-              (beat.kind === "visual-scene" &&
-              (track.playbackScope === "content" ||
-                track.playbackScope === "composition")
-                ? beat.durationInFrames
-                : 0),
-            0,
-          )
-        : track.playbackScope === "composition"
-          ? measuredTiming?.durationInFrames
-          : measuredTiming?.storyBeats
-              .filter((beat) => beat.kind === "narrated-scene")
-              .reduce(
-                (frames, beat) => frames + beat.endFrame - beat.startFrame,
+      const duration =
+        track.playbackScope === "content-window"
+          ? contentDuration
+          : isVisualStory(authoredStory)
+            ? (track.playbackScope === "composition"
+                ? render.leadInFrames + render.tailFrames + boundaryFrames
+                : 0) +
+              authoredStory.beats.reduce(
+                (frames, beat) =>
+                  frames +
+                  (beat.kind === "visual-scene" &&
+                  (track.playbackScope === "content" ||
+                    track.playbackScope === "composition")
+                    ? beat.durationInFrames
+                    : 0),
                 0,
-              );
+              )
+            : track.playbackScope === "composition"
+              ? measuredTiming?.durationInFrames
+              : measuredTiming?.storyBeats
+                  .filter((beat) => beat.kind === "narrated-scene")
+                  .reduce(
+                    (frames, beat) => frames + beat.endFrame - beat.startFrame,
+                    0,
+                  );
       if (
         duration !== undefined &&
         ((track.fadeInFrames ?? 0) > duration ||

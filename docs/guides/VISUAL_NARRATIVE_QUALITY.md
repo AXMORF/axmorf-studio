@@ -28,8 +28,9 @@ Changing mode requires a new Project; ordinary same-mode revisions remain isolat
 Visual timing is `authored-frames-v1`: exact authored frames, null sample rate and narration
 start, empty segments and captions. Narration source and sealed/mastered records are explicit
 JSON null. Preparation calls no provider and creates no fake PCM. Source, artifact and delivery
-checks still bind the absence of narration. Music uses the `content` scope and excludes boundary
-templates. An AAC mux track can be silent; it is not evidence of a narrator.
+checks still bind the absence of narration. New Project music uses `content-window`, excluding boundary templates and lead/tail;
+it suppresses only content Scene scores and preserves template music. Legacy scopes retain their semantics until an explicit
+supported revision. An AAC mux track can be silent; it is not evidence of a narrator.
 
 ## Plan a mechanism, then choose a technique
 

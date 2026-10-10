@@ -5,6 +5,7 @@ import ts from "typescript";
 import type { ProducerTaskSpec } from "@axmorf/studio/contracts";
 import { readTaskWorkspace } from "../adapters/task-workspace";
 import { assertGlobalVisualSource } from "./global-visual-validator";
+import { TaskOutputValidationError } from "../domain/task-output-validation";
 
 const listFiles = async (
   root: string,
@@ -25,7 +26,7 @@ const listFiles = async (
   }
   return files.sort();
 };
-const parseSource = async (path: string) => {
+const parseSource = async (path: string, logicalPath: string) => {
   const source = await readFile(path, "utf8");
   const result = path.endsWith(".d.ts")
     ? {
@@ -54,7 +55,10 @@ const parseSource = async (path: string) => {
       ({ category }) => category === ts.DiagnosticCategory.Error,
     ) ?? [];
   if (errors.length > 0)
-    throw new Error("Task TypeScript source contains syntax errors.");
+    throw new TaskOutputValidationError(
+      "Task TypeScript source contains syntax errors.",
+      { code: "invalid-typescript", outputPaths: [logicalPath] },
+    );
   if (/\b(?:fetch|XMLHttpRequest|WebSocket)\b|https?:\/\//u.test(source))
     throw new Error("Task source cannot use network access.");
   if (/\b(?:animation|animationName|transition)\s*:/u.test(source))
@@ -70,10 +74,29 @@ const validateExactSet = async (workspace: string, task: ProducerTaskSpec) => {
     ...task.declaredOutputSet,
   ].sort();
   if (
-    actual.length !== expected.length ||
-    actual.some((path, index) => path !== expected[index])
+    actual.some((path) => !expected.includes(path)) ||
+    ["task.json", ...task.declaredReadSet].some(
+      (path) => !actual.includes(path),
+    )
   ) {
     throw new Error("Task workspace exact file set is invalid.");
+  }
+  const missing = task.declaredOutputSet.filter(
+    (path) => !actual.includes(path),
+  );
+  if (missing.length > 0) {
+    for (const path of missing) {
+      try {
+        await lstat(join(workspace, path));
+        throw new Error("Task output must be a regular file.");
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+      }
+    }
+    throw new TaskOutputValidationError(
+      "Task workspace exact file set is invalid: declared outputs are missing.",
+      { code: "missing-output", outputPaths: [...missing].sort() },
+    );
   }
 };
 
@@ -92,8 +115,20 @@ export const checkProducerTaskWorkspace = async ({
   await validateExactSet(workspace, task);
   for (const logicalPath of task.declaredOutputSet) {
     const path = join(workspace, logicalPath);
-    if (logicalPath.endsWith(".json")) JSON.parse(await readFile(path, "utf8"));
-    if (/\.[cm]?tsx?$/u.test(logicalPath)) await parseSource(path);
+    if (logicalPath.endsWith(".json")) {
+      const bytes = await readFile(path, "utf8");
+      try {
+        JSON.parse(bytes);
+      } catch (error) {
+        if (!(error instanceof SyntaxError)) throw error;
+        throw new TaskOutputValidationError(
+          "Task output JSON is malformed.",
+          { code: "invalid-json", outputPaths: [logicalPath] },
+          { cause: error },
+        );
+      }
+    }
+    if (/\.[cm]?tsx?$/u.test(logicalPath)) await parseSource(path, logicalPath);
   }
   if (task.taskKind === "global-visual-owner") {
     const context = JSON.parse(
