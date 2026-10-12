@@ -24,31 +24,27 @@ validators 判断一次生产是否真正完成。
 生产任务冻结选定资源和指南；校验会拒绝仅声明却未调用的能力，以及调用未声明的能力。自绘仍可使用，
 需要说明与现有 API 的适配理由；这些机械检查不代替成片审片。
 
-0.1.17 支持两种正文：`narrated-scene` 以实测旁白驱动字幕和动作；`visual-scene` 以明确的
-`durationInFrames` 驱动对象状态、短文案与音效，不调用 TTS。后者通过 create context 的 `visualFirst`
-示例选择，保留相同的正式生产与四文件交付流程。Scene worker 可用绑定返回的 `commands.preview`
-在提交前实际渲染和定向修正；最终的跨 Scene 衔接、音乐混音和完整审片仍需交付后 review。
-需要同一主体跨 Scene 保持外观时，可冻结自由 SVG handoff，由两侧消费同一绘制状态；
-Scene 内的因果动作、其他 SVG/Canvas/3D 仍自由创作。实际消费检查不代替连续播放审阅。
-create context 同时提供已核验许可的 `soundResources` 和不含私有路径的音乐配置状态。
-Scene 选择音效并对齐实际起音或声势中心；新 Project 默认从已批准的全局循环曲库选一首，冻结为 Project-local 资源，
-0.1.17 发布时由顶层跨 Scene 连续覆盖整片。可明确静音、指定获批曲目或继承自定义文件；缺曲会报告 unavailable。
-还可通过 strict revision 调整 immutable 首尾模板的播放区间及既有音乐增益/包络，不修改模板或旁白 bytes。
-该新增修订已有回归测试，正式整片 candidate 和听审尚待验证，见 [修订指南](docs/guides/PROJECT_REVISION.md)。
-这些能力已随两个官方 npm 包的 0.1.17 发布。发布及公共安装证据见
-[发布记录](docs/evidence/v0.1.17-publication.json)，具体样片与未验证范围见当前实现状态。
+当前源码为 **0.1.21** 发布候选；公开发布、验收和限制由[当前实现状态](docs/ITERATION_STATUS.md)维护。
+已发布版本的原始记录保留在 [0.1.20 发布证据](docs/evidence/v0.1.20-publication.json)等历史证据中。
+安装后的 Workspace 以自身 public schemas 和生成指南为准；推送源码不会升级现有安装或迁移作品。
 
-两个官方 npm 包的 `latest` 已更新为 **0.1.20**。[连续视频创作](docs/guides/CONTINUOUS_VIDEO_AUTHORING.md)增加
-整片 filmPlan、多 Beat 共用 Scene、作者帧无旁白时间轴、共享世界/相机/语义事件以及正式渲染前冻结草稿，
-并保留 0.1.17 的已发布能力。0.1.20 修复分组 Scene 的 bound preview 与作者帧模式旁白读取，
-已验证 60 秒连续场景和新 Workspace 的 40 秒六场景成片。见[0.1.20 发布记录](docs/evidence/v0.1.20-publication.json)。
-已安装 Workspace 始终以其 public schemas/生成指南为准；既有作品不会自动重组。
+有口播视频先生成、封存配音，再以实测 PCM 时间制作字幕和画面。无口播可选 `visual-scene` 的
+`durationInFrames`，或显式 `authored-frames` 的 silent owner preset；两者都不调用 TTS，使用相同正式生产流程。
+[连续视频创作](docs/guides/CONTINUOUS_VIDEO_AUTHORING.md)通过 filmPlan、相邻 Beat 分组、共享主体与相机组织整片，
+允许长 Scene 和安静转场。横竖屏、尺寸和帧率服从用户本次选择；场景数量和示例风格不是固定门槛。
 
-当前源码另含两项未发布修复：新 Project 全局 BGM 只覆盖正文，保留首尾模板配乐；旧 composition 音轨可通过
-正式 sound revision 显式收窄。commit 对明确输出缺失或 JSON/TypeScript 语法错误保存结构化恢复证据，
-无证据的历史通用失败仍阻塞。源码提交与推送不更新已安装的 0.1.20；验证及限制见[当前实现状态](docs/ITERATION_STATUS.md)。
-当前源码还将五首原始循环 BGM 纳入共享 Workspace seed，可随 runtime 打包并自动进入新 Workspace 的
-Catalog；曲目及单独授权见[音乐指南](docs/guides/SCENE_SOUND_EFFECTS.md#循环音乐与试听版本)。此素材扩充尚未发布到 npm。
+新片 Skill 默认在创建前用代码合成原创配乐，冻结 WAV 与同源音乐时间轴；整片音轨替换模板和 Scene 配乐，
+保留旁白及独立音效。prepare 将同一音乐网格投影为 Scene-local `musicTiming`；关键动作可在语义窗口内选落点，
+封存口播、字幕和语义边界保持实测时间。兼容的自动/指定/文件选曲仍在正文连续播放，保留首尾模板配乐；
+`backgroundMusic:null` 明确禁用配乐。方法见[配乐与时序](.agents/skills/axmorf-video/references/film-direction.md#code-synthesized-music-and-shared-timing)。
+
+[创作手册与示例](docs/guides/VIDEO_CREATIVE_PLAYBOOK.md)沉淀完整构图、材质、动作阶段、共同声音事件和阅读停留，
+并提供剪纸案例及独立教学小片。它们是设计方法，不锁定配色、BPM、画幅或版式。Scene worker 用 binding 的
+exact `commands.preview` 在提交前检查实际画面；全片接缝、混音、连续观看和听审仍须分别记录。
+
+当前版本还包含明确输出缺失/语法错误的受检恢复证据、正文选曲与模板配乐隔离，以及五首获授权的原始循环
+BGM seed，供兼容选曲使用。曲目与许可见[音乐指南](docs/guides/SCENE_SOUND_EFFECTS.md#循环音乐与试听版本)。
+现有作品通过[隔离修订](docs/guides/PROJECT_REVISION.md)修改；封面专用局部修订接口尚未提供。
 
 ## 把这段提示词交给你的 Agent
 
@@ -73,10 +69,10 @@ creator 会安装精确依赖、生成 `package-lock.json`，并在原子提升�
 `bootstrap`/`doctor`。`bootstrap` 同时从 runtime package 投影经过清单与 checksum 验证的共享素材；当前包括
 片头 cinematic impact、片尾 8 秒电子 BGM、可复用 AXMORF 标记，以及
 [24 条预制动效音效](docs/guides/SCENE_SOUND_EFFECTS.md)，含鼠标单击/双击、按下/松开与滚轮声。
-源码版本另含五首原始循环 BGM；安装包含此扩充的 runtime 后，bootstrap 自动投影并登记，默认 auto 即可选曲。
+共享 seed 还包含五首原始循环 BGM；bootstrap 自动投影并登记，供兼容的 auto/selected 选曲使用。
 默认首尾 Scene 会在 Project 创建时把所用音频复制为
 Project-local 资产；正文 Scene 从 Catalog 选择已制作的音效并按帧安排卡点。
-新 Project 的全局 BGM 只在正文连续播放，片头、片尾保留模板配乐；旧整片音轨可通过
+兼容的选曲 BGM 只在正文连续播放，片头、片尾保留模板配乐；旧整片音轨可通过
 [正式音乐修订](docs/guides/PROJECT_REVISION.md#边界播放与音乐包络)收窄范围。
 `npm run dev` 会同时启动 loopback-only Web 控制中心和 Remotion Studio：前者用于配置、诊断、
 进度和 current Delivery，后者用于 Composition 实时预览。
@@ -134,7 +130,7 @@ deliveries/<storyId>/publish.json
 | 从有效 artifacts 生成审阅草稿（当前源码） | `npm run project:preview -- --project <story-id>`                     |
 | 本地参考视频切换/运动/帧证据（当前源码）  | `npm run reference:analyze -- --input public/<reference.mp4>`         |
 | 交付后审阅完整 Scene 与衔接               | `npm run project:scene:review -- --project <story-id> --motion`       |
-| 检查 Project                              | `npm run project:check -- --project <story-id>`                       |
+| 复验当前四文件交付                        | `npm run project:check -- --project <story-id> --level final`         |
 
 日常使用建议让 Agent 消费结构化输出和返回的 exact commands，不要手工拼接内部参数。完整顺序见
 [生产流程](docs/PRODUCTION_WORKFLOW.md) 和 [生产编排指南](docs/guides/PRODUCTION_ORCHESTRATION.md)。

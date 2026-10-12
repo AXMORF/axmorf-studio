@@ -50,6 +50,7 @@ test("Edge TTS sends one authored chunk once and returns provider bytes", async 
   let options: Record<string, unknown> | undefined;
   const generate = createEdgeTtsChunkGenerator({
     resolved,
+    env: {},
     clientFactory: (value) => {
       options = value;
       return {
@@ -72,6 +73,91 @@ test("Edge TTS sends one authored chunk once and returns provider bytes", async 
     rate: "default",
     timeout: 5_000,
   });
+});
+
+test("Edge TTS honors inherited HTTPS/HTTP proxies and service-specific NO_PROXY", () => {
+  const cases: Array<{
+    env: Record<string, string>;
+    expectedProxy: string | undefined;
+  }> = [
+    {
+      env: { HTTPS_PROXY: "http://proxy.example:8080" },
+      expectedProxy: "http://proxy.example:8080",
+    },
+    {
+      env: {
+        https_proxy: "http://lower.example:8080",
+        HTTPS_PROXY: "http://upper.example:8080",
+        HTTP_PROXY: "http://http.example:8080",
+      },
+      expectedProxy: "http://lower.example:8080",
+    },
+    {
+      env: { HTTP_PROXY: "http://proxy.example:8080" },
+      expectedProxy: "http://proxy.example:8080",
+    },
+    {
+      env: {
+        http_proxy: "http://lower.example:8080",
+        HTTP_PROXY: "http://upper.example:8080",
+      },
+      expectedProxy: "http://lower.example:8080",
+    },
+    {
+      env: {
+        HTTPS_PROXY: "http://proxy.example:8080",
+        NO_PROXY: "localhost,127.0.0.1",
+      },
+      expectedProxy: "http://proxy.example:8080",
+    },
+    {
+      env: {
+        HTTPS_PROXY: "http://proxy.example:8080",
+        NO_PROXY: "speech.platform.bing.com:443",
+      },
+      expectedProxy: undefined,
+    },
+    {
+      env: {
+        HTTPS_PROXY: "http://proxy.example:8080",
+        NO_PROXY: "speech.platform.bing.com:80",
+      },
+      expectedProxy: "http://proxy.example:8080",
+    },
+    {
+      env: { HTTPS_PROXY: "http://proxy.example:8080", no_proxy: ".BING.COM" },
+      expectedProxy: undefined,
+    },
+    {
+      env: { HTTPS_PROXY: "http://proxy.example:8080", NO_PROXY: "*.bing.com" },
+      expectedProxy: undefined,
+    },
+    {
+      env: { HTTPS_PROXY: "http://proxy.example:8080", NO_PROXY: "*" },
+      expectedProxy: undefined,
+    },
+    { env: {}, expectedProxy: undefined },
+  ];
+  for (const { env, expectedProxy } of cases) {
+    let actualProxy: string | undefined;
+    let providerCalls = 0;
+    const before = { ...env };
+    createEdgeTtsChunkGenerator({
+      resolved,
+      env,
+      clientFactory: (options) => {
+        actualProxy = options.proxy;
+        return {
+          ttsPromise: async () => {
+            providerCalls += 1;
+          },
+        };
+      },
+    });
+    assert.equal(actualProxy, expectedProxy);
+    assert.equal(providerCalls, 0);
+    assert.deepEqual(env, before);
+  }
 });
 
 test("Edge TTS rejects escaped UTF-8 overflow before opening a request", async () => {

@@ -1,6 +1,6 @@
 ---
 name: axmorf-video
-description: Create and revise expressive videos with whole-film direction, bounded production, and verified delivery.
+description: Create and revise expressive videos with verified production and delivery.
 ---
 
 # AXMORF Studio Video
@@ -11,7 +11,8 @@ exact attempt-bound worker 走 [task protocol](references/task-execution-protoco
 
 已授权制作同轮继续工具，以进度消息汇报；仅交付/blocker/暂停/native work 等待才结束。
 
-新片/改造/审片读 [film direction](references/film-direction.md)；按 context API guides 选能力或说明自绘。
+新片/改造/审片读 [film direction／创作手册](references/film-direction.md)，落实构图/声画节奏；据 context API guides 选能力或说明自绘。
+新片代码合成配乐，冻结 timeline/WAV；旁白时序优先，无旁白可音乐主导。
 
 新建用 `npm run project:create:context -- --project <storyId>` 的完整 `fieldExamples`；按 `durationBudget` 扣首尾/lead-tail 预算正文，报告旁白实测偏差。
 尺寸/横竖屏、fps、locale 要求写入 `render.width/height/fps/locale`，其余继承；创建后核对 `render`，不改长期设置。

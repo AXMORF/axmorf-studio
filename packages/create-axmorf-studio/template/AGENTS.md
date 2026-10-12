@@ -72,7 +72,10 @@ For a local Scene layout fix, change only that Scene's authoring in the full `pa
 VisualStyle, GlobalVisual, Story and TTS. Do not invent a Cover-only patch API. Carry the candidate ID through production.
 If the installed schema supports boundary/music revisions, preserve the complete context lists and all immutable identities.
 Only choose existing template source frames, alter existing track gain/envelopes, or narrow composition music to content-window;
-do not admit new media or change sealed audio. New Project BGM covers only content, preserving template scores and all effects.
+do not admit new media or change sealed audio. New scores follow the local Skill's code-synthesis method before create:
+`backgroundMusic.mode:synthesized` freezes original WAV/timeline and replaces Scene/template music with one composition
+loop, preserving independent effects. Preserve synthesizedMusic metadata in sound revisions. Scene-local musicTiming
+follows measured speech; do not retime narration or captions for a beat. Existing library/file music keeps content scope.
 Legacy playback scopes remain frozen until an explicit revision.
 Read the authoring reference for raw input shapes and runtime-upgrade base verification.
 The bound `scene.priorSource`, when present, is only the owning Scene's verified, frozen current base graph and declarations.

@@ -63,3 +63,4 @@ export * from "./tts-provider-registry";
 export * from "./visual-style";
 export * from "./visual-theme";
 export * from "./background-music";
+export * from "./synthesized-music";

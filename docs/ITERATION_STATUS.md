@@ -1,5 +1,96 @@
 # Iteration Status
 
+## 0.1.21发布候选与文档收口（2026-10-12）
+
+本次候选整合下方此前未发布的输出失败恢复、兼容正文BGM隔离、共享循环素材、代码合成原创配乐、
+同源音乐网格投影、Edge TTS宿主代理和完整创作手册/剪纸案例/教学源码。版本与两个package manifest均为0.1.21。
+源码基线为默认分支46329da，已包含v0.1.20；截至本轮检查，两包公开latest仍为0.1.20，尚未发布本候选。
+
+README、runtime/creator说明、生成Workspace文档、架构/流程/确定性、名词表和相关操作/合同文档以当前代码为准：
+合成配乐从Composition frame zero全片循环，兼容选曲只覆盖正文，口播PCM决定字幕和语义边界；
+Scene数量、横竖屏、风格与节拍不是固定模板。原始参考资料和历史失败记录保留，不改写当时证据。
+
+首次针对性检查29项全部通过，覆盖合成音频/网格、创建与兼容选曲、TTS代理、创作文档和失效解释。
+最终全仓检查已退出0：1440项测试中1438通过、零失败、2项Darwin专属skip，类型/Lint/文档/资源/构建和Chromium
+宿主检查通过；依赖审计零漏洞。首轮Lint发现教学配乐脚本的三个Node全局对象未显式导入，源码与模板已同步
+补齐node:buffer/process/url导入，未改变合成算法；首轮失败和最终结果分别保留。
+两个候选包的类型/构建/readiness通过，23个精确回归文件共208项：207通过、零失败、1项Darwin专属skip。
+运行时297个文件、creator74个文件已冻结，33份共享创作文件与模板逐字一致；精确tarball创建全新空Workspace，
+安装和doctor通过。独立Codex CLI会话在开始时返回401 unauthorized：存储的ChatGPT登录无法刷新，需要重新登录；
+未生成通过的原生首用收据，也未触发npm发布。完整结果和候选身份见[源码验证](evidence/v0.1.21-source-verification.json)。
+发布须恢复独立CLI登录完成首用，或由维护者明确批准0.1.21复用已有验收；不能把已有业务视频冒充最终包的独立首用。
+
+以下版本和日期小节记录发生时状态；最新公开事实与本次发布收口由本节维护。
+
+## 未发布：参考视频学习沉淀（2026-10-11）
+
+按用户要求将参考片的高频抽帧学习写进共享 film-direction，并同步仓库入口、creator 模板和当前测试 Workspace。
+新增完整构图、可见材质、动作阶段/停留、共同声音事件、转场交接和混音检查；Root 与 Scene 入口均可到达。
+方法落实到现有 filmPlan/artDirection/brief，不固定参考片风格、尺寸、BPM 或 Scene 数，保留口播时序权威。
+三项 Skill 回归、文档链接和 creator readiness 通过；精简入口满足原预算，Root 规划 1890 words / 17701 characters。
+实际 creator tarball 的公开 bin 创建全新无安装 Workspace，五份 film-direction 与四份 Workspace SKILL 逐字复验一致。
+本轮无依赖安装、doctor、provider 或新视频渲染；参考音轨听审仍 not-assessed。当前云端文件生效，尚未 commit/push/npm 发布。
+来源、携带范围和验证边界见[学习沉淀记录](evidence/2026-10-11-reference-video-learning.md)。
+
+## 未发布：v3 画面设计工艺补充（2026-10-10）
+
+将用户提供的第三版 Beat-synced Remotion 文档补入共享 film-direction，repository 与 creator 模板逐字一致。
+新增配色/字体/材质方案、叙事焦点与空间隐喻、景深和遮挡、按 viewport 验证文字、预备/落点/回弹/阅读停留、
+连续转场与滤镜成本，以及针对真实样帧的缺陷检查。Root 在 create 前规划，新 Scene executor 绑定后按 frozen brief 执行；
+示例风格、像素、数量和动作音效频率均不是 validator 或固定门槛。保留用户选择尺寸、口播实测时间权威、代码配乐和连续长 Scene。
+Skill 三项回归、文档链接检查和 creator package readiness 通过；实际规划上下文为 1825 words / 16513 characters，
+未放宽现有预算。已从当前源码打包 0.1.21 本地候选，安装到独立 Workspace，六项 doctor（含真实浏览器渲染）通过，
+11 份 Agent/Skill 文件与最终模板一致。四个 fresh 原生 probe 完成共享文件往返；默认四路执行解析 ready。
+新 Workspace 用自己的 helper 生成 100 BPM/38.4 秒原创配乐，完整解码通过，测得 -14.9 LUFS/-2.7 dBFS true peak，未做听审。
+Workspace 无 typecheck/lint npm scripts，对它们的调用返回 Missing script，不能算类型/lint验证；没有修改其 scripts 或安装包。
+证据保存在 `/workspace/axmorf-cloud-test/homepage-v3/verification.json`；此补充尚未 npm 发布，也不是独立原生发布验收。
+2026-10-11 环境更新为 unrestricted/enforced，重启后访问 zzzxc.com 为 HTTP 200；实际读取主页并核实 noobli 定位与公开项目。
+重启后的 doctor 和 fresh 四路 native probe 再次通过，创建 `homepage-intro`：1080×1920/30fps，默认首尾，单个正文 owner
+连续覆盖六个 narrated Beat，原创配乐冻结为 composition 音轨。inspect 预计 12 个口播请求、无缓存；实际 prepare 在首段
+`open-home-01` 报 `Edge TTS request failed`，尚无 sealed narration、production attempt/task 或成片。CLI 未保留底层异常，
+不能据此断言原始网络/鉴权根因。随后用户明确要求使用云环境代理重试：Edge TTS adapter 已向
+`node-edge-tts` 显式传递宿主 HTTPS/HTTP 代理并遵守 NO_PROXY，未更改 provider/config 身份或重试策略。
+代理回归 5 项、narration 51 项、类型检查、相关 lint、文档链接和 runtime build/check/pack 通过；
+通过正常 npm install 更新 Workspace 后六项 doctor 与 fresh 四路 probe 再次通过。
+此次真实 prepare 成功生成全部 12 个 chunk，seal/master 45.2 秒口播；含默认首尾共 1656 帧/55.2 秒。
+12 段与完整 seal/master 共 14 个音频文件 checksum 和完整解码通过，master 测得 -15.77 LUFS/-1.5 dBTP，未听审。
+prepare 随后因 `Task input ID is not diagnostic-safe: music-timing` 退出 1；尚未派发画面任务或得到成片。
+用户随后明确授权该内部诊断字段缺陷的 engineering 修复，见[incident](evidence/2026-10-11-music-timing-diagnostic-incident.md)。
+诊断 enum 与 alias 精确登记 `music-timing`，未知 ID 继续拒绝。实际合成音乐任务快照和 directChanges 两处先 Red，
+修复后六项 focused 回归通过。完整 tests 执行 1440 项，1438 通过、零失败、两项平台跳过；全链首次在
+新增测试的 branded meaningId 类型标注处退出，改用已验证 task.semanticId 后 focused/typecheck 通过，
+其余 lint、文档/模板/Catalog/Registry、Web/Remotion 构建与 Chromium/source host 检查逐项完成且均退出 0。
+runtime prepack build/check/pack 通过，正常 npm install 更新测试 Workspace，bootstrap/doctor 和新的四路 probe 通过。
+正式 inspect 为 production-inputs-ready，零新 provider requests、12 cache hits；prepare 退出 0，复用 16 个 fixed artifacts，
+仅派发三个 fresh Agent workers。三个任务均完成 bind/finalize/check/commit，正文在提交前经过三轮实际 preview，
+修正纸带到网页的中间重叠与翻页音效落点。Root 在唯一 continuation 前完成整片冻结 preview，抽看 34 个关键帧/内部衔接。
+正式 continuation 退出 0，返回 project-production-complete；交付 video.mp4、两张 PNG 和 publish.json。
+`project:check --level final` 七项全部 pass；视频 H.264/AAC stereo、1080×1920/30fps、1656 帧/55.2 秒、7,816,284 bytes，
+完整解码通过。DeliveryBuildId `delivery-50b307c0600e42d10efd4d604d3bb0f37e0b641f6e30f8e9c4c1f112a150b996`，
+视频 checksum `sha256:d3a65ef9f46ed13c29545df91ce3ac1ad190ae82e6aeb3e39846c72d036aa514`。
+Root 抽看正式视频 34 帧总览、774/1412 两帧原始分辨率及两张封面，未观察到文字裁切/重叠，纸张/红线连续且网址准确。
+正式 AAC 测得 -15.74 LUFS/-2.26 dBTP；以原始 phase/2 秒 narration start 对 seal/master 和合成配乐做零偏移拟合，
+六段正文窗口的 score gain 均约 0.1395–0.1397，与冻结 0.14 相符，确认配乐实际进入成片。
+该分析属于技术混音证据；完整连续播放、主观听审和实机手机仍未评定。未 commit/push 或 npm 发布，亦非独立发布首用验收。
+
+## 未发布：口播兼容的节拍驱动 Skill（2026-10-11）
+
+整合两版 Beat-synced Remotion 文档的方法，更新 repository/creator Skill：先确定视觉方向，以同源时间轴安排音乐与
+关键动作；尺寸跟随 Project RenderSpec，不固定 Scene 数量，连续长场景及安静转场均有效。
+新片 Skill 默认本地代码合成配乐，不选用预制 BGM。无额外 npm 依赖的 Node/FFmpeg helper 生成原创 stereo 48 kHz PCM，
+使用两遍 loudnorm 并冻结音乐事件/节拍 JSON；create 的 synthesized 模式复验 checksum、PCM 时长和 fps，
+把全片配乐及时间轴固化为 Project-owned asset/sound.json，抑制模板/Scene 原配乐、保留独立音效。
+口播仍由正常 prepare 生成/seal/master，累计实测 PCM samples 决定语义时序、字幕与 Scene；随后向 Scene 投影局部
+musicTiming。重要动作在允许窗口内选节拍落点，不变速、移动或重生成口播；无口播 authored frames 可由音乐主导。
+合成网格进入 Scene task identity，调音仍可复用 Scene；sound revision 不允许更换网格或移动 composition 播放原点。
+兼容选曲配置及已有 Project/视频不自动迁移。功能初次合入时尚未制作真实业务视频；随后主页视频验证见上方记录。
+本轮尚未 npm 发布，不以技术验证宣称审美/听感评级。
+验证：完整 `npm run check` 执行 1438 项，1436 通过、零失败、两项 Darwin 专属测试在 Linux 跳过；
+类型/lint/文档链接/构建/Chromium Composition 检查通过，两包 build/check/pack 通过。
+实际 runtime tarball 安装的新 Workspace 完成六项 doctor；用生成的 helper 合成 103 BPM 配乐并零 provider 创建
+1080×1920/30fps Project，Project-owned PCM、时间轴和 manifest checksum 一致。最终 creator tarball 的十份 Skill 文件
+经独立 scaffold 逐字复验；最后混音措辞修正后 Skill 预算/同步检查再次通过。该证据不是 native 发布验收。
+
 ## 未发布共享循环 BGM 素材（2026-10-10）
 
 按用户本次公开上传要求，将 Neon Motion、Easy Day、Next Question、Sunlit Drive、Signal Sprint 五首
@@ -39,7 +130,7 @@ task-terminal event，recover-inspect/reissue 按原 Agent task snapshot 的输�
 打包 npm bin 的结构化终态诊断 smoke 通过，未调用真实 TTS。
 根因、历史限制与验证范围见[事件记录](evidence/2026-10-10-cover-output-recovery-incident.md)。
 
-## 当前发布：0.1.20（2026-10-09，成片、原生首用和公开安装通过）
+## 0.1.20已发布（2026-10-09，当时成片、原生首用和公开安装通过）
 
 0.1.19 已通过下方成片和原生首用验收，但发布 CI 的回归清单包含一个不存在的测试文件，
 在 publish 前以 ENOENT 终止，两个包都未发布。保留原标签 `v0.1.19`、源码和
@@ -953,12 +1044,12 @@ reference environment evidence，不是 runtime allowlist；其他宿主可以�
 已认证。Agent 不得修改 package internals、精确依赖、sandbox 或 validators 来强行适配。
 
 仓库和两个 child packages 已采用 Apache-2.0；child packages 已移除 `private`、声明 public publish access，并
-补齐 package README/LICENSE/third-party notices。当前公开版本是 `@axmorf/studio@0.1.10` 与
-`create-axmorf-studio@0.1.10`，发布记录见上方证据。此前 `v0.1.3` 从 exact tag 通过 Trusted Publisher 纯 OIDC 发布，registry integrity 与
+补齐 package README/LICENSE/third-party notices。两个包的当前公开版本与源码候选由本页顶部发布收口维护，
+不从历史版本小节推断 latest。此前 `v0.1.3` 从 exact tag 通过 Trusted Publisher 纯 OIDC 发布，registry integrity 与
 release candidates 一致，provenance、registry signatures 与 attestations 已由外部 fresh Workspace 复验。
 GitHub 仓库已转移为 `AXMORF/axmorf-studio`，npm 发布分支是 default branch，旧 `main` 保留。production 与完整
-repository `npm audit` 已通过 `fast-uri@3.1.6`、
-`nanoid@3.3.18` 精确 overrides 以及 Vite/esbuild/ESLint 兼容更新归零。macOS 15 ARM64 package/scaffold evidence 与
+repository `npm audit` 通过精确 overrides 及兼容更新归零；当前依赖版本以 package.json/package-lock.json 和
+本轮实际审计为准。macOS 15 ARM64 package/scaffold evidence 与
 Ubuntu 24.04 x86_64 exact-Delivery evidence 已完成，固定 OS matrix 已从首次发布 gate 移除；Organization transfer、
 release blocker commits、provenance workflow、tag、双包 publish 与 GitHub Release 均已完成。转移后的 macOS full gate 又
 捕获 delayed `fs.watch` notification 与 `/var` test alias 两个 portability 边界；最小修复已由 macOS gate
@@ -1009,7 +1100,7 @@ shim。历史 `.producer-runs` 数据保持原位，但 current prepare/converge
 当前 checkout 没有 source Project 或 current Delivery，ProjectRegistry 为 0 entry；这验证了 zero-Project
 bootstrap/Registry/Catalog/settings 合同。readiness、cache reuse 与 dirty task estimate 始终都不是完成证据。
 
-当前 repository video Skill policy schema v19 / policy v23 定义了 pre-inspect external-asset Agent capability slot 与
+当前 repository video Skill policy schema v20 / policy v27 定义了 pre-inspect external-asset Agent capability slot 与
 isolated Project revision flow：外部能力只按
 当前 Root Agent 的实际 callable MCP tools 激活，缺失时完全省略；激活后也必须先查本地 Catalog，再通过
 `project:asset:import` 把选择准入为 Project-owned 输入。该 slot 不创建 DAG node，也不进入 child/runtime。

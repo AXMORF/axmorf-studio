@@ -1,0 +1,14 @@
+{
+  "kind": "standalone-cue-lab-v1",
+  "fps": 30,
+  "sampleRate": 48000,
+  "durationInFrames": 240,
+  "bpm": 97,
+  "seed": 31,
+  "events": [
+    {"id": "paper", "beatIndex": 2, "leadFrames": 12, "settleFrames": 12, "sound": "paper", "alignment": "onset", "sourceOffsetSeconds": 0},
+    {"id": "mark", "beatIndex": 4, "leadFrames": 0, "settleFrames": 13, "sound": "pencil", "alignment": "stroke-start", "sourceOffsetSeconds": 0},
+    {"id": "tag", "beatIndex": 7, "leadFrames": 15, "settleFrames": 10, "sound": "swell", "alignment": "swell-center", "sourceOffsetSeconds": 0.1},
+    {"id": "result", "beatIndex": 10, "leadFrames": 10, "settleFrames": 8, "sound": "ding", "alignment": "onset", "sourceOffsetSeconds": 0}
+  ]
+}

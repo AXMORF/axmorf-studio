@@ -458,10 +458,12 @@ test("skill directory contains only the declared production and creative bundle"
   assert.deepEqual(references, [
     "agent-rework-and-system-hardening.md",
     "cover-agent-orchestration.md",
+    "creative-playbook.md",
     "direct-production-workflow.md",
     "execution-capabilities.md",
     "film-direction.md",
     "global-visual-agent-orchestration.md",
+    "paper-collage.md",
     "producer-config.md",
     "project-revision.md",
     "scene-agent-orchestration.md",
@@ -482,6 +484,14 @@ test("film direction is shared with the creator and reachable by isolated Scene 
       "utf8",
     ),
     direction,
+  );
+  const synthScript = "scripts/synth-score.mjs";
+  assert.equal(
+    await readSkillFile(synthScript),
+    await readFile(
+      path.join(templateRoot, ".agents/skills/axmorf-video", synthScript),
+      "utf8",
+    ),
   );
   for (const root of [process.cwd(), templateRoot]) {
     const rendererSkillPath = path.join(

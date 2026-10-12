@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import test from "node:test";
 
 import {
@@ -11,11 +12,14 @@ import {
   computeSceneContinuityId,
   computeSceneTaskInputFingerprint,
   serializeCanonicalJson,
+  buildProjectSoundPlan,
+  SynthesizedMusicTimelineSchema,
 } from "@axmorf/studio/contracts";
 import { buildAgentTasks } from "../../scripts/project-production/application/build-current-plan";
 import { buildCurrentProductionRevision } from "../../scripts/project-production/application/current-revision";
 import { loadProjectProductionInputs } from "../../scripts/project-production/application/load-inputs";
 import { prepareNarrationInputs } from "../../scripts/project-production/application/prepare-fixed-tasks";
+import { buildTaskDiagnosticSnapshots } from "../../scripts/project-production/domain/task-explanation";
 import {
   createProject,
   projectPendingSceneAuthoring,
@@ -206,6 +210,96 @@ test("authored grouped create and source loading freeze one shared owner seam an
   );
   const owner = tasks.find(({ task }) => task.semanticId === "begin")!;
   const ownerContext = JSON.parse(owner.contextBytes).scene;
+  const { generateScore } = await import(
+    pathToFileURL(
+      join(
+        repositoryRoot,
+        ".agents/skills/axmorf-video/scripts/synth-score.mjs",
+      ),
+    ).href
+  );
+  const score = SynthesizedMusicTimelineSchema.parse(
+    generateScore({ fps: 30, bpm: 120, bars: 1 }).timeline,
+  );
+  const scoredInputs = {
+    ...inputs,
+    sound: buildProjectSoundPlan({
+      storyId: inputs.projectId,
+      synthesizedMusic: score,
+      sceneMusicPolicy: "mute",
+      contributions: [
+        {
+          contributionId: "background-music",
+          resourceId: `asset.${inputs.projectId}.background-music`,
+          descriptorFingerprint: `sha256:${"1".repeat(64)}`,
+          volume: 0.12,
+          loop: true,
+          playbackScope: "composition",
+        },
+      ],
+    }),
+  };
+  const scoredTasks = buildAgentTasks(
+    scoredInputs,
+    buildCurrentProductionRevision(inputs).revisionId,
+  );
+  const scoredOwner = scoredTasks.find(
+    ({ task }) => task.semanticId === "begin",
+  )!;
+  const scoredSnapshots = buildTaskDiagnosticSnapshots({
+    nodes: [{ task: scoredOwner.task, dependencyTaskRevisions: [] }],
+    subjects: new Map([
+      [
+        scoredOwner.task.taskRevision,
+        { kind: "meaning", id: scoredOwner.task.semanticId! },
+      ],
+    ]),
+    decisions: [],
+  });
+  assert.ok(
+    scoredSnapshots[0].inputFingerprints.some(
+      ({ id }) => id === "music-timing",
+    ),
+    "a real synthesized-music Scene task can enter production diagnostics",
+  );
+  const scoredContext = JSON.parse(scoredOwner.contextBytes).scene;
+  assert.deepEqual(
+    scoredContext.taskInput,
+    ownerContext.taskInput,
+    "music never changes semantic/covered Beat timing",
+  );
+  assert.deepEqual(
+    scoredContext.musicTiming.beatFrames,
+    [0, 15, 30, 45, 60, 75, 90, 105],
+  );
+  assert.notEqual(
+    scoredOwner.task.taskRevision,
+    owner.task.taskRevision,
+    "music timing is an attested Scene input",
+  );
+  assert.match(
+    scoredOwner.taskContractBytes!,
+    /musicTiming\.beatFrames\/barFrames/u,
+  );
+  const quieter = {
+    ...scoredInputs,
+    sound: buildProjectSoundPlan({
+      storyId: inputs.projectId,
+      synthesizedMusic: score,
+      sceneMusicPolicy: "mute",
+      contributions: scoredInputs.sound.contributions.map((c) => ({
+        ...c,
+        volume: 0.08,
+      })),
+    }),
+  };
+  assert.equal(
+    buildAgentTasks(
+      quieter,
+      buildCurrentProductionRevision(inputs).revisionId,
+    ).find(({ task }) => task.semanticId === "begin")!.task.taskRevision,
+    scoredOwner.task.taskRevision,
+  );
   assert.deepEqual(
     ownerContext.taskInput.coveredBeats.map(
       ({ storyBeat }: { storyBeat: { meaningId: string } }) =>

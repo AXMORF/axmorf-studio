@@ -15,6 +15,10 @@ do not remount or reset world/camera at an internal Beat. Read every coveredBrie
 the immutable frame windows replace narration timing; never generate or draw captions. Public capability.motion guides
 route world-camera projection, analytic follow/settle, indexed point morph/gather and semantic frame/event retiming.
 Evaluate those APIs against the brief, preserve causal geometry and hold the result long enough to read.
+When context supplies scene.musicTiming, beatFrames/barFrames already use the owning Scene's continuous frame clock.
+Use them for selected reveals and pulse accents, with anticipation beginning before a landing. Narration ranges and
+covered Beat boundaries remain authoritative; no forced beat snapping, reset or Audio mount. Quiet joins are valid.
+Do not call Hooks conditionally or in changing-length loops; put per-item Hooks inside stable child components.
 
 The following boundary example is checked by the same Scene validator used in production. Replace its visual with the Beat's meaning:
 

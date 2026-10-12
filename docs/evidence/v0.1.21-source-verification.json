@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "version": "0.1.21",
+  "recordedAt": "2026-10-12T07:10:22.301433+00:00",
+  "baseSourceCommit": "46329dac769850c754ce7bf29199791d9de1a337",
+  "defaultBranch": "axmorf/npm-workspace-open-source",
+  "sourceCheck": {
+    "command": "npm run check",
+    "exitCode": 0,
+    "tests": 1440,
+    "pass": 1438,
+    "fail": 0,
+    "skip": 2,
+    "skipScope": "Darwin-only cases on Linux",
+    "logChecksum": "sha256:7e78611927c5c4164aa98a82f3dd79b603548fbcc8938b52d5ede69ac3dbcd7a",
+    "sourceProjectCount": 0
+  },
+  "packageTypecheck": {
+    "exitCode": 0,
+    "logChecksum": "sha256:b5e27b24503671264961e85f1aa2970fd6ee45fdde3f7378fb59a21ca404b1a8"
+  },
+  "packageBuild": {
+    "exitCode": 0,
+    "logChecksum": "sha256:33ab82d22937cfde03da0753413739c12c1e4dc58b90f27bb204b18fa135206f"
+  },
+  "packageReadiness": {
+    "runtime": "package-local-ready",
+    "creator": "package-local-ready"
+  },
+  "audit": {
+    "totalVulnerabilities": 0,
+    "auditLevel": "low"
+  },
+  "scopedRegressions": {
+    "testFiles": 23,
+    "tests": 208,
+    "pass": 207,
+    "fail": 0,
+    "skip": 1,
+    "skipScope": "Darwin-only case on Linux",
+    "exitCode": 0,
+    "logChecksum": "sha256:77e2bc15383c6560d8a91a01638dd396fff57b1ade3bbbc0ecd4be5a16f673e4"
+  },
+  "candidates": {
+    "runtime": {
+      "fingerprint": "sha256:ed762abbb214502b5360c30810601ed1c354045145228dcbbdf71bd72c692e9c",
+      "files": 297,
+      "tarballIntegrity": "sha512-tPBgjIUx+Cv0QeY6wlCirkoEbdNtzwswnUf8pxQAFyvH6HTdp9BxNuBcJsRU3JOPJyZl0j1L9y6UUP6NIfJh6w==",
+      "tarballChecksum": "sha256:54be33a5175b4ee9afffeb7750d9be918b81618e72567ca6b7fb28a94f1ed9a9"
+    },
+    "creator": {
+      "fingerprint": "sha256:52fb4f0a9c7baf4d6ffe6603d131b7a4e6ccfe28ee70d895dc035047877c7c68",
+      "files": 74,
+      "tarballIntegrity": "sha512-eIJ7zSOyirllLwmDTVk3nc4Yq9wuyroZ+z4GFNH5EwXyO5HuFmSn67Y40HjI8d7GcydgkREvtHlKMB2XwuzhNA==",
+      "tarballChecksum": "sha256:f2ae2f72a1c03ab02273db2fa8816e5de0b832ba798c7a518438bb56330fece0"
+    },
+    "sharedCreativeFileEqualityCount": 33
+  },
+  "freshCandidateInstallation": {
+    "status": "first-use-workspace-created",
+    "doctor": "passed",
+    "snapshotChecksum": "sha256:7debd4843bf359c5ab5af66854b76e0a206f55f455439c6849e957046453a4b9",
+    "installLogChecksum": "sha256:e538ab54576839d641fefa5c8556a922b5f816b56840a913a5a861b929c4d892"
+  },
+  "nativeFirstUse": {
+    "status": "blocked-cli-authentication",
+    "model": "gpt-6.1-sol",
+    "turnStatus": "failed",
+    "errorInfo": "unauthorized",
+    "message": "Your access token could not be refreshed because you have since logged out or signed in to another account. Please sign in again.",
+    "agentMessagesProduced": false,
+    "successfulReceiptProduced": false,
+    "rawUiChecksum": "sha256:475bdac37144fdda0517d540625ebcbf086d3f5c05642f9ed08b4728c6f20998",
+    "runChecksum": "sha256:fde8ef9e06be95523f96f4fe06f36b0a1d89f8780b46140b5cfb20b0618b89b9",
+    "retainedPrivately": true,
+    "filesystemIsolation": "fresh profile and Workspace; no additional OS file isolation"
+  },
+  "initialFailures": [
+    {
+      "stage": "first full source check",
+      "exitCode": 1,
+      "reason": "Six no-undef errors for URL/Buffer/process across source and template teaching synthesis scripts",
+      "correction": "Explicit node:url, node:buffer and node:process imports; synthesis algorithm unchanged; final full check passed"
+    },
+    {
+      "stage": "preparatory first-use install",
+      "exitCode": 1,
+      "reason": "Candidate metadata process had not finished writing config.json",
+      "correction": "Waited on the original metadata process to exit0; retried after configuration existed; installation passed"
+    }
+  ],
+  "publication": "not-started",
+  "acceptanceReuseApproved": false
+}

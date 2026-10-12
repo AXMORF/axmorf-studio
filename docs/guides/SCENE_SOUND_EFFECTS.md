@@ -7,6 +7,23 @@
 不是某个真实设备或物体的录音。manifest 记录独立 ID、checksum、
 时长、用途、许可与起音/声势中心提示；bootstrap 沿既有 policy-covered seed 路径投影并登记 Catalog。
 
+## 新片的代码合成配乐
+
+新片 Skill 默认在 Project 创建前使用随包 Node/FFmpeg helper 或遵守同一公开合同的原创合成器，
+生成 stereo 48 kHz PCM WAV 与同源音乐 timeline。将返回的
+`backgroundMusic:{mode:"synthesized",sourcePath,timelinePath,volume}` 写入 create input；创建事务复验
+checksum、PCM 时长和 fps 并冻结 Project-owned bytes，不在 create 或 render 内生成音乐。
+具体命令由[配乐与共同时间轴](../../.agents/skills/axmorf-video/references/film-direction.md#code-synthesized-music-and-shared-timing)维护。
+
+合成配乐从 Composition frame zero 连续循环，以一条全片 contribution 替换模板和正文 Scene 配乐，
+保留旁白、片头音效及其他独立音效。prepare 根据实测 Scene 范围投影同一网格的 Scene-local
+`musicTiming.beatFrames/barFrames`，不会逐 Scene 重启节拍。
+有口播时 sealed PCM 决定语义时间、字幕和边界，重要动作只在允许窗口内选择音乐落点；
+无口播时用公开 authored 时序表达事件，音乐和画面仍共享绝对帧原点。
+
+音量、仪器、BPM、风格和安静段落按本片设计。最终混音需分别记录完整解码、响度/峰值测量和实际听审；
+数值通过不等于节奏或人声可懂度已经听审通过。下方曲库选曲仍为兼容路径，不改变新片 Skill 的合成默认方法。
+
 ## 素材列表
 
 文件位于 `public/assets/axmorf-shared/audio/sound-effects/axmorf-<name>-v1.wav`。
@@ -81,7 +98,8 @@ SoundDesignTrack 实际播放，Renderer 不再重复挂载 Audio。
 
 当前源码将用户授权公开分发的五首原始循环 WAV 纳入 runtime 的共享 seed，GitHub 保存原始媒体，构建后随
 npm tarball 分发，bootstrap 自动投影到 `public/assets/axmorf-shared/audio/music/` 并登记 Catalog。
-该扩充尚未发布到 npm，既有 `0.1.20` 安装不会因 GitHub 推送自动获得这些曲目。
+这些媒体属于0.1.21候选包内容；公开发布状态见[当前实现状态](../ITERATION_STATUS.md)。
+既有安装不会因 GitHub 推送自动获得曲目，必须通过正常 npm 升级取得对应包。
 
 | 曲目 | Catalog ID | BPM | 用途 |
 | --- | --- | ---: | --- |
@@ -100,7 +118,7 @@ npm run catalog:query -- --kind asset --tag bundled-music
 npm run project:create:context -- --project my-video
 ```
 
-其他用户本地音乐库仍不属于 npm 的共享 seed。选曲以当前 Catalog 及许可为准，循环 BGM 优先使用已批准的原始循环
+其他用户本地音乐库仍不属于 npm 的共享 seed。兼容选曲以当前 Catalog 及许可为准，循环 BGM 使用已批准的原始循环
 WAV；带淡出、裁剪或试听处理的 MP3 不应冒充循环原音。新 Workspace 的 `audioDefaults.globalBgm` 默认 auto；
 context 返回 `backgroundMusic.candidates`，Agent 按主题、能量和情绪显式选择 `{mode:"selected",resourceId,volume?}`，
 省略时按 brief 自动匹配。只有全局许可已核验的 loop 可候选，排除模板音乐、Project-owned 音乐及试听版；空库明确报告缺曲。
@@ -112,9 +130,10 @@ content-window contribution，跨正文 Scene 连续播放，不进入首尾模�
 不要在各 Scene 重复挂载同一 BGM。执行任务更快不授权改变音频速度、
 音高、BPM 或 gain。
 
-本开发分支可通过 strict `patch.sound` 修改已有 Project 音乐的音量和淡入/淡出，通过 `boundaryScenes` 修改
+通过 strict `patch.sound` 修改已有 Project 音乐的音量和淡入/淡出，通过 `boundaryScenes` 修改
 immutable 模板播放区间及其独立音乐包络，见 [PROJECT_REVISION.md](PROJECT_REVISION.md)。包络使用整段
 contribution 时间，循环不会每次重启淡入。它不修改原音和 sealed narration，也不等于自动 ducking 或混音认证。
+合成模式修订还须保留完整 `synthesizedMusic` 元数据、音乐网格和 Composition 播放原点，不用调音修订更换配乐。
 检查 codec、循环边界 waveform 和 PCM 可重复性只能证明技术属性；接缝是否可闻、旁白可懂度和整体平衡仍需听审。
 
 退役旧试听版本前，检查其 resource ID、路径和 checksum 在 current Catalog、Project-owned manifests、源码、

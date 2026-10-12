@@ -1,6 +1,7 @@
 # 连续视频创作
 
-本指南对应公开 npm 0.1.18；旧 Workspace 的能力仍以其已安装 contracts/生成指南为准。
+本指南对应0.1.21候选的当前能力；公开发布状态见[ITERATION_STATUS](../ITERATION_STATUS.md)。
+旧 Workspace 的能力仍以其已安装 contracts/生成指南为准。
 保留一 Story 一个 Composition 和逐 Beat 的语义时间轴，同时用显式视觉分组决定 Renderer 所有权。
 
 ## 先设计整片，再决定视觉边界
@@ -56,6 +57,12 @@ GlobalVisual decoration 与新建 Project 的自动/选定/文件 BGM 都使用�
 排除 fixed 首尾和 lead/tail，只抑制正文 Scene 配乐。旧 composition/content/narrated-content 范围保留；
 [正式 sound revision](PROJECT_REVISION.md#边界播放与音乐包络) 可显式将 composition 收窄为 content-window，保留模板配乐。
 `backgroundMusic:null` 禁用配乐，音效与旁白独立。交付保留 H.264/AAC，纯静音内容输出静音音轨。
+
+新片 Skill 默认创建前用代码合成原创 WAV/timeline，以 Composition frame zero 为原点全片循环，
+替换模板与正文配乐、保留独立音效。prepare 将同一网格投影成 Scene-local musicTiming；
+有口播时先按 sealed PCM 确定语义窗口，再为重要动作选落点，不移动口播/字幕或强制每句踩拍。
+无口播时 authored 时序可由音乐组织。完整构图、材质与停留见[创作手册](VIDEO_CREATIVE_PLAYBOOK.md)，
+合成入口见[配乐方法](../../.agents/skills/axmorf-video/references/film-direction.md#code-synthesized-music-and-shared-timing)。
 
 Story `resources.allowedResourceIds` 是准入池；silent preset 的 `resourceIds` 则要求实际精确消费，不能把候选池
 全部冻结进去。先去重排序，再通过公开 builder 生成；对应 brief 的 candidateResourceIds 必须与 preset 一致。
@@ -138,7 +145,7 @@ profile 保留原布局尺寸、fps、帧数和声音，用 Remotion scale 降�
 0.1.18 已修复 `project:scene:review --motion` 对带完整非空章节的 authored-frames 作品的比较误判，
 并覆盖空章节、完整章节与 stale 章节的回归；不需要删除合法章节来绕过审阅工具。
 当时的失败事实与创作经验保留在[创作经验记录](../evidence/2026-10-08-creative-video-skill.md)，
-当前发布范围见[0.1.18 发布记录](../evidence/v0.1.18-publication.json)。
+当时发布范围见[0.1.18 发布记录](../evidence/v0.1.18-publication.json)，当前事实见[ITERATION_STATUS](../ITERATION_STATUS.md)。
 
 正式和草稿使用同一音频输出主链：Remotion 生成无音轨 H.264 与 lossless PCM WAV，再由 Workspace-local
 FFmpeg 一次编码 AAC 并封装 MP4，保留编码器的 priming/skip 元数据。mono/stereo 在该次编码中选择，

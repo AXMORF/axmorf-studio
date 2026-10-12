@@ -217,6 +217,44 @@ test("originality baseline changes remain a structured diagnostic input", () => 
   ]);
 });
 
+test("music timing changes are reported as direct Scene input changes", () => {
+  const previous = build({
+    taskKind: "scene-owner",
+    semanticId: "scene-a",
+    input: "music-timing",
+    value: "1",
+  });
+  const current = build({
+    taskKind: "scene-owner",
+    semanticId: "scene-a",
+    input: "music-timing",
+    value: "2",
+  });
+  const subjects = new Map(
+    [previous, current].map((task) => [
+      task.taskRevision,
+      { kind: "meaning" as const, id: task.semanticId! },
+    ]),
+  );
+  const baseline = buildTaskDiagnosticSnapshots({
+    nodes: [{ task: previous, dependencyTaskRevisions: [] }],
+    subjects,
+    decisions: [],
+  });
+  const decisions = explainTaskDecisions({
+    storyId: "story-example",
+    nodes: [{ task: current, dependencyTaskRevisions: [] }],
+    subjects,
+    inspections: new Map([
+      [current.taskRevision, { artifactState: "missing", attestation: null }],
+    ]),
+    baselineSnapshots: baseline,
+  });
+  assert.deepEqual(decisions[0]?.directChanges, [
+    { kind: "input", id: "music-timing" },
+  ]);
+});
+
 test("prior Scene source changes remain diagnostic inputs and unknown IDs fail closed", () => {
   const previous = build({
     taskKind: "scene-owner",

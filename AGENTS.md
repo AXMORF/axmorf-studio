@@ -139,7 +139,10 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
 - 新 authored-frames Project 使用 readability policyVersion 2、captionBand none，四边保留安全 inset，不预留字幕带。
   旁白与既有 policyVersion 1 保持原几何/fingerprint；current validation/revision 保留完整 frozen policy，不自动迁移。
 - 新 Project 的 `VisualStyleSpec.theme` 固化已校验四角色配色，Composition 实际绘制 background；themed GlobalVisual base 必须直接返回 null，正文/首尾共用主题。旧 immutable 模板不静默迁移；不兼容主题在 create/revision 前置拒绝。
-- 旁白独占 narration track；非旁白声音都是独立 `SoundContribution`。新 Project 的 BGM 在 create 时从已批准的全局
+- 旁白独占 narration track；非旁白声音都是独立 `SoundContribution`。新片 Skill 默认在 create 前本地代码合成 BGM，
+  以 `backgroundMusic.mode:synthesized` 冻结原创 PCM 与 timeline；一个 composition 音轨替换全部 Scene/模板配乐，保留独立音效。
+  Scene task 的 musicTiming 是同一音乐网格投影到实测时序的局部帧；sealed PCM、字幕和语义边界不为踩拍改变。
+  既有兼容模式的 BGM 在 create 时从已批准的全局
   loop 音乐库自动选曲或按明确选择冻结，单个 content-window contribution 只覆盖正文，跨 Scene 不重启，不覆盖首尾模板或 lead/tail。
   正文 BGM 只抑制正文 Scene 的 background-music，保留模板配乐与所有独立音效；显式 `backgroundMusic:null` 抑制全部背景音乐。
   缺曲必须报告 unavailable，不把资源发现当作播放成功；旧 Plan 的 composition/narrated-content/content scope 保留，不自动迁移。

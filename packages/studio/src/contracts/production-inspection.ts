@@ -20,6 +20,7 @@ export const DiagnosticInputIdSchema = z.enum([
   "cover-spec",
   "generation-input",
   "mastering-policy",
+  "music-timing",
   "narration",
   "originality-baseline",
   SCENE_PRIOR_SOURCE_INPUT_ID,

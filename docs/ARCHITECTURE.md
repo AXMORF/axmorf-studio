@@ -4,6 +4,13 @@
 
 ## 视觉、音频与局部修订
 
+新片 Skill 默认以代码合成配乐；creator 分发无额外 npm 依赖的 Node/FFmpeg helper。
+create input 的 synthesized 模式只接收 Workspace-owned generated-score WAV/timeline：创建前独立生成，
+创建事务校验 checksum/PCM 时长/fps 并冻结 sound.json.synthesizedMusic，仍保持 create 零 provider/零媒体生成。
+全片 composition loop 替换 Scene/模板配乐、保留独立音效。Scene task 在 prepare 后获得局部 musicTiming，
+其 identity 绑定冻结音乐网格；sealed narration/semantic timing 不变。调音 revision 必须保留该网格。
+没有口播时可以用节拍预算 authored frames；有口播时音乐网格只是可选动作落点，不成为语音时序 authority。
+
 边界修订使用 Story preset 中可选、fingerprint-covered 的 template playback window：immutable instance 与 copied bytes 不变，
 fixed artifact 派生局部 shot/anchor 和音轨源起点，SceneSlot 保持实际 Beat Sequence 时长并偏移模板 source clock。
 Project/Scene 音轨可选首尾线性包络；循环 BGM 的包络延续到整条 contribution，不能每轮重置。
@@ -15,7 +22,7 @@ missing artifact 的 owning Scene task input 完全不变时可冻结其已验�
 无旁白正文沿同一 production 主链：`visual-scene` 的 authored frames 生成 `authored-frames-v1`
 SemanticTiming，旁白 source/两份 manifest 明确为 null，不创建 provider/narration tasks。Composition
 省略 NarrationAudioTrack，保留顶层 caption ownership；空 captions 回收字幕预留区。
-新 Project BGM 与 GlobalVisual decoration 使用正文窗口；GlobalVisual base 仍覆盖完整 Composition。
+兼容的选曲 BGM 与 GlobalVisual decoration 使用正文窗口；GlobalVisual base 仍覆盖完整 Composition。
 正文 BGM 跨 Scene 连续播放，只抑制正文 Scene 配乐，保留首尾模板配乐及独立音效。
 旧 composition scope 继续覆盖完整影片；正式 sound revision 可显式将其收窄到 content-window，保留媒体身份与 bytes。
 Scene 可通过公开 action timing helper 消费计划，并接收冻结 continuity。
@@ -27,7 +34,7 @@ Scene 可通过公开 action timing helper 消费计划，并接收冻结 contin
 identity，也不扩展 worker 文件权限。详见[视觉叙事](guides/VISUAL_NARRATIVE_QUALITY.md)。
 create context 的 `soundResources` 只投影当前 Catalog 已批准、runtime-approved、许可 verified 的
 音效与音乐；`backgroundMusic` 另投影已核验的全局 loop 候选、自动/文件/禁用模式及缺曲状态，不暴露私有配置路径。
-create input 可选 `backgroundMusic`：省略继承，auto 按当前 brief 匹配候选，selected 指定 resourceId，null 明确关闭背景音乐。
+create input 可选 `backgroundMusic`：synthesized 为新片 Skill 使用的原创代码配乐；兼容的省略继承、auto 按当前 brief 匹配候选、selected 指定 resourceId、null 明确关闭背景音乐。
 create-time 本地化冻结 checksum/license/Project-owned bytes；一个 content-window 音轨覆盖正文，抑制正文 Scene 的第二条音乐，
 首尾模板配乐保留，音效仍按独立 anchor 混音。旧 composition/narrated-content/content Plan 不自动迁移，空曲库返回 unavailable 和空 Project 音轨。
 
@@ -269,7 +276,7 @@ availableResources 声明 sound-plan 的 anchor/frame、时长与音量，顶层
 当前源码还沿该路径发行五首获用户授权的原始循环 BGM：源 WAV 位于 package seed，公共 manifest 冻结
 checksum、PCM 元数据和单独分发许可，build 纳入 runtime policy；bootstrap 无需访问用户本地库即可登记
 `asset.axmorf.music.*-loop-v1` 候选。create 沿既有流程选曲并冻结为 Project-owned bytes。
-旧私有 ID 与公共 ID 分开，既有 Project 不迁移；此素材扩充尚未 npm 发布。
+旧私有 ID 与公共 ID 分开，既有 Project 不迁移；包内容与公开发布状态由 ITERATION_STATUS 维护。
 
 公开 revision context/validate/create 与手动、continuation 自动 promotion 均把已验证的 runtime policy manifest
 传入共享 Revision 读取；candidate 与 live base 使用同一 policy authority。普通 npm Workspace 不提供开发仓库的

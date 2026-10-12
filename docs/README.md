@@ -2,7 +2,7 @@
 
 > 文档类型：唯一导航入口
 >
-> 最后复核：2026-10-08
+> 最后复核：2026-10-12
 
 先按问题选择文档，不要从历史计划或 evidence 反推 current implementation。
 
@@ -30,6 +30,7 @@
 | create 后的只读 inspect、显式 prepare、dirty task delegation、attempt-bound commit/fail 与 fixed continuation | [guides/PRODUCTION_ORCHESTRATION.md](guides/PRODUCTION_ORCHESTRATION.md)       |
 | 同步 exact four-file delivery                                                                                 | [guides/LOCAL_DELIVERY.md](guides/LOCAL_DELIVERY.md)                           |
 | 整片规划、连续 Scene、纯视觉时间轴、冻结草稿与参考节奏分析                                                    | [guides/CONTINUOUS_VIDEO_AUTHORING.md](guides/CONTINUOUS_VIDEO_AUTHORING.md)   |
+| 创意构思、完整构图、音乐落点与可运行的剪纸案例                                                               | [guides/VIDEO_CREATIVE_PLAYBOOK.md](guides/VIDEO_CREATIVE_PLAYBOOK.md)         |
 | 完整 Project 数据删除                                                                                         | [PRODUCTION_WORKFLOW.md#8-作品删除](PRODUCTION_WORKFLOW.md#8-作品删除)         |
 | TTS generation cache、PCM seal 与 timing                                                                      | [guides/NARRATION_GENERATION.md](guides/NARRATION_GENERATION.md)               |
 | 机械 acceptance 与完成事实                                                                                    | [guides/REVIEW_MODEL.md](guides/REVIEW_MODEL.md)                               |
@@ -56,8 +57,8 @@
 - `promotions/` 保存尚未完全达到完成定义的提案和实施计划；每份文档必须明确自身批准/实施状态。
 - npm Workspace 开源方案已经完成并
   [归档实施计划](archive/implementation-plans/2026-08-30-npm-workspace-open-source-implementation-plan.md)；当前是
-  `v0.1.20` public release，见[发布证据](evidence/v0.1.20-publication.json)。当前事实和验收边界以
-  [ITERATION_STATUS.md](ITERATION_STATUS.md) 为准，历史 release evidence 只认证各自冻结范围。
+  0.1.21候选整合新的代码配乐与创作方法；公开发布状态和验收边界以
+  [ITERATION_STATUS.md](ITERATION_STATUS.md) 为准。历史[0.1.20发布证据](evidence/v0.1.20-publication.json)只认证其冻结范围。
 - [archive/](archive/README.md) 保存已完成或被取代的 plans/specs，仅供追溯。
 
 ## 管理规则

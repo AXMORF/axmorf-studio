@@ -169,6 +169,14 @@ export const loadProjectProductionInputs = async ({
   const publishingIntent = PublishingIntentSchema.parse(publishingFile.raw);
   const requirements = AuthoringRequirementsSchema.parse(requirementsFile.raw);
   const timing = SemanticTimingSchema.parse(timingFile.raw);
+  if (
+    sound.synthesizedMusic !== undefined &&
+    sound.synthesizedMusic.fps !== render.fps
+  ) {
+    throw new Error(
+      "Synthesized music frame rate differs from the frozen RenderSpec.",
+    );
+  }
   const sealedNarration =
     sealedFile === null
       ? null

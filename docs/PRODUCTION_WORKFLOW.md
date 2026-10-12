@@ -74,7 +74,17 @@ boundary，task executors 与 runtime 不感知。
 
 新 Project 从 strict `ProjectCreateInput` 原子创建：
 
-创建前查看 context 的 `backgroundMusic`：从获批全局 loop 候选按主题选择 `backgroundMusic:{mode:"selected",resourceId,volume?}`，
+新片 Skill 默认创建前本地代码合成配乐：使用内置 `synth-score.mjs` 或遵守同一公开 timeline 合同的原创合成器，
+把 `backgroundMusic:{mode:"synthesized",sourcePath,timelinePath,volume?}` 写入 create input。
+生成器先产出 original stereo 48 kHz PCM 与音乐事件/节拍网格，create 本身仍不生成媒体或调用 provider；
+它验证音频 checksum、PCM 时长与 Project fps，冻结 Project-owned WAV 及 sound.json.synthesizedMusic。
+该模式单条 composition loop 从第零帧播放，抑制 Scene/首尾模板 BGM，保留独立音效，末尾包络连续。
+prepare 仍先生成/seal/master 口播，以累计 PCM samples 为时序 authority；随后把相同音乐网格投影为
+content Scene context 的 musicTiming（局部 beatFrames/barFrames），不移动口播、字幕或覆盖逐 Beat 边界。
+无旁白 authored 模式可按节拍预算；有旁白只在允许动作窗口内选择踩拍，安静转场及连续长 Scene 有效。
+sound revision 保留 synthesizedMusic 和既有媒体身份，不借调音更换配乐或改变音乐网格。旧 Project 不自动迁移。
+
+兼容的选曲模式仍查看 context 的 `backgroundMusic`：从获批全局 loop 候选按主题选择 `backgroundMusic:{mode:"selected",resourceId,volume?}`，
 或省略以继承新 Workspace 的自动选曲。明确无背景音乐才用 null；旧自定义文件/禁用设置继续继承。
 创建后报告真实选曲或 unavailable 再进入 inspect/prepare。选中音乐冻结为一个 content-window 连续音轨，
 只覆盖正文，不覆盖首尾模板或 lead/tail；只抑制正文 Scene 的配乐，模板配乐与镜头音效独立保留。

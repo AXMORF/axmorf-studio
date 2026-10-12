@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
+import { execFileSync } from "node:child_process";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import test from "node:test";
 
 import { ProjectSoundPlanSchema } from "@axmorf/studio/contracts";
@@ -111,6 +112,138 @@ const create = (fixture: Awaited<ReturnType<typeof musicFixture>>) =>
     projectId: "story-example",
     env: { RSP_PRODUCER_CONFIG: fixture.configPath },
   });
+
+test("code-synthesized music freezes mastered original PCM and a shared timeline without selecting library audio", async (t) => {
+  const fixture = await musicFixture();
+  t.after(() => rm(fixture.rootDir, { recursive: true, force: true }));
+  const recipePath = join(fixture.rootDir, "score.json");
+  await writeProjectCreateJson(recipePath, {
+    fps: 30,
+    bpm: 120,
+    bars: 2,
+    style: "electronic",
+    seed: 41,
+  });
+  const configBefore = await readFile(fixture.configPath);
+  const script = resolve(".agents/skills/axmorf-video/scripts/synth-score.mjs");
+  const run = () =>
+    JSON.parse(
+      execFileSync(
+        process.execPath,
+        [script, "--input", recipePath, "--id", "story-example"],
+        { cwd: fixture.rootDir, encoding: "utf8" },
+      ),
+    );
+  const score = run();
+  assert.deepEqual(
+    run(),
+    score,
+    "repeated synthesis does not overwrite different media",
+  );
+  await writeProjectCreateJson(fixture.inputPath, {
+    ...validProjectCreateInput,
+    backgroundMusic: score.backgroundMusic,
+  });
+  const result = await create(fixture);
+  assert.equal(result.backgroundMusic.sourceResourceId, null);
+  assert.match(result.backgroundMusic.reason, /code-synthesized/u);
+  const root = join(fixture.rootDir, "src/projects/story-example");
+  const sound = ProjectSoundPlanSchema.parse(
+    JSON.parse(await readFile(join(root, "sound.json"), "utf8")),
+  );
+  assert.equal(sound.sceneMusicPolicy, "mute");
+  assert.equal(sound.contributions[0].playbackScope, "composition");
+  assert.equal(sound.synthesizedMusic?.audioChecksum, score.audioChecksum);
+  assert.equal(sound.synthesizedMusic?.fps, 30);
+  const source = await readFile(
+    join(fixture.rootDir, score.backgroundMusic.sourcePath),
+  );
+  const localized = await readFile(
+    join(
+      fixture.rootDir,
+      "public/projects/story-example/sound/background-music.wav",
+    ),
+  );
+  assert.deepEqual(localized, source);
+  assert.equal(source.length, 44 + 4 * 48_000 * 4);
+  execFileSync(
+    "ffmpeg",
+    [
+      "-v",
+      "error",
+      "-i",
+      join(fixture.rootDir, score.backgroundMusic.sourcePath),
+      "-f",
+      "null",
+      "-",
+    ],
+    { stdio: "pipe" },
+  );
+  assert.deepEqual(await readFile(fixture.configPath), configBefore);
+  assert.equal(
+    (await create(fixture)).creationIdentity,
+    result.creationIdentity,
+  );
+});
+
+test("synthesized score fps and checksum drift fail before a Project is created", async (t) => {
+  const fixture = await prepareProjectCreateFixture();
+  t.after(() => rm(fixture.rootDir, { recursive: true, force: true }));
+  const recipePath = join(fixture.rootDir, "score.json");
+  await writeProjectCreateJson(recipePath, {
+    fps: 24,
+    bpm: 100,
+    bars: 1,
+    seed: 13,
+  });
+  const score = JSON.parse(
+    execFileSync(
+      process.execPath,
+      [
+        resolve(".agents/skills/axmorf-video/scripts/synth-score.mjs"),
+        "--input",
+        recipePath,
+        "--id",
+        "story-example",
+      ],
+      { cwd: fixture.rootDir, encoding: "utf8" },
+    ),
+  );
+  await writeProjectCreateJson(fixture.inputPath, {
+    ...validProjectCreateInput,
+    backgroundMusic: score.backgroundMusic,
+  });
+  await assert.rejects(
+    createProject({
+      ...fixture,
+      projectId: "story-example",
+      env: { RSP_PRODUCER_CONFIG: fixture.configPath },
+    }),
+    /checksum, fps or PCM duration/u,
+  );
+  const input = {
+    ...validProjectCreateInput,
+    render: { ...validProjectCreateInput.render, fps: 24 },
+    backgroundMusic: score.backgroundMusic,
+  };
+  await writeProjectCreateJson(fixture.inputPath, input);
+  await writeFile(
+    join(fixture.rootDir, score.backgroundMusic.sourcePath),
+    "corrupted PCM",
+  );
+  await assert.rejects(
+    createProject({
+      ...fixture,
+      projectId: "story-example",
+      env: { RSP_PRODUCER_CONFIG: fixture.configPath },
+    }),
+    /checksum, fps or PCM duration/u,
+  );
+  await assert.rejects(
+    readFile(join(fixture.rootDir, "src/projects/story-example/sound.json")),
+    { code: "ENOENT" },
+  );
+});
 
 test("automatic library music selects by the current brief, localizes verified bytes and freezes one content-window track", async (t) => {
   const fixture = await musicFixture();

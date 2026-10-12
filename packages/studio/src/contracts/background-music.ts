@@ -31,6 +31,23 @@ export const ProjectBackgroundMusicSelectionSchema = z
     AutomaticBackgroundMusicSchema,
     z
       .object({
+        mode: z.literal("synthesized"),
+        sourcePath: z
+          .string()
+          .regex(
+            /^public\/assets\/generated-score\/[a-z0-9]+(?:-[a-z0-9]+)*\/music\.wav$/u,
+          ),
+        timelinePath: z
+          .string()
+          .regex(
+            /^public\/assets\/generated-score\/[a-z0-9]+(?:-[a-z0-9]+)*\/timeline\.json$/u,
+          ),
+        volume: VolumeSchema.optional(),
+      })
+      .strict()
+      .readonly(),
+    z
+      .object({
         mode: z.literal("selected"),
         resourceId: ResourceIdSchema,
         volume: VolumeSchema.optional(),

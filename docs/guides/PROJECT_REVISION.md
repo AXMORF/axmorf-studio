@@ -19,10 +19,10 @@ context 才返回 editable authoring、`baseRevisionId`、`baseDeliveryBuildId` 
 
 ## 2. Validate and create the candidate
 
-raw input 必须是 strict `ProjectRevisionInput`：same `storyId`、exact base tuple、非空 authored patch。本开发分支的
+raw input 必须是 strict `ProjectRevisionInput`：same `storyId`、exact base tuple、非空 authored patch。当前公开 schema 的
 patch 允许 `boundaryScenes`、`brief`、`globalVisual`、`publishing`、`scenes`、`sound`、`story`、`visualStyle`，
-并保持正文 meaningId/order、narrated/visual 模式和边界 Scene 身份。公开 npm 0.1.16 尚不包含新增的
-`boundaryScenes`/`sound` 字段；应以 installed schema 为准。revision 无 `--schema`；validate 只接 `--input`，
+并保持正文 meaningId/order、narrated/visual 模式和边界 Scene 身份。旧版本可用字段不同，应以 installed schema 为准。
+revision 无 `--schema`；validate 只接 `--input`，
 不加 `--project`。先读 installed public schema 的 input 形状：
 
 ```bash
@@ -67,6 +67,8 @@ Project-owned media。
 
 `patch.sound` 使用 context 的完整 ProjectSoundPlan，可修改已有 contribution 的 `volume`、`fadeInFrames`、
 `fadeOutFrames`，或显式将 `playbackScope:"composition"` 收窄为 `"content-window"`，让全局 BGM 只覆盖正文，保留模板配乐。
+该收窄只适用于兼容的库/文件选曲。合成模式还须保留完整 `synthesizedMusic` 元数据、音乐网格及 Composition
+播放原点；它只能调既有音量/包络，不允许更换配乐、收窄范围或改变节拍相位。
 contributionId、顺序、resourceId、descriptor fingerprint、loop 与 sceneMusicPolicy 必须保持相同；其他范围变更拒绝。
 旧 Plan 不自动迁移，收窄后的包络必须适合正文时长。
 包络覆盖 contribution 的完整播放时间，循环时不逐次重启淡入；旁白及 sealed/mastered audio 不变。

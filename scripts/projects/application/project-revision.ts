@@ -643,6 +643,7 @@ const inspectProjectRevisionAuthoring = async ({
     const audioIdentity = (sound: typeof current | typeof next) => ({
       storyId: sound.storyId,
       sceneMusicPolicy: sound.sceneMusicPolicy ?? "preserve",
+      synthesizedMusic: sound.synthesizedMusic ?? null,
       contributions: sound.contributions.map((contribution) => ({
         contributionId: contribution.contributionId,
         resourceId: contribution.resourceId,
@@ -658,6 +659,7 @@ const inspectProjectRevisionAuthoring = async ({
         return (
           contribution.playbackScope !== previousScope &&
           !(
+            current.synthesizedMusic === undefined &&
             previousScope === "composition" &&
             contribution.playbackScope === "content-window"
           )

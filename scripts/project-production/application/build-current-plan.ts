@@ -14,6 +14,7 @@ import {
   deriveGlobalVisualLayerPolicy,
   isVisualStory,
   serializeCanonicalJson,
+  resolveSceneMusicTiming,
   type ArtifactAttestation,
   type ProducerTaskSpec,
   type ProductionRevisionId,
@@ -608,6 +609,18 @@ export const buildAgentTasks = (
         { id: "resources", fingerprint: r.selectedResourcesFingerprint },
         { id: "runtime", fingerprint: inputs.taskPolicyFingerprints.scene },
         { id: "timing", fingerprint: r.timingFingerprint },
+        ...(templateCopy || inputs.sound.synthesizedMusic === undefined
+          ? []
+          : [
+              {
+                id: "music-timing",
+                fingerprint: createFingerprint({
+                  namespace: "scene-music-timing",
+                  version: 1,
+                  value: inputs.sound.synthesizedMusic,
+                }),
+              },
+            ]),
         ...(priorSource === undefined
           ? []
           : [
@@ -662,6 +675,16 @@ export const buildAgentTasks = (
             ? {}
             : { coveredBriefs: scene.coveredBriefs }),
           ...(scene.filmPlan === undefined ? {} : { filmPlan: scene.filmPlan }),
+          ...(templateCopy || inputs.sound.synthesizedMusic === undefined
+            ? {}
+            : {
+                musicTiming: resolveSceneMusicTiming({
+                  timeline: inputs.sound.synthesizedMusic,
+                  sceneStartFrame: scene.timingBeat.startFrame,
+                  durationInFrames:
+                    scene.timingBeat.endFrame - scene.timingBeat.startFrame,
+                }),
+              }),
           ...(templateCopy
             ? {}
             : {

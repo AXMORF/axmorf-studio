@@ -146,7 +146,10 @@ Scene/CaptionCue/Composition 消费同一 timing artifact；transition 不移动
 anchors 和 cue 相交区间确定性裁剪，保留 renderer/source audio offset，不改变 copied bytes。Project 音乐的可选
 增益/淡入/淡出进入声音计划 identity，包络沿 contribution 全程应用，不随 loop 重启；未提供可选字段时保持旧指纹。
 这类修订不能改变 sealed/mastered narration。
-新 Project BGM 使用同一 canonical content window，只抑制正文 Scene 配乐，保留首尾模板及独立音效。
+合成模式在 create 前生成 original WAV/timeline；create 复验 checksum、PCM 时长/fps 后冻结，sound.json.synthesizedMusic
+进入声音 identity，Scene music-timing 输入把同一网格绑定到各 owner，调音增益不使视觉失效。播放原点固定 composition zero，
+全片只一条 loop、抑制 Scene/模板配乐但保留独立音效；音乐不改变 sealed narration、字幕或逐 Beat 窗口。
+兼容的选曲 BGM 使用 canonical content window，只抑制正文 Scene 配乐，保留首尾模板及独立音效。
 composition→content-window 的显式 sound revision 进入 Project 声音 identity；同 policy 下不改变 owner artifacts，
 只更新合成与交付。运行时升级仍可能改变 policy、Revision 与 Task identity，不能承诺跨版本无条件复用。
 

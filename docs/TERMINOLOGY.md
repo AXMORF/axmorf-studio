@@ -47,7 +47,9 @@
 | TaskOutputFailure | commit 对明确输出缺失或 JSON/TypeScript 语法错误记录的可选结构化诊断；agent-output owner、受限 code 与 task-local outputPaths 必须匹配原 Agent task 声明。没有该证据的通用 commit failure 保持阻断，不从后补文件推断原因。 |
 | Agent execution policy | inspect 前按用户提示词明确字段、独立 settings、内置 `subagents`/4 默认解析的当前 production 编排策略；选择 Root inline 串行或最多四个 subagents，不进入 production identity。 |
 | GlobalVisual layer policy | 由 canonical SemanticTiming 固定派生的双层范围：base 覆盖完整 Composition；decoration 只覆盖首个至末个正文 Beat 的连续窗口（旁白或 authored-frame scene-owner），以该窗口起点作为 local frame zero，排除 fixed 首尾。 |
-| Project BGM content window | 新 Project 全局音乐的 content-window 连续播放范围，由 canonical SemanticTiming 正文首尾确定，排除 fixed 模板与 lead/tail；只抑制正文 Scene 配乐。旧 composition 范围仅能经正式 revision 显式收窄，其他旧 scope 不自动迁移。 |
+| synthesized Project BGM | 创建前代码生成并通过checksum/PCM时长/fps复验的原创WAV与音乐timeline，冻结为Project-owned资产及sound.json.synthesizedMusic；从Composition frame zero全片循环，替换模板/正文配乐并保留旁白与独立音效。 |
+| Scene musicTiming | 将同一合成音乐网格按实测Scene范围投影的局部beatFrames/barFrames；进入Scene任务输入identity，提供可选动作落点，不改变sealed PCM、字幕或语义边界。 |
+| Project BGM content window | 兼容库/文件选曲的content-window连续播放范围，由canonical SemanticTiming正文首尾确定，排除fixed模板与lead/tail；只抑制正文Scene配乐。旧兼容composition范围仅能经正式revision显式收窄，合成音乐保留全片原点与网格。 |
 | fixed continuation | Root 完成 inline execution 或 bounded admission 后启动的 attempt-bound 固定进程；one-shot atomic claim 后等待 immutable task-terminal event log，failure/attempt 创建起一小时 timeout 退出，all-success 内部 converge exactly once。 |
 | convergence | fixed continuation 内部的只读重算 Revision、要求全部 artifact、受控物化 Project、刷新 derived packages/Composition 并交付。 |
 | materialization | 把 attested bytes 从 Artifact Store 通过 staging/replace/rollback 写到 live Project-owned roots。 |

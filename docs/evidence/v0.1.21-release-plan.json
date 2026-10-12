@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "version": "0.1.21",
+  "baseTag": "v0.1.20",
+  "primaryHost": "codex",
+  "fullAcceptance": false,
+  "compatibilityChanges": [],
+  "regressionTests": [
+    "tests/catalog/background-music.test.ts",
+    "tests/config/project-background-music.test.ts",
+    "tests/config/project-create-context.test.ts",
+    "tests/config/project-create.test.ts",
+    "tests/config/project-visual-create.test.ts",
+    "tests/contracts/execution-attempt.test.ts",
+    "tests/contracts/synthesized-music.test.ts",
+    "tests/docs/documentation-structure.test.ts",
+    "tests/docs/video-production-skill.test.ts",
+    "tests/narration/edge-tts-client.test.ts",
+    "tests/npm-install-e2e/first-use-release.test.ts",
+    "tests/npm-install-e2e/release-gate.test.ts",
+    "tests/package-boundary/manifests.test.ts",
+    "tests/package-boundary/runtime-resources.test.ts",
+    "tests/project-production/authored-continuity.test.ts",
+    "tests/project-production/invalidation-explanation.test.ts",
+    "tests/project-production/reissue-attempt.test.ts",
+    "tests/project-production/revision-planner.test.ts",
+    "tests/project-production/task-execution-contract.test.ts",
+    "tests/project-production/task-output-recovery.test.ts",
+    "tests/projects/project-revision-authoring.test.ts",
+    "tests/projects/scene-prior-source.test.ts",
+    "tests/runtime/sound-design-track.test.tsx"
+  ],
+  "packages": {
+    "runtimeFingerprint": "sha256:ed762abbb214502b5360c30810601ed1c354045145228dcbbdf71bd72c692e9c",
+    "creatorFingerprint": "sha256:52fb4f0a9c7baf4d6ffe6603d131b7a4e6ccfe28ee70d895dc035047877c7c68"
+  }
+}

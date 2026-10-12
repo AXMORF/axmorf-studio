@@ -43,7 +43,9 @@ continuation 内部 application，不是 Root 命令。
   recover inspection ready 才 same-Revision reissue，使用 fresh workers。旧 attempt immutable，reissue 不要求 current delivery；
   active/stale/fixed-flow recovery fail closed，系统/外部/未知故障只诊断报告。
   commit 对明确输出缺失或 JSON/TypeScript 语法错误保存受检 outputFailure；无证据的历史通用 commit failure 继续阻塞。
-- 新 Project 全局 BGM 只覆盖正文，保留模板配乐与音效；旧 composition 范围仅经正式 sound revision 显式收窄。
+- 新片 Skill 的合成 BGM 从 Composition frame zero 全片循环，替换模板/正文配乐，保留旁白与独立音效；
+  兼容库/文件选曲只覆盖正文，保留模板配乐。Scene-local musicTiming 不改变 sealed 口播时序；
+  旧兼容 composition 范围仅经正式 sound revision 显式收窄，合成模式保持网格与播放原点。
 
 ## 当前里程碑状态
 
@@ -64,9 +66,9 @@ artifact-backed 草稿与参考节奏诊断已随 0.1.18 发布，保留唯一 p
 0.1.20 两包已公开发布，CI 完整检查、精确候选和 registry 来源复验通过，见
 [发布记录](evidence/v0.1.20-publication.json)。
 
-当前源码已补输出失败恢复证据和正文 BGM 隔离，尚未发布或安装至用户视频 Workspace。
-完整 1432 项检查、隔离回归与合成音频测量通过；历史失败证据不足及实际成片/听审限制见
-[当前实现状态](ITERATION_STATUS.md)。
+0.1.21候选整合输出失败恢复、兼容正文 BGM 隔离、共享循环素材、原创合成配乐与节拍投影、Edge TTS 宿主代理，
+以及随 creator 分发的创作手册、剪纸案例和教学源码。已有有口播/无口播业务视频与候选 Workspace 工程验证；
+发布需绑定最终候选包的完整检查、原生首用、Actions 结果和公开安装，具体事实见[当前实现状态](ITERATION_STATUS.md)。
 主观听审、局部修订与稳定审美各保留自己的验证范围，既有 Project 不自动迁移。
 
 从 `foundation@e52d2a5` 开始的
@@ -76,8 +78,8 @@ Trusted Publisher 纯 OIDC 公开发布；package-owned shared Workspace media�
 与 provenance workflow 均已完成。精确实现和验收事实只由
 [ITERATION_STATUS.md](ITERATION_STATUS.md) 与
 [v0.1.3 Mixkit bookend audio release](evidence/2026-09-05-v0.1.3-mixkit-bookend-audio-release.md) 维护。
-当前两包公开 latest 为 0.1.20，见 ITERATION_STATUS 和对应
-[发布记录](evidence/v0.1.20-publication.json)；0.1.19 发布尝试失败且标签保留。
+两包当前公开版本及最后回读由[ITERATION_STATUS](ITERATION_STATUS.md)维护。
+[0.1.20发布记录](evidence/v0.1.20-publication.json)保留其原验收范围；0.1.19失败标签与证据继续保留。
 
 当前用户入口是 README 的“快速开始”，或者复制一句 Agent prompt，让 Agent 根据项目最新 README 在指定
 路径完成 Workspace 搭建与可用性验收。Workspace ready 后，generated README 的独立视频 prompt 才负责接收创作需求。

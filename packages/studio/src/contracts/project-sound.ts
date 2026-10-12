@@ -7,6 +7,7 @@ import {
   StoryIdSchema,
 } from "./primitives";
 import { ResourceIdSchema } from "./resource-catalog";
+import { SynthesizedMusicTimelineSchema } from "./synthesized-music";
 
 export const PROJECT_SOUND_PLAN_VERSION = "project-sound-plan-v1" as const;
 
@@ -35,6 +36,7 @@ const ProjectSoundPlanInputObject = z
     contractVersion: z.literal(PROJECT_SOUND_PLAN_VERSION),
     storyId: StoryIdSchema,
     sceneMusicPolicy: z.enum(["preserve", "mute"]).optional(),
+    synthesizedMusic: SynthesizedMusicTimelineSchema.optional(),
     contributions: z
       .array(ProjectSoundContributionSchema)
       .max(16)
@@ -70,6 +72,19 @@ export const ProjectSoundPlanSchema = ProjectSoundPlanInputObject.extend({
 })
   .strict()
   .superRefine((plan, context) => {
+    if (
+      plan.synthesizedMusic !== undefined &&
+      (plan.sceneMusicPolicy !== "mute" ||
+        plan.contributions.length !== 1 ||
+        plan.contributions[0]?.playbackScope !== "composition" ||
+        plan.contributions[0]?.loop !== true)
+    ) {
+      context.addIssue({
+        code: "custom",
+        message:
+          "Synthesized music requires one composition loop and muted Scene scores.",
+      });
+    }
     if (
       plan.soundPlanFingerprint !== computeProjectSoundPlanFingerprint(plan)
     ) {

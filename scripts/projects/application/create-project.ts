@@ -602,6 +602,7 @@ const prepareCreation = async ({
     config,
     baseAssetManifest: baseManifest,
     backgroundMusic: input.backgroundMusic,
+    fps: input.render?.fps ?? config.renderDefaults.fps,
     descriptors: currentDescriptors,
     selectionText: [
       input.brief.title,

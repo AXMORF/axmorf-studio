@@ -1,0 +1,207 @@
+{
+  "kind": "video-playbook-documentation-and-example-verification-v1",
+  "date": "2026-10-12",
+  "scope": "Creative documentation, source archive, template/current Workspace routes, standalone teaching clips. No formal Project production or npm publication.",
+  "sourceAttachments": {
+    "PLAYBOOK.md": {
+      "sha256": "0fff407b7333b6e9028f23cad44d24fcd9f5ee7808a9918808c9e6083b169a16",
+      "archivePath": ".agents/skills/axmorf-video/examples/opus-playbook/PLAYBOOK.original.txt"
+    },
+    "video-playbook.zip": {
+      "sha256": "2eb5d53cf6056310c2707cde576c1e144fe3ef3bbba1a40f025c310b39e50f19"
+    },
+    "identicalPlaybookBytes": true,
+    "originalImagesRetained": 16,
+    "originalCommandsExecuted": false
+  },
+  "checks": {
+    "docsRegression": {
+      "command": "node --import tsx --test tests/docs/video-production-skill.test.ts tests/docs/documentation-structure.test.ts",
+      "exitCode": 0,
+      "passed": 9
+    },
+    "typescriptExample": {
+      "command": "npx --no-install tsc --project .agents/skills/axmorf-video/examples/cue-lab/tsconfig.json",
+      "exitCode": 0
+    },
+    "timing": {
+      "absoluteRounding": {
+        "bpm": 97,
+        "fps": 30,
+        "beatIndex": 10000,
+        "expectedFrame": 185567
+      },
+      "eventFrames": [
+        37,
+        74,
+        130,
+        186
+      ],
+      "swellSourceOffsetSamples": 4800,
+      "contactAndSettleBoundaryChecks": "passed"
+    },
+    "scaffold": {
+      "status": "workspace-generated",
+      "installed": false,
+      "sourceTemplateAndFreshFileEqualityCount": 32,
+      "currentWorkspaceCreativeFilesEqual": true,
+      "currentWorkspaceSkillRoute": true,
+      "releasePublished": false
+    },
+    "npmPackageMetadata": "package-local-ready",
+    "npmPackDryRun": {
+      "status": "passed",
+      "package": "create-axmorf-studio@0.1.21",
+      "verifiedGuideAndExampleFiles": 32,
+      "packedBytes": 2717058,
+      "unpackedBytes": 3060092,
+      "published": false
+    },
+    "documentation": {
+      "links": {
+        "externalLinkCount": 94,
+        "fileCount": 243,
+        "localLinkCount": 540
+      },
+      "npmScripts": {
+        "fileCount": 161,
+        "scriptReferenceCount": 276
+      },
+      "currentWorkspaceLinks": {
+        "externalLinkCount": 0,
+        "fileCount": 9,
+        "localLinkCount": 51
+      },
+      "freshWorkspaceLinks": {
+        "externalLinkCount": 0,
+        "fileCount": 9,
+        "localLinkCount": 51
+      }
+    }
+  },
+  "media": {
+    "landscape": {
+      "path": "out/creative-playbook-final/landscape.mp4",
+      "sha256": "4a414cad56c880d673ecbac1c0444c8e76f351b4072266ee15ad8c07a6a71019",
+      "probe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "width": 1280,
+            "height": 720,
+            "r_frame_rate": "30/1",
+            "duration": "8.000000",
+            "nb_frames": "240",
+            "side_data_list": [
+              {}
+            ]
+          },
+          {
+            "codec_name": "aac",
+            "sample_rate": "48000",
+            "r_frame_rate": "0/0",
+            "duration": "8.042667",
+            "nb_frames": "377"
+          }
+        ],
+        "format": {
+          "duration": "8.042667"
+        }
+      },
+      "decodedAac": {
+        "integratedLufs": -19.33,
+        "truePeakDbtp": -3.38,
+        "loudnessRangeLu": 2.5
+      }
+    },
+    "portrait": {
+      "path": "out/creative-playbook-final/portrait.mp4",
+      "sha256": "af94371ad2444cf1834a9efcb1c0a2f6db2e6ac2977ab15fb20233885c3a207a",
+      "probe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "width": 720,
+            "height": 1280,
+            "r_frame_rate": "30/1",
+            "duration": "8.000000",
+            "nb_frames": "240",
+            "side_data_list": [
+              {}
+            ]
+          },
+          {
+            "codec_name": "aac",
+            "sample_rate": "48000",
+            "r_frame_rate": "0/0",
+            "duration": "8.042667",
+            "nb_frames": "377"
+          }
+        ],
+        "format": {
+          "duration": "8.042667"
+        }
+      },
+      "decodedAac": {
+        "integratedLufs": -19.33,
+        "truePeakDbtp": -3.38,
+        "loudnessRangeLu": 2.5
+      }
+    }
+  },
+  "review": {
+    "landscapeSampledFrames": [
+      0,
+      25,
+      30,
+      36,
+      37,
+      38,
+      49,
+      60,
+      74,
+      80,
+      87,
+      115,
+      123,
+      129,
+      130,
+      131,
+      140,
+      176,
+      185,
+      186,
+      187,
+      194,
+      220,
+      239
+    ],
+    "portraitSampledFrames": [
+      220
+    ],
+    "fullResolutionBuiltFrames": [
+      220
+    ],
+    "observed": "Built frames have readable Chinese text and distinct paper layers; sampled pre-contact/contact/post-contact windows show the expected states; portrait layout is rearranged. No visible clipping or text overlap in these samples.",
+    "continuousMotionPlayback": "not-assessed",
+    "audioListening": "not-assessed",
+    "audioMeasurement": "Full decoded final AAC measured; numbers above are input_i/input_tp, not the hypothetical loudnorm output.",
+    "formalPreviewBuildId": null,
+    "formalDeliveryBuildId": null
+  },
+  "preservation": "Prior repository changes preserved. The original PLAYBOOK has incompatible TOC anchors under the current checker and is stored byte-for-byte as .original.txt; production validators and context budgets are unchanged.",
+  "currentMaterialHashes": {
+    ".agents/skills/axmorf-video/references/creative-playbook.md": "c63d945bf285745a3df6ac2f5a15355774415c3a754b1a46d1b14f903baf6c5a",
+    ".agents/skills/axmorf-video/references/paper-collage.md": "955e81ae9a3807d9f96770a129c20bc45ba3b4cf571601d43124be33d2d240ad",
+    ".agents/skills/axmorf-video/examples/music-led.md": "cf1a46448eedcb419226251ae5bb50cade90225e0920edc58bf1a6a7f66dd5f1",
+    ".agents/skills/axmorf-video/examples/voice-led.md": "c1bfc6e3b5df40406c478d2025e42bde10f33d70e6ea3c0d319dce236cab7fb7",
+    ".agents/skills/axmorf-video/examples/cue-lab/cue-sheet.json": "e528daca3f8157b915b1367c90b0960fd9b2fe8096bd8d78f88ab2b30b6d9ac7",
+    ".agents/skills/axmorf-video/examples/cue-lab/index.tsx": "2138fc9d0a39659bb6ae61d34f0790fb6e1d178882bc309f954fb5bd56481705",
+    ".agents/skills/axmorf-video/examples/cue-lab/timing.mjs": "35d598a17b34b186b4bee9504177d8f26672013d644f882b7ecb3a9b3d1eafa3",
+    ".agents/skills/axmorf-video/examples/cue-lab/synth-demo.mjs": "28d98b8dfba1f8205638337c8bb4d469401505399e8d3de748ed707bd37f8c79"
+  }
+}

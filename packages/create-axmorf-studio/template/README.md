@@ -41,8 +41,10 @@ mechanical validation does not establish visual quality, and a complete video st
 `npm run bootstrap` maintains package-owned shared media under `public/assets/axmorf-shared/` and registers it in the Resource
 Catalog. New Projects inherit the configured opening/closing templates unless the create input explicitly overrides them; the
 template audio actually used is copied into that Project, so an existing Project never depends on a later package update.
-New Project global music loops continuously across content, preserving template music and all effects. Legacy scopes remain
-unchanged; a strict sound revision may narrow composition playback to content-window without replacing media or narration.
+For new scores the Skill uses local code synthesis: original WAV/timeline is frozen at create, and one composition loop
+replaces Scene/template music while independent effects remain. Prepared Scene-local beat grids never retime speech.
+Existing library/file music covers content only; its legacy composition scope may be narrowed through strict revision.
+Synthesized music revisions preserve their timeline and composition origin. Existing media and narration are not replaced.
 
 Creator installation prepares the pinned browser and runs a real tiny render before claiming readiness. If browser preparation was
 explicitly skipped or the browser was removed, run `npm run browser:prepare`, then `npm run doctor`. Preparation has a bounded
@@ -105,8 +107,8 @@ Delivery. It returns structured failure reasons and never writes legacy baseline
 Commit `package.json`, `package-lock.json`, this README, and any instruction customizations you intentionally want to share. Keep
 Project source, media, private config, provider credentials, voice profiles, production work, artifacts, attempts, output, Deliveries,
 and revision candidates local unless you deliberately establish a different policy.
-User-local music is separate from package-owned shared media. Select approved original loop audio rather than a processed
-preview. Keep music, Library identifiers and maintenance reports private. Retiring a preview never silently migrates existing
+Generated scores and user-local music are separate from package-owned shared media. New scores use local synthesis;
+legacy library choices should use original loops rather than previews. Keep music and maintenance reports private. Retiring a preview never silently migrates existing
 Project media or sealed audio; inspect dependencies first and preserve recoverability when removal is authorized.
 
 新 Project 的 `visualStyle.theme` 可选 dark、light 或 background/primaryText/secondaryText/accent 四角色不透明六位 hex；默认 dark。系统在创建/修订前验证配色，Composition 的实际底色与正文、固定首尾共用主题。旧 Project 的 immutable 首尾不自动迁移。

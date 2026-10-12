@@ -29,7 +29,8 @@ The initializer writes exact dependencies, installs them, creates a `package-loc
 `doctor` checks before atomically publishing the target directory. The resulting directory is a normal private npm application, not
 a clone of the AXMORF monorepo. Bootstrap also projects manifest- and checksum-verified shared media from the runtime package into the
 workspace Catalog. The initial set contains a Mixkit “Movie Trailer Epic Impact” opening excerpt, an eight-second Mixkit “Deep Urban”
-closing excerpt, and a reusable AXMORF mark; the default bookend templates copy their used audio into each newly created Project.
+closing excerpt, a reusable AXMORF mark, 24 original motion effects and five authorized original loop masters.
+The default bookend templates copy their used audio into each newly created Project.
 
 Setup reports the `install`, `bootstrap`, `browser`, and `doctor` stages with elapsed seconds on stderr. While a stage is running,
 a status line appears every 30 seconds; npm and runtime output remains visible. The creator prints the private temporary directory
@@ -84,12 +85,18 @@ Explicit render requests use optional `render.width/height/fps/locale` fields in
 inherit settings without changing saved defaults; create returns the frozen render values for verification before production.
 Use the generated Workspace-local authoring and host-execution references for exact task execution and interruption recovery.
 
-New Workspaces default to automatic music selection from approved global loop resources. Create context exposes candidates;
-create freezes one continuous Project-local track across the entire video. Per-project selection or explicit silence overrides
-the default; an empty library is reported as unavailable. Private user music is never included in the npm package.
+New video Skills default to local code synthesis using the bundled Node/FFmpeg helper, with a frozen original WAV/timeline.
+Synthesized music spans the composition, replaces template/Scene scores and preserves independent effects; measured speech
+still defines semantic timing. Existing configured library/file defaults remain compatible and play across content only.
+Create context exposes both authoring methods; explicit silence disables music. Private user music is not bundled.
 
-The development template documents narrated and visual content, licensed sound choices, optional shared SVG continuity,
+The generated template documents narrated and visual content, licensed sound choices, optional shared SVG continuity,
 bound Scene previews and narrow boundary/music revisions from 0.1.17. Version 0.1.18 also adds whole-film direction,
 continuous multi-Beat Scene ownership, frozen film previews and explicit silent-owner frame timing.
 Generated guides must match the installed runtime; updating this repository does not upgrade existing private Workspaces,
 rewrite immutable templates or migrate sealed audio. Visual and listening review remain separate from mechanical completion.
+
+The bundled creative playbook covers composition, material, causal motion, music cues and reading holds, with optional
+paper-collage and voice-led/music-led examples. Its palettes, layouts and tempo are examples; user render choices and
+sealed speech timing stay authoritative. See the generated Skill and
+[creative guide](https://github.com/AXMORF/axmorf-studio/blob/HEAD/docs/guides/VIDEO_CREATIVE_PLAYBOOK.md).

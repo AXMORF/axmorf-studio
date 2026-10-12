@@ -1,0 +1,144 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-10-11T10:13:41.488685+00:00",
+  "sourceHead": "46329dac769850c754ce7bf29199791d9de1a337",
+  "scope": "local Skill documentation and creator scaffold persistence; no publication or new video render",
+  "referenceSha256": "ab39375e360afec7240637cfac21209f7ea01592a7a1b34b2c781879d66805cc",
+  "sharedFiles": [
+    {
+      "role": "repository",
+      "file": "SKILL.md",
+      "path": "/workspace/axmorf-studio/.agents/skills/axmorf-video/SKILL.md",
+      "sha256": "9b90e1fc10512fa58fdb09b0d60796bba2e1b1731ef33b00a33dc75d4758019e"
+    },
+    {
+      "role": "template",
+      "file": "SKILL.md",
+      "path": "/workspace/axmorf-studio/packages/create-axmorf-studio/template/.agents/skills/axmorf-video/SKILL.md",
+      "sha256": "a2d70cb0863412bf39e1fee07c1366c18673d16a7876d0f7c1c8d457f48a9a8e"
+    },
+    {
+      "role": "currentWorkspace",
+      "file": "SKILL.md",
+      "path": "/workspace/axmorf-cloud-test/homepage-v3/workspace/.agents/skills/axmorf-video/SKILL.md",
+      "sha256": "a2d70cb0863412bf39e1fee07c1366c18673d16a7876d0f7c1c8d457f48a9a8e"
+    },
+    {
+      "role": "packedTemplate",
+      "file": "SKILL.md",
+      "path": "/workspace/axmorf-cloud-test/homepage-v3/reference-study-claude/skill-persistence/unpacked/package/template/.agents/skills/axmorf-video/SKILL.md",
+      "sha256": "a2d70cb0863412bf39e1fee07c1366c18673d16a7876d0f7c1c8d457f48a9a8e"
+    },
+    {
+      "role": "freshWorkspace",
+      "file": "SKILL.md",
+      "path": "/workspace/axmorf-cloud-test/homepage-v3/reference-study-claude/skill-persistence/future-workspace/.agents/skills/axmorf-video/SKILL.md",
+      "sha256": "a2d70cb0863412bf39e1fee07c1366c18673d16a7876d0f7c1c8d457f48a9a8e"
+    },
+    {
+      "role": "repository",
+      "file": "references/film-direction.md",
+      "path": "/workspace/axmorf-studio/.agents/skills/axmorf-video/references/film-direction.md",
+      "sha256": "2a43feab5c704808d7d0f20e1ded28869c246c8d5b17a98b7639c0417d69668c"
+    },
+    {
+      "role": "template",
+      "file": "references/film-direction.md",
+      "path": "/workspace/axmorf-studio/packages/create-axmorf-studio/template/.agents/skills/axmorf-video/references/film-direction.md",
+      "sha256": "2a43feab5c704808d7d0f20e1ded28869c246c8d5b17a98b7639c0417d69668c"
+    },
+    {
+      "role": "currentWorkspace",
+      "file": "references/film-direction.md",
+      "path": "/workspace/axmorf-cloud-test/homepage-v3/workspace/.agents/skills/axmorf-video/references/film-direction.md",
+      "sha256": "2a43feab5c704808d7d0f20e1ded28869c246c8d5b17a98b7639c0417d69668c"
+    },
+    {
+      "role": "packedTemplate",
+      "file": "references/film-direction.md",
+      "path": "/workspace/axmorf-cloud-test/homepage-v3/reference-study-claude/skill-persistence/unpacked/package/template/.agents/skills/axmorf-video/references/film-direction.md",
+      "sha256": "2a43feab5c704808d7d0f20e1ded28869c246c8d5b17a98b7639c0417d69668c"
+    },
+    {
+      "role": "freshWorkspace",
+      "file": "references/film-direction.md",
+      "path": "/workspace/axmorf-cloud-test/homepage-v3/reference-study-claude/skill-persistence/future-workspace/.agents/skills/axmorf-video/references/film-direction.md",
+      "sha256": "2a43feab5c704808d7d0f20e1ded28869c246c8d5b17a98b7639c0417d69668c"
+    }
+  ],
+  "contextBudgets": {
+    "rootPlanning": {
+      "words": 1890,
+      "characters": 17701,
+      "wordLimit": 1900,
+      "characterLimit": 18000
+    },
+    "normalProduction": {
+      "words": 1620,
+      "characters": 17989,
+      "wordLimit": 1900,
+      "characterLimit": 18000
+    }
+  },
+  "pack": {
+    "id": "create-axmorf-studio@0.1.21",
+    "filename": "create-axmorf-studio-0.1.21.tgz",
+    "size": 65481,
+    "entryCount": 43,
+    "integrity": "sha512-LPja+/3aQiFeNDx1XoIZLm1MWYsu0P/L1nM821S13nzVCHRWZMnjtt6WTGpfKuG/kNyLZzhUOMmBgfCFow6EJA=="
+  },
+  "tarballSha256": "ccfef66caeeff6aff8d4f1d776a292f263e6c28a117a5e1a4221adc33efc560c",
+  "packExitCode": 0,
+  "scaffoldExitCode": 0,
+  "scaffold": {
+    "status": "workspace-generated",
+    "ready": false,
+    "workspace": "/workspace/axmorf-cloud-test/homepage-v3/reference-study-claude/skill-persistence/future-workspace",
+    "packageName": "future-workspace",
+    "workspaceVersion": 1,
+    "installed": false,
+    "next": [
+      "npm install",
+      "npm run bootstrap",
+      "npm run browser:prepare",
+      "npm run doctor"
+    ]
+  },
+  "listening": "not-assessed",
+  "published": false,
+  "checks": [
+    {
+      "command": "node --import tsx --test tests/docs/video-production-skill.test.ts",
+      "exitCode": 0,
+      "passed": 3,
+      "failed": 0
+    },
+    {
+      "command": "npm run docs:check-links",
+      "exitCode": 0
+    },
+    {
+      "command": "npm run check:package --workspace create-axmorf-studio",
+      "exitCode": 0
+    },
+    {
+      "command": "verify new evidence local targets and heading anchors",
+      "checkedLinks": 2,
+      "exitCode": 0
+    }
+  ],
+  "initialFailures": [
+    {
+      "operation": "Skill regression before shortening entrypoint",
+      "exitCode": 1,
+      "reason": "normal production character budget exceeded",
+      "resolvedBy": "shortening entrypoint text; no policy/test changes"
+    },
+    {
+      "operation": "npm pack using default home cache",
+      "exitCode": 254,
+      "reason": "ENOENT creating /home/agent/.npm/_cacache",
+      "resolvedBy": "explicit writable task cache"
+    }
+  ]
+}

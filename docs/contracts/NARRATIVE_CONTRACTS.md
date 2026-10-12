@@ -3,7 +3,7 @@
 > 文档类型：合同参考。可执行 schema 与 fingerprint 逻辑以
 > `packages/studio/src/contracts/` 为准。
 >
-> 最后复核：2026-10-07（当前源码升级未发布）
+> 最后复核：2026-10-12（0.1.21候选；公开状态见 ITERATION_STATUS）
 
 ## Persisted source files
 
@@ -155,7 +155,7 @@ canonical PCM, checksum, sealing, mastering, and cumulative-sample timing pipeli
 `SemanticTimingSchema` preserves three strict algorithms: PCM, published `authored-frames-v1` visual Scene durations,
 and explicit `authored-cumulative-frames-v1` silent owner presets. Both authored branches accumulate their declared
 frames plus RenderSpec lead/tail without audio-derived fields. Shared content range resolution excludes fixed bookends
-for GlobalVisual decoration and `content-window` tracks, including new Project BGM. Existing track scopes keep their original
+for GlobalVisual decoration and `content-window` tracks, including compatible library/file Project BGM. Existing track scopes keep their original
 meaning unless a strict revision explicitly narrows `composition` to `content-window`. None of these paths retimes sealed PCM.
 
 `pcm-cumulative-ceil-v1` builds one cumulative integer sample timeline and applies
@@ -186,7 +186,15 @@ chapters; otherwise complete ordered content coverage is required. Narrated film
 
 ## Sound playback
 
-Composition owns Project BGM, narration and Scene sound contributions. New Project music uses `playbackScope:"content-window"`,
+Composition owns Project BGM, narration and Scene sound contributions. New-video Skills use code-synthesized music,
+authored before create as `backgroundMusic:{mode:"synthesized",sourcePath,timelinePath,volume?}`. Create validates
+the original PCM/checksum/fps and freezes `sound.json.synthesizedMusic`, including the strict public
+`SynthesizedMusicTimelineSchema` with absolute-rounded beat positions. One `playbackScope:"composition"`
+loop starts at frame zero, replaces template/content scores and retains narration and independent effects.
+After semantic timing is sealed, each content Scene receives the same grid projected as Scene-local `musicTiming`.
+Its beat/bar frames guide visual events within allowed semantic windows; they do not retime speech, captions or boundaries.
+
+Compatible automatically selected, explicitly selected and file music uses `playbackScope:"content-window"`,
 one looping contribution across the canonical SemanticTiming content window, excluding template boundaries and lead/tail.
 It suppresses background-music only in content Scene owners, preserving template scores and all effects.
 Legacy `composition`, `narrated-content` and `content` retain their windows; a composition score still suppresses all Scene music.
@@ -197,9 +205,11 @@ creation freezes their Project-local bytes and original license. An empty librar
 Optional `sourceStartFrame` selects an audio source offset; `fadeInFrames`/`fadeOutFrames` define contribution-local
 linear gain. Looping music uses the full contribution clock, so a fade does not restart each loop. Omitted optional
 fields preserve the previous canonical identity. Plans remain JSON data; playback uses static Remotion components.
-Strict revision can change existing Project music gain/envelopes, narrow `composition` to `content-window`, and change immutable
+Strict revision can change existing Project music gain/envelopes, narrow compatible library/file `composition` to `content-window`, and change immutable
 boundary playback windows/music. Track/resource identities, source bytes, order and loop remain frozen; other scope changes
 are rejected. Envelopes must fit the selected window. Revision cannot change sealed narration.
+Synthesized revisions preserve the entire `synthesizedMusic` metadata, source identity, loop, grid and composition origin;
+they cannot replace media, narrow its playback scope or shift the musical clock.
 
 ## Maintainer diagnostics and public verification
 

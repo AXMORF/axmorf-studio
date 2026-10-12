@@ -45,7 +45,8 @@ source/public/narration/delivery 四个 Project-owned roots；失败完整 rollb
   GlobalVisual。GlobalVisual base 覆盖完整 Composition；decoration 仅覆盖正文 Beat 的连续
   窗口，不进入 silent boundary。Scene 只在本地 viewport 内布局，不感知 full-frame inset。
 - template-copy Scene 是 Project-local immutable instance，由 fixed task 产出，不派发 Agent。
-- 新 Project 的全局 BGM 连续覆盖正文窗口，保留首尾模板配乐、旁白及音效；旧计划只通过显式受检修订收窄范围。
+- 新片 Skill 优先代码合成原创 BGM，以全片音轨替换 Scene/模板配乐、保留旁白及独立音效；实测口播时序优先。
+  兼容选曲模式连续覆盖正文窗口、保留模板配乐；既有媒体不自动迁移，合成时间轴不通过调音修订改变。
 - package-owned shared Workspace resources 只通过 runtime policy、manifest、checksum 与 license gate 发行；
   bootstrap 投影到保留的 Workspace paths 和 Catalog，template-copy Scene 只把实际使用的资源复制为
   Project-local bytes。用户修改或冲突的保留路径必须 fail closed，不能静默覆盖。

@@ -22,7 +22,34 @@ type EdgeTtsClientOptions = Readonly<{
   saveSubtitles: false;
   rate: string;
   timeout: number;
+  proxy?: string;
 }>;
+
+const environmentProxy = (
+  env: Readonly<Record<string, string | undefined>>,
+): string | undefined => {
+  const serviceHost = "speech.platform.bing.com";
+  const bypass = (env.no_proxy || env.NO_PROXY || "")
+    .toLowerCase()
+    .split(/[\s,]+/u)
+    .some((entry) => {
+      const [host, port] = entry.split(":");
+      if (!host || (port && port !== "443")) return false;
+      if (host === "*") return true;
+      const suffix = host.startsWith("*.") ? host.slice(1) : host;
+      return suffix.startsWith(".")
+        ? serviceHost.endsWith(suffix)
+        : serviceHost === suffix;
+    });
+  if (bypass) return undefined;
+  return (
+    env.https_proxy?.trim() ||
+    env.HTTPS_PROXY?.trim() ||
+    env.http_proxy?.trim() ||
+    env.HTTP_PROXY?.trim() ||
+    undefined
+  );
+};
 
 const escapeXml = (value: string) =>
   value.replace(/[<>&"']/gu, (character) => {
@@ -43,16 +70,22 @@ const escapeXml = (value: string) =>
 const containsUnsupportedXmlControl = (value: string) =>
   Array.from(value).some((character) => {
     const code = character.codePointAt(0)!;
-    return code <= 8 || (code >= 11 && code <= 12) || (code >= 14 && code <= 31);
+    return (
+      code <= 8 || (code >= 11 && code <= 12) || (code >= 14 && code <= 31)
+    );
   });
 
 export const createEdgeTtsChunkGenerator = ({
   resolved,
+  env = process.env,
   clientFactory = (options) => new EdgeTTS(options),
 }: {
   readonly resolved: ResolvedEdgeTtsProfile;
+  readonly env?: Readonly<Record<string, string | undefined>>;
   readonly clientFactory?: (options: EdgeTtsClientOptions) => EdgeTtsClient;
 }): ChunkAudioGenerator => {
+  // node-edge-tts does not consume environment proxy settings itself.
+  const proxy = environmentProxy(env);
   const client = clientFactory({
     voice: resolved.voiceId,
     lang: resolved.locale,
@@ -60,6 +93,7 @@ export const createEdgeTtsChunkGenerator = ({
     saveSubtitles: false,
     rate: "default",
     timeout: resolved.timeoutMs,
+    ...(proxy ? { proxy } : {}),
   });
 
   return async (request) => {

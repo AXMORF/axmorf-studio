@@ -11,10 +11,16 @@ Do not restart global doctor/preflight or the Root flow below. Otherwise act as 
 
 Read [the production workflow](references/production-workflow.md#root-production) before acting.
 For a new film, substantial creative revision or media review read [film direction](references/film-direction.md).
+For a new film or body redesign, the Root also reads the [creative playbook](references/creative-playbook.md);
+design the complete composition and meaningful landings before code. Consult [cases and examples](examples/README.md) as needed.
+For new films and body redesigns apply its [composition and audiovisual rhythm](references/film-direction.md#composition-and-audiovisual-rhythm)
+in the current briefs, including visual states, musical accents and sound events.
 For a new Project read [authoring](references/authoring.md); before preparation read
 [host execution and recovery](references/host-execution-and-recovery.md).
 Use the Workspace's npm scripts and their structured output. Do not use package
 internals or assume a particular Agent host or global installation.
+For new scores use the local code-synthesis method in film direction, not the bundled music library.
+Sealed speech remains the timing authority; music leads only when narration is absent.
 
 For an authorized video request, a plan or report is an intermediate progress message, not a final answer. Continue tool execution in the same turn after reporting; do not wait for another user reply. Follow the workflow for actual blockers and yielding to already-pending native work. Only verified delivery completes production.
 

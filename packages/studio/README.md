@@ -1,10 +1,12 @@
 # @axmorf/studio
 
-New Workspaces can automatically select approved global loop music at Project creation, or explicitly select/disable a score.
-One top-level Project track loops continuously across content, excluding template bookends and lead/tail. Template music and
-Scene effects remain independent. Existing scopes are preserved; a strict sound revision can narrow composition music to content.
+New video Skills prefer local code-synthesized music: create validates and freezes original WAV/timeline, with one
+composition loop replacing Scene/template music while retaining effects. Prepared Scene-local beats never retime speech.
+Compatible library/file music remains available at Project creation, or can be explicitly disabled.
+Those tracks loop across content, excluding template bookends and lead/tail. Template music and
+Scene effects remain independent. Existing scopes are preserved; library/file composition music can be narrowed to content.
 Missing music is reported explicitly. The current source bundles five original loop masters under the commissioning user's
-permission for Workspace distribution and video BGM use; this addition awaits npm publication. Other private user libraries
+permission for Workspace distribution and video BGM use. Other private user libraries
 remain outside the package.
 
 The runtime, CLI, contracts, Remotion components, and local Web control center behind AXMORF Studio workspaces.
@@ -80,10 +82,10 @@ preparation is serialized and bounded; doctor never silently downloads Chrome. N
 `npm run project:create:context -- --project <storyId>`, which returns a complete example and current public choices.
 Use the generated Workspace-local authoring and host-execution references for exact task execution and interruption recovery.
 
-The current source adds filmPlan, consecutive multi-Beat Scene ownership, authored-frame visual-only timelines, deterministic
+The runtime provides filmPlan, consecutive multi-Beat Scene ownership, authored-frame visual-only timelines, deterministic
 world/morph/semantic-time utilities and `axmorf project preview`. Drafts project verified artifacts into a frozen private view
 before final rendering; their receipts certify media integrity and leave creative assessment explicit. Existing Projects keep
-their authored grouping and delivered bytes until an explicit revision. This source upgrade is not yet an npm release.
+their authored grouping and delivered bytes until an explicit revision.
 `axmorf reference analyze --input public/<reference.mp4>` writes bounded cut-refinement brackets, image translation/scale
 estimates, timestamped color frames and a local review page. Agent camera/semantic interpretations remain separate from
 these measurements. Analysis neither admits media into a Project nor certifies every cut or creative quality.

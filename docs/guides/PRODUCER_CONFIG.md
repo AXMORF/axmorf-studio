@@ -126,6 +126,8 @@ fingerprint 不匹配、未知字段或结构
   与远端 voice ID/locale。配置页只允许从当前 adapter 元数据核验过的 14 个中文声线中下拉选择，
   locale 随声线自动绑定；目录外 ID 和不匹配 locale 会被合同拒绝。它是 MIT
   `node-edge-tts@1.2.10` 封装的非官方客户端协议，不是 Microsoft 对外承诺 SLA 的公共 TTS API；
+  adapter 向客户端显式传递宿主的 HTTPS/HTTP 代理环境变量（小写优先），并遵守服务域名/端口对应的
+  `no_proxy`/`NO_PROXY` 例外。代理属于当前宿主 transport，不写入 Project/config fingerprint，也不记录代理 URL 或凭证。
   依赖互联网，协议与声线目录都可能由上游改变。
 - SpeechSDK 当前固定官方开源包
   [`@speech-sdk/core@0.27.0`](https://www.npmjs.com/package/@speech-sdk/core/v/0.27.0)，许可证为
@@ -141,7 +143,12 @@ fingerprint 不匹配、未知字段或结构
 - 声线的 `referenceAudioPath`、`promptAudioPath` 和 `promptTextPath` 只保存仓库根目录相对路径，
   例如 `voxcpm/voice_profile/my-voice.wav`；绝对路径、反斜杠、URL 与 `..` 逃逸均被拒绝。Narration
   和 preflight 在进入 VoxCPM 适配器前统一解析为宿主绝对路径，配置页保存的仍是相对值。
-- `audioDefaults.globalBgm`：新 Workspace 默认 `{mode:"auto",volume:0.15}`，从全局已批准、许可 verified 且带 `loop` tag
+- 新片 Skill 优先代码合成配乐，在 create input 明确使用 `{mode:"synthesized",sourcePath,timelinePath,volume?}`，
+  不修改长期配置。调用 Workspace-local `synth-score.mjs` 生成原创 48 kHz stereo WAV 与同源 timeline，
+  fps 按已解析的 render 选择。create 冻结音频和网格，一条 composition loop 替换 Scene/模板 BGM，保留独立音效。
+  sealed 口播时序不变；准备后的 Scene-local musicTiming 提供可选节拍落点。修订保留 synthesizedMusic/媒体/播放起点，
+  只调音量和包络。当前没有口播自动 ducking，先以低增益混入并检查整片。
+- 兼容的 `audioDefaults.globalBgm`：新 Workspace 默认 `{mode:"auto",volume:0.15}`，从全局已批准、许可 verified 且带 `loop` tag
   的音乐中按当前 brief 选一首；可选 `resourceIds` 限定曲库。null 禁用全局预设，旧 `{sourcePath,volume}` 自定义文件仍可用。
   单次 create 的 `backgroundMusic` 省略继承，`{mode:"auto",volume?}` 自动，`{mode:"selected",resourceId,volume?}` 指定曲目，
   null 明确关闭全部背景音乐，不影响旁白/音效。缺曲返回 unavailable 和真实空音轨，指定无效曲目或 bytes drift 拒绝创建。

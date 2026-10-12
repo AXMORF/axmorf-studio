@@ -2,7 +2,7 @@
 
 > 文档类型：操作指南
 >
-> 最后复核：2026-08-20
+> 最后复核：2026-10-12
 
 The current host-only narration workflow turns Agent-authored `ttsChunks` into measured canonical
 PCM, an immutable narration seal, `SemanticTiming`, and `CaptionCue`. Normal production represents
@@ -42,6 +42,15 @@ input over 4096 bytes before opening its one-shot WebSocket. One authored chunk 
 exactly one synthesis request. The returned provider bytes
 continue through the same repository-owned normalization, measured PCM, checksum, sealing, mastering,
 and cumulative-sample timing pipeline.
+
+Edge uses the current worker process's inherited `HTTPS_PROXY`/`https_proxy`, then `HTTP_PROXY`/`http_proxy`,
+and respects service-specific `NO_PROXY`/`no_proxy`. This is the host running TTS, which may be a local or cloud
+machine; it does not read another computer's proxy settings. The adapter passes the selected proxy to
+`node-edge-tts`, retains one-shot requests and redacted errors, and adds no fallback or automatic retry.
+
+New-video Skills synthesize music before create, while normal prepare still generates and seals narration.
+Measured speech determines Scene/caption windows; the later Scene-local musical grid only guides permitted visual events.
+Code music and narration therefore use the same frame clock without making speech subordinate to the beat.
 
 The strict legacy VoxCPM shape is:
 

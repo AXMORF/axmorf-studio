@@ -371,6 +371,11 @@ const buildSceneContract = (rawContext: unknown) => {
       "Author one owning Scene renderer and the visual, shot, sync, sound, resource and recipe decisions for its consecutive semantic Beats.",
     workflow: [
       "Follow scene.filmPlan when present: its concept, subject, camera, rhythm and sound intent guide this Scene as part of one film.",
+      ...(context.scene.musicTiming === undefined
+        ? []
+        : [
+            "Use scene.musicTiming.beatFrames/barFrames as Scene-local accents from the frozen synthesized score. Preserve exact narrationCues and covered Beat boundaries; select musical landings only inside the permitted action window. Quiet transitions and continuous long Scenes are valid. Do not synthesize or mount BGM in a Scene.",
+          ]),
       "When taskInput.coveredBeats is present, this one renderer owns all listed semantic Beats. Use scene.coveredBriefs for each Beat's visual decisions; keep subjects and camera continuous across their boundaries. sceneFrame spans the complete group and never resets at an internal Beat. Split modules only within declared owning paths.",
       "Read the complete VisualStyle from inputs/context.json; when theme is present its background, primaryText, secondaryText, and accent roles are the shared color authority.",
       "Use scene.taskInput in inputs/context.json as immutable identity, timing, viewport, and allowlist authority.",
