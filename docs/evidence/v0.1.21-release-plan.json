@@ -33,5 +33,23 @@
   "packages": {
     "runtimeFingerprint": "sha256:ed762abbb214502b5360c30810601ed1c354045145228dcbbdf71bd72c692e9c",
     "creatorFingerprint": "sha256:52fb4f0a9c7baf4d6ffe6603d131b7a4e6ccfe28ee70d895dc035047877c7c68"
+  },
+  "reviewedAcceptanceReuse": {
+    "approvedVersion": "0.1.21",
+    "reason": "Maintainer explicitly approved 0.1.21 acceptance reuse after independent Codex CLI authentication returned HTTP 401; existing prior acceptance keeps its original scope and all current technical publication checks remain required.",
+    "evidence": [
+      {
+        "path": "docs/evidence/v0.1.20-first-use.json",
+        "checksum": "sha256:18314336e0f0fba8a234ff734fc4c51a3699967f4531cb34107af5f52692f14d"
+      },
+      {
+        "path": "docs/evidence/v0.1.21-source-verification.json",
+        "checksum": "sha256:240b82d926c2b9f751532d9a65b2c26ce20ffe6187ba7014e33b9e2f8f62360b"
+      },
+      {
+        "path": "docs/evidence/v0.1.21-acceptance-reuse.json",
+        "checksum": "sha256:2671cd1ab6e1a8ede315015c331862288289a81c20487a5d649dc8367a371df6"
+      }
+    ]
   }
 }

@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "version": "0.1.21",
+  "recordedAt": "2026-10-12T09:16:06.630995+00:00",
+  "decision": "approved",
+  "approvalSource": "Explicit maintainer reply in the current task",
+  "approvalText": "批准0.1.21复用验收并发布（推荐）",
+  "scope": "This release only; publish both exact 0.1.21 packages through the existing GitHub Actions workflow",
+  "acceptanceMode": "reviewed-reuse",
+  "priorNativeReceipt": "docs/evidence/v0.1.20-first-use.json",
+  "priorNativeReceiptVersion": "0.1.20",
+  "currentSourceVerification": "docs/evidence/v0.1.21-source-verification.json",
+  "reason": "The independent Codex CLI failed with unauthorized HTTP 401 before producing agent messages or tools. The maintainer explicitly approved reusing prior acceptance for 0.1.21 while retaining current source, candidate, installation and render verification.",
+  "freshNativeFirstUseVerified": false,
+  "nativeFailureRetained": true,
+  "fullAcceptanceRequested": false,
+  "declaredHostCompatibilityChanges": [],
+  "checksStillRequired": [
+    "exact source tag and reviewed package contents",
+    "scoped regressions and source/type/lint/build gates",
+    "dependency audit",
+    "fresh external candidate installation and doctor",
+    "minimal real render and complete EOF decoding",
+    "public registry integrity and provenance source checks",
+    "fresh public registry installation"
+  ],
+  "boundaries": [
+    "The 0.1.20 receipt retains its original package identities and review limits.",
+    "This approval does not create a fresh native first-use certificate for the changed 0.1.21 packages."
+  ]
+}

@@ -90,5 +90,20 @@
     }
   ],
   "publication": "not-started",
-  "acceptanceReuseApproved": false
+  "acceptanceReuseApproved": true,
+  "minimalRuntimeRender": {
+    "schemaVersion": 1,
+    "status": "pass",
+    "compositionId": "DefaultIntroPreview",
+    "checksum": "sha256:dabb69f0ef1e98cca5b1e1037d1bcd75d9f7643f3f881e36eafab08580b76e9b",
+    "width": 1080,
+    "height": 1920,
+    "fps": 30,
+    "durationInFrames": 60,
+    "audioCodec": "aac",
+    "audioChannels": 2,
+    "eofDecode": true
+  },
+  "acceptanceReuseApprovalRecord": "docs/evidence/v0.1.21-acceptance-reuse.json",
+  "acceptanceReuseApprovedAt": "2026-10-12T09:16:06.630995+00:00"
 }
