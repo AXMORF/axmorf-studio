@@ -1,0 +1,217 @@
+{
+  "schemaVersion": 1,
+  "version": "0.1.21",
+  "status": "published-and-public-installation-verified",
+  "recordedAt": "2026-10-12T09:34:57.920603+00:00",
+  "repository": "AXMORF/axmorf-studio",
+  "defaultBranch": "axmorf/npm-workspace-open-source",
+  "tag": "v0.1.21",
+  "sourceCommit": "6e6625d1ad3e8c19b4296b2dc3b59f5ea7a8eda5",
+  "tagOnDefaultBranch": true,
+  "workflow": {
+    "path": ".github/workflows/npm-publish.yml",
+    "url": "https://github.com/AXMORF/axmorf-studio/actions/runs/38229131338",
+    "runId": 38229131338,
+    "attempt": 1,
+    "conclusion": "success",
+    "startedAt": "2026-10-12T09:19:23Z",
+    "completedAt": "2026-10-12T09:27:53Z",
+    "completeLogChecksum": "sha256:c605eee4d44cbd8f0b9f1979b09dff9d1b5f7554828ba33f58d5b7aa4c5db5de",
+    "artifact": {
+      "id": 11737099775,
+      "name": "npm-release-38229131338",
+      "reportedArchiveDigest": "sha256:cb1839d006ddfecac803f5059fc3b71bf2a9733a320af462a29d4bf5702bac9d",
+      "sizeBytes": 31783878,
+      "downloaded": true,
+      "packages": [
+        {
+          "role": "runtime",
+          "files": 297,
+          "fingerprint": "sha256:ed762abbb214502b5360c30810601ed1c354045145228dcbbdf71bd72c692e9c",
+          "tarballChecksum": "sha256:eb4100ca5c5954d438537b20288b67f551f43a5325efafd19ea57ddc7a91f8cf",
+          "publishedBytesMatchCiTarball": true,
+          "candidateBytesMatchCiTarball": false,
+          "candidateContentsMatchCiTarball": true
+        },
+        {
+          "role": "creator",
+          "files": 74,
+          "fingerprint": "sha256:52fb4f0a9c7baf4d6ffe6603d131b7a4e6ccfe28ee70d895dc035047877c7c68",
+          "tarballChecksum": "sha256:d38e7c403271c8bc2eaf0c014aa66f841925e5afccfa4d85dfce508760ba463b",
+          "publishedBytesMatchCiTarball": true,
+          "candidateBytesMatchCiTarball": false,
+          "candidateContentsMatchCiTarball": true
+        }
+      ],
+      "releasePlanBytesMatchSource": true
+    }
+  },
+  "githubRelease": {
+    "url": "https://github.com/AXMORF/axmorf-studio/releases/tag/v0.1.21",
+    "draft": false,
+    "prerelease": false,
+    "publishedAt": "2026-10-12T09:33:00Z"
+  },
+  "packages": [
+    {
+      "role": "runtime",
+      "name": "@axmorf/studio",
+      "version": "0.1.21",
+      "latest": "0.1.21",
+      "files": 297,
+      "fingerprint": "sha256:ed762abbb214502b5360c30810601ed1c354045145228dcbbdf71bd72c692e9c",
+      "tarball": "https://registry.npmjs.org/@axmorf/studio/-/studio-0.1.21.tgz",
+      "integrity": "sha512-GVA5CsnydIhmpk/fM+3ipzh20jI/rWyWp/0Wd2PkFpBzUEKIkavvZ2KkWPI6yaU5K62/PWkz+ZJ0yKHLtxgX/w==",
+      "tarballChecksum": "sha256:eb4100ca5c5954d438537b20288b67f551f43a5325efafd19ea57ddc7a91f8cf",
+      "publishedBytesMatchCiTarball": true,
+      "candidateContentsMatchPublishedPackage": true,
+      "officialProvenanceSubjectAndSourceMatch": true,
+      "attestationChecksum": "sha256:c6184aa63deb21f20d328c3b71492f562e7309c365a1e904a4def0d871231cc7"
+    },
+    {
+      "role": "creator",
+      "name": "create-axmorf-studio",
+      "version": "0.1.21",
+      "latest": "0.1.21",
+      "files": 74,
+      "fingerprint": "sha256:52fb4f0a9c7baf4d6ffe6603d131b7a4e6ccfe28ee70d895dc035047877c7c68",
+      "tarball": "https://registry.npmjs.org/create-axmorf-studio/-/create-axmorf-studio-0.1.21.tgz",
+      "integrity": "sha512-Jzc9U0ip1zOMgHTcclhKB7QAcgJzQ468uWYUN5AqFhC0n1VtCq2hTO0f5TT3um1MgSNgQH//8iJJKM6ZGDryMQ==",
+      "tarballChecksum": "sha256:d38e7c403271c8bc2eaf0c014aa66f841925e5afccfa4d85dfce508760ba463b",
+      "publishedBytesMatchCiTarball": true,
+      "candidateContentsMatchPublishedPackage": true,
+      "officialProvenanceSubjectAndSourceMatch": true,
+      "attestationChecksum": "sha256:b0b18e9a6eee85911702b03eb098b53425c82992546bcb1bd479bc2a7f27935b"
+    }
+  ],
+  "officialProvenance": {
+    "status": "pass",
+    "sourceCommit": "6e6625d1ad3e8c19b4296b2dc3b59f5ea7a8eda5",
+    "tag": "v0.1.21",
+    "workflow": ".github/workflows/npm-publish.yml",
+    "runId": 38229131338,
+    "bothSubjectsMatchPublishedTarballs": true,
+    "verificationScope": "Official registry SLSA statements matched to published bytes, source, tag and workflow; no independent Sigstore signature verification claimed."
+  },
+  "acceptance": {
+    "mode": "reviewed-reuse",
+    "gateStatus": "release-gate-passed-with-reviewed-acceptance-reuse",
+    "nativeFirstUseVerified": false,
+    "freshNativeFirstUseVerified": false,
+    "approvedVersion": "0.1.21",
+    "approvalRecord": "v0.1.21-acceptance-reuse.json",
+    "approvalChecksum": "sha256:2671cd1ab6e1a8ede315015c331862288289a81c20487a5d649dc8367a371df6",
+    "priorNativeReceipt": "v0.1.20-first-use.json",
+    "priorNativeReceiptVersion": "0.1.20",
+    "priorNativeReceiptChecksum": "sha256:18314336e0f0fba8a234ff734fc4c51a3699967f4531cb34107af5f52692f14d",
+    "independentCliAttempt": "blocked-cli-authentication",
+    "independentCliError": "unauthorized HTTP 401 before agent messages or tools",
+    "successfulNewNativeReceiptProduced": false,
+    "scope": "Explicit maintainer-approved reuse for this version only. The earlier native receipt retains its original package identities and review limits; current technical publication checks remain required."
+  },
+  "checks": {
+    "localSourceVerification": "v0.1.21-source-verification.json",
+    "localCompleteTests": {
+      "tests": 1440,
+      "pass": 1438,
+      "fail": 0,
+      "skip": 2
+    },
+    "ci": {
+      "node": "24.16.0",
+      "scopedTests": {
+        "tests": 208,
+        "pass": 207,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 1,
+        "skipReasons": [
+          "public creator lock binds npm's Darwin tmp alias to the exact physical package owner"
+        ]
+      },
+      "completeRepositoryTestsRepeated": false,
+      "completeRepositoryTestsScope": "The complete local repository check passed; approved reuse runs the workflow ordinary source/build gates and reviewed scoped regressions.",
+      "packageTypecheckBuildAudit": "pass",
+      "sourceTypecheckLintBuildAndHostGate": "pass",
+      "minimalRealRender": {
+        "schemaVersion": 1,
+        "status": "pass",
+        "compositionId": "DefaultIntroPreview",
+        "checksum": "sha256:55d3f4fc336ea393ebdf7d2bf35f78c7592177f57d1d2ca72a727bd0be2fc2f8",
+        "width": 1080,
+        "height": 1920,
+        "fps": 30,
+        "durationInFrames": 60,
+        "audioCodec": "aac",
+        "audioChannels": 2,
+        "eofDecode": true
+      },
+      "freshExternalCandidateInstallation": {
+        "status": "pass",
+        "doctor": {
+          "status": "workspace-ready",
+          "workspaceVersion": 1,
+          "checks": {
+            "layout": "pass",
+            "runtimeResources": "pass",
+            "remotionCli": "pass",
+            "browserRender": "pass",
+            "producerConfig": "pass",
+            "resourceCatalog": "pass"
+          }
+        },
+        "compositions": "pass"
+      },
+      "exactCandidateContentGate": "release-gate-passed-with-reviewed-acceptance-reuse",
+      "auditVulnerabilities": 0,
+      "remotionVersion": "4.0.489"
+    },
+    "postPublicationPublicInstallation": {
+      "status": "pass",
+      "method": "npm-create-public-registry",
+      "command": [
+        "npm",
+        "create",
+        "--yes",
+        "axmorf-studio@latest",
+        "workspace",
+        "--",
+        "--yes"
+      ],
+      "registry": "https://registry.npmjs.org",
+      "environment": {
+        "platform": "linux",
+        "arch": "x64",
+        "node": "v24.19.0"
+      },
+      "createdAt": "2026-10-12T09:31:45.951Z",
+      "exactRuntimeAndCreatorContentsVerified": true,
+      "unchangedGuides": 45,
+      "doctor": {
+        "status": "workspace-ready",
+        "workspaceVersion": 1,
+        "checks": {
+          "layout": "pass",
+          "runtimeResources": "pass",
+          "remotionCli": "pass",
+          "browserRender": "pass",
+          "producerConfig": "pass",
+          "resourceCatalog": "pass"
+        }
+      },
+      "compositions": [
+        "CapabilityGallery",
+        "DefaultIntroPreview",
+        "DefaultOutroPreview"
+      ],
+      "remotionVersion": "4.0.489",
+      "snapshotChecksum": "sha256:980d0dfba6d19d57798a25b4c476a6628b19506ef342c8f56b2165982e0bd236",
+      "installLogChecksum": "sha256:d2b31b5199937a2bda12426e5863669eebe379d785a70e3adfb2e22a241cee93",
+      "doctorLogChecksum": "sha256:0b3991af784f205c67a7edcc541942ad0851c0e6da8a3d49dcf23f12bb21fd8d",
+      "compositionsLogChecksum": "sha256:af6bf36961357b6223cca2b1e976c9128c5844acf30bf7adbc9f193cbd1c0221",
+      "workspaceLockChecksum": "sha256:5beb15678092f360d8274cbef403dc9e159c6c04dbd6d1ffd7283ac3b7b9143d",
+      "creatorLockChecksum": "sha256:2b9563c54c8c86af2d3438f2fe104214c8d2ef752e8ae177563b06909a76707d",
+      "nativeProductionRepeatedAfterPublication": false
+    }
+  }
+}

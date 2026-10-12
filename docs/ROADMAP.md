@@ -66,9 +66,10 @@ artifact-backed 草稿与参考节奏诊断已随 0.1.18 发布，保留唯一 p
 0.1.20 两包已公开发布，CI 完整检查、精确候选和 registry 来源复验通过，见
 [发布记录](evidence/v0.1.20-publication.json)。
 
-0.1.21候选整合输出失败恢复、兼容正文 BGM 隔离、共享循环素材、原创合成配乐与节拍投影、Edge TTS 宿主代理，
-以及随 creator 分发的创作手册、剪纸案例和教学源码。已有有口播/无口播业务视频与候选 Workspace 工程验证；
-发布需绑定最终候选包的完整检查、原生首用、Actions 结果和公开安装，具体事实见[当前实现状态](ITERATION_STATUS.md)。
+0.1.21已公开发布输出失败恢复、兼容正文 BGM 隔离、共享循环素材、原创合成配乐与节拍投影、Edge TTS 宿主代理，
+以及随 creator 分发的创作手册、剪纸案例和教学源码。最终候选完整源码检查、Actions 发布、精确包来源与全新公开
+安装通过，见[发布记录](evidence/v0.1.21-publication.json)。独立 CLI 首用因401失败，维护者明确批准本版
+[复用此前验收](evidence/v0.1.21-acceptance-reuse.json)；未生成新的原生首用认证，具体边界见[当前实现状态](ITERATION_STATUS.md)。
 主观听审、局部修订与稳定审美各保留自己的验证范围，既有 Project 不自动迁移。
 
 从 `foundation@e52d2a5` 开始的

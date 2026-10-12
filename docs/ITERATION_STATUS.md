@@ -1,10 +1,11 @@
 # Iteration Status
 
-## 0.1.21发布候选与文档收口（2026-10-12）
+## 0.1.21已发布与文档收口（2026-10-12）
 
-本次候选整合下方此前未发布的输出失败恢复、兼容正文BGM隔离、共享循环素材、代码合成原创配乐、
+本版整合下方此前未发布的输出失败恢复、兼容正文BGM隔离、共享循环素材、代码合成原创配乐、
 同源音乐网格投影、Edge TTS宿主代理和完整创作手册/剪纸案例/教学源码。版本与两个package manifest均为0.1.21。
-源码基线为默认分支46329da，已包含v0.1.20；截至本轮检查，两包公开latest仍为0.1.20，尚未发布本候选。
+源码基线为默认分支46329da，已包含v0.1.20；不可变v0.1.21指向已合入默认分支的6e6625d。
+截至2026-10-12本轮发布回读，@axmorf/studio与create-axmorf-studio的公开latest均为0.1.21。
 
 README、runtime/creator说明、生成Workspace文档、架构/流程/确定性、名词表和相关操作/合同文档以当前代码为准：
 合成配乐从Composition frame zero全片循环，兼容选曲只覆盖正文，口播PCM决定字幕和语义边界；
@@ -17,15 +18,20 @@ Scene数量、横竖屏、风格与节拍不是固定模板。原始参考资料
 两个候选包的类型/构建/readiness通过，23个精确回归文件共208项：207通过、零失败、1项Darwin专属skip。
 运行时297个文件、creator74个文件已冻结，33份共享创作文件与模板逐字一致；精确tarball创建全新空Workspace，
 安装和doctor通过。独立Codex CLI会话在开始时返回401 unauthorized：存储的ChatGPT登录无法刷新，需要重新登录；
-未生成通过的原生首用收据，也未触发npm发布。完整结果和候选身份见[源码验证](evidence/v0.1.21-source-verification.json)。
+该失败未生成通过的原生首用收据，原始日志仍保留。发布前完整结果和候选身份见[源码验证](evidence/v0.1.21-source-verification.json)。
 维护者现已明确批准仅本次0.1.21复用已有验收，见[批准记录](evidence/v0.1.21-acceptance-reuse.json)与
 [版本绑定发布计划](evidence/v0.1.21-release-plan.json)。已有0.1.20收据仍只认证其原冻结范围，
-本候选没有新的独立原生首用认证。精确包、回归、源码/构建、全新安装、最小真实渲染与公开完整性检查继续执行；
-本地60帧最小渲染与完整解码已经通过，Actions发布及公开安装待完成。
+本版没有新的独立原生首用认证。精确包、回归、源码/构建、全新安装、最小真实渲染与公开完整性检查均保留并通过；
+本地与Actions的60帧最小渲染及完整解码均通过。[Actions运行38229131338](https://github.com/AXMORF/axmorf-studio/actions/runs/38229131338)
+于2026-10-12完成两包OIDC发布，23文件208项CI回归中207通过、零失败、1项Darwin专属skip，
+包检查、源码/构建、全新候选Workspace与doctor通过。npm下载字节与CI tarball相同，内容指纹与审阅候选一致，
+官方provenance对应本次提交、tag与workflow。全新匿名公开npm create安装、六项doctor及三个Compositions通过，
+运行时297个文件、creator74个文件及45份生成指南复验一致；Remotion保持4.0.489。
+完整[发布记录](evidence/v0.1.21-publication.json)保留上述依据，本次公开安装未重复制作原生首用视频。
 
 以下版本和日期小节记录发生时状态；最新公开事实与本次发布收口由本节维护。
 
-## 未发布：参考视频学习沉淀（2026-10-11）
+## 参考视频学习沉淀（2026-10-11，当时未发布，已随0.1.21发布）
 
 按用户要求将参考片的高频抽帧学习写进共享 film-direction，并同步仓库入口、creator 模板和当前测试 Workspace。
 新增完整构图、可见材质、动作阶段/停留、共同声音事件、转场交接和混音检查；Root 与 Scene 入口均可到达。
@@ -35,7 +41,7 @@ Scene数量、横竖屏、风格与节拍不是固定模板。原始参考资料
 本轮无依赖安装、doctor、provider 或新视频渲染；参考音轨听审仍 not-assessed。当前云端文件生效，尚未 commit/push/npm 发布。
 来源、携带范围和验证边界见[学习沉淀记录](evidence/2026-10-11-reference-video-learning.md)。
 
-## 未发布：v3 画面设计工艺补充（2026-10-10）
+## v3 画面设计工艺补充（2026-10-10，当时未发布，已随0.1.21发布）
 
 将用户提供的第三版 Beat-synced Remotion 文档补入共享 film-direction，repository 与 creator 模板逐字一致。
 新增配色/字体/材质方案、叙事焦点与空间隐喻、景深和遮挡、按 viewport 验证文字、预备/落点/回弹/阅读停留、
@@ -76,7 +82,7 @@ Root 抽看正式视频 34 帧总览、774/1412 两帧原始分辨率及两张�
 六段正文窗口的 score gain 均约 0.1395–0.1397，与冻结 0.14 相符，确认配乐实际进入成片。
 该分析属于技术混音证据；完整连续播放、主观听审和实机手机仍未评定。未 commit/push 或 npm 发布，亦非独立发布首用验收。
 
-## 未发布：口播兼容的节拍驱动 Skill（2026-10-11）
+## 口播兼容的节拍驱动 Skill（2026-10-11，当时未发布，已随0.1.21发布）
 
 整合两版 Beat-synced Remotion 文档的方法，更新 repository/creator Skill：先确定视觉方向，以同源时间轴安排音乐与
 关键动作；尺寸跟随 Project RenderSpec，不固定 Scene 数量，连续长场景及安静转场均有效。
@@ -94,14 +100,14 @@ musicTiming。重要动作在允许窗口内选节拍落点，不变速、移动
 1080×1920/30fps Project，Project-owned PCM、时间轴和 manifest checksum 一致。最终 creator tarball 的十份 Skill 文件
 经独立 scaffold 逐字复验；最后混音措辞修正后 Skill 预算/同步检查再次通过。该证据不是 native 发布验收。
 
-## 未发布共享循环 BGM 素材（2026-10-10）
+## 共享循环 BGM 素材（2026-10-10，当时未发布，已随0.1.21发布）
 
 按用户本次公开上传要求，将 Neon Motion、Easy Day、Next Question、Sunlit Drive、Signal Sprint 五首
 原始循环 WAV 纳入 package-owned Workspace seed，共 27,922,344 bytes，checksum 与本地原曲一致。
 公共 manifest 使用新的 `asset.axmorf.music.*-loop-v1` ID、runtime-approved、loop 标签和单独的 Workspace
 分发/视频配乐授权记录；不复制私有 Library 身份、导入报告或已退役试听版。既有本地库及 Project 不修改。
 构建沿现有 manifest/checksum/runtime-policy 主链纳入 npm tarball，bootstrap 自动登记为 auto BGM 候选。
-GitHub 上传与 npm 发布是两个步骤；当前 npm latest 仍为 0.1.20，此扩充尚未发布。
+GitHub 上传与 npm 发布是两个步骤；当时 npm latest 仍为 0.1.20，此扩充尚未发布。
 
 验证：27/27 focused tests、source/package typecheck、package build/check、focused lint 与文档链接检查通过。
 实际 tarball 含完整五首及 runtime policy；使用本地候选 tarball 创建的独立新 Workspace 完成 install、
@@ -109,7 +115,7 @@ bootstrap、重复 bootstrap 和 doctor，context 返回 auto/available 与五�
 自动选中 Next Question，Project-owned checksum 与原曲一致，冻结为单个 content-window 循环音轨。
 这是本地候选安装验证，未运行 production 或成片听审，见[证据](evidence/2026-10-10-shared-bgm-verification.json)。
 
-## 未发布工作区优化：正文 BGM 与模板配乐隔离（2026-10-10）
+## 工作区优化：正文 BGM 与模板配乐隔离（2026-10-10，当时未发布，已随0.1.21发布）
 
 新 Project 的自动、指定与文件 BGM 统一冻结为 content-window，跨正文 Scene 连续播放，不覆盖首尾模板及 lead/tail。
 混音只抑制正文 Scene 配乐，保留模板音乐、音效和旁白；显式 null 仍关闭全部背景音乐。
@@ -123,7 +129,7 @@ bootstrap、重复 bootstrap 和 doctor，context 返回 auto/available 与五�
 文档收口同步 root/runtime/Workspace README、七份权威文档、配置/音效/修订/恢复指南及 creator Skill；
 文档与 scaffold 回归 44/44、链接及命令引用检查、两包重新构建与 package readiness 全部通过。
 
-## 未发布工作区修复：commit 输出失败恢复（2026-10-10）
+## 工作区修复：commit 输出失败恢复（2026-10-10，当时未发布，已随0.1.21发布）
 
 明确的 declared output 缺失或 JSON/TypeScript 语法错误，现在由 commit 保存受检 `outputFailure` 到不可变
 task-terminal event，recover-inspect/reissue 按原 Agent task snapshot 的输出路径分类，继续要求同 current Revision、

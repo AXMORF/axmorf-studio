@@ -3,7 +3,7 @@
 > 文档类型：合同参考。可执行 schema 与 fingerprint 逻辑以
 > `packages/studio/src/contracts/` 为准。
 >
-> 最后复核：2026-10-12（0.1.21候选；公开状态见 ITERATION_STATUS）
+> 最后复核：2026-10-12（0.1.21已发布；验收边界见 ITERATION_STATUS）
 
 ## Persisted source files
 

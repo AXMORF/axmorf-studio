@@ -34,6 +34,12 @@ doctor, minimal render, complete decoding and registry integrity still run. Veri
 `release-gate-passed-with-reviewed-acceptance-reuse` and `nativeFirstUseVerified:false`; old evidence never
 becomes a native first-use certificate for changed packages.
 
+For 0.1.21, the independent Codex CLI returned HTTP 401 before producing Agent messages or tools.
+The maintainer explicitly [approved reuse for this version](../evidence/v0.1.21-acceptance-reuse.json).
+The [publication record](../evidence/v0.1.21-publication.json) retains the successful Actions technical gates,
+exact public packages and provenance source checks, and a fresh anonymous public installation with doctor.
+It reports `nativeFirstUseVerified:false`; the 0.1.20 native receipt retains its original package identities.
+
 For 0.1.18, the maintainer authorized commit/push/publication using the already reviewed videos and then
 approved merging 0.1.17 with affected checks. This scope retains the 0.1.17 native receipt and the Oct 8
 continuous-video engineering acceptance at their original package identities and review limits. It does

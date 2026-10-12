@@ -1,6 +1,6 @@
 # 连续视频创作
 
-本指南对应0.1.21候选的当前能力；公开发布状态见[ITERATION_STATUS](../ITERATION_STATUS.md)。
+本指南对应已公开发布的0.1.21能力；发布与验收边界见[ITERATION_STATUS](../ITERATION_STATUS.md)。
 旧 Workspace 的能力仍以其已安装 contracts/生成指南为准。
 保留一 Story 一个 Composition 和逐 Beat 的语义时间轴，同时用显式视觉分组决定 Renderer 所有权。
 

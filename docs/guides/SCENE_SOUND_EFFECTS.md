@@ -98,7 +98,7 @@ SoundDesignTrack 实际播放，Renderer 不再重复挂载 Audio。
 
 当前源码将用户授权公开分发的五首原始循环 WAV 纳入 runtime 的共享 seed，GitHub 保存原始媒体，构建后随
 npm tarball 分发，bootstrap 自动投影到 `public/assets/axmorf-shared/audio/music/` 并登记 Catalog。
-这些媒体属于0.1.21候选包内容；公开发布状态见[当前实现状态](../ITERATION_STATUS.md)。
+这些媒体已随0.1.21公开发布；精确包与全新安装结果见[发布记录](../evidence/v0.1.21-publication.json)。
 既有安装不会因 GitHub 推送自动获得曲目，必须通过正常 npm 升级取得对应包。
 
 | 曲目 | Catalog ID | BPM | 用途 |

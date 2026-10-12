@@ -56,9 +56,10 @@
   0.1.19 未发布，原标签和[失败记录](evidence/v0.1.19-ci-failure.json)保留。
 - `promotions/` 保存尚未完全达到完成定义的提案和实施计划；每份文档必须明确自身批准/实施状态。
 - npm Workspace 开源方案已经完成并
-  [归档实施计划](archive/implementation-plans/2026-08-30-npm-workspace-open-source-implementation-plan.md)；当前是
-  0.1.21候选整合新的代码配乐与创作方法；公开发布状态和验收边界以
-  [ITERATION_STATUS.md](ITERATION_STATUS.md) 为准。历史[0.1.20发布证据](evidence/v0.1.20-publication.json)只认证其冻结范围。
+  [归档实施计划](archive/implementation-plans/2026-08-30-npm-workspace-open-source-implementation-plan.md)。
+  0.1.21已公开发布新的代码配乐与创作方法，[发布与公开安装](evidence/v0.1.21-publication.json)验证两包
+  latest、精确内容与来源；本版使用[获批的验收复用](evidence/v0.1.21-acceptance-reuse.json)，没有新的原生首用认证。
+  当前边界以[ITERATION_STATUS.md](ITERATION_STATUS.md)为准，历史[0.1.20发布证据](evidence/v0.1.20-publication.json)保留其原冻结范围。
 - [archive/](archive/README.md) 保存已完成或被取代的 plans/specs，仅供追溯。
 
 ## 管理规则
