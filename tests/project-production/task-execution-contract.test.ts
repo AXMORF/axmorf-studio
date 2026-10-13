@@ -148,6 +148,59 @@ test("Scene contract rejects creative context that no longer matches its task", 
   );
 });
 
+test("studio-v2 accents extend the existing music instruction instead of adding workflow items", () => {
+  const context = sceneContext(createScenePackageInput().task);
+  const legacyTiming = {
+    fps: 30,
+    bpm: 120,
+    beatsPerBar: 4,
+    sceneStartFrame: 0,
+    beatFrames: [0, 15, 30],
+    barFrames: [0],
+  };
+  const build = (musicTiming?: Record<string, unknown>) =>
+    buildTaskExecutionContract({
+      taskKind: "scene-owner",
+      context: {
+        ...context,
+        scene: {
+          ...context.scene,
+          filmPlan: {
+            concept: "One connection becomes trusted step by step.",
+            subject: "A browser and a server exchanging sealed parts.",
+            cameraIntent: "Follow each exchange, then settle on the result.",
+            rhythmIntent: "Land each stage on a bar line.",
+            soundIntent: "Quiet pulse under narration, fuller at the reveal.",
+          },
+          ...(musicTiming === undefined ? {} : { musicTiming }),
+        },
+      },
+    }).workflow;
+  const none = build();
+  const legacy = build(legacyTiming);
+  const studio = build({
+    ...legacyTiming,
+    sectionFrames: [0],
+    accentFrames: [30],
+  });
+  assert.equal(legacy.length, none.length + 1);
+  assert.equal(studio.length, legacy.length);
+  assert.ok(studio.length <= 16);
+  const legacyMusic = legacy.find((item) =>
+    item.startsWith("Use scene.musicTiming"),
+  );
+  assert.equal(
+    legacyMusic,
+    "Use scene.musicTiming.beatFrames/barFrames as Scene-local accents from the frozen synthesized score. Preserve exact narrationCues and covered Beat boundaries; select musical landings only inside the permitted action window. Quiet transitions and continuous long Scenes are valid. Do not synthesize or mount BGM in a Scene.",
+    "older synthesized scores keep their exact contract text",
+  );
+  const studioMusic = studio.find((item) =>
+    item.startsWith("Use scene.musicTiming"),
+  )!;
+  assert.ok(studioMusic.startsWith(legacyMusic!));
+  assert.match(studioMusic, /accentFrames[\s\S]*snapProducerFrameToBeat/u);
+});
+
 test("prior Scene outputs preserve the API scaffold and the 32-output bound", () => {
   const context = sceneContext(createScenePackageInput().task);
   const fresh = buildTaskExecutionContract({
