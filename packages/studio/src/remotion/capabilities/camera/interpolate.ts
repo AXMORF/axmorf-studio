@@ -11,6 +11,10 @@ import type {
   ProducerLayeredStageState,
   ProducerPoint2D,
   ProducerPoint3D,
+  ProducerShotDrift,
+  ProducerShotKeyframe,
+  ProducerShotPlaneTransform,
+  ProducerShotState,
   ProducerStagePlane,
 } from "./types";
 
@@ -243,5 +247,96 @@ export const resolveProducerCamera3D = (
     target: mixPoint3D(from.target, to.target, progress),
     fov: mix(from.fov, to.fov, progress),
     roll: mix(from.roll, to.roll, progress),
+  };
+};
+
+const maxShotZoom = 8;
+const maxShotRotation = 8;
+
+/**
+ * Resolves the subject-plane camera. Zoom never drops below 1 and focus is clamped so the
+ * visible window stays inside the world: full-bleed planes never expose empty edges and
+ * world text is never shrunk.
+ */
+export const resolveProducerShotStage = (
+  shots: readonly ProducerShotKeyframe[],
+  frame: number,
+): ProducerShotState => {
+  assertTimeline(shots, "ProducerShotStage");
+  for (const [index, shot] of shots.entries()) {
+    assertPoint2D(shot.focus, `ProducerShotStage[${index}].focus`);
+    assertRange(shot.focus[0], 0, 1, `ProducerShotStage[${index}].focus[0]`);
+    assertRange(shot.focus[1], 0, 1, `ProducerShotStage[${index}].focus[1]`);
+    assertRange(shot.zoom, 1, maxShotZoom, `ProducerShotStage[${index}].zoom`);
+    assertRange(
+      shot.rotation ?? 0,
+      -maxShotRotation,
+      maxShotRotation,
+      `ProducerShotStage[${index}].rotation`,
+    );
+  }
+
+  const { from, to, progress } = getSegment(shots, frame);
+  const zoom = mix(from.zoom, to.zoom, progress);
+  const half = 0.5 / zoom;
+  const clampFocus = (value: number) => Math.min(1 - half, Math.max(half, value));
+  const focus = mixPoint2D(from.focus, to.focus, progress);
+  return {
+    focus: [clampFocus(focus[0]), clampFocus(focus[1])],
+    zoom,
+    rotation: mix(from.rotation ?? 0, to.rotation ?? 0, progress),
+  };
+};
+
+/**
+ * Projects the subject camera onto a plane at `depth` (0 = fixed backdrop, 1 = subject,
+ * above 1 = foreground). Planes with depth <= 1 stay full-bleed; rotation and drift add
+ * overscan instead of revealing corners.
+ */
+export const resolveProducerShotPlane = ({
+  state,
+  depth,
+  width,
+  height,
+  frame,
+  drift,
+}: {
+  readonly state: ProducerShotState;
+  readonly depth: number;
+  readonly width: number;
+  readonly height: number;
+  readonly frame: number;
+  readonly drift: ProducerShotDrift | null;
+}): ProducerShotPlaneTransform => {
+  assertRange(depth, 0, 2, "ProducerShotStage depth");
+  assertFinite(width, "ProducerShotStage width");
+  assertFinite(height, "ProducerShotStage height");
+  if (width <= 0 || height <= 0) {
+    throw new Error("ProducerShotStage width and height must be positive.");
+  }
+  const shortSide = Math.min(width, height);
+  let offset: ProducerPoint2D = [0, 0];
+  let driftOverscan = 1;
+  if (drift !== null) {
+    assertRange(drift.amplitudePx, 0, shortSide * 0.05, "ProducerShotStage drift.amplitudePx");
+    if (!Number.isInteger(drift.periodFrames) || drift.periodFrames < 2) {
+      throw new Error("ProducerShotStage drift.periodFrames must be an integer of at least 2.");
+    }
+    // Deterministic, incommensurate x/y phases read as a held camera rather than a loop.
+    const phase = (2 * Math.PI * frame) / drift.periodFrames;
+    offset = [
+      drift.amplitudePx * depth * Math.sin(phase),
+      drift.amplitudePx * depth * 0.6 * Math.sin(phase * 0.73 + 1.3),
+    ];
+    driftOverscan = 1 + (2 * drift.amplitudePx) / shortSide;
+  }
+  const radians = (Math.abs(state.rotation) * Math.PI) / 180;
+  const rotationOverscan =
+    Math.cos(radians) + Math.sin(radians) * (Math.max(width, height) / shortSide);
+  return {
+    scale: (1 + (state.zoom - 1) * depth) * rotationOverscan * driftOverscan,
+    focus: [0.5 + (state.focus[0] - 0.5) * depth, 0.5 + (state.focus[1] - 0.5) * depth],
+    offset,
+    rotation: state.rotation * Math.min(depth, 1),
   };
 };

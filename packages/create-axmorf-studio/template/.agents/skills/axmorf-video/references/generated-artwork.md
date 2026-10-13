@@ -9,7 +9,8 @@ material, overlap and text quiet region. Generate separate environment/transpare
 depth or occlusion. Do not flatten required motion or explanatory text into a single bitmap. Avoid a mandatory visual style.
 
 Use the host's actually callable image-generation tool; inspect the returned image and preserve transparency. Do not claim
-a tool ran or invent an acquisition receipt. Without image generation, choose an appropriate authored SVG/geometry approach;
+a tool ran or invent an acquisition receipt. Without image generation, choose an appropriate authored SVG/geometry approach and write the SVG craft recipe from the
+[visual quality bar](visual-quality-bar.md) into artDirection;
 report a blocker only when the requested result specifically requires the missing tool. Third-party licensed media keeps
 the existing compatible `--receipt` path; original-artwork declarations never substitute for third-party licensing.
 

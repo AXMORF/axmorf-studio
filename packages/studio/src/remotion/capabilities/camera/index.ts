@@ -6,6 +6,8 @@ export { ProducerFocusPull } from "./ProducerFocusPull";
 export type { ProducerFocusPullProps } from "./ProducerFocusPull";
 export { ProducerLayeredStage } from "./ProducerLayeredStage";
 export type { ProducerLayeredStageProps } from "./ProducerLayeredStage";
+export { ProducerShotStage } from "./ProducerShotStage";
+export type { ProducerShotStageProps } from "./ProducerShotStage";
 export {
   assertProducerLayerDepths,
   getProducerStagePlanePosition,
@@ -13,6 +15,8 @@ export {
   resolveProducerCamera3D,
   resolveProducerFocus,
   resolveProducerLayeredStage,
+  resolveProducerShotPlane,
+  resolveProducerShotStage,
 } from "./interpolate";
 export type {
   ProducerCamera2DKeyframe,
@@ -27,5 +31,9 @@ export type {
   ProducerLayeredStageState,
   ProducerPoint2D,
   ProducerPoint3D,
+  ProducerShotDrift,
+  ProducerShotKeyframe,
+  ProducerShotPlaneTransform,
+  ProducerShotState,
   ProducerStagePlane,
 } from "./types";

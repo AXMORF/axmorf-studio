@@ -67,3 +67,30 @@ export type ProducerCamera3DState = {
   readonly fov: number;
   readonly roll: number;
 };
+
+/** Arrival state of one full-bleed shot; focus is the normalized world point centered in the viewport. */
+export type ProducerShotKeyframe = {
+  readonly frame: number;
+  readonly focus: ProducerPoint2D;
+  readonly zoom: number;
+  readonly rotation?: number;
+  readonly easing?: ProducerCameraEasing;
+};
+
+export type ProducerShotState = {
+  readonly focus: ProducerPoint2D;
+  readonly zoom: number;
+  readonly rotation: number;
+};
+
+export type ProducerShotDrift = {
+  readonly amplitudePx: number;
+  readonly periodFrames: number;
+};
+
+export type ProducerShotPlaneTransform = {
+  readonly scale: number;
+  readonly focus: ProducerPoint2D;
+  readonly offset: ProducerPoint2D;
+  readonly rotation: number;
+};

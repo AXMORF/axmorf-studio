@@ -15,7 +15,8 @@ For Scene work, read
 `agent-output` issues before terminal. On a host/fixed fault, stop and return the structured error to the Root for its exact
 failure command. Never reopen or automatically retry a terminal failed attempt.
 For new or substantially redesigned Scenes, read [film direction / Scene execution](film-direction.md#scene-execution)
-after binding; a local correction preserves priorSource and applies only its delta.
+and the [visual quality bar](visual-quality-bar.md) after binding; a local correction preserves priorSource and applies only its delta.
+Before commit, run the bound `commands.preview` when the binding provides it and answer the quality bar's self-review checklist; fix only declared outputs.
 For Scene tasks, consume `scene.brief`, `scene.visualStyle`, and Scene-local `scene.narrationCues` in the bound context.
 Grouped tasks also freeze `scene.coveredBriefs` and `scene.taskInput.coveredBeats`: implement every member in one source
 graph using continuous sceneFrame, not a new component lifetime at each semantic boundary. Authored frame timing has no

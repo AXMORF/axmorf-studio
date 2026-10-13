@@ -16,7 +16,8 @@ The Composition owns full-frame background, narration, captions, and
 safe-area placement. Use `staticFile()` for Workspace-owned public media.
 
 Read [Scene implementation](references/scene-implementation.md) before editing a
-Scene. The task contract and fixed validator take precedence over this guidance.
+Scene. For new or substantially redesigned Scenes, study [exemplar Scenes](references/exemplar-scenes.md)
+for craft techniques; build content from the current brief. The task contract and fixed validator take precedence over this guidance.
 
 After the exact bind, read [Film direction / Scene execution](../axmorf-video/references/film-direction.md#scene-execution)
 for new or substantially redesigned Scenes. A local correction preserves priorSource and implements only its delta.

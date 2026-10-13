@@ -256,9 +256,10 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
 `.agents/skills/remotion-best-practices/SKILL.md`，再按 Renderer 需要读取路由 reference。`AGENTS.md`、
 TaskSpec、contracts 与 validators 拥有更高 authority，不能扩大 workspace 写入范围。
 
-新 Scene 只参考 current Story/StoryBeat/timing/VisualStyle/brief、ResourceCatalog 当前登记能力和当前方案
-显式本地化的 immutable upstream source。不得搜索、比较、模仿或复制历史 Scene、Composition、still、
-contact sheet 或布局。第三方 source/media 分别校验 license/attribution；未确认音频不得进入 artifact。
+新 Scene 只参考 current Story/StoryBeat/timing/VisualStyle/brief、ResourceCatalog 当前登记能力、当前方案
+显式本地化的 immutable upstream source，以及随 Skill 发行的精选标杆 Scene
+（`remotion-best-practices/references/exemplar-scenes.md`）。标杆只可借鉴技法，内容、构图与时序仍来自 current brief，
+不得原样粘贴。不得搜索、比较、模仿或复制用户历史 Scene、Composition、still、contact sheet 或布局。第三方 source/media 分别校验 license/attribution；未确认音频不得进入 artifact。
 
 - 局部修订只以 bound context 的 `scene.priorSource` 中 owning Scene 已复验冻结的 current base 源码图与声明为起点，
   比较 previous/current brief 并只实现目标 delta；保留其余行为及许可/lineage bytes，derived fields 交给 fresh finalizer。

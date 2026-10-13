@@ -10,17 +10,20 @@ export const capabilityAuthoringGuides = {
       "ProducerCamera3D",
       "ProducerFocusPull",
       "ProducerLayeredStage",
+      "ProducerShotStage",
     ],
     parameters: [
       "ProducerCamera2D: sorted keyframes {frame,x,y,zoom,rotation,anchor:[percentX,percentY],easing?}; x/y normalized travel, anchor percentages.",
       "ProducerCamera3D: width, height, keyframes {frame,position:[x,y,z],target:[x,y,z],fov,roll}.",
       "ProducerLayeredStage: keyframes {frame,x,y}, background, subject, foreground; ProducerFocusPull: plane and keyframes {frame,plane}.",
+      "ProducerShotStage: width/height = Scene viewport; shots sorted {frame,focus:[x,y] 0..1 world point centered in view,zoom 1..8,rotation? -8..8 degrees,easing?}; subject (depth 1), optional background (depth <=1, default 0.35) and foreground (depth >=1, default 1.4) are authored at full viewport size; overlay renders unscaled above the camera; drift {amplitudePx,periodFrames} adds deterministic hand-held life; frame defaults to the Sequence frame (pass sceneFrame for grouped Scenes). zoom>=1 and clamped focus keep background/subject full-bleed and never shrink world text.",
     ],
     example:
       'import {ProducerCamera2D} from "@axmorf/studio/remotion";\nexport const Example = ({endFrame}: {endFrame: number}) => <ProducerCamera2D keyframes={[{frame:0,x:0,y:0,zoom:1,rotation:0,anchor:[50,50]},{frame:endFrame,x:0.15,y:0,zoom:1.12,rotation:0,anchor:[50,50]}]}><svg width="100%" height="100%"><circle cx="50%" cy="50%" r={40} fill="#e7573f" /></svg></ProducerCamera2D>;',
     selectionAdvice: [
       "Use a push to reveal a new fact or spatial relationship; settle before the result hold.",
       "3D requires meaningful depth and authored scene geometry; use 2D for flat explanations.",
+      "Use ProducerShotStage for a full-bleed world with push/pull/pan shots instead of a boxed illustration; hold each arrival long enough to read, and give overlay text a local scrim where the camera brings detail under it.",
     ],
   }),
   "capability.chart": CapabilityAuthoringGuideSchema.parse({
@@ -198,6 +201,7 @@ export const capabilityAuthoringGuides = {
       "BlindsTransition",
       "BokehCircles",
       "BounceText",
+      "CodePanel",
       "BubblePopText",
       "BulletScene",
       "CameraShake",
@@ -221,6 +225,7 @@ export const capabilityAuthoringGuides = {
       "ImageCarousel",
       "ImageComparisonSlider",
       "ImageZoomReveal",
+      "InterfaceWindow",
       "IrisTransition",
       "KenBurns",
       "Kicker",
@@ -254,6 +259,7 @@ export const capabilityAuthoringGuides = {
       "PushTransition",
       "QuoteCard",
       "QuoteScene",
+      "RepositoryCard",
       "RotatingCarousel",
       "SlideText",
       "SlideWipe",
@@ -262,6 +268,7 @@ export const capabilityAuthoringGuides = {
       "SpotlightReveal",
       "Starfield",
       "SubscribeReminder",
+      "TerminalPanel",
       "TextHighlight",
       "TitleScene",
       "TitleSplit",
@@ -277,12 +284,14 @@ export const capabilityAuthoringGuides = {
       "AnimatedText: text, color, fontSize, staggerInFrames, style. PoppingText: text, fontSize and colors.",
       "WhipPan: from/to React content, Scene-local startFrame/durationInFrames, direction, blurPx. NoiseGrain: transparent overlay inside a positioned subject; opacity, seed, grainSize, holdFrames. Neither inserts demo copy or a background.",
       "demoOnlyExports are legacy fixed-content examples, not production content components. Other exports need their documented parameters; prefer the content-parameterized recipes.",
+      "Interface: InterfaceWindow {width,height,minFontSizePx,variant browser|app,title?,url?,theme?,children}; TerminalPanel {lines [{kind command|output|success|error|comment,text}],minFontSizePx,startFrame?,charsPerFrame?,lineDelayFrames?,prompt?,frame?}; CodePanel {code,minFontSizePx,fileName?,framesPerLine?,startFrame?,highlights [{fromLine,toLine,startFrame,endFrame?}],frame?}; RepositoryCard {owner,name,description?,language?{name,color},stars?,topics?,width,minFontSizePx}. Pass sceneViewport.minFontSizePx; sizes below it are raised automatically. theme defaults to interfaceThemes.dark.",
     ],
     example:
       'import {AnimatedText} from "@axmorf/studio/remotion";\nexport const Example = () => <AnimatedText text="One clear step" fontSize={64} color="#292624" staggerInFrames={2} />;',
     selectionAdvice: [
       "Use authored words or visuals, not default demo copy. Keep Composition captions separate.",
       "A component must communicate the Scene meaning; do not add particles or cards simply to consume a capability.",
+      "For software, developer tools and open-source subjects, show the real interface with InterfaceWindow, TerminalPanel, CodePanel and RepositoryCard using real names, commands and addresses; never invent star counts or metrics.",
     ],
   }),
   "capability.sound": CapabilityAuthoringGuideSchema.parse({

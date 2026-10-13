@@ -15,6 +15,8 @@ For a new film or body redesign, the Root also reads the [creative playbook](ref
 design the complete composition and meaningful landings before code. Consult [cases and examples](examples/README.md) as needed.
 For new films and body redesigns apply its [composition and audiovisual rhythm](references/film-direction.md#composition-and-audiovisual-rhythm)
 in the current briefs, including visual states, musical accents and sound events.
+Before writing artDirection, filmPlan and Scene briefs, read the [visual quality bar](references/visual-quality-bar.md):
+replace the recurring slide-per-Beat pattern with a concrete key frame per Beat, a text budget and a chosen artwork route.
 For a new Project read [authoring](references/authoring.md); before preparation read
 [host execution and recovery](references/host-execution-and-recovery.md).
 Use the Workspace's npm scripts and their structured output. Do not use package

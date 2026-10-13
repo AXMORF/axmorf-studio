@@ -20,7 +20,9 @@ Use them for selected reveals and pulse accents, with anticipation beginning bef
 covered Beat boundaries remain authoritative; no forced beat snapping, reset or Audio mount. Quiet joins are valid.
 Do not call Hooks conditionally or in changing-length loops; put per-item Hooks inside stable child components.
 
-The following boundary example is checked by the same Scene validator used in production. Replace its visual with the Beat's meaning:
+The following boundary example is checked by the same Scene validator used in production. It shows only the API shape;
+it is not a size or complexity reference. Replace its visual with the Beat's meaning and the
+[visual quality bar](../../axmorf-video/references/visual-quality-bar.md):
 
 ```tsx
 import type { SceneRendererProps } from "@axmorf/studio/remotion";
@@ -58,10 +60,11 @@ export default Renderer;
 `shots.motionPlan` v2 describes subjects, explanatory actions, narration alignment and
 continuity. It prescribes no trajectories, component, camera motion or transition count.
 Author content-appropriate frame-driven SVG/Canvas or use already supported 3D capabilities;
-reusable components are optional. Keep the existing import/asset allowlist and safe layout.
+reusable components are optional. `ProducerShotStage` and the interface components cover full-bleed shots and real
+software UI; [exemplar Scenes](exemplar-scenes.md) show both alongside crafted SVG lighting. Keep the existing import/asset allowlist and safe layout.
 Tracked v1 and `ProducerMotionObject` remain optional. Direct allowed `remotion` imports work.
-A static reading hold needs no invented motion; legibility can remain stable while other
-objects move. `motionReview.verification` distinguishes DOM dependency evidence from
+A reading hold keeps its text stable; environment or subject layers may continue slow secondary
+motion, and a fully static hold should stay near three seconds or less unless the brief requires longer. `motionReview.verification` distinguishes DOM dependency evidence from
 `unsupported`/`intent-only`; all still need actual temporal review. Technical task acceptance
 never certifies visible semantic correctness or aesthetic quality.
 
@@ -82,6 +85,6 @@ pairs and adequate spacing; when reviewing a render, inspect the text in its act
 
 ## Preview before commit
 
-Use the exact shared-workspace bound `commands.preview` after the outputs pass validation. It renders the owning Scene with unchanged fps at reduced resolution and returns its source fingerprint. Inspect cause, visible change, result and label hold; for visual-only content check muted comprehension, for narrated content compare spoken timing. Amend only your declared outputs. Preview omits adjacent Scenes, GlobalVisual and project music, and cannot certify aesthetics or human listening.
+Use the exact shared-workspace bound `commands.preview` after the outputs pass validation. It renders the owning Scene with unchanged fps at reduced resolution and returns its source fingerprint. Inspect cause, visible change, result and label hold, and answer the quality bar's self-review checklist; for visual-only content check muted comprehension, for narrated content compare spoken timing. Amend only your declared outputs. Preview omits adjacent Scenes, GlobalVisual and project music, and cannot certify aesthetics or human listening.
 
 The optional public `resolveSceneActionTiming({shots, syncAnchors, actionId, sceneFrame})` consumes authored anticipation/change/reading-hold timing without prescribing geometry or easing. The optional Renderer `continuity` prop contains the exact frozen incoming/outgoing seam. Match the actual subject at the boundary; identity alone does not prove pixel continuity.
