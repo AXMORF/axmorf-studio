@@ -70,6 +70,13 @@ npm run doctor
 npm run dev
 ```
 
+已有 Workspace 升级到最新版本时，在 Workspace 目录运行下面的命令。它同时更新 Skill、指南、runtime facade 和
+`@axmorf/studio`，被替换的托管文件会先备份，Projects 与私有配置不受影响：
+
+```bash
+npx create-axmorf-studio@latest upgrade
+```
+
 creator 会安装精确依赖、生成 `package-lock.json`，并在原子提升目标目录前运行无 provider 的
 `bootstrap`/`doctor`。`bootstrap` 同时从 runtime package 投影经过清单与 checksum 验证的共享素材；当前包括
 片头 cinematic impact、片尾 8 秒电子 BGM、可复用 AXMORF 标记，以及

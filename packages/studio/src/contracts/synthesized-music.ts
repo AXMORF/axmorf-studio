@@ -9,16 +9,50 @@ export const SynthesizedMusicTimelineSchema = z
     fps: z.number().int().min(1).max(120),
     bpm: z.number().finite().min(50).max(180),
     beatsPerBar: z.number().int().min(2).max(7),
-    bars: z.number().int().min(1).max(16),
+    bars: z.number().int().min(1).max(64),
     style: z.enum(["organic", "electronic"]),
     seed: z.number().int().min(1).max(0xffffffff),
+    /** Present only for studio-v2 scores; the original engine omits it. */
+    engine: z.literal("studio-v2").optional(),
     durationInFrames: z.number().int().positive().max(20_000),
-    beatFrames: z.array(z.number().int().nonnegative()).max(112).readonly(),
+    beatFrames: z.array(z.number().int().nonnegative()).max(448).readonly(),
+    /** Arrangement sections in composition frames, for aligning narrative turns. */
+    sections: z
+      .array(
+        z
+          .object({
+            startFrame: z.number().int().nonnegative(),
+            bars: z.number().int().positive(),
+            energy: z.number().finite().positive().max(1),
+          })
+          .strict()
+          .readonly(),
+      )
+      .max(64)
+      .readonly()
+      .optional(),
+    /** Crash/arrival frames where a visual landing reads as on the music. */
+    accentFrames: z
+      .array(z.number().int().nonnegative())
+      .max(64)
+      .readonly()
+      .optional(),
     music: z
       .array(
         z
           .object({
-            type: z.enum(["kick", "hat", "bass", "pluck", "pad"]),
+            type: z.enum([
+              "kick",
+              "hat",
+              "bass",
+              "pluck",
+              "pad",
+              "snare",
+              "clap",
+              "lead",
+              "crash",
+              "riser",
+            ]),
             frame: z.number().int().nonnegative(),
             durationInFrames: z.number().int().positive(),
             note: z.number().int().min(0).max(127),
@@ -28,7 +62,7 @@ export const SynthesizedMusicTimelineSchema = z
           .readonly(),
       )
       .min(1)
-      .max(1024)
+      .max(8192)
       .readonly(),
     audioChecksum: Sha256DigestSchema,
   })
@@ -43,7 +77,21 @@ export const SynthesizedMusicTimelineSchema = z
       timeline.beatFrames.some(
         (frame, index) => frame !== Math.round(index * framesPerBeat),
       ) ||
-      timeline.music.some((event) => event.frame >= timeline.durationInFrames)
+      timeline.music.some((event) => event.frame >= timeline.durationInFrames) ||
+      (timeline.engine === undefined &&
+        (timeline.sections !== undefined ||
+          timeline.accentFrames !== undefined ||
+          timeline.bars > 16)) ||
+      timeline.sections?.some(
+        (section, index, sections) =>
+          section.startFrame >= timeline.durationInFrames ||
+          (index > 0 && section.startFrame <= sections[index - 1]!.startFrame),
+      ) ||
+      timeline.accentFrames?.some(
+        (frame, index, frames) =>
+          frame >= timeline.durationInFrames ||
+          (index > 0 && frame <= frames[index - 1]!),
+      )
     ) {
       context.addIssue({
         code: "custom",
@@ -79,17 +127,30 @@ export const resolveSceneMusicTiming = ({
   }
   const beatFrames: number[] = [];
   const barFrames: number[] = [];
+  const sectionFrames: number[] = [];
+  const accentFrames: number[] = [];
+  const project = (frame: number, cycle: number) =>
+    cycle * timeline.durationInFrames + frame - sceneStartFrame;
+  const inside = (local: number) => local >= 0 && local < durationInFrames;
   const firstCycle = Math.floor(sceneStartFrame / timeline.durationInFrames);
   const lastCycle = Math.floor(
     (sceneStartFrame + durationInFrames - 1) / timeline.durationInFrames,
   );
   for (let cycle = firstCycle; cycle <= lastCycle; cycle++) {
     timeline.beatFrames.forEach((frame, index) => {
-      const local = cycle * timeline.durationInFrames + frame - sceneStartFrame;
-      if (local < 0 || local >= durationInFrames) return;
+      const local = project(frame, cycle);
+      if (!inside(local)) return;
       beatFrames.push(local);
       if (index % timeline.beatsPerBar === 0) barFrames.push(local);
     });
+    for (const section of timeline.sections ?? []) {
+      const local = project(section.startFrame, cycle);
+      if (inside(local)) sectionFrames.push(local);
+    }
+    for (const frame of timeline.accentFrames ?? []) {
+      const local = project(frame, cycle);
+      if (inside(local)) accentFrames.push(local);
+    }
   }
   return {
     fps: timeline.fps,
@@ -98,5 +159,6 @@ export const resolveSceneMusicTiming = ({
     sceneStartFrame,
     beatFrames,
     barFrames,
+    ...(timeline.engine === undefined ? {} : { sectionFrames, accentFrames }),
   } as const;
 };

@@ -19,6 +19,19 @@ package checks 再次通过；Skill 上下文预算和共享创作文件同步�
 但包含上述未发布源码，不能用包版本号将两者等同。Git 提交或推送不会更新已安装的 npm 包；原有 Workspace 与
 既有作品未迁移。下方日期小节保留各阶段的实现和验证范围，较早测试数不代表最终累计结果。
 
+## Workspace 升级、配乐与卡点（2026-10-14，源码验证中，未发布）
+
+只升级 `@axmorf/studio` 会让 Workspace 的 Skill 停留在旧版本，bootstrap 还会因 runtime facade 过期而失败。新增
+`npx create-axmorf-studio@latest upgrade`：同步产品托管的 Skill、指南、facade 与 npm scripts，合并 `package.json`，
+运行 install、bootstrap、doctor；被替换的文件先备份到 `.axmorf/backups/`，任一步失败都会还原。`.axmorf/managed.json`
+记录托管文件 checksum，便于识别本地修改。用 npm 上的 0.1.21 真实创建 Workspace 后升级到 0.1.22，doctor 六项通过。
+
+rc1 验收片的配乐只有正弦波音色，音量固定为 0.08，段落和画面落点也对不上。新增可选的 `studio-v2` 配乐引擎：
+滤波和失谐音色、军鼓与拍手、两小节主题动机、混响与同步延迟、底鼓 sidechain，以及进入鼓组段落前的过门、riser 和 crash；
+timeline 冻结 sections/accentFrames，Scene 得到投影后的局部重音。旧引擎配方的音频逐字节不变。`underSpeechVolume`
+冻结为 `speechDucking`，Composition 只在实测旁白分段下平滑压低音乐。新增 `snapProducerFrameToBeat`，质量底线加入卡点自审。
+量化对比显示新配乐覆盖完整频段，响度动态范围从 5.5 增至 8.6 LU；尚未经过人工试听。
+
 ## 0.1.22 发布（2026-10-14）
 
 `v0.1.22-rc.1` 由 tag 触发的新发布流程在 CI 中通过完整检查、最小渲染和全新外部安装，以 provenance 发布到 npm `next`。

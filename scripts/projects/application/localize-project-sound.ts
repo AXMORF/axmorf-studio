@@ -168,6 +168,16 @@ export const prepareProjectSound = async ({
   }
   const volume =
     configured.volume ?? config.audioDefaults?.globalBgm?.volume ?? 0.15;
+  // Legacy producer-config music has no ducking; only explicit create input can request it.
+  const underSpeechVolume =
+    "underSpeechVolume" in configured
+      ? configured.underSpeechVolume
+      : undefined;
+  if (underSpeechVolume !== undefined && underSpeechVolume > volume) {
+    throw new Error(
+      "backgroundMusic.underSpeechVolume must not exceed its volume.",
+    );
+  }
   const resourceId = `asset.${projectId}.background-music` as const;
   const repositoryPath = `public/projects/${projectId}/sound/background-music${extension}`;
   const authorizationFingerprint = createFingerprint({
@@ -279,6 +289,14 @@ export const prepareProjectSound = async ({
             : {
                 fadeInFrames: Math.round(synthesizedMusic.fps * 0.15),
                 fadeOutFrames: synthesizedMusic.fps,
+              }),
+          ...(underSpeechVolume === undefined
+            ? {}
+            : {
+                speechDucking: {
+                  volume: underSpeechVolume,
+                  rampFrames: 8,
+                },
               }),
         },
       ],

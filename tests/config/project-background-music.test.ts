@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import test from "node:test";
 
@@ -184,6 +184,86 @@ test("code-synthesized music freezes mastered original PCM and a shared timeline
     (await create(fixture)).creationIdentity,
     result.creationIdentity,
   );
+});
+
+test("studio-v2 scores freeze their sections and narration ducking into the Project sound plan", async (t) => {
+  const fixture = await prepareProjectCreateFixture();
+  t.after(() => rm(fixture.rootDir, { recursive: true, force: true }));
+  const recipePath = join(fixture.rootDir, "score.json");
+  await writeProjectCreateJson(recipePath, {
+    fps: 30,
+    bpm: 120,
+    bars: 4,
+    style: "electronic",
+    seed: 7,
+    engine: "studio-v2",
+    arrangement: {
+      tonic: "A",
+      mode: "minor",
+      progression: [1, 6],
+      sections: [
+        { bars: 2, instruments: ["pad", "pluck"], density: 0.3, energy: 0.3 },
+        {
+          bars: 2,
+          instruments: ["kick", "snare", "hat", "bass", "lead"],
+          density: 0.8,
+          energy: 0.9,
+        },
+      ],
+    },
+  });
+  const score = JSON.parse(
+    execFileSync(
+      process.execPath,
+      [
+        resolve(".agents/skills/axmorf-video/scripts/synth-score.mjs"),
+        "--input",
+        recipePath,
+        "--id",
+        "story-example",
+      ],
+      { cwd: fixture.rootDir, encoding: "utf8" },
+    ),
+  );
+  assert.deepEqual(score.backgroundMusic.underSpeechVolume, 0.09);
+  // 120 BPM at 30 fps: 60 frames per bar, so the second section starts at frame 120.
+  assert.deepEqual(score.accentFrames, [120]);
+  await writeProjectCreateJson(fixture.inputPath, {
+    ...validProjectCreateInput,
+    backgroundMusic: score.backgroundMusic,
+  });
+  await create(fixture);
+  const sound = ProjectSoundPlanSchema.parse(
+    JSON.parse(
+      await readFile(
+        join(fixture.rootDir, "src/projects/story-example/sound.json"),
+        "utf8",
+      ),
+    ),
+  );
+  assert.equal(sound.synthesizedMusic?.engine, "studio-v2");
+  assert.deepEqual(
+    sound.synthesizedMusic?.sections?.map(({ startFrame }) => startFrame),
+    [0, 120],
+  );
+  assert.equal(sound.contributions[0].volume, 0.24);
+  assert.deepEqual(sound.contributions[0].speechDucking, {
+    volume: 0.09,
+    rampFrames: 8,
+  });
+
+  const louder = await prepareProjectCreateFixture();
+  t.after(() => rm(louder.rootDir, { recursive: true, force: true }));
+  await cp(
+    join(fixture.rootDir, "public/assets/generated-score"),
+    join(louder.rootDir, "public/assets/generated-score"),
+    { recursive: true },
+  );
+  await writeProjectCreateJson(louder.inputPath, {
+    ...validProjectCreateInput,
+    backgroundMusic: { ...score.backgroundMusic, underSpeechVolume: 0.5 },
+  });
+  await assert.rejects(create(louder), /underSpeechVolume must not exceed/u);
 });
 
 test("synthesized score fps and checksum drift fail before a Project is created", async (t) => {

@@ -87,6 +87,8 @@ loop, preserving independent effects. Preserve synthesizedMusic metadata in soun
 follows measured speech; do not retime narration or captions for a beat. Existing library/file music keeps content scope.
 The helper's optional arrangement authors tonic, mode, progression, swing and sections with instruments/density/energy;
 choose them for the film. It compiles to the same timeline, and old recipes without arrangement keep their original behavior.
+New films use `engine: "studio-v2"` and keep the helper's `underSpeechVolume`, which lowers music only under measured
+narration; Scenes then receive sectionFrames/accentFrames to land their biggest moments on the music.
 Legacy playback scopes remain frozen until an explicit revision.
 Read the authoring reference for raw input shapes and runtime-upgrade base verification.
 The bound `scene.priorSource`, when present, is only the owning Scene's verified, frozen current base graph and declarations.
@@ -146,6 +148,11 @@ not-assessed and cannot certify creative quality or current delivery. Committed 
 GlobalVisual exports `GlobalVisualBaseLayer` as a full-Composition base and `GlobalVisualDecorationLayers` as decoration that
 is sequenced from the first through last content Beat (narrated or authored scene-owner) with local frame zero at
 that window's start. It must not read Scene output or carry Beat-specific copy.
+
+When the user asks to upgrade this Workspace, run `npm run workspace:upgrade -- --dry-run`, report the listed changes and
+`localChanges`, then run `npm run workspace:upgrade`. It replaces only product-managed files after backing them up,
+keeps Projects and private configuration, and restores everything if install, bootstrap or doctor fails. Never upgrade
+`@axmorf/studio` alone: the Skill and runtime facades must change together. Do not upgrade during an active production.
 
 Never publish, push, delete a Project, or expose private configuration unless
 the user explicitly requests that action. Project deletion must use

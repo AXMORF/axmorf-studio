@@ -49,12 +49,28 @@ test("arguments are strict and keep the test runtime override explicit", () => {
       "./runtime.tgz",
     ]),
     {
+      command: "create",
+      dryRun: false,
       target: "my-video",
       yes: true,
       install: false,
       runtimePackage: "./runtime.tgz",
       help: false,
     },
+  );
+  assert.deepEqual(parseArguments(["upgrade", "--dry-run"]), {
+    command: "upgrade",
+    dryRun: true,
+    target: ".",
+    yes: false,
+    install: true,
+    runtimePackage: parseArguments(["x"]).runtimePackage,
+    help: false,
+  });
+  assert.equal(parseArguments(["upgrade", "../ws"]).target, "../ws");
+  assert.throws(
+    () => parseArguments(["one", "--dry-run"]),
+    /only valid with upgrade/u,
   );
   assert.throws(() => parseArguments([]), /target directory is required/u);
   assert.throws(() => parseArguments(["one", "two"]), /Exactly one target/u);

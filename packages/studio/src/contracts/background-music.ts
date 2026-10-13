@@ -8,6 +8,8 @@ export const AutomaticBackgroundMusicSchema = z
   .object({
     mode: z.literal("auto"),
     volume: VolumeSchema.optional(),
+    /** Music volume while narration speaks; omitted keeps one constant volume. */
+    underSpeechVolume: VolumeSchema.optional(),
     resourceIds: z
       .array(ResourceIdSchema)
       .min(1)
@@ -43,6 +45,7 @@ export const ProjectBackgroundMusicSelectionSchema = z
             /^public\/assets\/generated-score\/[a-z0-9]+(?:-[a-z0-9]+)*\/timeline\.json$/u,
           ),
         volume: VolumeSchema.optional(),
+        underSpeechVolume: VolumeSchema.optional(),
       })
       .strict()
       .readonly(),
@@ -51,6 +54,7 @@ export const ProjectBackgroundMusicSelectionSchema = z
         mode: z.literal("selected"),
         resourceId: ResourceIdSchema,
         volume: VolumeSchema.optional(),
+        underSpeechVolume: VolumeSchema.optional(),
       })
       .strict()
       .readonly(),

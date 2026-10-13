@@ -114,6 +114,7 @@ export {
   resolveProducerWorldCamera2D,
   resolveSceneMotionObjectState,
   retimeProducerSemanticEvents,
+  snapProducerFrameToBeat,
   unprojectProducerWorldPoint2D,
   useEntranceProgress,
 } from "@axmorf/studio/remotion";

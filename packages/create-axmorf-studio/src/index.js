@@ -1,8 +1,14 @@
+import { createRequire } from "node:module";
 import process from "node:process";
 
 import { parseArguments, usage } from "./arguments.js";
 import { createNpmCommandRunner } from "./npm-command.js";
 import { createWorkspace } from "./scaffold.js";
+import { upgradeWorkspace } from "./upgrade.js";
+
+const { version: releaseVersion } = createRequire(import.meta.url)(
+  "../package.json",
+);
 
 export const runCli = async (
   argv,
@@ -24,6 +30,26 @@ export const runCli = async (
   if (parsed.help) {
     stdout(`${usage}\n`);
     return { status: "help" };
+  }
+  if (parsed.command === "upgrade") {
+    const upgraded = await upgradeWorkspace(
+      {
+        cwd,
+        target: parsed.target,
+        install: parsed.install,
+        dryRun: parsed.dryRun,
+        runtimePackage: parsed.runtimePackage,
+        creatorVersion: releaseVersion,
+      },
+      {
+        ...(filesystem === undefined ? {} : { filesystem }),
+        ...(templateRoot === undefined ? {} : { templateRoot }),
+        runCommand,
+        progress: stderr,
+      },
+    );
+    stdout(`${JSON.stringify(upgraded)}\n`);
+    return upgraded;
   }
   const result = await createWorkspace(
     {
@@ -51,9 +77,17 @@ export {
 } from "./npm-command.js";
 export { createWorkspace } from "./scaffold.js";
 export {
+  MANAGED_FILES,
+  MIRRORED_DIRECTORIES,
+  desiredManagedFiles,
+  planWorkspaceUpgrade,
+  upgradeWorkspace,
+} from "./upgrade.js";
+export {
   RUNTIME_PACKAGE_NAME,
   createEmptyResourceCatalog,
   createPackageJson,
   createSafeProducerConfig,
+  mergeWorkspacePackageJson,
   normalizeRuntimePackage,
 } from "./template-values.js";

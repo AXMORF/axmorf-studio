@@ -89,7 +89,8 @@ Root 在写 create input 前定整片设计；新建/大幅改造的 Scene execu
 
 ## Code-synthesized music and shared timing
 
-新片配乐由 Root 按 [原创编曲](score-arrangement.md) 在 create 前本地合成，明确调性/和声、段落、配器、疏密、力度与休止。
+新片配乐由 Root 按 [原创编曲](score-arrangement.md) 在 create 前用 studio-v2 引擎本地合成，明确调性/和声、段落、配器、
+疏密、力度与休止，段落跟随叙事，重音对应关键画面，旁白下自动避让。
 合成 WAV 与 timeline 同源；create 冻结 bytes，composition 从帧0连续播放，保留独立音效。旧六字段配方保持兼容，
 新片填写 arrangement，不以改变 seed/BPM 代替编曲。显式无音乐仍用 null。
 

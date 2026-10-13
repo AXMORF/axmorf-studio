@@ -26,8 +26,29 @@ const ProjectSoundContributionSchema = z
     ]),
     fadeInFrames: NonNegativeIntegerSchema.optional(),
     fadeOutFrames: NonNegativeIntegerSchema.optional(),
+    /** Lowers music to `volume` across measured narration chunks with linear ramps. */
+    speechDucking: z
+      .object({
+        volume: z.number().finite().min(0).max(1),
+        rampFrames: z.number().int().min(1).max(60),
+      })
+      .strict()
+      .readonly()
+      .optional(),
   })
   .strict()
+  .superRefine((contribution, context) => {
+    if (
+      contribution.speechDucking !== undefined &&
+      contribution.speechDucking.volume > contribution.volume
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Speech ducking cannot raise music above its base volume.",
+        path: ["speechDucking", "volume"],
+      });
+    }
+  })
   .readonly();
 
 const ProjectSoundPlanInputObject = z

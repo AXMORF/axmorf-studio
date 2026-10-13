@@ -116,6 +116,7 @@ export const capabilityAuthoringGuides = {
       "resolveProducerGather2D",
       "mapProducerSemanticFrame",
       "retimeProducerSemanticEvents",
+      "snapProducerFrameToBeat",
     ],
     parameters: [
       "Parse shot-plan.json motionPlan with SceneMotionPlanSchema from @axmorf/studio/contracts. Intent-first v2 records subjects, actions and semantic anchors; the Renderer owns frame-driven geometry. Tracked v1 adds sorted {frame,state,easing} keyframes with state {x,y,scale,rotation,opacity,reveal,value}; x/y are viewport ratios and value stays in the authored data domain.",
@@ -124,6 +125,7 @@ export const capabilityAuthoringGuides = {
       "Continuous world: resolveProducerWorldCamera2D(keyframes,frame) accepts {frame,position:[x,y],zoom,rotation,easing?}; position is the world point at viewport center, rotation is degrees. project/unprojectProducerWorldPoint2D(point,camera,{width,height}) converts world/viewport coordinates. Keep one world through all coveredBeats.",
       "resolveProducerSettle({from,to,frame,startFrame,timeConstantFrames}) is an analytic critically damped response. resolveProducerFollow2D([{frame,position}],frame,{timeConstantFrames,offset?}) follows a piecewise-linear target without previous-frame state.",
       "resolveProducerPointMorph2D(fromPoints,toPoints,frame,{startFrame,endFrame,easing?}) requires equal indexed topology. resolveProducerGather2D(points,target,frame,{startFrame,endFrame,easing?,staggerInFrames?}) closes within the shared window.",
+      "snapProducerFrameToBeat(frame,gridFrames,{maxShiftFrames?=4,minFrame?,maxFrame?}) returns the nearest musicTiming accent/section/bar/beat frame inside the permitted window, or the unchanged semantic frame. Snap biggest landings to accentFrames/sectionFrames first, then barFrames, then beatFrames.",
       "mapProducerSemanticFrame([{id,sourceFrame,targetFrame}],frame,direction?) maps ordered source-to-target or target-to-source time, including fractional frames. retimeProducerSemanticEvents(anchors,[{id,frame,...payload}],direction?) maps the same visual/sound event list. Both reject extrapolation; author explicit endpoints. Target anchors come from verified narration cues in sealed-narration or supplied frame windows in authored-frames, never estimated speech speed.",
     ],
     example:
