@@ -158,6 +158,7 @@
     "check:static": "npm run test && npm run typecheck && npm run lint && npm run docs:check-links && npm run scene-template-audio:check && npm run catalog:check && npm run registry:check && npm run config:build && npm run build",
     "check:host": "npm run compositions && npm run project:verify -- --all --scope source",
     "check": "npm run check:static && npm run check:host",
+    "release:prepare": "node --import tsx scripts/release/prepare-version.ts",
     "project:create:context": "node --import tsx scripts/projects/create.ts context",
     "project:attempt:interrupt-inspect": "node --import tsx scripts/project-production/cli.ts attempt-interrupt-inspect",
     "project:attempt:interrupt": "node --import tsx scripts/project-production/cli.ts attempt-interrupt"

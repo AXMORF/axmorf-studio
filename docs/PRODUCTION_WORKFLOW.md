@@ -477,8 +477,7 @@ Browser preparation, real-render readiness, bounded media processes and explicit
 
 ## npm 工程发布
 
-完成源码与文档对齐、适用检查和 commit/push 后，用不可变版本 tag 触发现有 npm publish Actions。
-按[分层发布门禁](guides/FIRST_USE_RELEASE_GATE.md)审核相对已发布 baseline 的实际 diff；普通发布不重复
-从头制作视频，production/执行合同/scaffold 重大变更要求完整原生首用，第二宿主只由对应兼容性变更或明确请求决定。
-所有发布仍验证精确包内容、源码、type/lint/build、受影响回归、全新安装及最小真实渲染。Actions 成功后须复验
-registry latest、完整安装包、准确源码 SHA 和公共全新安装。原生制作证据与安装 smoke 范围分别报告。
+完成源码与文档对齐、适用检查并合入默认分支后，按[发布流程](guides/FIRST_USE_RELEASE_GATE.md)用
+`npm run release:prepare` 设置版本，推送不可变版本 tag 触发 npm publish Actions。CI 运行完整检查、最小真实渲染与
+全新外部安装后发布：预发布版本进入 `next`，用真实 Agent 宿主在全新 Workspace 完成一部视频后，再以正式版本发布到
+`latest`。原生制作证据与安装检查范围分别报告。

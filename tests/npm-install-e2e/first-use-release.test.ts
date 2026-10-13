@@ -565,21 +565,36 @@ test("package fingerprint ignores archive metadata but binds actual packed files
   );
 });
 
-test("publication verifies scoped exact candidates before publishing either package", async () => {
+test("tag publication runs complete technical gates before publishing either package", async () => {
   const workflow = await readFile(".github/workflows/npm-publish.yml", "utf8");
+  assert.match(workflow, /push:\n\s+tags:\n\s+- "v\*"/u);
   assert.match(
     workflow,
-    /test -f "docs\/evidence\/v\$\{root_version\}-release-plan\.json"/u,
+    /git merge-base --is-ancestor "\$GITHUB_SHA" "origin\/\$DEFAULT_BRANCH"/u,
   );
-  assert.ok(
-    workflow.indexOf("release-gate.ts verify") <
-      workflow.indexOf('npm publish "$tarball"'),
-  );
-  assert.match(workflow, /if \[\[ "\$NATIVE_FIRST_USE" == "true" \]\]/u);
-  assert.match(workflow, /remotion render src\/index\.ts DefaultIntroPreview/u);
+  assert.match(workflow, /npm run check\n/u);
+  assert.match(workflow, /npm audit --audit-level=low/u);
   assert.match(
     workflow,
-    /create-axmorf-studio workspace --yes --runtime-package/u,
+    /if \[\[ "\$root_version" == \*-\* \]\]; then dist_tag=next; else dist_tag=latest; fi/u,
+  );
+  const publish = workflow.indexOf('npm publish "$tarball"');
+  for (const gate of [
+    "npm run check",
+    "remotion render src/index.ts DefaultIntroPreview",
+    "create-axmorf-studio workspace --yes --runtime-package",
+    "Verify exact candidate versions",
+  ]) {
+    assert.ok(
+      workflow.indexOf(gate) >= 0 && workflow.indexOf(gate) < publish,
+      gate,
+    );
+  }
+  assert.match(workflow, /--provenance --tag "\$DIST_TAG"/u);
+  // Agent first-use acceptance gates promotion to latest, not publication.
+  assert.doesNotMatch(
+    workflow,
+    /release-plan|NATIVE_FIRST_USE|reuse_reviewed_acceptance/u,
   );
 });
 

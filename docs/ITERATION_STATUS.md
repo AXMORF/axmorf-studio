@@ -19,6 +19,18 @@ package checks 再次通过；Skill 上下文预算和共享创作文件同步�
 但包含上述未发布源码，不能用包版本号将两者等同。Git 提交或推送不会更新已安装的 npm 包；原有 Workspace 与
 既有作品未迁移。下方日期小节保留各阶段的实现和验证范围，较早测试数不代表最终累计结果。
 
+## 画面质量与发布流程（2026-10-14，源码验证完成，未发布）
+
+审阅用户 Workspace 的 17 个 Project 后确认，成片普遍呈现“一 Beat 一页幻灯片”：固定的标题、带框插图、说明与页脚，
+主体为手写的简单 SVG，相隔数秒的帧几乎不变，且没有任何 Project 导入过图片素材。已合入默认分支的改动包括：
+Skill 的画面质量底线与 commit 前自审清单；`ProducerShotStage` 全幅镜头舞台；`InterfaceWindow`、`TerminalPanel`、
+`CodePanel`、`RepositoryCard` 真实界面组件；两个通过真实 Scene 校验的标杆 Scene，Scene executor 可借鉴其技法，
+用户历史作品仍不可参考，原创性校验不变。`npm run check:static` 1514 项测试通过，并实际渲染了 1080×1920 静帧。
+
+发布流程简化为两道门：tag 触发的 CI 完整检查通过即发布；预发布版本进入 `next`，真实 Agent 宿主验收后再发布正式版本到
+`latest`。不再要求 release plan、验收复用审批或发布后补写的记录。见[发布流程](guides/FIRST_USE_RELEASE_GATE.md)。
+这些改进在发布前不会进入 npm 包或既有 Workspace。
+
 ## Edge TTS 端点迁移（2026-10-13，源码验证完成，未发布）
 
 真实制作首段失败后，用户明确选择保留 Edge TTS 并排查。原 `node-edge-tts@1.2.10` 对旧端点握手返回 403；

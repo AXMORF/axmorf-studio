@@ -60,5 +60,5 @@ A requested authoring change still uses an isolated revision. See the bundled au
 Creator writes stage start/waiting/complete/failure and elapsed time to stderr while preserving npm output and final JSON stdout.
 Progress indicates a running stage, not estimated percent completion. npm log locations remain available if staging is removed.
 
-Release evidence follows the [first-use release gate](FIRST_USE_RELEASE_GATE.md): fresh candidates, business-only prompts,
-original transcripts, unchanged installed files and verified deliveries before publication; public npm runs follow publication.
+Releases follow the [release process](FIRST_USE_RELEASE_GATE.md): CI technical gates publish a prerelease to `next`; a fresh
+Workspace, one business-only prompt, unchanged installed files and a verified delivery promote the version to `latest`.

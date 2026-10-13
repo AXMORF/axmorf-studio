@@ -40,10 +40,10 @@ create input 可选 `backgroundMusic`：synthesized 为新片 Skill 使用的原
 create-time 本地化冻结 checksum/license/Project-owned bytes；一个 content-window 音轨覆盖正文，抑制正文 Scene 的第二条音乐，
 首尾模板配乐保留，音效仍按独立 anchor 混音。旧 composition/narrated-content/content Plan 不自动迁移，空曲库返回 unavailable 和空 Project 音轨。
 
-发布控制器独立于生产 runtime：`scripts/release/release-gate.ts` 由已审核 release plan 与 baseline tag diff
-决定普通或 native scope；两包内容 fingerprint 始终复验。production/合同/scaffold 变更要求主宿主原生首用，
-第二宿主只按实际兼容性变更或明确全验收请求加入。CI 始终保留 type/lint/build、回归、全新安装及最小实际渲染。
-既有可信 npm Actions 执行发布；规则和原生日志不进入公开包。见[发布门禁](guides/FIRST_USE_RELEASE_GATE.md)。
+发布独立于生产 runtime：推送版本 tag 后，可信 npm Actions 在默认分支已合入的 commit 上运行完整 `npm run check`、
+最小实际渲染与全新外部安装，通过后以 provenance 发布；预发布版本进入 `next`，正式版本进入 `latest`。
+真实 Agent 宿主验收是 `next` 晋级为正式版本的条件，不阻塞发布；`scripts/release/` 的原生运行审计工具保留为可选诊断。
+规则和原生日志不进入公开包。见[发布流程](guides/FIRST_USE_RELEASE_GATE.md)。
 
 ## 1. 模块与依赖方向
 

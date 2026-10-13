@@ -1,17 +1,12 @@
 name: Publish npm packages
 
+# Pushing v1.2.3 publishes to `latest`; a prerelease tag such as v1.2.3-rc.1 publishes to `next`.
+# Agent first-use acceptance runs against `next` and is not a publication gate.
 on:
-  workflow_dispatch:
-    inputs:
-      confirm_version:
-        description: Type the exact release tag, for example v0.1.0
-        required: true
-        type: string
-      reuse_reviewed_acceptance:
-        description: Optional exact tag approving the plan's documented prior acceptance reuse
-        required: false
-        default: ""
-        type: string
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch: {}
 
 permissions:
   contents: read
@@ -28,7 +23,6 @@ jobs:
     timeout-minutes: 120
     env:
       NPM_CONFIG_REGISTRY: https://registry.npmjs.org
-      AXMORF_RELEASE_NATIVE_REUSE_TAG: ${{ inputs.reuse_reviewed_acceptance }}
     steps:
       - name: Checkout exact release tag
         uses: actions/checkout@v6
@@ -44,10 +38,11 @@ jobs:
           registry-url: https://registry.npmjs.org
           package-manager-cache: false
 
-      - name: Verify tag and package versions
+      - name: Verify tag, default-branch ancestry and package versions
+        id: version
         shell: bash
         env:
-          CONFIRM_VERSION: ${{ inputs.confirm_version }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
           set -euo pipefail
           test "$GITHUB_REF_TYPE" = "tag"
@@ -57,8 +52,11 @@ jobs:
           test "$runtime_version" = "$root_version"
           test "$creator_version" = "$root_version"
           test "$GITHUB_REF_NAME" = "v$root_version"
-          test "$CONFIRM_VERSION" = "$GITHUB_REF_NAME"
-          test -f "docs/evidence/v${root_version}-release-plan.json"
+          # Releases come only from commits already merged into the default branch.
+          git merge-base --is-ancestor "$GITHUB_SHA" "origin/$DEFAULT_BRANCH"
+          if [[ "$root_version" == *-* ]]; then dist_tag=next; else dist_tag=latest; fi
+          echo "dist_tag=$dist_tag" >>"$GITHUB_OUTPUT"
+          echo "Publishing $root_version to npm dist-tag $dist_tag."
 
       - name: Install exact dependencies
         run: npm ci
@@ -68,43 +66,14 @@ jobs:
           sudo apt-get update
           sudo apt-get install --yes ffmpeg
 
-      - name: Resolve reviewed release scope
-        id: scope
-        shell: bash
-        run: |
-          set -euo pipefail
-          version="$(node -p 'require("./package.json").version')"
-          node --import tsx scripts/release/release-gate.ts inspect "docs/evidence/v${version}-release-plan.json" >"$RUNNER_TEMP/release-scope.json"
-          echo "native_first_use=$(node -p 'require(process.argv[1]).freshNativeFirstUse' "$RUNNER_TEMP/release-scope.json")" >>"$GITHUB_OUTPUT"
-
-      - name: Run package gates and scoped regressions
+      - name: Run package and complete repository gates
         shell: bash
         run: |
           set -euo pipefail
           npm run packages:typecheck
           npm run packages:build
-          version="$(node -p 'require("./package.json").version')"
-          node --import tsx scripts/release/release-gate.ts regressions "docs/evidence/v${version}-release-plan.json"
           npm audit --audit-level=low
-
-      - name: Run complete repository gates for major scope
-        if: steps.scope.outputs.native_first_use == 'true'
-        run: npm run check
-
-      - name: Run ordinary release source and build gates
-        if: steps.scope.outputs.native_first_use != 'true'
-        shell: bash
-        run: |
-          set -euo pipefail
-          npm run typecheck
-          npm run lint
-          npm run docs:check-links
-          npm run scene-template-audio:check
-          npm run catalog:check
-          npm run registry:check
-          npm run config:build
-          npm run build
-          npm run check:host
+          npm run check
 
       - name: Render and decode minimal runtime evidence
         shell: bash
@@ -180,27 +149,16 @@ jobs:
           npm ls remotion @remotion/cli --json >"$RELEASE_ROOT/workspace-remotion-versions.json"
           cp package-lock.json "$RELEASE_ROOT/workspace-package-lock.json"
 
-      - name: Verify scoped release evidence against exact candidates
+      - name: Verify exact candidate versions
         shell: bash
         env:
-          RUNTIME_TARBALL: ${{ steps.pack.outputs.runtime_tarball }}
-          CREATOR_TARBALL: ${{ steps.pack.outputs.creator_tarball }}
           RELEASE_ROOT: ${{ runner.temp }}/axmorf-npm-release
-          NATIVE_FIRST_USE: ${{ steps.scope.outputs.native_first_use }}
         run: |
           set -euo pipefail
           version="$(node -p 'require("./package.json").version')"
-          plan="docs/evidence/v${version}-release-plan.json"
-          evidence=()
-          if [[ "$NATIVE_FIRST_USE" == "true" ]]; then
-            receipt="docs/evidence/v${version}-first-use.json"
-            test -f "$receipt"
-            evidence=("$receipt")
-            cp "$receipt" "$RELEASE_ROOT/first-use.json"
-          fi
-          node --import tsx scripts/release/release-gate.ts verify "$plan" "$RUNTIME_TARBALL" "$CREATOR_TARBALL" "${evidence[@]}" | tee "$RELEASE_ROOT/release-verification.json"
-          cp "$plan" "$RELEASE_ROOT/release-plan.json"
-          cp "$RUNNER_TEMP/release-scope.json" "$RELEASE_ROOT/release-scope.json"
+          for pack in runtime creator; do
+            test "$(node -p 'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"))[0].version' "$RELEASE_ROOT/$pack-pack.json")" = "$version"
+          done
           cp "$RUNNER_TEMP/runtime-render-evidence.json" "$RELEASE_ROOT/runtime-render-evidence.json"
 
       - name: Publish or verify exact package versions
@@ -210,6 +168,7 @@ jobs:
           CREATOR_TARBALL: ${{ steps.pack.outputs.creator_tarball }}
           RUNTIME_INTEGRITY: ${{ steps.pack.outputs.runtime_integrity }}
           CREATOR_INTEGRITY: ${{ steps.pack.outputs.creator_integrity }}
+          DIST_TAG: ${{ steps.version.outputs.dist_tag }}
         run: |
           set -euo pipefail
 
@@ -226,7 +185,7 @@ jobs:
               return
             fi
 
-            npm publish "$tarball" --access public --provenance
+            npm publish "$tarball" --access public --provenance --tag "$DIST_TAG"
             registry_integrity=""
             for attempt in {1..30}; do
               registry_integrity="$(npm view "$package_name@$package_version" dist.integrity 2>/dev/null || true)"
@@ -257,6 +216,7 @@ jobs:
             echo "- Repository: \`$GITHUB_REPOSITORY\`"
             echo "- Commit: \`$GITHUB_SHA\`"
             echo "- Ref: \`$GITHUB_REF_NAME\`"
+            echo "- npm dist-tag: \`${{ steps.version.outputs.dist_tag }}\`"
             if [[ -f "$RELEASE_ROOT/SHA256SUMS" ]]; then
               echo
               echo '```text'
