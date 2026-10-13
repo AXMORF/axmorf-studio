@@ -15,6 +15,7 @@ const declarations = [
     id: "capability.camera",
     useCases: [
       "depth and occlusion 分层视差",
+      "full-bleed push and pan 全幅推拉摇镜",
       "spatial relationships 3D 空间",
       "subject tracking 镜头跟随",
     ],
@@ -83,6 +84,7 @@ const declarations = [
     useCases: [
       "authored transition 内容转场",
       "material grain 颗粒材质",
+      "software interface 软件界面 终端 代码",
       "typography 文字动画",
     ],
     title: "Visual components",

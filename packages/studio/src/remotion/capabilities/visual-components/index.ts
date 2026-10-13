@@ -107,3 +107,4 @@ export type { PoppingTextProps } from "./text/PoppingText";
 export type { RemotionTheme } from "./theme";
 export type { CrossDissolveProps } from "./transition-components/CrossDissolve";
 export { useEntranceProgress } from "./transition-components/useEntranceProgress";
+export * from "./interface";

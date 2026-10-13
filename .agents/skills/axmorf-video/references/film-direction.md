@@ -20,8 +20,8 @@ a cut. Preserve per-Beat meaning/timing and freeze cross-owner handoffs through 
 separate. Briefs must suffice without the Root conversation. No Scene count, camera or transition-sound quota applies;
 long Scenes, quiet cuts and fades are valid. Do not split a world merely to allocate workers.
 
-Before coding, apply [Visual craft](#visual-craft) and [audiovisual rhythm](#composition-and-audiovisual-rhythm)
-in existing artDirection and Scene briefs. Verify sources; keep only real
+Before coding, apply [Visual craft](#visual-craft), [audiovisual rhythm](#composition-and-audiovisual-rhythm) and the
+[visual quality bar](visual-quality-bar.md) in existing artDirection and Scene briefs. Verify sources; keep only real
 facts. An early hook is useful when the inherited opening permits it.
 
 Budget the requested total including inherited bookends and lead/tail. For authored-frames, allocate only the remaining
@@ -106,11 +106,11 @@ Cues can be silent. Timeline metadata never authorizes new outputs or immutable 
 
 ## Scene execution
 
-Use only bound current context and allowed resources, never historical Scenes or images as a creative template. Preserve
+Use only bound current context, allowed resources and the shipped exemplar Scenes; never use historical Project Scenes or images as a creative template. Preserve
 object identity and causal state across coveredBeats using the uninterrupted sceneFrame. Evaluate motion from frames,
 including arbitrary seeks; analytic follow/settle can express inertia without accumulating render history.
-Apply [Visual craft](#visual-craft) and [audiovisual rhythm](#composition-and-audiovisual-rhythm)
-to the frozen brief and actual viewport; preserve the assigned scope.
+Apply [Visual craft](#visual-craft), [audiovisual rhythm](#composition-and-audiovisual-rhythm) and the
+[visual quality bar](visual-quality-bar.md) to the frozen brief and actual viewport; preserve the assigned scope.
 
 Separate world geometry, camera transforms and stable reading text. Give each transform one owner; do not accidentally
 apply the same rotation or scale in two camera layers. Move the camera to reveal detail, follow an action or expose a

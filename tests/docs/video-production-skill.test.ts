@@ -478,7 +478,38 @@ test("skill directory contains only the declared production and creative bundle"
     "scene-agent-orchestration.md",
     "score-arrangement.md",
     "task-execution-protocol.md",
+    "visual-quality-bar.md",
   ]);
+});
+
+test("visual quality bar is shared with the creator and routed to Root briefs and Scene self-review", async () => {
+  const barPath = "references/visual-quality-bar.md";
+  const bar = await readSkillFile(barPath);
+  const templateSkillRoot = path.join(
+    process.cwd(),
+    "packages/create-axmorf-studio/template/.agents/skills/axmorf-video",
+  );
+  assert.equal(
+    await readFile(path.join(templateSkillRoot, barPath), "utf8"),
+    bar,
+  );
+  assert.match(bar, /一 Beat 一页幻灯片/u);
+  assert.match(bar, /commit 前自审/u);
+  assert.match(bar, /not-assessed/u);
+  assert.match(
+    await readSkillFile("references/film-direction.md"),
+    /\[visual quality bar\]\(visual-quality-bar\.md\)/u,
+  );
+  for (const relativePath of [
+    "SKILL.md",
+    "references/production-workflow.md",
+  ]) {
+    assert.match(
+      await readFile(path.join(templateSkillRoot, relativePath), "utf8"),
+      /visual-quality-bar\.md/u,
+      `${relativePath} must route to the visual quality bar`,
+    );
+  }
 });
 
 test("film direction is shared with the creator and reachable by isolated Scene executors", async () => {

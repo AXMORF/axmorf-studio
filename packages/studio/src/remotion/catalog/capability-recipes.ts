@@ -2,6 +2,18 @@
 export const capabilityRecipes = {
   camera: [
     {
+      id: "full-bleed-shot",
+      whenToUse:
+        "Fill the whole viewport with one world and move between shots by push, pull and pan instead of a boxed illustration (全幅、推近、拉远、摇镜、镜头变化).",
+      exports: ["ProducerShotStage"],
+      example: `import type {ReactNode} from "react";
+import {ProducerShotStage, SceneTextSafeArea} from "@axmorf/studio/remotion";
+export const Example = ({width,height,background,subject,foreground,text}:{width:number;height:number;background:ReactNode;subject:ReactNode;foreground:ReactNode;text:ReactNode}) => <ProducerShotStage width={width} height={height}
+shots={[{frame:0,focus:[0.5,0.5],zoom:1,easing:"ease-in-out"},{frame:45,focus:[0.5,0.5],zoom:1,easing:"ease-in-out"},{frame:80,focus:[0.5,0.42],zoom:1.45,easing:"ease-in-out"},{frame:110,focus:[0.5,0.42],zoom:1.45,easing:"ease-in-out"},{frame:150,focus:[0.52,0.7],zoom:1.6,rotation:-2}]}
+drift={{amplitudePx:8,periodFrames:150}} background={background} subject={subject} foreground={foreground}
+overlay={<SceneTextSafeArea><div style={{position:"absolute",inset:0,height:"22%",background:"linear-gradient(#05080fee 55%, #05080f00)"}}/>{text}</SceneTextSafeArea>}/>;`,
+    },
+    {
       id: "artwork-depth",
       whenToUse:
         "Stage approved background art, a transparent subject and authored foreground occlusion; keep readable text out of the camera (生成图片、透明主体、接触阴影、前景遮挡、层次).",
@@ -62,6 +74,27 @@ return <div style={{width,height,transform:\`translate(\${width/2-x}px,\${height
     },
   ],
   visual: [
+    {
+      id: "software-interface",
+      whenToUse:
+        "Show a real developer tool, repository, terminal session or code change as a credible interface (软件界面、终端、代码、开源仓库、命令行).",
+      exports: [
+        "InterfaceWindow",
+        "TerminalPanel",
+        "CodePanel",
+        "RepositoryCard",
+      ],
+      example: `import {CodePanel, InterfaceWindow, RepositoryCard, TerminalPanel} from "@axmorf/studio/remotion";
+export const Example = ({minFontSizePx}:{minFontSizePx:number}) => <div style={{position:"absolute",inset:0}}>
+<div style={{position:"absolute",left:70,top:330}}><InterfaceWindow width={940} height={760} minFontSizePx={minFontSizePx} url="github.com/owner/project">
+<div style={{padding:36,display:"flex",flexDirection:"column",gap:28}}>
+<RepositoryCard owner="owner" name="project" description="What the project actually does" language={{name:"TypeScript",color:"#3178c6"}} topics={["agent"]} width={868} minFontSizePx={minFontSizePx}/>
+<CodePanel code={"import { run } from \\"project\\";\\nawait run();"} fileName="example.ts" minFontSizePx={minFontSizePx} startFrame={20} highlights={[{fromLine:2,toLine:2,startFrame:70}]}/>
+</div></InterfaceWindow></div>
+<div style={{position:"absolute",left:150,top:1150}}><InterfaceWindow width={860} height={420} minFontSizePx={minFontSizePx} variant="app" title="zsh">
+<TerminalPanel minFontSizePx={minFontSizePx} startFrame={90} lines={[{kind:"command",text:"npx project run"},{kind:"success",text:"done"}]}/>
+</InterfaceWindow></div></div>;`,
+    },
     {
       id: "authored-whip-pan",
       whenToUse:
