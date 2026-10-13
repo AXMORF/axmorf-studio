@@ -8,6 +8,7 @@ import {
   resolve,
   sep,
 } from "node:path";
+import { createRequire } from "node:module";
 import { fileURLToPath, URL } from "node:url";
 import { performance } from "node:perf_hooks";
 import process from "node:process";
@@ -19,7 +20,15 @@ import {
   createSafeProducerConfig,
   normalizeRuntimePackage,
 } from "./template-values.js";
+import {
+  MANAGED_MANIFEST_PATH,
+  createManagedManifest,
+  desiredManagedFiles,
+} from "./upgrade.js";
 
+const { version: CREATOR_VERSION } = createRequire(import.meta.url)(
+  "../package.json",
+);
 const DEFAULT_TEMPLATE_ROOT = fileURLToPath(
   new URL("../template", import.meta.url),
 );
@@ -225,6 +234,14 @@ export const createWorkspace = async (
       filesystem,
       join(stagingPath, "src/remotion/catalog/resource-catalog.generated.json"),
       createEmptyResourceCatalog(),
+    );
+    // Record product-managed file checksums so later upgrades can detect local edits.
+    const { managed } = await desiredManagedFiles({ templateRoot, filesystem });
+    await filesystem.mkdir(join(stagingPath, ".axmorf"), { recursive: true });
+    await writeJson(
+      filesystem,
+      join(stagingPath, MANAGED_MANIFEST_PATH),
+      createManagedManifest({ managed, creatorVersion: CREATOR_VERSION }),
     );
     await validateGeneratedWorkspace({ rootDir: stagingPath, filesystem });
 

@@ -147,6 +147,11 @@ GlobalVisual exports `GlobalVisualBaseLayer` as a full-Composition base and `Glo
 is sequenced from the first through last content Beat (narrated or authored scene-owner) with local frame zero at
 that window's start. It must not read Scene output or carry Beat-specific copy.
 
+When the user asks to upgrade this Workspace, run `npm run workspace:upgrade -- --dry-run`, report the listed changes and
+`localChanges`, then run `npm run workspace:upgrade`. It replaces only product-managed files after backing them up,
+keeps Projects and private configuration, and restores everything if install, bootstrap or doctor fails. Never upgrade
+`@axmorf/studio` alone: the Skill and runtime facades must change together. Do not upgrade during an active production.
+
 Never publish, push, delete a Project, or expose private configuration unless
 the user explicitly requests that action. Project deletion must use
 `npm run project:delete -- --project <storyId> --confirm-delete`.

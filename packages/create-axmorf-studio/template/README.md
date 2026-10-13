@@ -75,6 +75,7 @@ executable before creation, `doctor`, and production. The real browser render ch
 | Review local reference cuts, motion and frames | `npm run reference:analyze -- --input public/<reference.mp4> [--threshold 0.3]`            |
 | Review complete Scenes and boundary motion     | `npm run project:scene:review -- --project <story-id> --motion`                            |
 | Verify the current delivered Project           | `npm run project:check -- --project <story-id> --level final`                              |
+| Upgrade Skill, guides and runtime together     | `npm run workspace:upgrade` (add `-- --dry-run` to preview)                                |
 
 For Project creation, revisions, production, recovery, and deletion, use the order in `AGENTS.md` and the Workspace-local
 `axmorf-video` Skill. Prefer commands returned by structured CLI output over manually reconstructed internal parameters.

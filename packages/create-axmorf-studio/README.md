@@ -53,6 +53,24 @@ attempt-bound Agent tasks, fixed continuation, recovery, and verified four-file 
 `--no-install` creates a generated but not ready workspace. Run `npm install`, then `npm run bootstrap`, `npm run browser:prepare`, and `npm run doctor` before
 using it.
 
+## Upgrade an existing workspace
+
+Run inside the workspace:
+
+```bash
+npx create-axmorf-studio@latest upgrade
+```
+
+The command updates the product-managed files to this release: the `axmorf-video` and `remotion-best-practices`
+Skills, `AGENTS.md`/`CLAUDE.md`/`GEMINI.md`/`README.md`, runtime facades and configs, the generated npm scripts and
+the exact `@axmorf/studio` version. It then runs `npm install`, `bootstrap` and `doctor`. Projects, `public/`,
+`deliveries/`, `private/` configuration, your own scripts, dependencies and other skills stay unchanged.
+
+Every replaced or removed managed file is first copied to `.axmorf/backups/<time>/`; if install, bootstrap or doctor fails,
+the files are restored. `.axmorf/managed.json` records checksums so later upgrades list files you edited locally in
+`localChanges`. Use `--dry-run` to list changes without writing. The upgrade refuses to run while a Project operation
+holds `.project-operation.lock`. Workspaces created from 0.1.23 on also have `npm run workspace:upgrade`.
+
 ## Requirements
 
 - Node.js 20.19 or newer

@@ -88,6 +88,8 @@ const SCRIPTS = Object.freeze({
   "project:delete": "axmorf project delete",
   "project:asset:import": "axmorf project asset import",
   "project:check": "axmorf project check",
+  "workspace:upgrade":
+    "npm exec --yes --package=create-axmorf-studio@latest -- create-axmorf-studio upgrade",
 });
 
 const canonicalJson = (value) => {
@@ -153,6 +155,23 @@ export const createPackageJson = ({ name, runtimePackage }) => ({
     workspaceVersion: 1,
   },
 });
+
+/**
+ * Applies the current product-owned package fields to an existing Workspace manifest while
+ * keeping its name, user-added scripts and dependencies.
+ */
+export const mergeWorkspacePackageJson = (current, runtimePackage) => {
+  const desired = createPackageJson({ name: current.name, runtimePackage });
+  return {
+    ...current,
+    type: desired.type,
+    scripts: { ...current.scripts, ...desired.scripts },
+    dependencies: { ...current.dependencies, ...desired.dependencies },
+    devDependencies: { ...current.devDependencies, ...desired.devDependencies },
+    overrides: { ...current.overrides, ...desired.overrides },
+    axmorf: { ...current.axmorf, ...desired.axmorf },
+  };
+};
 
 export const createSafeProducerConfig = () => {
   const input = {

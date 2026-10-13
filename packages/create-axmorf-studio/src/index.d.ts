@@ -59,6 +59,8 @@ export const createNpmCommandRunner: (
 ) => CreatorCommandRunner;
 
 export type CreatorArguments = Readonly<{
+  command: "create" | "upgrade";
+  dryRun: boolean;
   target: string | null;
   yes: boolean;
   install: boolean;
@@ -101,6 +103,47 @@ export const createWorkspace: (
   }>,
 ) => Promise<WorkspaceCreationResult>;
 
+export type WorkspaceUpgradeResult = Readonly<{
+  status:
+    | "workspace-upgrade-planned"
+    | "workspace-files-upgraded"
+    | "workspace-upgraded";
+  workspace: string;
+  runtime: Readonly<{ from: string; to: string }>;
+  created: readonly string[];
+  updated: readonly string[];
+  removed: readonly string[];
+  placeholders: readonly string[];
+  packageJsonChanged: boolean;
+  /** Managed files edited since the last create or upgrade; always backed up first. */
+  localChanges: readonly string[];
+  /** Workspaces created before 0.1.23 have no manifest, so local edits cannot be identified. */
+  legacyWithoutManifest: boolean;
+  ready?: boolean;
+  backup?: string | null;
+}>;
+
+export const MIRRORED_DIRECTORIES: readonly string[];
+export const MANAGED_FILES: readonly string[];
+
+export const upgradeWorkspace: (
+  input: Readonly<{
+    cwd: string;
+    target?: string;
+    install?: boolean;
+    dryRun?: boolean;
+    runtimePackage: string;
+    creatorVersion: string;
+  }>,
+  dependencies?: Readonly<{
+    filesystem?: typeof import("node:fs/promises");
+    runCommand?: CreatorCommandRunner;
+    templateRoot?: string;
+    progress?: (value: string) => void;
+    now?: () => Date;
+  }>,
+) => Promise<WorkspaceUpgradeResult>;
+
 export const runCli: (
   argv: readonly string[],
   options?: Readonly<{
@@ -112,7 +155,11 @@ export const runCli: (
     filesystem?: typeof import("node:fs/promises");
     templateRoot?: string;
   }>,
-) => Promise<WorkspaceCreationResult | Readonly<{ status: "help" }>>;
+) => Promise<
+  | WorkspaceCreationResult
+  | WorkspaceUpgradeResult
+  | Readonly<{ status: "help" }>
+>;
 
 export const RUNTIME_PACKAGE_NAME: "@axmorf/studio";
 export const normalizeRuntimePackage: (value: string, cwd: string) => string;
@@ -121,6 +168,10 @@ export const createPackageJson: (input: {
   readonly runtimePackage: string;
 }) => Readonly<Record<string, unknown>>;
 export const createSafeProducerConfig: () => Readonly<Record<string, unknown>>;
+export const mergeWorkspacePackageJson: (
+  current: Readonly<Record<string, unknown>>,
+  runtimePackage: string,
+) => Readonly<Record<string, unknown>>;
 export const createEmptyResourceCatalog: () => Readonly<
   Record<string, unknown>
 >;

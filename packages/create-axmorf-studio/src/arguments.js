@@ -3,22 +3,34 @@ import { createRequire } from "node:module";
 const { version: releaseVersion } = createRequire(import.meta.url)(
   "../package.json",
 );
-const FLAG_NAMES = new Set(["--yes", "--no-install", "--runtime-package"]);
+const FLAG_NAMES = new Set([
+  "--yes",
+  "--no-install",
+  "--runtime-package",
+  "--dry-run",
+]);
 
 export const usage = `Usage: npm create axmorf-studio@latest <target> [--yes] [--no-install] [--runtime-package <version-or-path>]
+       npx create-axmorf-studio@latest upgrade [workspace] [--dry-run] [--no-install] [--runtime-package <version-or-path>]
 
 Arguments:
   target        New workspace directory inside the current directory
+  upgrade       Update an existing Workspace's Skill, guides, runtime facades and
+                @axmorf/studio to this release; Projects and private config stay unchanged
 
 Options:
   --yes         Run without interactive confirmation
   --no-install  Generate files without installing dependencies
   --runtime-package <version-or-path>
                 Use an exact @axmorf/studio version or local package path
+  --dry-run     With upgrade: list the changes without writing anything
   --help        Show this help`;
 
 export const parseArguments = (argv) => {
+  const upgrade = argv[0] === "upgrade";
   const result = {
+    command: upgrade ? "upgrade" : "create",
+    dryRun: false,
     target: null,
     yes: false,
     install: true,
@@ -27,7 +39,7 @@ export const parseArguments = (argv) => {
   };
   const seen = new Set();
 
-  for (let index = 0; index < argv.length; index += 1) {
+  for (let index = upgrade ? 1 : 0; index < argv.length; index += 1) {
     const argument = argv[index];
     if (argument === "--help" || argument === "-h") {
       if (seen.has("--help"))
@@ -44,8 +56,13 @@ export const parseArguments = (argv) => {
         throw new Error(`${argument} may only be specified once.`);
       }
       seen.add(argument);
+      if (argument === "--dry-run" && !upgrade) {
+        throw new Error("--dry-run is only valid with upgrade.");
+      }
       if (argument === "--yes") {
         result.yes = true;
+      } else if (argument === "--dry-run") {
+        result.dryRun = true;
       } else if (argument === "--no-install") {
         result.install = false;
       } else {
@@ -66,7 +83,9 @@ export const parseArguments = (argv) => {
     result.target = argument;
   }
 
-  if (!result.help && result.target === null) {
+  if (upgrade) {
+    result.target ??= ".";
+  } else if (!result.help && result.target === null) {
     throw new Error("A target directory is required.");
   }
   return result;
