@@ -1,539 +1,70 @@
-# First-use release gate
+# 发布流程
 
-Publication uses a reviewed change plan, rather than a version-number host matrix.
-The maintainer approved this layered policy on 2026-10-04:
+从 0.1.22 起，发布分成两道门：
 
-- Every ordinary release verifies the exact source tag, package contents and versions,
-  type/lint/build gates, affected regression tests, a fresh external installation and doctor,
-  and a minimal real render with complete decoding. The workflow renders the public zero-Project
-  `DefaultIntroPreview` (60 frames, H.264/AAC stereo) and verifies its media facts and EOF.
-  It does not require another native video run.
-- Production contract, execution protocol or scaffold changes require complete candidate
-  native first-use acceptance on the plan's primary host. The classifier covers the public
-  contracts, Project creation/revision and production code, scaffold source/templates, and
-  production Agent instructions. Recorder execution adapters also require native evidence.
-- A second host is required when the reviewed plan names an actual compatibility change
-  affecting that host, or the maintainer explicitly requests full acceptance. Required hosts
-  come from this scope, never from the next version number.
+1. **发布门（阻塞）**：确定性的技术检查，全部由 CI 在 tag 上自动完成。通过即发布。
+2. **晋级门（不阻塞发布）**：用真实 Agent 宿主在全新 Workspace 中完成一部视频。只有通过它的版本才发布为 `latest`。
 
-The exact tag contains `docs/evidence/v<version>-release-plan.json`. Its strict schema records
-`baseTag`, `primaryHost`, `fullAcceptance`, host-specific `compatibilityChanges` with changed
-paths and a reason, affected `regressionTests`, and both reviewed package content fingerprints.
-The workflow derives the change set from the ancestor baseline tag and rejects unknown fields,
-missing native evidence for a major scope, missing required hosts, or changed package contents.
-A plan alone cannot suppress a mechanically identified contract, production or scaffold change.
-The plan's host compatibility declarations still require human review: a filename classifier
-cannot establish every semantic host impact.
+预发布版本（如 `0.1.22-rc.1`）发布到 npm `next`，普通用户默认安装的 `latest` 不受影响。验收通过后，
+以同一份源码发布正式版本（如 `0.1.22`）到 `latest`。不再需要 release plan、验收复用审批或发布后补写的记录 commit。
 
-The maintainer may explicitly approve reuse of prior acceptance for one release. The optional
-`reviewedAcceptanceReuse` plan binds the approved version, reason and checksums of retained evidence.
-The workflow also requires `reuse_reviewed_acceptance` to contain that exact release tag; omission keeps
-the normal fresh native gate. Reuse cannot waive an explicit full-acceptance request or declared host
-compatibility changes. Package identity, scoped regressions, source/build gates, external installation,
-doctor, minimal render, complete decoding and registry integrity still run. Verification reports
-`release-gate-passed-with-reviewed-acceptance-reuse` and `nativeFirstUseVerified:false`; old evidence never
-becomes a native first-use certificate for changed packages.
+## 发版步骤
 
-For 0.1.21, the independent Codex CLI returned HTTP 401 before producing Agent messages or tools.
-The maintainer explicitly [approved reuse for this version](../evidence/v0.1.21-acceptance-reuse.json).
-The [publication record](../evidence/v0.1.21-publication.json) retains the successful Actions technical gates,
-exact public packages and provenance source checks, and a fresh anonymous public installation with doctor.
-It reports `nativeFirstUseVerified:false`; the 0.1.20 native receipt retains its original package identities.
+在默认分支的最新 commit 上：
 
-For 0.1.18, the maintainer authorized commit/push/publication using the already reviewed videos and then
-approved merging 0.1.17 with affected checks. This scope retains the 0.1.17 native receipt and the Oct 8
-continuous-video engineering acceptance at their original package identities and review limits. It does
-not claim fresh merged-package native acceptance, exact-four child concurrency or another listening review.
-Both 0.1.18 packages are now public and their `latest` tags, package contents and official provenance have
-been read back. The [publication record](../evidence/v0.1.18-publication.json) retains this reuse scope,
-the CI checks and the separate public archive verification.
-
-Before new engineering work, compare the checkout with the newest published tag and its release branch.
-Before publishing, merge the prior release into the default branch and keep the new tag on that branch's
-release commit. Publishing from an isolated branch does not update the default branch automatically.
-
-For 0.1.17 the actual diff includes production/scaffold changes and Hermes native UI/process
-compatibility changes. The already completed Codex and Hermes candidate runs therefore satisfy
-this scope; the new policy does not require rerunning either valid record. Both original captures
-and failed superseded attempts remain retained. The compact receipt binds 290 runtime files and
-41 creator files. See the [reviewed plan](../evidence/v0.1.17-release-plan.json),
-[native receipt](../evidence/v0.1.17-first-use.json) and
-[BGM verification](../evidence/v0.1.17-bgm-verification.json).
-
-The unchanged `v0.1.17` tag was published successfully by the existing trusted workflow.
-The [publication record](../evidence/v0.1.17-publication.json) records its exact source,
-registry/CI tarball identity, official provenance and a subsequent anonymous public install.
-That install verifies the original locks, package files, generated guides and doctor; it does
-not claim another public native video run. For npm's Darwin `/tmp` cache alias, public lock
-verification accepts only the exact `/private/tmp` physical package owner, rejects ambiguous
-or foreign keys, and retains all version, official URL, integrity and no-link checks. It never
-rewrites the original lock or treats a failed install as a completed snapshot.
-
-When native acceptance is required, use fresh workspaces and fresh host profiles with one
-ordinary business prompt per required host. They do not inherit the repository, earlier
-sessions, memory, global project skills, or engineering hints. Only the npm-generated workspace
-guides provide project instructions. Do not send follow-up repair instructions or change package
-internals during the run. Failed runs stay failed. A package-content change requires new candidate
-installation and acceptance; a recorder compatibility repair may strictly revalidate unchanged
-original records against the same unchanged packages.
-
-Current native acceptance exercises the package's default `subagents` path with configured
-maximum concurrency four. The business prompt does not name this execution strategy. Select a
-normal video brief with more than four dirty creative tasks, so the run releases a child slot and
-admits another task. Require real bound-task overlap, all prepared attempts completed, one fixed
-continuation per attempt, and verified exact-four-file delivery. Inline runs or saved settings
-cannot satisfy current native scope. Explicit inline behavior retains automated regression coverage.
-
-## Historical acceptance scopes
-
-The following version-specific approvals describe retained historical receipts only. They do
-not select hosts for new releases or override the current change plan.
-
-For **0.1.14 only**, the maintainer approved Codex default four-way native execution
-and Hermes **explicit inline, gpt-5.6-terra, medium**. This matrix applies to both
-candidate and post-publication runs; it changes no Workspace or runtime defaults.
-The Hermes business prompt explicitly selects inline for the current production.
-The recorder requires zero native children, delegation calls, or delegation rows,
-one explicit inline resolver result, and at least five distinct dirty tasks bound
-and committed sequentially by the Root within one attempt. Each commit must be
-recorded for the active task, and task intervals must lie within the native run.
-The receipt records this as `inlineExecution`; it cannot also carry `nativeExecution`.
-Codex must still prove capacity four, four bound tasks overlapping, and a later
-admission. Other versions retain their existing native child requirements.
-All installation, fresh profile, one-prompt, actual-model, native TUI/session,
-progress report, one background continuation per attempt, no-polling, package/guide
-integrity, final delivery and complete media decoding checks remain required.
-Original failed runs and their narrower evidence remain preserved; the approved
-scope does not turn earlier failed runs into passing receipts.
-
-For **0.1.15 only**, the maintainer uses Codex and authorized a Codex-only
-candidate and post-publication gate. The exact receipt must contain one Codex
-host, with the unchanged default four-way native execution, supervision, real
-delivery, and full media checks. Hermes runs remain diagnostic and cannot be
-counted as passing release evidence. This historical scope does not certify Hermes.
-
-For **0.1.16 only**, Codex-only acceptance remains authorized. The current
-2026-10-02 candidate request explicitly requires actual native children,
-four-way overlap, slot release and later admission. Use the ordinary business
-prompt and default `subagents` path; the recorder applies the unchanged native
-gate. It must not force a native run through the older serial exception.
-
-The 2026-10-01 at 13:08 UTC serial authorization remains a separately identified
-historical scope. An explicitly selected serial run must still record sequential
-Root binding/commit, zero children and its exact `releaseScope`, with parallel
-execution and Hermes unverified. Inline and native receipts cannot substitute
-for each other or combine evidence. The current request authorizes no inline
-fallback. Independent fresh workspace/profile, one business prompt, unchanged
-package/guides, actual model settings, supervision, unique continuation per attempt, exact
-four-file Delivery and complete media checks remain required for either scope.
-Failed runs stay failed. Product defaults were unchanged; new releases use the layered plan above.
-Current 0.1.16 `verify` and `verify-public` require native execution and reject
-the historical serial scope; neither publication entry offers an inline fallback.
-Use `verify-historical runtime.tgz creator.tgz combined-receipt.json` only to
-diagnose retained receipts. It selects the exact creation method shared by all hosts,
-runs the same package, execution, supervision, delivery and applicable registry-integrity
-checks, and returns `first-use-historical-receipt-verified` with
-`publicationEligible: false`. This result cannot satisfy the npm publication gate.
-
-The current independent 0.1.16 request prefers **gpt-6.1-sol, max** and permits
-**gpt-5.6-sol, max** only when the preferred model is unavailable. Verify the
-actual CLI model catalog and run settings; the model selected in the desktop
-conversation does not prove availability in a separate CLI profile. The earlier
-2026-10-01 at 16:44 UTC approval for local gpt-5.6-sol remains part of the
-historical scope. Record the actual native model and reasoning settings; this
-does not provide evidence for other models.
-
-For **0.1.16 only**, the maintainer subsequently approved a post-publication
-installation smoke check: verify both npm versions and package integrity, install
-from the public registry in a fresh directory, and run the generated doctor.
-The candidate's actual native concurrency, later admission, and separate scoped
-visual revision and reuse checks remain required. Keep a separate installation
-smoke record and mark public-registry native video production as unverified;
-this scope does not produce a passing `record`/`verify-public` native receipt.
-This historical smoke record is distinct from native acceptance. Current post-publication checks use the installation scope below.
-
-This gate supplements the automated install/contract tests. It does not claim
-multi-model, multi-OS, interactive approval, revision, or recovery certification.
-Record those separately when exercised. A maintainer reviews the prompt and
-isolation setup: a transcript hash is evidence binding, not proof that a host or
-maintainer is trustworthy.
-
-From 0.1.11, the Hermes run must use its actual TUI JSON-RPC backend and native
-asynchronous notification lifecycle when using subagents. The 0.1.14 inline run
-uses the same TUI backend and records no child notifications. `hermes -z` selects a synchronous child path
-and cannot certify interactive yield/resume. Send one ordinary business prompt
-through `session.create` and `prompt.submit`, retain the complete native session
-and notification records, the complete JSON-RPC stdout event stream, and let the backend resume itself. The controller may
-capture events and close the completed session, but must not inject follow-up
-prompts, manufacture completion messages, or read a child log to drive the Agent.
-
-The recorder now checks user-visible messages before create and between inspect
-and prepare, one exact continuation invocation per attempt, no shell sleep/child-list/transcript
-polling, long native process waits, and every dispatched async batch notification
-before the final report. A reviewer still checks the meaning of the reports:
-message presence cannot prove that cost, readiness, or boundary duration is correct,
-or that an earlier pending update did not prematurely repeat the delivery summary.
-Command auditing recognizes literal public npm script invocations in native shell
-tools and Codex code-mode shell calls; opaque dynamic command construction is not
-a substitute for reviewable invocation evidence.
-Receipts bind these checks in `supervision`; a successful media delivery alone does
-not pass this gate. Hermes `message.interim` prose is visible in the TUI but may be absent
-from SQLite assistant content. The recorder binds the fresh `session.create` response to
-the run's UI and stored session IDs, then matches every root UI tool call and result
-(ID, name, arguments, content, and order) to the unmodified complete SQLite transcript.
-The TUI may omit `tool.start.args` only for an original empty-object invocation;
-nonempty missing arguments, null, arrays and changed values are rejected.
-Native vision results retain the original JPEG or PNG data URL, require matching
-image signatures, and bind the accompanying text exactly to the database result.
-It requires contiguous native UI event sequence numbers and matches final report text
-against SQLite. Report timing comes from native `message.interim` and `message.complete`
-events. The complete raw UI stream checksum is recorded in `supervision.uiEvidence`;
-never synthesize assistant rows in the database transcript to supply missing prose.
-These bindings detect mismatched or incomplete captures; they are not cryptographic
-attestation that a maintainer did not fabricate an entire capture.
-Historical receipts retain their original, narrower scope.
-
-Codex code-mode may truncate a long command result while the app-server retains
-its complete native command output. Keep both original captures. The optional
-`uiTranscriptFile` may supplement that result only when the original process
-handle, literal command, cwd, Root thread and turn, unique started/completed item,
-result order, exit code and complete output-delta sequence all agree. A completed native buffered
-result without streamed deltas is also retained in its original envelope. Bind the
-supplement to the original result time and index and record the UI checksum.
-Missing or ambiguous linkage is a failed audit; child output or a disk plan cannot
-reconstruct a missing prepare result.
-
-When code-mode display truncation omits or splices diagnostic envelopes, restoration is limited to
-literal read-only guide, create-schema/context, catalog and native-probe commands. The original UI
-must still bind the unique Root/turn/command/cwd/handle/start/terminal/output tuple. It cannot restore
-missing mutation, prepare or continuation envelopes. Metadata searches, passive JSON summaries,
-unchanged result storage and image display remain diagnostic; they do not gain process authority.
-Every prepared attempt and its real terminal result remain mandatory.
-
-Literal `Promise.allSettled([...]); results.forEach(text)` diagnostics retain a separate
-command ordinal and stdout prefix for every pending process, including a later scalar wait.
-An unchanged literal prefix may precede the batch. Missing diagnostic display rows require the
-complete original native UI; missing mutation, prepare or continuation rows remain a failed audit.
-Image batches must forward the original command result and image URL without changing the result.
-An ordered multiline authoring-input command retains its own start/terminal before the separate
-public create process. The protocol's `aggregatedOutput:null` means empty buffered stdout;
-it cannot replace nonempty observed bytes or contradictory streamed deltas.
-
-Indexed settled-result spreads retain their original value and separate command ordinal;
-conditional storage may copy only the unchanged fulfilled value. Passive summaries and image
-display before or after the separately forwarded command remain diagnostic. A string stdout
-accumulator must forward every original result before concatenation and may only store its
-parsed copy. A synchronous create may follow a pure serialized authoring-field deletion only
-with its own original terminal-before-yield UI proof.
-
-Direct create calls may also follow serialized JSON authoring with field assignments,
-pure string formatters and array/Set resource selection. Native result bindings and
-callable aliases remain excluded. Ordered diagnostic commands keep separate original
-results before passive summaries. Bounded temporal contact-sheet batches are excluded
-from command-result authority only when their exact read-only FFmpeg source, original
-UI command inventory, frame metadata and displayed image bytes all agree.
-
-A failed JSON projection after a non-production diagnostic is retained as a failed tool,
-with no recovered stdout, exit code or production-result authority. Admission requires the
-exact native error stack, immutable parse receiver and literal command, complete Root turn and
-unique matching UI process. If the host emits its bounded byte-omission excerpt, the excerpt
-geometry, observed stream ends and parse error must agree; incomplete streaming is never
-restored or used as successful command evidence. Production CLI calls cannot use this path.
-
-The 0.1.20 candidate [native receipt](../evidence/v0.1.20-first-use.json) also exercises serialized
-authoring, passive summaries and exact temporal image diagnostics with unchanged package files.
-Its fresh native run retained eight creative children, four refill admissions, 420.923 seconds
-of four-way bound overlap, one continuation and independently revalidated four-file delivery.
-The failed 0.1.19 CI/tag and original diagnostic failures remain preserved.
-
-The 0.1.19 candidate [native receipt](../evidence/v0.1.19-first-use.json) exercises these actual
-code-mode formats using unchanged 291-file runtime and 42-file creator candidates. One ordinary
-40-second six-scene prompt produced eight fresh creative children, peak four bound tasks,
-four later admissions, one continuation and complete exact-four-file delivery. Failed earlier
-runs remain retained. Recorder compatibility revalidation does not modify their original logs
-or waive fresh package acceptance; publication is recorded separately after registry readback.
-
-Read-only code-mode summaries may slice or search an `output` field loaded from
-the host's serialized JSON store. These reads retain diagnostic text without
-acquiring command authority. Local callable objects, unknown methods and changed
-process results remain rejected; the complete original UI still proves that the
-diagnostic cell started no command.
-
-The native host removes a first-line `@exec` JSON metadata directive before
-evaluating code. Error-stack coordinates use that evaluated source; ordinary
-comments keep their coordinates. The original input, error envelope and complete
-UI command timeline remain unchanged and must still authenticate the failure.
-
-Hermes `terminal` background admission reports `exit_code: 0` for a successful
-spawn alongside its process handle. Only the exact native admission envelope
-with `background: true` and completion notifications establishes a pending
-process. It supplies no command exit authority. A matching original
-`process_manage` or `process` wait must provide the real terminal result;
-missing or foreign handles and unfinished production commands still fail.
-
-A code-mode call may also drain its own literal command result with
-`while (result.session_id !== undefined)`: every wait must use that same result's
-handle and empty input, and every returned chunk must retain its original order.
-The recorder accepts only the bounded launch/print/wait syntax with verified
-variable use, unshadowed native helpers, unique literal property names and a final
-exit result. Spread arguments, overwritten handles, foreign receivers and helper
-rebinding fail closed. Native cell yields may split this sequence across results;
-they must preserve the same original process identity.
-
-One ordinary business prompt may lead the Root to review a completed delivery and
-create an isolated revision through the public workflow. Keep the entire native
-trace, including every probe and failed tool call. Audit each prepared attempt
-separately: its resolver and inspect report, exact dirty task set, fresh child
-bindings and commits, single continuation, and successful fixed result. A later
-attempt must be linked to the preceding verified current Revision/Delivery by a
-successful public revision creation and promotion; its final tuple must match the
-actual current delivery. The initial fresh production still requires four bound
-tasks overlapping and admission after a slot is released. Later revisions may
-reuse artifacts and need fewer workers. Multiple continuations for one attempt,
-missing later completion, cross-attempt bindings, or extra user prompts remain
-failures. Do not trim an autonomous revision out of the capture to sign only the
-first delivery. This audit does not certify visual quality or scoped artifact reuse.
-
-Codex full-history child captures bind the native role adapter immediately before
-that child's settings event. Current captures identify the developer message with
-the exact `multi_agent.role_instructions` content kind; legacy captures without
-typed metadata use the `<multi_agent_role>` wrapper. Both forms require one
-nonempty input-text item. This format compatibility does not relax parent metadata,
-inherited-history order, child-turn ownership, or actual task concurrency checks.
-
-From 0.1.13, each host using subagents must resolve effective capacity four and demonstrate positive-duration overlap of four
-production tasks between their successful bind result and first commit result in the native common timestamp domain.
-The recorder reports `peakBoundTasks` and total `fourWayBoundOverlapMs` separately from native session lifetimes.
-Four open sessions with serial task execution do not satisfy this gate. These observed task intervals do not measure
-CPU utilization or provider request concurrency. Older receipts remain readable without these new fields.
-Hermes continuation must start through its native background process interface; a larger foreground timeout is
-insufficient. Both `process` and `process_manage` aliases are subject to the same original-handle wait rules.
-
-The acceptance controller must preserve required host capabilities. In particular, verify `/bin/ps` can run through the
-actual macOS host command surface before production; a passing browser check alone may not exercise the cleanup fallback.
-Do not add `sandbox-exec` as a supposedly file-only isolation wrapper: it can prevent `/bin/ps` from starting even under
-`(allow default)`. This restriction belongs to the test setup and is separate from the Chromium sandbox.
-Fresh profiles and workspace context without OS file isolation must be labeled as such; review initial host context and
-all native tool traces for source/history access. If hard filesystem separation is required, use a separately provisioned
-account or machine without the development checkout. Do not weaken product cleanup or relabel a diagnostic rerun as acceptance.
-
-## Prepare candidates and capture the empty workspace
-
-After the final package build and focused/full checks, pack both packages with
-`npm pack --ignore-scripts`. The gate itself invokes npm exec with the exact
-creator tarball and its documented `--runtime-package /absolute/runtime.tgz`
-option, using a fresh npm cache. This changes only package resolution before
-publication. Do not inject that option or release/testing instructions into the
-Agent prompt. The requested workspace must not exist; existing workspaces cannot
-be signed after the fact.
-
-Before creating a workspace and starting each Agent, save a configuration outside the workspace:
-
-```json
-{
-  "host": "codex",
-  "workspace": "/absolute/fresh-codex-workspace",
-  "runtimeTarball": "/absolute/axmorf-studio-0.1.9.tgz",
-  "creatorTarball": "/absolute/create-axmorf-studio-0.1.9.tgz",
-  "promptFile": "/absolute/codex-prompt.txt"
-}
+```bash
+npm run release:prepare -- 0.1.22-rc.1
 ```
 
-Run from the development repository:
-
-```sh
-node --import tsx scripts/release/first-use.ts create config.json snapshot.json
+```bash
+npm run check:static
 ```
 
-Creation saves npm output in `snapshot.json.install.log`, then immediately takes
-an internal snapshot. There is no standalone snapshot command for pre-created
-workspaces. The snapshot rejects Projects, deliveries, tasks, artifacts,
-narration caches, revision candidates, Project media, and rendered output. It
-checks installed runtime bytes and generated guides against the actual packed
-candidates, and binds the exact creator invocation, both tarball checksums, and
-installation log. It retains sorted file hashes and the exact business prompt.
-It allows only the creator's normal generated registry and doctor process receipts.
-Use a distinct snapshot and workspace for Hermes (`"host": "hermes"`).
-
-## Run the actual Agents, then verify locally
-
-The harness records `host`, `workspace`, `startedAt`, `endedAt`, `exitCode`, the
-exact `prompt`, and `harnessInterventions` in a run JSON. Capture the start time
-only after the snapshot, and retain original logs. Successful first-use runs
-must have exit code zero and an empty intervention list. Never store credentials
-in an evidence folder or commit raw host profiles. Hermes TUI runs additionally retain
-`uiSessionId` and the stored identity as `storedSessionId` or `sessionId` from the native session-create response. If both stored-identity fields are present, both must match the native database.
-
-The recorder binds snapshot and run Workspace paths by filesystem `realpath`,
-so host aliases such as macOS `/tmp` and `/private/tmp` must name the same
-directory. Native transcripts and UI still authenticate the original run cwd;
-the recorder does not rewrite either record. Different directories, even with
-identical package contents, are rejected.
-
-For Codex, retain the fresh root and every native child's
-`CODEX_HOME/sessions/**/rollout-*.jsonl`. For Hermes,
-export the root and every native child's SQLite messages in order, preserving
-all fields including `role`, `content`, `tool_calls`, `tool_call_id`, `timestamp`,
-`display_kind`, and `display_metadata`. Also export each native session row containing
-`id`, `model`, `cwd`, `started_at`, `ended_at`, `message_count`, and `tool_call_count`.
-For children, preserve `parent_session_id` and `source` as well. Export the root's
-raw `async_delegations` rows with `event_json` and `result_json` when asynchronous
-completion messages were delivered. Include capability-probe children even though
-they do not bind a production task. Do not prefilter failed or incomplete children.
-Preserve all user and tool records. The verifier binds this metadata to the selected
-run and checks message and actual function-call counts.
-
-After the Agent exits, create a local run-evidence configuration (Hermes additionally requires `sessionFile` pointing to its exported native session JSON):
-
-```json
-{
-  "storyId": "the-created-story",
-  "model": "the-actual-model",
-  "sessionId": "the-actual-host-session-id",
-  "transcriptFile": "/absolute/native-transcript.jsonl",
-  "runFile": "/absolute/run.json",
-  "nativeChildren": [{ "transcriptFile": "/absolute/child-rollout.jsonl" }]
-}
+```bash
+git commit -am "release: 0.1.22-rc.1" && git tag v0.1.22-rc.1 && git push origin HEAD v0.1.22-rc.1
 ```
 
-List all child transcripts in `nativeChildren`. Hermes entries additionally
-require their native `sessionFile`. From 0.1.11, the root run-evidence configuration
-also requires `uiTranscriptFile` pointing to the complete, unedited TUI JSON-RPC
-stdout JSONL capture. For Hermes asynchronous completions, add
-`delegationFile` pointing to the exported delegation-row array and
-`hermesRuntimeRoot` pointing to the actual installed Hermes runtime. The local
-recorder uses that runtime's native notification formatter to reproduce each
-completion exactly, binds its checksum, and checks the delegation's parent and
-dispatch response. A user message with a similar prefix or appended repair advice
-does not qualify for the native-message exemption. These local paths never enter
-the published receipt.
+`release:prepare` 只改根目录、`@axmorf/studio`、`create-axmorf-studio` 三个 `package.json` 和 lock 文件中的对应版本，
+并返回该版本将发布到的 dist-tag。推送 tag 后 `.github/workflows/npm-publish.yml` 自动运行。验收通过后用正式版本号
+重复上述三步。
 
-```sh
-node --import tsx scripts/release/first-use.ts record snapshot.json run-evidence.json host-receipt.json
+## 发布门（CI）
+
+workflow 在 tag 上依次执行，任一步失败都不会发布：
+
+- tag 与三个包的版本一致，且 tag 指向的 commit 已在默认分支上；
+- `npm ci`、`packages:typecheck`、`packages:build`、`npm audit --audit-level=low`；
+- 完整的 `npm run check`（静态检查加宿主浏览器门禁）；
+- 渲染 `DefaultIntroPreview`（1080×1920、60 帧、H.264/AAC 立体声）并完整解码到 EOF；
+- 打包两个 tarball，核对版本和 integrity；
+- 用这两个 tarball 创建全新的外部 Workspace，运行 doctor 与 `npm run compositions`；
+- 以 provenance 发布：版本号含 `-` 时发布到 `next`，否则发布到 `latest`。已存在的同版本只校验 integrity，不重复发布。
+
+运行回执（渲染事实、Workspace doctor、lock 与 SHA256SUMS）作为 Actions artifact 保存 30 天，不提交进仓库。
+
+## 晋级门（Agent 验收）
+
+在全新目录和全新宿主会话中，用 `next` 版本创建 Workspace：
+
+```bash
+npm create axmorf-studio@next my-workspace
 ```
 
-The recorder checks the original prompt against the native transcript and rejects
-follow-ups, forked root Codex sessions, mismatched Hermes session metadata, missing real
-function calls, or modified package and guide files. It derives execution mode
-and capacity from the root's public resolver output, the dirty task set from
-prepare, native parentage and lifetimes from host records, and task ownership from
-each child's actual bind and commit tool results. For subagent entries, every dirty task requires one
-child commit; the Root cannot commit those tasks. The approved 0.1.14 Hermes inline
-entry instead requires the exact Root binding and sequential commit checks above. The receipt records native child
-hashes, peak concurrency, capability-probe count, and later admissions after a
-production child completes. Missing children, unknown parentage, a pool exceeding
-resolved capacity, or no admission beyond the initial pool fail closed for subagent entries.
-Native Codex children may inherit their fresh parent's context: the recorder binds
-`source.subagent.thread_spawn.parent_thread_id` and `agent_path` to that parent's
-native `spawn_agent` response, rather than confusing this with a reused root session.
-It executes the workspace's public final check, independently checks
-exactly four delivery files and their checksums, probes the video, and decodes the
-video and both covers to EOF. It generates the receipt from these checks; supplying
-a `passed` flag cannot replace them. Output files use exclusive creation so an
-existing result cannot be silently overwritten.
+然后只发送一条普通的业务提示词，不附加工程提示，也不在运行中补充修复指令。默认 `subagents` 路径下，通过条件是：
 
-## Verify revision changes separately
+- doctor 就绪，Root 按 Skill 完成 create、inspect、prepare 与唯一 continuation；
+- 交付 exact 四文件，`publish.json` 已复验，视频可完整解码；
+- 抽帧审阅画面，对照 Skill 的 visual quality bar 记录观察到的问题。审阅是人的判断，不等于自动审美认证。
 
-A first-use receipt certifies fresh creation and the complete recorded delivery chain.
-It does not certify scoped reuse or all existing-Project revision behavior.
-For changes to candidate compilation, delivery, diagnostics, or promotion, also exercise the installed
-candidate package in a complete isolated copy of a finished Workspace. Use public npm entry points:
-context → validate/create a real publishing-only patch → inspect → prepare → exact continuation →
-automatic promotion → current context and final check → manual promote idempotency and final check.
-Require zero new provider requests and Agent tasks before preparation; stop if reuse cannot satisfy that
-fixture. Keep source/package bytes unchanged and retain failed attempts. Record the tested package content,
-command outputs, final tuple, unchanged original digest, and any harness limitations separately.
-A source test with an injected fixture policy does not replace this installed-package evidence.
+通过后发布正式版本。失败时不晋级：修复后发布下一个预发布版本重新验收。失败的运行不改写，也不追认通过。
+宿主不可用（例如认证失败）时，候选版本保持在 `next`，等宿主恢复后再验收。
 
-## Publish after scoped checks pass
+## 可选诊断工具
 
-Combine the required generated JSON objects from the repository root. Use the actual hosts required by the reviewed release plan:
+`scripts/release/first-use.ts` 与 `release-gate.ts` 保留为可选诊断工具，用于需要严格审计某次原生运行时
+（转录绑定、并发重叠、不轮询、消息时序等）。它们不再是发布或晋级的前置条件。
 
-```sh
-node --input-type=module - <<'JS'
-import {readFile, writeFile} from 'node:fs/promises';
-const files = ['codex-receipt.json', 'hermes-receipt.json']; // Include the reviewed scope's actual hosts.
-const hosts = await Promise.all(files.map(async file => JSON.parse(await readFile(file, 'utf8'))));
-const {version} = JSON.parse(await readFile('package.json', 'utf8'));
-await writeFile(`docs/evidence/v${version}-first-use.json`,
-  JSON.stringify({schemaVersion: 1, hosts}, null, 2) + '\n', {flag: 'wx'});
-JS
-```
+## 历史记录
 
-Use the actual receipt paths in `files`. Review and commit the combined receipt
-with the release. Retain referenced raw evidence privately; only the compact
-receipt, business prompts, and hashes belong in Git.
-
-```sh
-node --import tsx scripts/release/release-gate.ts inspect docs/evidence/v0.1.17-release-plan.json
-node --import tsx scripts/release/release-gate.ts verify docs/evidence/v0.1.17-release-plan.json runtime.tgz creator.tgz docs/evidence/v0.1.17-first-use.json
-```
-
-The publish workflow requires the reviewed plan in the exact release tag and verifies its
-package fingerprints **before either package is published**. Native scope additionally requires
-the matching combined receipt and verifies every included host record. Ordinary scope omits that
-receipt argument. `first-use.ts verify` alone is a record diagnostic with a default Codex scope;
-the publication entry is `release-gate.ts verify`, which supplies the reviewed required hosts and
-forces current native execution requirements.
-Missing required hosts, failed checks, changed versions, or any changed published file fail
-closed. Tar container timestamps, compression, and ownership are not content
-identity. Every package file, its path, executable bit, and content remain covered.
-Source-map JSON whitespace/key order and path separators normalize; source lists,
-mappings, embedded source content, and all executable bytes remain covered.
-Absolute source-map build paths are rejected instead of ignored. This lets the
-same package content be verified on macOS and Linux without accepting code drift.
-The exact registry tarball integrity remains independently checked at publication.
-
-## Post-publication installation and optional native acceptance
-
-Every release reads back both `latest` versions, exact registry integrity and published package
-contents, then performs a fresh public `npm create` installation and generated doctor. Bind the
-Actions source SHA and retained exact tarballs. This is an installation smoke check; it does not
-claim public-registry native video certification. A second full native video is performed only
-when explicitly requested for that public-installation acceptance scope. The optional native
-receipt procedure below remains available for that request.
-
-Use `create-public` after both `latest` tags identify the intended release. Its strict configuration
-has `host`, `workspace`, `promptFile`, and `expectedVersion`; it accepts no local package paths:
-
-```json
-{
-  "host": "hermes",
-  "workspace": "/absolute/fresh-public-hermes-workspace",
-  "promptFile": "/absolute/hermes-prompt.txt",
-  "expectedVersion": "0.1.12"
-}
-```
-
-```sh
-node --import tsx scripts/release/first-use.ts create-public public-config.json public-snapshot.json
-```
-
-This controller runs ordinary `npm create --yes axmorf-studio@latest <workspace> -- --yes` against
-`https://registry.npmjs.org` using a fresh cache and empty npm credential/configuration files.
-It independently downloads both public tarballs, verifies their SHA-512 `dist.integrity`, and checks
-`latest` before and after installation. It binds the actual cached creator and installed runtime bytes,
-both npm lockfiles, the generated guides, and the empty Workspace before any Agent starts. Keep its
-`.public-install-*` directory and original install log with the private raw evidence; they contain the
-registry tarballs and creator lock required for revalidation. Credentials and host auth profiles must
-remain outside the evidence directory. There is no standalone command to certify an existing Workspace.
-
-When a full public native run is explicitly requested, run each required fresh host and use the same
-`record` command with the public snapshot. Combine these receipts
-in a separate public-release evidence file, then verify using the retained registry tarballs:
-
-```sh
-node --import tsx scripts/release/first-use.ts verify-public public-runtime.tgz public-creator.tgz public-receipts.json
-```
-
-Public receipts explicitly use `npm-create-public-registry`; the prepublication `verify` gate accepts
-only `npm-exec-candidate`, and `verify-public` accepts only public-registry evidence. Neither can replace
-the other. The public verifier rechecks registry tarball bytes and integrity as well as the same native
-execution, supervision, and delivery requirements.
-
-During release review, inspect both roots and every worker for failed tools and self-corrections; a
-successful receipt does not describe all intermediate failures. Sample the actual rendered opener,
-closer, every content Scene, and transitions. Record the sampled frames/times, observed contrast or
-occlusion issues, and whether full-frame review and listening were performed. These are release-review
-records, not additional hard gates in the Agent's ordinary production workflow, and a technical receipt
-is not visual-quality certification.
+0.1.21 及更早版本的 release plan、原生首用收据、验收复用审批与发布记录保留在 `docs/evidence/`，各自只认证当时的包。
+这些版本的分层门禁规则与各版本特例见 `v0.1.21` tag 中的本文件旧版。

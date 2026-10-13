@@ -43,7 +43,7 @@
 | Narrative data contracts                                                                                      | [contracts/NARRATIVE_CONTRACTS.md](contracts/NARRATIVE_CONTRACTS.md)           |
 | DeliveryBuild identity、四文件提交与失败回滚                                                                  | [contracts/DELIVERY_BUILD_CONTRACT.md](contracts/DELIVERY_BUILD_CONTRACT.md)   |
 
-发布使用[分层发布门禁](guides/FIRST_USE_RELEASE_GATE.md)：普通发布验证包、源码、受影响回归、全新安装及最小真实渲染；production/执行合同/scaffold 重大变更才要求原生首用。第二宿主由实际兼容性范围或明确全验收请求决定。
+发布使用[两道门的发布流程](guides/FIRST_USE_RELEASE_GATE.md)：tag 触发的 CI 完成完整检查、最小真实渲染与全新安装后发布；预发布版本先进入 `next`，真实 Agent 宿主完成一部视频后再发布正式版本到 `latest`。
 
 ## 证据、提案与历史
 
