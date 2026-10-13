@@ -8,3 +8,4 @@ export {
   resolveSceneMotionObjectState,
 } from "./ProducerMotionObject";
 export * from "./continuous";
+export { snapProducerFrameToBeat, type ProducerBeatSnapOptions } from "./beat";

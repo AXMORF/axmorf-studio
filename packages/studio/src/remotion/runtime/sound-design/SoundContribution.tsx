@@ -4,8 +4,10 @@ import { LoopingAudio } from "./LoopingAudio";
 
 import {
   resolveSoundVolume,
+  resolveSpeechDuckingGain,
   validateSoundPlayback,
   type SoundPlaybackOptions,
+  type SpeechDucking,
 } from "./audio-playback";
 
 export type SoundContributionValue = SoundPlaybackOptions &
@@ -17,6 +19,7 @@ export type SoundContributionValue = SoundPlaybackOptions &
     volume: number;
     loop: boolean;
     sourceDurationInSeconds?: number;
+    speechDucking?: SpeechDucking;
   }>;
 
 export const SoundContribution: FC<{
@@ -50,7 +53,14 @@ export const SoundContribution: FC<{
             durationInFrames,
             contribution.volume,
             contribution,
-          )
+          ) *
+          (contribution.speechDucking === undefined
+            ? 1
+            : resolveSpeechDuckingGain(
+                localFrame,
+                contribution.volume,
+                contribution.speechDucking,
+              ))
         }
         loop={contribution.loop}
         {...(contribution.loop &&

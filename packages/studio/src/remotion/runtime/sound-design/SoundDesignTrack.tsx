@@ -15,13 +15,14 @@ import { createFingerprint } from "../../../contracts/fingerprint";
 import {
   SemanticTimingSchema,
   resolveSemanticContentFrameRange,
+  type SemanticTiming,
 } from "../../../contracts/semantic-timing";
 import type { SceneSoundProjection } from "../scene-sound";
 import {
   SoundContribution,
   type SoundContributionValue,
 } from "./SoundContribution";
-import { validateSoundPlayback } from "./audio-playback";
+import { mergeSpeechRanges, validateSoundPlayback } from "./audio-playback";
 
 type SoundDesignEntry =
   | Readonly<{
@@ -324,6 +325,7 @@ export const buildSoundDesignProjection = (rawInput: {
         ? rawInput.durationInFrames!
         : scopedRange!.endFrame;
       validateSoundPlayback(contribution, endFrame - startFrame);
+      const speechRanges = resolveNarrationSpeechRanges(semanticTiming);
       return {
         contributionId: `project:${contribution.contributionId}`,
         resourceId: resource.id,
@@ -342,6 +344,20 @@ export const buildSoundDesignProjection = (rawInput: {
         ...(contribution.fadeOutFrames === undefined
           ? {}
           : { fadeOutFrames: contribution.fadeOutFrames }),
+        ...(contribution.speechDucking === undefined ||
+        speechRanges.length === 0
+          ? {}
+          : {
+              speechDucking: {
+                volume: contribution.speechDucking.volume,
+                rampFrames: contribution.speechDucking.rampFrames,
+                ranges: mergeSpeechRanges(
+                  speechRanges,
+                  contribution.speechDucking.rampFrames,
+                  startFrame,
+                ),
+              },
+            }),
       };
     },
   );
@@ -372,6 +388,19 @@ export const buildSoundDesignProjection = (rawInput: {
     }),
   };
 };
+
+/** Measured narration chunk ranges in composition frames; visual and authored timing has none. */
+export const resolveNarrationSpeechRanges = (
+  semanticTiming: SemanticTiming | null,
+): readonly (readonly [number, number])[] =>
+  semanticTiming !== null && "segments" in semanticTiming
+    ? semanticTiming.segments
+        .filter((segment) => segment.kind === "chunk")
+        .map(
+          ({ frameRange }) =>
+            [frameRange.startFrame, frameRange.endFrame] as const,
+        )
+    : [];
 
 export const SoundDesignTrack: FC<{
   readonly projection: SoundDesignProjection;

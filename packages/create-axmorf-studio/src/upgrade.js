@@ -1,3 +1,4 @@
+import { Buffer } from "node:buffer";
 import { createHash, randomUUID } from "node:crypto";
 import * as nodeFileSystem from "node:fs/promises";
 import { hostname } from "node:os";

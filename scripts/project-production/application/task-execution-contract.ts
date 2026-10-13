@@ -393,6 +393,12 @@ const buildSceneContract = (rawContext: unknown) => {
         : [
             "Use scene.musicTiming.beatFrames/barFrames as Scene-local accents from the frozen synthesized score. Preserve exact narrationCues and covered Beat boundaries; select musical landings only inside the permitted action window. Quiet transitions and continuous long Scenes are valid. Do not synthesize or mount BGM in a Scene.",
           ]),
+      ...((context.scene.musicTiming as { accentFrames?: unknown } | undefined)
+        ?.accentFrames === undefined
+        ? []
+        : [
+            "scene.musicTiming.sectionFrames mark where the score changes energy and accentFrames mark its crash arrivals. Put the Scene's biggest reveal, cut or camera arrival on the nearest accent or section start inside its permitted window, land smaller actions on barFrames or beatFrames with snapProducerFrameToBeat, and let anticipation start before the landing. Record each landing frame in sync-anchors.json.",
+          ]),
       "When taskInput.coveredBeats is present, this one renderer owns all listed semantic Beats. Use scene.coveredBriefs for each Beat's visual decisions; keep subjects and camera continuous across their boundaries. sceneFrame spans the complete group and never resets at an internal Beat. Split modules only within declared owning paths.",
       "Read the complete VisualStyle from inputs/context.json; when theme is present its background, primaryText, secondaryText, and accent roles anchor the shared fallback background, text and brand. Follow the canvas-specific scenic color guidance below.",
       "Use scene.taskInput in inputs/context.json as immutable identity, timing, viewport, and allowlist authority.",

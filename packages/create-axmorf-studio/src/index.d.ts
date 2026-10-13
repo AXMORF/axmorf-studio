@@ -124,6 +124,14 @@ export type WorkspaceUpgradeResult = Readonly<{
 }>;
 
 export const MIRRORED_DIRECTORIES: readonly string[];
+export const desiredManagedFiles: (
+  options?: Readonly<{
+    templateRoot?: string;
+    filesystem?: typeof import("node:fs/promises");
+  }>,
+) => Promise<
+  Readonly<{ managed: ReadonlyMap<string, Buffer>; placeholders: string[] }>
+>;
 export const MANAGED_FILES: readonly string[];
 
 export const upgradeWorkspace: (

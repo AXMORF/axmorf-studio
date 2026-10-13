@@ -87,6 +87,8 @@ loop, preserving independent effects. Preserve synthesizedMusic metadata in soun
 follows measured speech; do not retime narration or captions for a beat. Existing library/file music keeps content scope.
 The helper's optional arrangement authors tonic, mode, progression, swing and sections with instruments/density/energy;
 choose them for the film. It compiles to the same timeline, and old recipes without arrangement keep their original behavior.
+New films use `engine: "studio-v2"` and keep the helper's `underSpeechVolume`, which lowers music only under measured
+narration; Scenes then receive sectionFrames/accentFrames to land their biggest moments on the music.
 Legacy playback scopes remain frozen until an explicit revision.
 Read the authoring reference for raw input shapes and runtime-upgrade base verification.
 The bound `scene.priorSource`, when present, is only the owning Scene's verified, frozen current base graph and declarations.

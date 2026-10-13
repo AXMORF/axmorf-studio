@@ -14,6 +14,12 @@ import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { pathToFileURL } from "node:url";
 
+import {
+  STUDIO_INSTRUMENTS,
+  arrangeStudioScore,
+  synthesizeStudioTimeline,
+} from "./studio-score.mjs";
+
 const SR = 48_000;
 const hash = (bytes) =>
   `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
@@ -50,7 +56,7 @@ const checkFields = (value, allowed, label) => {
   }
 };
 
-const parseArrangement = (value, bars) => {
+const parseArrangement = (value, bars, allowedInstruments = instruments) => {
   checkFields(
     value,
     ["tonic", "mode", "progression", "swing", "sections"],
@@ -93,7 +99,7 @@ const parseArrangement = (value, bars) => {
       throw new Error("Invalid arrangement section bars");
     if (
       !Array.isArray(section.instruments) ||
-      section.instruments.some((type) => !instruments.includes(type)) ||
+      section.instruments.some((type) => !allowedInstruments.includes(type)) ||
       new Set(section.instruments).size !== section.instruments.length
     )
       throw new Error("Invalid arrangement section instruments");
@@ -223,14 +229,24 @@ export const makeTimeline = (recipe) => {
     style: "organic",
     seed: 1,
   };
-  checkFields(recipe, [...Object.keys(defaults), "arrangement"], "score");
-  const { arrangement: rawArrangement, ...overrides } = recipe;
+  checkFields(
+    recipe,
+    [...Object.keys(defaults), "arrangement", "engine"],
+    "score",
+  );
+  const { arrangement: rawArrangement, engine, ...overrides } = recipe;
+  if (engine !== undefined && engine !== "studio-v2")
+    throw new Error('Invalid score engine: use "studio-v2"');
+  const studio = engine === "studio-v2";
+  if (studio && rawArrangement === undefined)
+    throw new Error("The studio-v2 engine requires an authored arrangement");
   const settings = { ...defaults, ...overrides };
   for (const [key, min, max] of [
     ["fps", 1, 120],
     ["bpm", 50, 180],
     ["beatsPerBar", 2, 7],
-    ["bars", 1, 16],
+    // studio-v2 scores can cover a whole film instead of looping a short phrase.
+    ["bars", 1, studio ? 64 : 16],
     ["seed", 1, 0xffffffff],
   ]) {
     if (
@@ -246,7 +262,11 @@ export const makeTimeline = (recipe) => {
   const arrangement =
     rawArrangement === undefined
       ? null
-      : parseArrangement(rawArrangement, settings.bars);
+      : parseArrangement(
+          rawArrangement,
+          settings.bars,
+          studio ? STUDIO_INSTRUMENTS : instruments,
+        );
   const fpb = (60 * settings.fps) / settings.bpm;
   if (fpb < 1)
     throw new Error(
@@ -271,7 +291,16 @@ export const makeTimeline = (recipe) => {
       note,
       gain,
     });
-  if (arrangement) {
+  const marks = { sections: [], accents: [] };
+  if (studio) {
+    arrangeStudioScore(
+      settings,
+      { ...arrangement, tonicPitchClass: pitchClasses[arrangement.tonic] },
+      fpb,
+      add,
+      marks,
+    );
+  } else if (arrangement) {
     addAuthoredArrangement(settings, arrangement, fpb, add);
   } else {
     // Preserve existing recipes; new scores can explicitly author harmony and sections.
@@ -315,8 +344,15 @@ export const makeTimeline = (recipe) => {
   return {
     schemaVersion: 1,
     ...settings,
+    ...(studio ? { engine } : {}),
     durationInFrames,
     beatFrames,
+    ...(studio
+      ? {
+          sections: marks.sections,
+          accentFrames: [...new Set(marks.accents)].sort((a, b) => a - b),
+        }
+      : {}),
     music: music.filter((event) => event.frame < durationInFrames),
   };
 };
@@ -339,7 +375,20 @@ const wav = (data) => {
   return result;
 };
 
+/** Writes the same normalized 16-bit stereo PCM used by the original engine. */
+const studioWav = (timeline) => {
+  const { left, right, peak } = synthesizeStudioTimeline(timeline);
+  const pcm = Buffer.alloc(left.length * 4);
+  const scale = 26000 / Math.max(peak, 1e-9);
+  for (let i = 0; i < left.length; i++) {
+    pcm.writeInt16LE(Math.round(left[i] * scale), 4 * i);
+    pcm.writeInt16LE(Math.round(right[i] * scale), 4 * i + 2);
+  }
+  return wav(pcm);
+};
+
 export const synthesizeTimeline = (timeline) => {
+  if (timeline.engine === "studio-v2") return studioWav(timeline);
   const count = Math.round((timeline.durationInFrames / timeline.fps) * SR);
   const left = new Float32Array(count);
   const right = new Float32Array(count);
@@ -547,10 +596,18 @@ if (
         mode: "synthesized",
         sourcePath: `public/assets/generated-score/${process.argv[5]}/music.wav`,
         timelinePath: `public/assets/generated-score/${process.argv[5]}/timeline.json`,
-        volume: 0.12,
+        ...(result.timeline.engine === "studio-v2"
+          ? { volume: 0.24, underSpeechVolume: 0.09 }
+          : { volume: 0.12 }),
       },
       bpm: result.timeline.bpm,
       durationInFrames: result.timeline.durationInFrames,
+      ...(result.timeline.engine === "studio-v2"
+        ? {
+            sections: result.timeline.sections,
+            accentFrames: result.timeline.accentFrames,
+          }
+        : {}),
       audioChecksum: result.timeline.audioChecksum,
     })}\n`,
   );

@@ -149,6 +149,9 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
   以 `backgroundMusic.mode:synthesized` 冻结原创 PCM 与 timeline；一个 composition 音轨替换全部 Scene/模板配乐，保留独立音效。
   synth helper 的可选 arrangement 按题材指定 tonic、mode、progression、swing 与分段乐器/密度/力度，编译为同一 timeline；
   无 arrangement 的旧 recipe 保持原生成行为，不能把默认和声当作每片的创作要求。
+  新片使用 `engine:"studio-v2"`（滤波音色、混响/延迟、sidechain、主题动机、过门与重音，最长 64 小节），timeline 额外冻结
+  sections/accentFrames 并投影为 Scene-local sectionFrames/accentFrames；`underSpeechVolume` 冻结为 contribution
+  `speechDucking`，Composition 只在实测旁白 chunk 下平滑压低音乐。无 engine 的 recipe 与既有 Project 音频不变。
   Scene task 的 musicTiming 是同一音乐网格投影到实测时序的局部帧；sealed PCM、字幕和语义边界不为踩拍改变。
   既有兼容模式的 BGM 在 create 时从已批准的全局
   loop 音乐库自动选曲或按明确选择冻结，单个 content-window contribution 只覆盖正文，跨 Scene 不重启，不覆盖首尾模板或 lead/tail。

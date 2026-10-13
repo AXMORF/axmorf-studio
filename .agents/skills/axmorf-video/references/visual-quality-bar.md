@@ -53,6 +53,15 @@
 - **线条体系**：全片统一 2–3 种描边粗细与圆角规则。
 - **材质**：复用一个共享 pattern 或 `NoiseGrain`，放在主体内部，不逐元素加滤镜，也不盖住阅读文字。
 
+## 音乐与卡点
+
+- **Root**：新片用 studio-v2 引擎，按[原创编曲](score-arrangement.md)让段落跟随叙事：安静的开场、逐步加入脉冲、
+  在关键揭示处达到最满的段落、结尾收束。保留辅助脚本给出的 `underSpeechVolume`，让音乐在旁白之间有存在感。
+  把 `accentFrames` 写进对应 Scene brief：哪个画面在哪个重音落下。
+- **Scene executor**：最大的揭示、切换或镜头到位落在 `musicTiming.accentFrames`/`sectionFrames`，次要动作落在
+  `barFrames` 或 `beatFrames`；用 `snapProducerFrameToBeat` 在允许窗口内吸附，预备动作提前开始。语义时序优先：
+  吸附不了就保留原帧，不改旁白和字幕。音效对齐同一个落点，不要每个拍点都发声。
+
 ## Scene executor：commit 前自审
 
 输出通过 check 后，若绑定提供 `commands.preview` 就运行它；没有 preview 时按源码与时序逐条推演，并把无法观察的项标为
@@ -65,6 +74,7 @@ not-assessed。至少查看每个 Beat 的开始后约半秒、动作中段、�
 4. 停留之外，相隔 2 秒的两帧能看出主体或镜头的变化；完全静止的停留不超过约 3 秒。
 5. 主体有体积、材质与细节，不是图标、方框、问号或几条线。
 6. 环境层铺满画面，没有大块无设计的空底色或居中方框。
+7. 有 `musicTiming` 时，Scene 最大的落点位于重音、段落起点或小节线附近（数帧以内），并已记录在 sync-anchors 中。
 
 在最终报告中写明每条结论对应的帧号；预览无法判断的项写 not-assessed。自审结论不是审美批准，
 也不替代 Root 对真实成片的审阅。
