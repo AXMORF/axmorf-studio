@@ -19,7 +19,17 @@ package checks 再次通过；Skill 上下文预算和共享创作文件同步�
 但包含上述未发布源码，不能用包版本号将两者等同。Git 提交或推送不会更新已安装的 npm 包；原有 Workspace 与
 既有作品未迁移。下方日期小节保留各阶段的实现和验证范围，较早测试数不代表最终累计结果。
 
-## 画面质量与发布流程（2026-10-14，源码验证完成，未发布）
+## 0.1.22 发布（2026-10-14）
+
+`v0.1.22-rc.1` 由 tag 触发的新发布流程在 CI 中通过完整检查、最小渲染和全新外部安装，以 provenance 发布到 npm `next`。
+随后在全新目录用 `npm create axmorf-studio@next` 创建 Workspace，doctor 六项通过；Codex（`gpt-6-astra`）只收到一条普通业务提示词，
+完成 `git-bisect-45s` 正式生产：45.13 秒、1080×1920、30fps 的 H.264/AAC 立体声视频，两张封面和 `publish.json`。
+exact 四文件已独立复验，可完整解码到 EOF。正文 Scene 首次通过 `project:asset:import` 导入两张生成图片，使用了
+`InterfaceWindow`、`TerminalPanel` 与 `SceneTextSafeArea`；Root 用预览自审修正了命令裁切、光带遮挡和 18 帧的数字不同步。
+16 帧抽帧审阅确认全幅环境、有体积的主体、逐段变化的取景、精简的文字和真实终端界面；部分帧下半部分偏空，
+正文未使用 `ProducerShotStage`。Codex 在运行中读取了其全局记忆，未连续观看或试听。验收通过后以同一源码发布 `0.1.22` 到 `latest`。
+
+## 画面质量与发布流程（2026-10-14）
 
 审阅用户 Workspace 的 17 个 Project 后确认，成片普遍呈现“一 Beat 一页幻灯片”：固定的标题、带框插图、说明与页脚，
 主体为手写的简单 SVG，相隔数秒的帧几乎不变，且没有任何 Project 导入过图片素材。已合入默认分支的改动包括：
@@ -29,7 +39,7 @@ Skill 的画面质量底线与 commit 前自审清单；`ProducerShotStage` 全�
 
 发布流程简化为两道门：tag 触发的 CI 完整检查通过即发布；预发布版本进入 `next`，真实 Agent 宿主验收后再发布正式版本到
 `latest`。不再要求 release plan、验收复用审批或发布后补写的记录。见[发布流程](guides/FIRST_USE_RELEASE_GATE.md)。
-这些改进在发布前不会进入 npm 包或既有 Workspace。
+这些改进随 0.1.22 发布；既有 Workspace 需更新包或重新创建才能获得。
 
 ## Edge TTS 端点迁移（2026-10-13，源码验证完成，未发布）
 
