@@ -1017,6 +1017,9 @@ const applyProjectRevisionPatch = async ({
     requirementsFingerprint: requirements.requirementsFingerprint,
     resourceCatalogFingerprint: catalog.catalogFingerprint,
     allowedResourceIds: previousPool.allowedResourceIds,
+    ...(previousPool.optionalCapabilityIds === undefined
+      ? {}
+      : { optionalCapabilityIds: previousPool.optionalCapabilityIds }),
     allowedSnapshots: previousPool.allowedSnapshots,
     selfAuthoredVisualsAllowed: true,
   });

@@ -559,6 +559,9 @@ const mergeCopiedAssets = ({
     projectId,
     assets: [...assets.values()],
     externalAssets: previousManifest.externalAssets,
+    ...(previousManifest.generatedAssets === undefined
+      ? {}
+      : { generatedAssets: previousManifest.generatedAssets }),
   });
 };
 

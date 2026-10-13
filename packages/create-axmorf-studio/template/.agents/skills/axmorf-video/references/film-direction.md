@@ -7,7 +7,8 @@ This guide supplies creative decisions, not new JSON fields, file access or a vi
 ## Plan the film
 
 Choose the audience takeaway and observable change. Match complexity to the brief; a pipeline proof is not a creative film.
-Choose appropriate geometry, actual UI, illustration or supported 3D.
+Choose generated imagery, original SVG, actual UI or supported 3D for the subject. Prepare missing assets through
+[generated artwork](generated-artwork.md); software availability alone does not make a visual asset available to Scenes.
 Root 新片/正文重做读 [创作手册](creative-playbook.md)；按需读 [案例与示例](../examples/README.md)。
 
 Write concept, subject, cameraIntent, rhythmIntent and soundIntent in story.filmPlan. In each Beat's scenes[] brief, describe
@@ -28,9 +29,12 @@ body frames; narration estimates still need PCM measurement. Bookend soundCues a
 for no music or audio needs their inspection too. Resolve conflicting requirements before create using existing user
 instructions, asking only if a material conflict remains; do not silently disable inherited boundaries.
 
-Choose resources for use: resources.allowedResourceIds is an admissible pool; narrated candidateResourceIds offers choices.
-Silent presets require exact consumption: buildSilentScenePreset takes sorted unique resourceIds matching that Beat's
-candidateResourceIds. Do not force irrelevant Catalog effects into presets. Validate current public contracts before create.
+按 create-context 的 capabilityIndex/useCases/recipes，把主体、动作、空间、数据、材质对应到 API；
+先定表现手法，再选技术，不把第一个示例或 editorial-tech 当通用风格。实拍/插画/3D/文字/图表按内容选择。
+新片 resources.capabilityAccess 默认 all-approved：创建时冻结已批准内置能力为可选项，正文 executor 自动收到指南。
+explicit 仅用于刻意限制。素材仍需 Story pool 与 Scene candidate 显式准入；silent preset.resourceIds 必须全部消费，
+不得填满可选能力。旧片/revision 保留冻结范围。Scene 按 availableResources 选择并声明实际调用，不用 demoOnlyExports
+的固定样例充当作品内容，不设使用数量要求。自绘按实际创作需要决定，不写形式化拒用清单。能力选择在编码前完成。
 
 ## Visual craft
 
@@ -38,14 +42,15 @@ Root 在写 create input 前定整片设计；新建/大幅改造的 Scene execu
 这些是设计判断，不增加 JSON 字段、资源权限或审美 validator；示例数值不是硬性门槛。
 
 - **设计方案**：明确配色角色（底色、正文、辅助、强调）、已安装字体的搭配、材质配方、动作与镜头语言，以及应避免的效果。
-  先 `fc-list : family` 核对字体；遵守已冻结的 theme。选少量相互协调的材质特征并贯穿全片；纸张可用纤维边、轻颗粒、胶带、柔和投影，
+  先 `fc-list : family` 核对字体；theme 锚定文字/品牌与兜底底色，新 full-frame 正文可自定环境色彩。选协调材质贯穿全片；纸张可用纤维边、轻颗粒、胶带、柔和投影，
   霓虹可用受控光晕与光轨。按主题选择，不强制纸拼贴、纯 SVG 或拒绝已批准的图片/3D。
 - **主角与构图**：每个叙事时刻有一个明确焦点，标题、插图、标签围绕它分主次；连续长 Scene 可交接焦点，不必切镜。
   用一个符合内容的空间隐喻展示动作和结果，避免把介绍做成轮流出现的文本卡片。画面空时先调整主角尺度、留白和层次，再考虑有意义的物件。
   保留安静区；对比色帮助主体从背景分离，不能让同色物件消失。强调色用于关键落点，不把所有元素同时高亮。
 - **景深与材质**：按需要组合后景形状、主体、前景遮挡和注释；用一致的边缘、投影、透明度表达前后关系。
   重叠要能看懂谁在上方。纹理提供触感，不把颜色染脏；相机/滤镜极值也不能掩盖内容。稳定阅读层留在世界相机之外；
-  Scene 装饰不重绘 Composition 的背景、HUD 或字幕。
+  新 full-frame Scene 可用子层铺满环境、图片与前景，root 保持透明；SceneTextSafeArea 单独保护文字，字幕仍归 Composition。
+  旧 safe-area-local Scene/固定首尾保留原边界。先设计完整画面再编码：主角尺度、接触面、光源方向、遮挡与安静区应具体，轻微漂移不能代替空间关系。
 - **文字工艺**：建立主标题、正文、标签的字号层级，以实际 sceneViewport/minFontSizePx 和最终缩小画面判断可读性，
   不照抄 1920×1080 的像素表。自然断句；短标签可 nowrap，长句按测量宽度换行。核对字体真实字重与 CJK 字形，
   不依赖合成粗体、描边或粗略字符宽度来补救拥挤。品牌逐字拼贴时让点号/标点保持清晰，网址必须准确。
@@ -67,9 +72,9 @@ Root 在写 create input 前定整片设计；新建/大幅改造的 Scene execu
 - **完整构图**：先设计代表段落的完整展开画面，再编排动作。通过材质、字体和动作语言保持统一；
   按内容改变主角尺度、重心、色块比例和信息布局。静镜头、有设计的卡片、列表与图解都可承载内容，
   连续世界可以交接焦点和形态。用可辨认的主体、留白与层级组织画面。
-- **颜色与材质**：遵守冻结 theme，在允许范围内用填充、明暗、对比和面积分出前后层次。
+- **颜色与材质**：theme 的文字/品牌色与场景美术分别设计，用填充、明暗、对比和面积分出前后层次。
   纸边、纹理、胶带、投影等选定特征须在实际像素中可见；小幅相机漂移不能替代材质和排版。
-  核对内容色板与当前合同的兼容性，不让 prose palette 假装扩展冻结的颜色权限。
+  图片/场景上的字用局部安静区、衬底或遮光层保证对比；不要假定文字对兜底底色可读就对图片可读。旧 Scene 保持其冻结合同。
 - **动作层次**：把主要变化拆成启动、到达、适度回弹和停稳；按语义递进信息，完成后保留阅读状态。
   对比密集动作与安静停留，保持阅读层稳定。动作数量与同步锚点数量不证明节奏感。
 - **共同事件**：在现有 brief、shot-plan、sync-anchors、sound-plan 中描述同一可见事件，明确音乐卡点绑定
@@ -84,24 +89,9 @@ Root 在写 create input 前定整片设计；新建/大幅改造的 Scene execu
 
 ## Code-synthesized music and shared timing
 
-For new music, synthesize original audio locally; do not select existing BGM or download samples. Choose BPM, meter,
-instrumentation and energy for this film. The local helper is a starting arrangement, not a mandatory aesthetic:
-
-```bash
-node .agents/skills/axmorf-video/scripts/synth-score.mjs --input inputs/score.json --id <score-id>
-```
-
-Recipe: fps (resolved Project fps), bpm, beatsPerBar, bars, style (`organic`/`electronic`) and seed.
-Example: `{ "fps":30, "bpm":100, "beatsPerBar":4, "bars":8, "style":"organic", "seed":17 }`.
-Before project:create, it uses Node/FFmpeg to write original stereo 48 kHz PCM and `timeline.json` under
-`public/assets/generated-score/<score-id>/`, with two-pass loudnorm (-14 LUFS, -2.7 dBTP targets).
-One timeline drives synthesis and visual beats. Round absolute beat frames once: `60 * fps / BPM` frames/beat.
-Fractional grids are valid; never accumulate rounded beat lengths.
-Use the helper's returned `backgroundMusic` object (`mode:"synthesized"`, sourcePath, timelinePath, volume) in create input.
-Music gain under speech can start around 0.08-0.12, not certified loudness. Create validates checksum/PCM duration/fps, freezes
-Project-owned score/sound.json timeline, and suppresses Scene/template BGM while retaining independent effects.
-The synthesized score loops from composition frame zero and fades at the end; it never restarts at Scene or Beat boundaries.
-Explicit no-music still uses null. Do not change saved music settings, remove the library, or migrate existing Projects.
+新片配乐由 Root 按 [原创编曲](score-arrangement.md) 在 create 前本地合成，明确调性/和声、段落、配器、疏密、力度与休止。
+合成 WAV 与 timeline 同源；create 冻结 bytes，composition 从帧0连续播放，保留独立音效。旧六字段配方保持兼容，
+新片填写 arrangement，不以改变 seed/BPM 代替编曲。显式无音乐仍用 null。
 
 Voice-led: normal prepare generates/seals/masters speech; cumulative PCM samples/SemanticTiming determine duration,
 captions and boundaries. The previously synthesized loop cannot dictate speech. Prepared `scene.musicTiming` supplies

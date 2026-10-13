@@ -1,7 +1,9 @@
 # 视频创作手册入口
 
-通用创作方法的唯一维护位置是视频 Skill 的 [创作手册](../../.agents/skills/axmorf-video/references/creative-playbook.md)。它将用户提供的 Claude Opus 5.5 资料整理为完整构图、叙事变化、落点、代码配乐、口播衔接和实际媒体返工方法。
+通用创作方法的唯一维护位置是视频 Skill 的 [创作手册](../../.agents/skills/axmorf-video/references/creative-playbook.md)。它将用户提供的 Claude Opus 5.5 资料整理为完整构图、叙事变化、落点、代码配乐、口播衔接和真实媒体验证方法。
 
+- [原创图片与 SVG](../../.agents/skills/axmorf-video/references/generated-artwork.md)：在新片首次 inspect 前准备并准入实际素材，支持主体、环境与遮挡分层。
+- [分段配乐](../../.agents/skills/axmorf-video/references/score-arrangement.md)：按题材选择调性、和声、乐器、密度、力度与 swing。
 - [纸拼贴 / Vox 案例](../../.agents/skills/axmorf-video/references/paper-collage.md)：材质、折面、分层、动作和原始对比图。
 - [设计与代码示例](../../.agents/skills/axmorf-video/examples/README.md)：口播/无口播 brief 与可运行的横竖屏落点小样。
 - [来源记录](../../.agents/skills/axmorf-video/examples/opus-playbook/README.md)：原始全文与图片，保留来源但不把历史命令当生产合同。

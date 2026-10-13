@@ -20,11 +20,10 @@ lockfile authority、sandbox 或 validator 来制造 Green。无法满足时报�
 
 ```mermaid
 flowchart LR
-  Author[Atomic create or isolated revision candidate] --> MCP{Current Root exposes compatible MCP tools?}
-  MCP -->|no: omit slot| Resolve[Resolve execution policy]
-  MCP -->|yes: load slot| Catalog{Local Catalog satisfies need?}
-  Catalog -->|yes| Resolve
-  Catalog -->|no| Import[MCP receipt + project asset import]
+  Author[Atomic create or isolated revision candidate] --> Catalog{New Project needs additional visual assets?}
+  Catalog -->|no or candidate| Resolve[Resolve execution policy]
+  Catalog -->|yes| Artwork[Root generates images, authors SVG or acquires licensed media]
+  Artwork --> Import[Validate and import Project-owned media]
   Import --> Resolve
   Resolve --> Inspect[Read-only readiness + cost + invalidation]
   Inspect --> Report[Root reports before cost]
@@ -63,12 +62,12 @@ flowchart LR
 baseline/attempt 只属于 diagnostic plane，不影响 Revision、TaskRevision、ArtifactAttestation、dispatch、
 materialization 或 DeliveryBuild。历史执行目录不参与 prepare、converge、delivery 或 settings progress。
 
-图中的 MCP 分支是当前 Root Agent 的 pre-inspect capability slot，不是 ProductionRevision/Task DAG node。
-只有当前 Agent 实际可调用同一 MCP 的 status/search/preview/acquire tools，且 acquisition receipt 能通过
-`project:asset:import` 时才投影该阶段；安装配置、shell discovery 或其他 Agent 的 tool surface 不算可用。
-缺失时整个 slot 无错误、无占位地省略。存在时仍先查本地 Catalog，只有准入后的 Project-owned manifest ID
-与 bytes fingerprint 才进入后续确定性主链；MCP、远程 URL、凭据、receipt 和 candidate path 留在 adapter
-boundary，task executors 与 runtime 不感知。
+图中的素材准备是 Root 的 pre-inspect authoring 输入通道，不是 ProductionRevision/Task DAG node。
+先查本地 Catalog，再按实际画面需要选择当前可调用的生图工具、原创 SVG，或兼容的许可图片 MCP。
+第三方 acquisition 仍要求同一 MCP 的 status/search/preview/acquire tools 与受支持 receipt；安装配置、shell
+discovery 或其他 Agent 可调用不等于 Root 当前可用。无需素材或缺少相应工具时不生成占位任务。
+固定 import 校验后，只有 Project-owned manifest identity、来源记录与 bytes fingerprint 进入生产；工具、
+远程路径、凭据与 receipt 不进入 child/runtime。revision candidate 不扩展 base snapshot 媒体范围。
 
 ## 2. Project authoring
 
@@ -76,6 +75,9 @@ boundary，task executors 与 runtime 不感知。
 
 新片 Skill 默认创建前本地代码合成配乐：使用内置 `synth-score.mjs` 或遵守同一公开 timeline 合同的原创合成器，
 把 `backgroundMusic:{mode:"synthesized",sourcePath,timelinePath,volume?}` 写入 create input。
+helper 的可选 `arrangement` 指定 `tonic`、`mode`、`progression`、`swing` 与分段 `sections`；每段的
+`bars/instruments/density/energy` 决定声音进入、留白与强弱。它编译为现有 timeline，不新增 runtime 音乐引擎；
+无 arrangement 的旧 recipe 保持原生成行为，新片应按内容编曲而非反复采用默认和声。
 生成器先产出 original stereo 48 kHz PCM 与音乐事件/节拍网格，create 本身仍不生成媒体或调用 provider；
 它验证音频 checksum、PCM 时长与 Project fps，冻结 Project-owned WAV 及 sound.json.synthesizedMusic。
 该模式单条 composition loop 从第零帧播放，抑制 Scene/首尾模板 BGM，保留独立音效，末尾包络连续。
@@ -114,13 +116,37 @@ import graph 与其他 copied bytes 一起冻结；后续共享模板或 generat
 
 新 Project 的 `visualStyle.theme` 默认 dark，也可选择 light 或四角色 hex 自定义值。create/revision 在 mutation 前
 验证颜色与对比度；copied Renderer 读取同一已固化主题。Composition 实际绘制主题底色，首尾没有独立白色衬板。
+新 full-frame 正文可用 Scene-owned 背景、图片、材质和光影覆盖该 fallback；文字必须对实际局部背景可读。
 旧版 immutable 首尾不自动迁移；不兼容的主题修订前置拒绝。见 [主题合同](contracts/VISUAL_THEME_CONTRACT.md)。
+
+创建 context 的 `visualApproaches` 提供生成图片、原创 SVG、空间几何的适用范围；example 不再优先某个
+styleProfile，仍只是输入形状示例。Root 在既有 artDirection、compositionIntent 与 motionIntent 中先描述
+代表画面的主体尺度、构图、光线、材质、遮挡关系，再给出初始/变化/结果与阅读停留；层次服务内容，不要求每片都用 3D。
+
+create 成功后、首次 inspect 前，原创素材使用：
+
+```bash
+npm run project:asset:import -- --project <storyId> --input <absolute-generated-artwork-json>
+```
+
+strict input 使用 `GeneratedArtworkImportInputSchema`：包括 assetId、title、description、相对 input JSON 的
+file、目标 `sceneMeaningIds` 与 provenance。来源为 `image-generated` 或 `authored-svg`，rights 为
+`original-work`；creator 是工具或作品作者描述，不能填写运行时 Agent/session identity。PNG/JPEG/WebP 或受限
+静态 SVG 经 bytes/类型/尺寸与来源校验后，原子写入媒体、manifest、Catalog、Story pool 和指定正文 Scene。
+需要独立运动或遮挡的环境/主体应分文件准备。它不接收伪造第三方 receipt；许可获取仍保留原
+`--receipt <absolute-path> --role <scene-visual|global-visual>` 路径。固定首尾与 revision candidate 不在新增原创素材准入范围。
 
 全新 creator Workspace 的 bootstrap 会先把 runtime package 中 runtime-policy 覆盖的共享音频/视觉素材投影到
 `public/assets/axmorf-shared/`，并把 package manifest 投影进 Resource Catalog。默认 config 选择 AXMORF 首尾
 template；create 只把所选 template 实际使用的音频复制到 `public/projects/<storyId>/scenes/...`，并改写为
 Project-owned resource IDs。共享路径冲突不会覆盖，未被 template 使用的共享视觉素材继续作为 Catalog capability
 供新 Scene authoring 选择；既有 Project 不自动迁移。
+
+新片 `resources.capabilityAccess` 默认 `all-approved`：创建时冻结 runtime-approved 内置能力为可选项，
+正文 Scene 自动收到能力指南与用途配方；`explicit` 才只开放显式选择。素材仍须进入 pool 与 Scene candidates，
+不能由可选能力扩大准入。无旁白 preset 的资源仍必须实际使用，可选能力独立于 preset；不把全部能力塞入 preset。
+旧作品不迁移，revision 保留原冻结范围。Root 从 `capabilityIndex` 先做内容和表现手法选择，Scene 再用
+`availableResources` 的 recipes 实现；`demoOnlyExports` 只标识旧固定样例，不作为可直接使用的内容组件。
 
 StoryBeat 明确区分 narrated-scene 与 silent-scene。narrated beat 的 `ttsChunks` 是 Agent-authored atomic
 units；缺省 sealed-narration 模式的 silent beat 只允许在首尾。显式 authored-frames 模式使用 silent scene-owner 正文的
@@ -244,17 +270,20 @@ prepare 前阻塞。`scene-template` 和其他 fixed tasks
 `remotion-best-practices`，且不能用 Skill 扩大
 TaskSpec/validator/write scope。
 
-单 Beat SceneTask v7、多 Beat SceneTask v8 是最小 Scene 输入：它们只包含 Scene-only requirements 与由
-Composition readability policy 确定性派生的 `sceneViewport`（safe-area-local width/height/min font
-size/fingerprint）。raw policy、full-frame width/height 和四边 inset 不进入 task workspace。Renderer
-从本地 `(0, 0)` 布局；只有 Composition 在 runtime 安装/clip SceneViewport 并拥有 CaptionLayer。
-validator 拒绝 Renderer 自建 SceneViewport/provider、读取 raw policy/inset 或调用 `useVideoConfig()`
-恢复 full-frame authority。
+单 Beat SceneTask v7、多 Beat SceneTask v8 是最小 Scene 输入：它们包含 Scene-only requirements 与由
+Composition readability policy 确定性派生的 `sceneViewport`。新 create 冻结 policyVersion 3：正文 viewport
+schemaVersion 2 的 `coordinateSpace:scene-full-frame` 提供完整画布、min font size 与独立 `textSafeArea`；
+无旁白时不留字幕带。场景美术可以铺满，文字使用相机变换之外的 `SceneTextSafeArea` 或等价冻结矩形。
+fixed template-copy 首尾仍用 schemaVersion 1 safe-area-local viewport，既有 policyVersion 1/2 的几何与
+fingerprint 不变，revision 保留完整 frozen policy。Renderer 只消费派生 viewport，从 `(0, 0)` 布局；
+只有 Composition 安装/clip SceneViewport 并拥有 CaptionLayer。validator 仍拒绝 Renderer 自建 viewport/provider
+或读取 raw policy；full-frame 正文的画布尺寸本身已由公开 viewport 显式提供。
 
 `scene-owner` context 另外提供当前 Scene brief、完整 VisualStyleSpec 与由已封存 SemanticTiming 派生的
 Scene-local narrationCues。TaskExecutionContract 要求执行者把开场主体、可见变化与结果对应到实际镜头和
 旁白 chunk；authored-frame Scene 使用显式语义事件与作者帧范围。多 Beat context 另外冻结 coveredBriefs、
 原 Beat/time ranges、合并资源 allowlists 与 filmPlan，Scene-local 时间跨边界不归零。
+contract v4 将代表画面、实际材质/光照/遮挡与动作状态落实到 visual-plan/shot-plan；平面作品仍可按内容选择。
 示例 Renderer 只是 API scaffold，原样提交会被 validator 拒绝。新增 context 和
 contract 只改变相关 Agent TaskRevision，不改变 ProductionRevision。
 
@@ -269,6 +298,7 @@ Composition，decoration range 是首个至末个正文 Beat 的连续窗口，d
 窗口 local zero。GlobalVisual validator 要求同一入口恰好导出两个 no-Props component，并拒绝越出
 decoration range 的 continuity window；themed base 必须直接返回 null，由 Composition 固定绘制 theme.background。
 themed decoration 在 Scene 后方的固定隔离组内合成，group opacity 上限 8%，配色校验覆盖该最差背景范围。
+该限制只作用于 GlobalVisual 的共享氛围，不限制 full-frame 正文自身的美术颜色、背景与分层。
 旧 Project 无 theme 时继续将其 base 放入 background slot。其 decoration 通过
 前景 `globalVisualLayers` slot 的 `Sequence` 限定在该窗口。
 

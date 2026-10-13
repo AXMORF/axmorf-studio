@@ -105,6 +105,9 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
   正文的 preset frame duration，不生成旁白/字幕或调用 TTS。fixed template-copy 仍只在首尾，不能加入正文分组。
   保留已发布 visual-scene/durationInFrames 路径，其 narration/sealed/mastered 为 JSON null、零 provider；
   narrated/visual/显式 authored-frames 正文模式不混用。
+- 新片默认在 Story pool 冻结已批准 runtime capabilities 为 `optionalCapabilityIds`；正文 task 自动获得该可选范围。
+  `resources.capabilityAccess:explicit` 保留显式限制；媒体仍须逐项准入，silent preset 资源仍须全部消费。
+  可选能力不要求全部使用；旧 Project 不迁移，revision 保留冻结集合。目录 recipes 指导实际使用，demoOnlyExports 只作旧样例标注。
 - `project:create` 从 strict create input 原子创建 configured authoring，并将选定边界 Scene template
   源码与资源复制为 Project-local immutable instance；它不调用 provider、不生成媒体或生产 attempt。
 - 用户明确的尺寸/横竖屏、fps、locale 写入 create input 的 `render.width/height/fps/locale`，未指定字段继承配置；
@@ -133,14 +136,19 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
   `ttsChunk` 最多 72 `caption-display-unit-v1` half-units。`authoring-validation-failed` /
   `caption-display-budget-exceeded` 由 Agent 改短或按自然语义拆分，不得降低 validator。
 - 字幕只由顶层 CaptionLayer 渲染；Scene root 透明，只输出 Beat 语义视觉与音效。Composition exactly
-  once owns safe-area-local SceneViewport、captions、narration 和 GlobalVisual layers；GlobalVisual base 覆盖完整
-  Composition，decoration 只覆盖正文连续窗口（旁白模式首至末 narrated Beat；authored 模式首至末 scene-owner Beat）。Scene 的 `(0, 0)` 是 viewport 左上角，
-  只接收 viewport width/height，不感知 full-frame inset。
-- 新 authored-frames Project 使用 readability policyVersion 2、captionBand none，四边保留安全 inset，不预留字幕带。
-  旁白与既有 policyVersion 1 保持原几何/fingerprint；current validation/revision 保留完整 frozen policy，不自动迁移。
-- 新 Project 的 `VisualStyleSpec.theme` 固化已校验四角色配色，Composition 实际绘制 background；themed GlobalVisual base 必须直接返回 null，正文/首尾共用主题。旧 immutable 模板不静默迁移；不兼容主题在 create/revision 前置拒绝。
+  once owns SceneViewport、captions、narration 和 GlobalVisual layers；GlobalVisual base 覆盖完整
+  Composition，decoration 只覆盖正文连续窗口（旁白模式首至末 narrated Beat；authored 模式首至末 scene-owner Beat）。
+- 新 Project 冻结 readability policyVersion 3：正文使用 `scene-full-frame` 画布与独立 `textSafeArea`，
+  图像、背景、材质、光影与遮挡可铺满画面；文字使用相机变换之外的 `SceneTextSafeArea` 或等价冻结矩形。
+  无旁白不预留字幕带。Scene 只消费派生 viewport，不读取 raw policy 或自行安装 viewport。
+  fixed template-copy 首尾仍使用原 safe-area-local viewport；既有 policyVersion 1/2 的几何/fingerprint 保留，revision 不自动迁移。
+- 新 Project 的 `VisualStyleSpec.theme` 固化四角色配色，Composition 绘制 fallback background；新全幅正文的
+  Scene-owned 美术可使用题材需要的颜色，并确保文字在实际局部背景上可读。themed GlobalVisual base 仍直接返回 null，
+  decoration 的 8% 上限只限制共享氛围层，不限制 Scene-owned 美术。固定首尾仍取主题色；旧 immutable 模板不静默迁移。
 - 旁白独占 narration track；非旁白声音都是独立 `SoundContribution`。新片 Skill 默认在 create 前本地代码合成 BGM，
   以 `backgroundMusic.mode:synthesized` 冻结原创 PCM 与 timeline；一个 composition 音轨替换全部 Scene/模板配乐，保留独立音效。
+  synth helper 的可选 arrangement 按题材指定 tonic、mode、progression、swing 与分段乐器/密度/力度，编译为同一 timeline；
+  无 arrangement 的旧 recipe 保持原生成行为，不能把默认和声当作每片的创作要求。
   Scene task 的 musicTiming 是同一音乐网格投影到实测时序的局部帧；sealed PCM、字幕和语义边界不为踩拍改变。
   既有兼容模式的 BGM 在 create 时从已批准的全局
   loop 音乐库自动选曲或按明确选择冻结，单个 content-window contribution 只覆盖正文，跨 Scene 不重启，不覆盖首尾模板或 lead/tail。
@@ -153,14 +161,13 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
 
 ## 唯一 production 与 delivery 主链
 
-- `project:create` 之后、live Project 首次 `project:produce:inspect` 之前只有一个可选 Agent capability slot；revision
-  candidate 不开放新的外部素材准入，只使用 base snapshot 已有 Project-owned media。若
-  当前 Root Agent 的实际 callable tool surface 暴露同一外部图片 MCP 的 `get_provider_status`、
-  `search_images`、`preview_images`、`acquire_image`，且 receipt 兼容 `project:asset:import`，则先查本地
-  Catalog，确有素材缺口时才 acquire/import；否则从本次流程完全省略该 slot，不报错、不生成占位 task、
-  prompt、estimate 或 DAG node。已安装/已配置、shell 可发现、其他 Agent 可调用都不算当前可用。
-  MCP/receipt/candidate path 不进入 child、Revision、Artifact Store、delivery 或 runtime；只有 import 后的
-  Project-owned manifest identity 与 bytes fingerprint 能成为 production input。
+- `project:create` 之后、live Project 首次 `project:produce:inspect` 之前可准备题材所需素材：先查本地 Catalog，
+  Root 用当前实际可调用的生图工具生成图片，或创作原创 SVG，再通过 `project:asset:import --input <absolute-json>`
+  校验原创 provenance 与实际文件，并原子接入 Project manifest、资源池和指定正文 Scene。生成主体与环境可分层，
+  不伪造第三方 acquisition receipt。兼容的许可图片 MCP 仍可走原 `--receipt` 准入；必须实际暴露同一 MCP 的
+  status/search/preview/acquire tools，安装配置或其他 Agent 可调用不算当前可用。没有素材缺口或对应工具时不生成占位 task/DAG node。
+  revision candidate 只使用 base snapshot 已有 Project-owned media，不开放新素材准入。工具、远程路径与 receipt
+  不进入 child/runtime；生产只消费通过固定 import 的 Project-owned manifest identity、provenance 与 bytes fingerprint。
 - 每次 live/candidate production（含同一业务请求的自主 revision）重新验证当前宿主 capability，并在 inspect 前成功运行一次
   `npm run project:execution:resolve`；不得沿用上轮 probe/resolver。执行策略：用户提示词中的明确字段优先于
   `private/execution-preferences.json`，未明确字段继续继承配置，再继承内置 `subagents`/4 默认。override 只作用于当前

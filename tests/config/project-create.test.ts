@@ -6,7 +6,9 @@ import test from "node:test";
 
 import {
   AuthoringRequirementsSchema,
+  AuthoringSchemaValidationError,
   AuthoringValidationError,
+  PendingSceneAuthoringSchema,
   VISUAL_THEME_PRESETS,
   NarrationSpecSchema,
   RenderSpecSchema,
@@ -50,6 +52,42 @@ const createProject = (
     ...input,
     runtimeResources: projectCreateRuntimeResources,
   });
+
+const authoredCreateInput = (resourceIds: readonly string[] = []) => {
+  const scene = {
+    ...validProjectCreateInput.scenes[0],
+    visualIntent: "Retain one subject in one continuous world.",
+    soundIntent: "No narration or captions.",
+    candidateResourceIds: resourceIds,
+  };
+  return {
+    ...validProjectCreateInput,
+    resources: {
+      ...validProjectCreateInput.resources,
+      allowedResourceIds: resourceIds,
+    },
+    story: {
+      ...validProjectCreateInput.story,
+      timingSource: "authored-frames" as const,
+      beats: [
+        {
+          kind: "silent-scene" as const,
+          meaningId: scene.meaningId,
+          narrativePurpose: "Express the result through continuous motion.",
+          preset: buildSilentScenePreset({
+            presetId: scene.meaningId,
+            durationInFrames: 120,
+            visualIntent: scene.visualIntent,
+            soundIntent: scene.soundIntent,
+            resourceIds,
+            implementation: { kind: "scene-owner" },
+          }),
+        },
+      ],
+    },
+    scenes: [scene],
+  };
+};
 
 test("create resolves explicit render fields over defaults without changing settings or repeating writes", async (t) => {
   for (const overrides of [
@@ -95,35 +133,16 @@ test("create resolves explicit render fields over defaults without changing sett
   }
 });
 
-test("authored create freezes frame-safe geometry for landscape and portrait without changing configured insets", async (t) => {
+test("authored create freezes a full art canvas and separate text insets in both orientations", async (t) => {
   for (const dimensions of [
-    { width: 1280, height: 720, viewportWidth: 1100, viewportHeight: 540 },
-    { width: 1080, height: 1920, viewportWidth: 900, viewportHeight: 1740 },
+    { width: 1280, height: 720, viewportWidth: 1280, viewportHeight: 720 },
+    { width: 1080, height: 1920, viewportWidth: 1080, viewportHeight: 1920 },
   ]) {
     const fixture = await prepareProjectCreateFixture();
     t.after(() => rm(fixture.rootDir, { recursive: true, force: true }));
     const configBefore = await readFile(fixture.configPath);
     await writeProjectCreateJson(fixture.inputPath, {
-      ...validProjectCreateInput,
-      story: {
-        ...validProjectCreateInput.story,
-        timingSource: "authored-frames",
-        beats: [
-          {
-            kind: "silent-scene",
-            meaningId: "opening",
-            narrativePurpose: "Express the result through continuous motion.",
-            preset: buildSilentScenePreset({
-              presetId: "opening",
-              durationInFrames: 120,
-              visualIntent: "Retain one subject in one continuous world.",
-              soundIntent: "No narration or captions.",
-              resourceIds: [],
-              implementation: { kind: "scene-owner" },
-            }),
-          },
-        ],
-      },
+      ...authoredCreateInput(),
       render: {
         ...validProjectCreateInput.render,
         width: dimensions.width,
@@ -145,13 +164,20 @@ test("authored create freezes frame-safe geometry for landscape and portrait wit
     const requirements = AuthoringRequirementsSchema.parse(
       JSON.parse(requirementsBytes.toString("utf8")),
     );
-    assert.ok(requirements.readabilityPolicy.policyVersion === 2);
+    assert.ok(requirements.readabilityPolicy.policyVersion === 3);
     assert.equal(requirements.readabilityPolicy.captionBand, "none");
     assert.equal(requirements.readabilityPolicy.baseEdgeInsetPx, 90);
     const viewport = resolveSceneViewport(requirements.readabilityPolicy);
     assert.equal(viewport.width, dimensions.viewportWidth);
     assert.equal(viewport.height, dimensions.viewportHeight);
     assert.equal(viewport.minFontSizePx, 36);
+    assert.ok(viewport.schemaVersion === 2);
+    assert.deepEqual(viewport.textSafeArea, {
+      top: 90,
+      right: 90,
+      bottom: 90,
+      left: 90,
+    });
     const before = await snapshotProjectMtimes(fixture.rootDir);
     assert.equal(
       (await createProject(request)).status,
@@ -160,6 +186,126 @@ test("authored create freezes frame-safe geometry for landscape and portrait wit
     assert.deepEqual(await readFile(requirementsPath), requirementsBytes);
     assert.deepEqual(await snapshotProjectMtimes(fixture.rootDir), before);
     assert.deepEqual(await readFile(fixture.configPath), configBefore);
+  }
+});
+
+test("silent Scene declarations fail before the create lock or writes when the preset and brief disagree", async (context) => {
+  const fixture = await prepareProjectCreateFixture();
+  context.after(() => rm(fixture.rootDir, { recursive: true, force: true }));
+  const input = authoredCreateInput(["capability.motion"]);
+  const configBefore = await readFile(fixture.configPath);
+  const catalogPath = join(
+    fixture.rootDir,
+    "src/remotion/catalog/resource-catalog.generated.json",
+  );
+  const catalogBefore = await readFile(catalogPath);
+  let lockAttempts = 0;
+  for (const [field, patch] of [
+    ["visualIntent", { visualIntent: "Show a different visual action." }],
+    ["soundIntent", { soundIntent: "Add a distinct accent." }],
+    ["candidateResourceIds", { candidateResourceIds: [] }],
+    ["candidateResourceIds", { candidateResourceIds: ["capability.layout"] }],
+    [
+      "allowedSnapshotCards",
+      {
+        allowedSnapshotCards: [
+          { sourceId: "video-shotcraft", cardIds: ["depth-stage"] },
+        ],
+      },
+    ],
+  ] as const) {
+    await writeProjectCreateJson(fixture.inputPath, {
+      ...input,
+      resources: {
+        ...input.resources,
+        allowedResourceIds: ["capability.layout", "capability.motion"],
+        allowedSnapshots: [
+          { sourceId: "video-shotcraft", allowedCardIds: ["depth-stage"] },
+        ],
+      },
+      scenes: [{ ...input.scenes[0], ...patch }],
+    });
+    await assert.rejects(
+      createProject({
+        ...fixture,
+        projectId: input.storyId,
+        env: { RSP_PRODUCER_CONFIG: fixture.configPath },
+        acquireLock: async () => {
+          lockAttempts += 1;
+          throw new Error("repository lock must not be acquired");
+        },
+      }),
+      (error: unknown) => {
+        assert.ok(error instanceof AuthoringSchemaValidationError, field);
+        assert.deepEqual(
+          error.issues.map(({ path }) => path),
+          [["scenes", 0, field]],
+        );
+        return true;
+      },
+    );
+  }
+  assert.equal(lockAttempts, 0);
+  for (const path of [
+    "src/projects/story-example",
+    "public/projects/story-example",
+    ".narration-work/story-example",
+    ".producer-attempts/story-example",
+    ".project-operation.lock",
+  ])
+    await assert.rejects(stat(join(fixture.rootDir, path)), { code: "ENOENT" });
+  assert.deepEqual(
+    await readdirNames(join(fixture.rootDir, "src/projects")),
+    [],
+  );
+  assert.deepEqual(await readFile(fixture.configPath), configBefore);
+  assert.deepEqual(await readFile(catalogPath), catalogBefore);
+});
+
+test("matching silent Scene declarations preserve authored briefs and derive configured template briefs", async (context) => {
+  const fixture = await prepareProjectCreateFixture();
+  context.after(() => rm(fixture.rootDir, { recursive: true, force: true }));
+  const input = {
+    ...authoredCreateInput(["capability.motion"]),
+    sceneTemplates: {
+      introSceneTemplateId: "axmorf-brand-reveal-v1",
+      outroSceneTemplateId: "axmorf-source-follow-v1",
+    },
+  };
+  await writeProjectCreateJson(fixture.inputPath, input);
+  const result = await createProject({
+    ...fixture,
+    projectId: input.storyId,
+    env: { RSP_PRODUCER_CONFIG: fixture.configPath },
+  });
+  assert.deepEqual(result.copiedSceneMeaningIds, [
+    "configured-intro-scene",
+    "configured-outro-scene",
+  ]);
+  const projectRoot = join(fixture.rootDir, "src/projects", input.storyId);
+  const story = StorySpecSchema.parse(
+    JSON.parse(await readFile(join(projectRoot, "story.json"), "utf8")),
+  );
+  const pending = PendingSceneAuthoringSchema.parse(
+    JSON.parse(
+      await readFile(
+        join(projectRoot, "production/pending-scene-production-brief.json"),
+        "utf8",
+      ),
+    ),
+  );
+  assert.equal(pending.scenes.length, 3);
+  assert.deepEqual(pending.scenes[1], input.scenes[0]);
+  for (const [index, beat] of story.beats.entries()) {
+    assert.equal(beat.kind, "silent-scene");
+    if (beat.kind !== "silent-scene") assert.fail("Expected silent Scene");
+    assert.equal(pending.scenes[index]?.visualIntent, beat.preset.visualIntent);
+    assert.equal(pending.scenes[index]?.soundIntent, beat.preset.soundIntent);
+    assert.deepEqual(
+      pending.scenes[index]?.candidateResourceIds,
+      beat.preset.resourceIds,
+    );
+    assert.deepEqual(pending.scenes[index]?.allowedSnapshotCards, []);
   }
 });
 

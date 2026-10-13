@@ -82,6 +82,12 @@ preparation is serialized and bounded; doctor never silently downloads Chrome. N
 `npm run project:create:context -- --project <storyId>`, which returns a complete example and current public choices.
 Use the generated Workspace-local authoring and host-execution references for exact task execution and interruption recovery.
 
+Current unreleased source also freezes approved runtime capabilities as optional choices, with API recipes and explicit
+allowlist control. New body Scenes use a full-frame canvas with separate text safety; original generated images or static SVG
+can be admitted before first production inspection. The score helper supports topic-specific harmony and section arrangement,
+and Edge TTS is pinned to SDK 1.2.11 for its migrated endpoint. These changes are not included in public 0.1.21; see
+[current implementation status](https://github.com/AXMORF/axmorf-studio/blob/HEAD/docs/ITERATION_STATUS.md).
+
 The runtime provides filmPlan, consecutive multi-Beat Scene ownership, authored-frame visual-only timelines, deterministic
 world/morph/semantic-time utilities and `axmorf project preview`. Drafts project verified artifacts into a frozen private view
 before final rendering; their receipts certify media integrity and leave creative assessment explicit. Existing Projects keep

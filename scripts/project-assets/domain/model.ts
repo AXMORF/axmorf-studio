@@ -4,6 +4,7 @@ import {
   ResourceAssetDescriptorSchema,
   ResourceIdSchema,
   type ExternalImageAssetAcquisition,
+  type GeneratedArtworkRecord,
 } from "@axmorf/studio/contracts";
 
 export type ProjectAssetRole = "scene-visual" | "global-visual";
@@ -78,5 +79,65 @@ export const buildImportedImageDescriptor = ({
       width: acquisition.file.width,
       height: acquisition.file.height,
       sizeBytes: acquisition.file.sizeBytes,
+    },
+  });
+
+export const createProjectGeneratedResourceId = (
+  projectId: string,
+  assetId: string,
+) =>
+  ResourceIdSchema.parse(
+    `asset.generated.${assetId}.${createHash("sha256").update(projectId).digest("hex").slice(0, 16)}`,
+  );
+
+export const buildGeneratedArtworkDescriptor = ({
+  projectId,
+  resourceId,
+  creation,
+  publicPath,
+}: {
+  readonly projectId: string;
+  readonly resourceId: string;
+  readonly creation: GeneratedArtworkRecord;
+  readonly publicPath: string;
+}) =>
+  ResourceAssetDescriptorSchema.parse({
+    schemaVersion: 1,
+    id: resourceId,
+    kind: "asset",
+    status: "approved",
+    title: creation.title,
+    description: creation.description,
+    useCases: ["scene-visual"],
+    tags: [creation.provenance.kind, "project-local", "scene-visual"].sort(),
+    authority: {
+      kind: "repository-file",
+      repositoryPath: `src/projects/${projectId}/assets.manifest.json`,
+    },
+    allowedUse: "runtime-approved",
+    assetKind: creation.provenance.kind === "authored-svg" ? "svg" : "image",
+    mediaRole: "scene-visual",
+    localPath: publicPath,
+    checksum: creation.file.sha256,
+    license: {
+      id: "creator-declared-original-work",
+      verificationStatus: "verified",
+      sourceUrl: null,
+      attributionRequired: false,
+      attributionText: null,
+      // A fixed admission-policy date, never the generation attempt's clock.
+      verifiedAt: "2026-10-13T00:00:00.000Z",
+      sourceEvidenceFingerprint: creation.provenanceFingerprint,
+    },
+    generatedSource: {
+      kind: creation.provenance.kind,
+      creator: creation.provenance.creator,
+      provenanceFingerprint: creation.provenanceFingerprint,
+    },
+    media: {
+      mimeType: creation.file.mimeType,
+      width: creation.file.width,
+      height: creation.file.height,
+      sizeBytes: creation.file.sizeBytes,
     },
   });

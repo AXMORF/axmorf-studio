@@ -8,11 +8,12 @@ import {
   readdir,
   rename,
   rm,
-  unlink,
+  rmdir,
 } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 
 import { Sha256DigestSchema } from "@axmorf/studio/contracts";
+import { acquireRepositoryOperationLock } from "../../shared/repository-operation-lock";
 
 export const checksumBytes = (bytes: Uint8Array) =>
   Sha256DigestSchema.parse(
@@ -31,7 +32,11 @@ const assertContained = (root: string, target: string) => {
   }
 };
 
-export const readRegularFile = async (path: string, label: string) => {
+export const readRegularFile = async (
+  path: string,
+  label: string,
+  maxBytes = 64 * 1024 * 1024,
+) => {
   if ((await realpath(path)) !== resolve(path)) {
     throw new Error(`${label} path must not traverse a symbolic link.`);
   }
@@ -39,6 +44,8 @@ export const readRegularFile = async (path: string, label: string) => {
   if (metadata.isSymbolicLink() || !metadata.isFile()) {
     throw new Error(`${label} must be a regular non-symbolic file.`);
   }
+  if (metadata.size <= 0 || metadata.size > maxBytes)
+    throw new Error(`${label} exceeds its supported size limit.`);
   return Uint8Array.from(await readFile(path));
 };
 
@@ -106,6 +113,7 @@ export const assertSafeTargetParent = async (
 
 const ensureSafeDirectory = async (rootDir: string, directory: string) => {
   const parts = repositoryParts(rootDir, directory);
+  const created: string[] = [];
   let current = resolve(rootDir);
   for (const part of parts) {
     current = join(current, part);
@@ -113,6 +121,7 @@ const ensureSafeDirectory = async (rootDir: string, directory: string) => {
     if (metadata === null) {
       try {
         await mkdir(current);
+        created.push(current);
       } catch (error) {
         if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
       }
@@ -122,6 +131,7 @@ const ensureSafeDirectory = async (rootDir: string, directory: string) => {
       throw new Error("Project asset directory chain is unsafe.");
     }
   }
+  return created;
 };
 
 export const assertProjectDirectory = async (
@@ -147,6 +157,10 @@ export const assertBeforeSceneFreeze = async (
   rootDir: string,
   projectId: string,
 ) => {
+  if (resolve(rootDir).split(sep).includes(".producer-revisions"))
+    throw new Error(
+      "Asset import cannot admit new media into a revision candidate.",
+    );
   for (const path of [
     join(rootDir, "src/projects", projectId, "production/scene-assignments"),
     join(
@@ -155,6 +169,14 @@ export const assertBeforeSceneFreeze = async (
       projectId,
       "production/global-visual-assignment.generated.json",
     ),
+    join(
+      rootDir,
+      "src/projects",
+      projectId,
+      "production/scene-production-brief.json",
+    ),
+    join(rootDir, ".producer-attempts", projectId),
+    join(rootDir, "deliveries", projectId),
   ]) {
     if ((await pathState(path)) !== null) {
       throw new Error("Project asset import is forbidden after Scene freeze.");
@@ -170,7 +192,25 @@ export const readOptionalFile = async (path: string) => {
       "Project asset target must be a regular non-symbolic file.",
     );
   }
-  return Uint8Array.from(await readFile(path));
+  return readRegularFile(path, "Project asset target");
+};
+
+export const readGeneratedArtworkEvidence = async (path: string) => {
+  const metadata = await pathState(dirname(path));
+  if (metadata === null) return null;
+  if (metadata.isSymbolicLink() || !metadata.isDirectory())
+    throw new Error("Generated artwork evidence directory is unsafe.");
+  const entries = await readdir(dirname(path), { withFileTypes: true });
+  if (
+    entries.length !== 1 ||
+    entries[0]!.name !== "generated-artwork.json" ||
+    !entries[0]!.isFile() ||
+    entries[0]!.isSymbolicLink()
+  )
+    throw new Error(
+      "Generated artwork evidence directory has unknown entries.",
+    );
+  return readRegularFile(path, "Generated artwork evidence");
 };
 
 export const readExactEvidenceDirectory = async (path: string) => {
@@ -275,14 +315,10 @@ export const createImportStaging = async ({
 };
 
 export const acquireImportLock = async (rootDir: string) => {
-  const path = join(rootDir, ".project-asset-import.lock");
-  const handle = await open(path, "wx", 0o600);
-  return {
-    release: async () => {
-      await handle.close();
-      await unlink(path);
-    },
-  } as const;
+  return acquireRepositoryOperationLock({
+    rootDir,
+    ownerId: "project-asset-import",
+  });
 };
 
 export const promoteImportStaging = async ({
@@ -355,4 +391,81 @@ export const writeTextAtomic = async ({
   const staging = `${path}.${randomUUID()}.tmp`;
   await writeExclusive(staging, bytes);
   await rename(staging, path);
+};
+
+export type AssetImportFile = Readonly<{
+  path: string;
+  bytes: Uint8Array | string;
+  previousBytes: Uint8Array | null;
+}>;
+
+/** Stage the asset, provenance and dependent authoring together, then retain backups until revalidation. */
+export const promoteAssetImportFiles = async (
+  rootDir: string,
+  files: readonly AssetImportFile[],
+) => {
+  const id = randomUUID();
+  if (new Set(files.map(({ path }) => path)).size !== files.length)
+    throw new Error("Asset import has duplicate transaction targets.");
+  const entries = files.map((file) => ({
+    ...file,
+    target: join(rootDir, file.path),
+    staged: join(rootDir, `${file.path}.${id}.tmp`),
+    backup: join(rootDir, `${file.path}.${id}.backup`),
+    backedUp: false,
+    promoted: false,
+  }));
+  const createdDirectories: string[] = [];
+  const rollback = async () => {
+    for (const entry of [...entries].reverse()) {
+      if (entry.promoted) {
+        await rm(entry.target, { force: true });
+        entry.promoted = false;
+      }
+      if (entry.backedUp) {
+        await rename(entry.backup, entry.target);
+        entry.backedUp = false;
+      }
+    }
+    for (const entry of entries) await rm(entry.staged, { force: true });
+    for (const path of [...createdDirectories].reverse()) await rmdir(path);
+  };
+  try {
+    for (const entry of entries) {
+      await assertSafeTargetParent(rootDir, entry.target);
+      const current = await readOptionalFile(entry.target);
+      if (
+        (current === null) !== (entry.previousBytes === null) ||
+        (current !== null &&
+          entry.previousBytes !== null &&
+          !Buffer.from(current).equals(Buffer.from(entry.previousBytes)))
+      )
+        throw new Error("Asset import target changed before promotion.");
+    }
+    for (const entry of entries) {
+      createdDirectories.push(
+        ...(await ensureSafeDirectory(rootDir, dirname(entry.target))),
+      );
+      await writeExclusive(entry.staged, entry.bytes);
+    }
+    for (const entry of entries) {
+      if (entry.previousBytes !== null) {
+        await rename(entry.target, entry.backup);
+        entry.backedUp = true;
+      }
+      await rename(entry.staged, entry.target);
+      entry.promoted = true;
+    }
+    return {
+      rollback,
+      commit: async () => {
+        for (const entry of entries) if (entry.backedUp) await rm(entry.backup);
+      },
+    };
+  } catch (error) {
+    await rollback();
+    throw error;
+  } finally {
+    for (const entry of entries) await rm(entry.staged, { force: true });
+  }
 };

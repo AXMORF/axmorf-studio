@@ -2,7 +2,7 @@
 
 > 文档类型：维护指南
 >
-> 最后复核：2026-08-18
+> 最后复核：2026-10-13
 >
 > 系统结构与当前状态分别以 [ARCHITECTURE.md](../ARCHITECTURE.md) 和
 > [ITERATION_STATUS.md](../ITERATION_STATUS.md) 为准。
@@ -17,6 +17,7 @@ Scene 设计只通过一个只读目录发现可用视觉、音频、style profi
 flowchart LR
     Assets["本地资产 manifest"] --> Build["buildResourceCatalog"]
     ExternalMedia["Imported external media<br/>provider receipt evidence"] --> Build
+    Artwork["原创图片 / 静态 SVG<br/>verified provenance and bytes"] --> Build
     VisualComponents["visual-components"] --> Code["capabilityCatalog"]
     Camera["camera"] --> Code
     Effects["effects / motion"] --> Code
@@ -53,12 +54,13 @@ flowchart LR
 
 当前权威与生成入口：
 
-- `src/remotion/capabilities/`：各领域权威；
+- `packages/studio/src/remotion/capabilities/`：各领域源码权威；
 - `capability.visual-components`：共享视觉组件 Catalog identity；chart/layout descriptor 复用同一
   明确 export authority，不保留旧目录或兼容别名；
 - `src/remotion/catalog/assets.manifest.json`：本地 asset descriptor 权威；
-- `src/remotion/catalog/style-descriptors.ts` 与 `capability-descriptors.ts`：静态 export
+- `packages/studio/src/remotion/catalog/style-descriptors.ts` 与 `capability-descriptors.ts`：静态 export
   descriptor 声明；
+- 同目录的 `capability-guides.ts` 与 `capability-recipes.ts`：公开 API、用途和可编译示例；
 - `src/remotion/catalog/resource-catalog.generated.json`：由 bootstrap 重建的 ignored 本地读取
   视图；
 - `packages/studio/src/contracts/resource-catalog.ts`：四类 descriptor、选择引用和准入合同；
@@ -104,16 +106,36 @@ ResourceDescriptor
 ├── allowedUse（runtime-approved / localize-code / localize-asset / reference-only / blocked）
 ├── license / attribution / verification status（按资源需要）
 ├── mediaRole / visualRole / soundRole（按 kind）
-└── exportName（代码能力可选）
+├── exportName（代码能力可选）
+└── authoring（代码能力可选：公开 API、example / recipes / demoOnlyExports）
 ```
+
+`project:create:context` 提供 `capabilityIndex` 与公开指南；Catalog 查询可匹配 API 名称、用途和中文配方。
+`recipes` 展示共享能力怎样消费本片内容；`demoOnlyExports` 标出固定样例，不应把样例文字、数据或时序直接
+当作本片画面。目录帮助按语义选用，不以使用数量评价质量。
+
+新 Project 默认将当前已批准、`runtime-approved` 的代码能力冻结到 Story pool 的 `optionalCapabilityIds`，
+正文 task 自动获得这个可选范围及其指南；`resources.capabilityAccess: "explicit"` 可保留逐 Scene 的显式限制。
+可选范围不要求全部消费，实际调用仍须登记到 selected resources；没有合适 API 时可以自绘。
+媒体始终逐项准入，silent preset 中的必选资源仍须全部消费。既有 Project 不迁移，revision 保留冻结集合。
 
 后续可为高价值能力逐步补充 `avoidWhen`、画幅、renderCost、代表帧和 motion strip；
 这属于目录元数据增强，不改变其实现权威。
 
+## 原创图片与 SVG
+
+新 Project 在 create 后、首次 inspect 前可通过 `project:asset:import --project <storyId> --input <absolute-json>`
+准入 Root 实际生成的图片或原创静态 SVG。固定 importer 验证 provenance、真实像素/容器或安全 SVG、尺寸及
+checksum，原子写入 Project manifest、Catalog、Story pool 和指定正文 Scene；支持分组与 silent scene-owner。
+输入格式与步骤见[原创素材准入](../../.agents/skills/axmorf-video/references/generated-artwork.md)。
+
+工具调用和临时文件不进入 child/runtime；生产只使用已验证的 Project-owned bytes 和 manifest identity。
+revision candidate 只使用 base snapshot 已有媒体，不开放新素材导入。
+
 ## 外部镜头参考
 
-外部可播放媒体与 authoring-only 镜头参考是不同边界。当前 `project:asset:import` 只准入 Pexels
-image receipt v1：校验候选 bytes 后复制到 Project-owned public 路径，把 provider receipt 映射为
+外部可播放媒体与 authoring-only 镜头参考是不同边界。第三方许可图片继续使用
+`project:asset:import --receipt` 的 Pexels image receipt v1：校验候选 bytes 后复制到 Project-owned public 路径，把 provider receipt 映射为
 通用 acquisition evidence 和 `runtime-approved` asset descriptor。ProductionRevision 建立后不能偷换
 输入；Scene/GlobalVisual tasks 只消费 Revision 绑定的本地 Resource ID。video/audio 分支存在于通用合同中，但当前
 明确 fail closed；Catalog 不把它们伪装成已支持资源。
@@ -154,7 +176,7 @@ Scene renderer 可以调用目录中的共享能力，也可以拆分本地 Shot
 ## Scene 并行查询边界
 
 Root 先只读 inspect，再由 prepare 在分发 Scene 任务前绑定同一份 ResourceCatalog snapshot 和允许的
-ExternalReferenceSnapshot。每个 meaningId 子 Agent 只读查询这些快照，把最终视觉/音频
+ExternalReferenceSnapshot。每个 Scene owner（单 Beat 或连续分组）executor 只读查询绑定的资源与可选能力快照，把最终视觉/音频
 选择写入自己的 `selected-resources.json`，把 recipe 选择写入
 `shot-recipe-selection.json`；子 Agent 不得修改 Catalog、共享 capability exports、上游
 revision 或其他 Scene 的资源/recipe 选择。

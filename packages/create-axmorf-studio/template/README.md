@@ -32,6 +32,11 @@ npm run dev
 production progress, and verified current Delivery views; Remotion Studio owns live Composition preview. Neither is the creative or
 completion authority.
 
+New Projects freeze approved runtime capabilities as optional choices; the create context exposes their APIs and recipes.
+Body artwork can fill the frame while text stays in a separate safe area. Root can admit original generated images or static
+SVG after create and before first inspection; the local Skill documents the exact import route. The score helper supports
+topic-specific harmony and section arrangement. Existing Projects keep their frozen capability scope, media and framing.
+
 For an explicitly requested video without narration, the create context provides a `visualFirst` example with authored
 Scene durations. Convey the meaning through visible state changes and short copy. Narrated and visual content currently
 use separate Projects; removing audio from an existing narrated Project does not switch its mode.
@@ -111,4 +116,4 @@ Generated scores and user-local music are separate from package-owned shared med
 legacy library choices should use original loops rather than previews. Keep music and maintenance reports private. Retiring a preview never silently migrates existing
 Project media or sealed audio; inspect dependencies first and preserve recoverability when removal is authorized.
 
-新 Project 的 `visualStyle.theme` 可选 dark、light 或 background/primaryText/secondaryText/accent 四角色不透明六位 hex；默认 dark。系统在创建/修订前验证配色，Composition 的实际底色与正文、固定首尾共用主题。旧 Project 的 immutable 首尾不自动迁移。
+新 Project 的 `visualStyle.theme` 可选 dark、light 或 background/primaryText/secondaryText/accent 四角色不透明六位 hex；默认 dark。系统在创建/修订前验证配色，主题统一 Composition 兜底底色、文字与品牌角色，固定首尾沿用主题。新全幅正文的图片、材质与光色按题材安排，文字保留独立安全区并保证局部背景上的可读性。旧 Project 的 immutable 首尾与几何不自动迁移。

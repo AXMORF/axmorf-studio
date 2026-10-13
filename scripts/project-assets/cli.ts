@@ -2,6 +2,7 @@ import { isAbsolute } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { importProjectAsset } from "./application/import";
+import { importGeneratedProjectAsset } from "./application/import-generated";
 
 export const runProjectAssetImportCli = async (
   args: readonly string[],
@@ -13,6 +14,15 @@ export const runProjectAssetImportCli = async (
     stdout: (line) => process.stdout.write(`${line}\n`),
   },
 ) => {
+  if (args.length === 4 && args[0] === "--project" && args[2] === "--input") {
+    const result = await importGeneratedProjectAsset({
+      rootDir: context.rootDir,
+      projectId: args[1] ?? "",
+      inputPath: args[3] ?? "",
+    });
+    context.stdout(JSON.stringify(result));
+    return result;
+  }
   if (
     args.length !== 6 ||
     args[0] !== "--project" ||
@@ -20,7 +30,7 @@ export const runProjectAssetImportCli = async (
     args[4] !== "--role"
   ) {
     throw new Error(
-      "Expected --project <storyId> --receipt <absolute-path> --role <scene-visual|global-visual>.",
+      "Expected --project <storyId> --input <absolute-generated-artwork-json>, or --project <storyId> --receipt <absolute-path> --role <scene-visual|global-visual>.",
     );
   }
   const receiptPath = args[3] ?? "";

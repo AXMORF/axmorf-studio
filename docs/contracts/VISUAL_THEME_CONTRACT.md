@@ -1,7 +1,8 @@
 # Visual theme
 
-`visualStyle.theme` 是全片背景、主文字、次文字和强调色的唯一数值来源。`artDirection.palette` 描述配色意图，
-不能覆盖这些角色。品牌 Logo paths、字体、排版、动画和时间结构仍属于 immutable template source，不是配色输入。
+`visualStyle.theme` 是 Composition fallback 背景、主题文字和品牌强调色的数值来源。`artDirection.palette`
+描述配色意图，不能改写这些角色。新 full-frame 正文的 Scene-owned 图像、环境、材质与灯光可使用题材需要的颜色；
+四角色不是全部美术颜色的枚举。品牌 Logo paths、字体、排版、动画和时间结构仍属于 immutable template source，不是配色输入。
 
 创建输入接受 `"dark"`、`"light"` 或四个不透明六位 sRGB hex：
 
@@ -16,15 +17,18 @@
 
 省略时，新建 Project 使用 dark。输入 preset 在 authoring schema 中解析为四角色颜色；持久化
 `visual-style.json` 只保存已校验颜色，不保存第二份 preset authority。custom 与 preset 使用同一校验。
-所有颜色都必须是六位不透明 hex；三个前景角色对实际背景的对比度均须至少 4.5:1，计算包含最高 8% 装饰合成下任意黑白端点及 8-bit 取整的最差范围。
+四个主题颜色都必须是六位不透明 hex；三个前景角色对主题背景的对比度均须至少 4.5:1，计算包含最高 8% 装饰合成下任意黑白端点及 8-bit 取整的最差范围。
 计算采用 [W3C sRGB relative luminance](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html)。
-该检查在 create/revision mutation 前执行；它不检查淡入态、布局、裁剪或任意 Agent Scene 的实际可读性。
+该检查在 create/revision mutation 前执行；它不检查淡入态、布局、裁剪或 Scene-owned 图像上的实际可读性。
+文字必须对实际局部背景保持可读，必要时使用安静区域、衬板或渐变遮罩，不能把主题对比度通过当作图片上文字的证明。
 
 生成式 Composition 直接在完整 frame 绘制 theme.background。themed GlobalVisual task 的 base export 必须直接
 返回 null，且不会被 Composition 挂载；decoration 只进入正文连续窗口（旁白模式首至末 narrated Beat，
 authored 模式首至末 scene-owner Beat），并在正文后方由固定隔离合成组限制到最高 8% opacity。
-即使子节点使用不透明背景、SVG 或高 z-index，也不能提高组透明度或覆盖正文；首尾仍是准确的 theme.background。正文 Scene context
-收到完整 VisualStyleSpec，Renderer 与固定首尾都从同一主题取色。Scene root 保持透明，字幕仍由 Composition 独占。
+即使 GlobalVisual 子节点使用不透明背景、SVG 或高 z-index，也不能提高组透明度或覆盖正文；首尾仍是准确的 theme.background。
+该上限只限制共享氛围层，不限制正文 Scene 的美术层。policyVersion 3 正文的透明 root 可包含铺满画布的场景背景、
+生成图片、原创 SVG、前景遮挡和光影。文字放在相机变换之外的 `SceneTextSafeArea` 或等价 frozen textSafeArea 矩形内；
+字幕仍由 Composition 独占。旧 safe-area-local Scene 保留原背景所有权，固定首尾仍从同一主题取色。
 引用卡片无额外背景衬板；关注按钮以 primaryText/accent 作底、background 作字色，复用相同已校验颜色对。
 themed GlobalVisual 的 AST 检查另拒绝 style/script 等注入节点、HTML 注入、JSX 属性 spread、ref/event、
 浏览器全局和副作用 hooks/timers；style 对象 spread 与纯 frame 驱动 JSX/SVG 仍可用。这是受限创作合同，

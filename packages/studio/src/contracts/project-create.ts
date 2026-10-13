@@ -237,6 +237,7 @@ const SnapshotSelectionSchema = z
 
 const ResourceSelectionsSchema = z
   .object({
+    capabilityAccess: z.enum(["all-approved", "explicit"]).optional(),
     allowedResourceIds: z.array(ResourceIdSchema).max(256).readonly(),
     allowedSnapshots: z.array(SnapshotSelectionSchema).max(16).readonly(),
   })
@@ -404,6 +405,37 @@ export const ProjectCreateInputSchema = ProjectCreateInputObject.strict()
       ]),
     );
     input.scenes.forEach((scene, sceneIndex) => {
+      const beat = input.story.beats[sceneIndex];
+      if (beat?.kind === "silent-scene" && beat.meaningId === scene.meaningId) {
+        for (const field of ["visualIntent", "soundIntent"] as const) {
+          if (scene[field] !== beat.preset[field])
+            context.addIssue({
+              code: "custom",
+              message: `Silent Scene ${field} must match its preset.`,
+              path: ["scenes", sceneIndex, field],
+            });
+        }
+        if (
+          scene.candidateResourceIds.length !==
+            beat.preset.resourceIds.length ||
+          scene.candidateResourceIds.some(
+            (resourceId, index) =>
+              resourceId !== beat.preset.resourceIds[index],
+          )
+        )
+          context.addIssue({
+            code: "custom",
+            message:
+              "Silent Scene candidates must exactly match preset resourceIds.",
+            path: ["scenes", sceneIndex, "candidateResourceIds"],
+          });
+        if (scene.allowedSnapshotCards.length > 0)
+          context.addIssue({
+            code: "custom",
+            message: "Silent Scene briefs cannot select snapshot cards.",
+            path: ["scenes", sceneIndex, "allowedSnapshotCards"],
+          });
+      }
       scene.candidateResourceIds.forEach((resourceId) => {
         if (!allowedResources.has(resourceId)) {
           context.addIssue({

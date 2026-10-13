@@ -1,6 +1,6 @@
 {
-  "schemaVersion": 20,
-  "policyVersion": "axmorf-video-policy-v27",
+  "schemaVersion": 21,
+  "policyVersion": "axmorf-video-policy-v28",
   "rootEndpoints": [
     "project-production-complete",
     "project-production-current"
@@ -55,7 +55,11 @@
   ],
   "executionPolicy": {
     "resolutionPhase": "before-production-inspect",
-    "precedence": ["user-prompt", "settings-page", "builtin-default"],
+    "precedence": [
+      "user-prompt",
+      "settings-page",
+      "builtin-default"
+    ],
     "promptOverridePersistence": "current-production-only-unless-explicit-save",
     "defaultMode": "subagents",
     "defaultSubagentMaxConcurrency": 4,
@@ -78,6 +82,14 @@
       "absencePolicy": "omit-without-error-or-placeholder",
       "admissionBoundary": "project-asset-import-receipt",
       "downstreamVisibility": "none"
+    },
+    "generatedArtwork": {
+      "slotVersion": "generated-artwork-agent-slot-v1",
+      "owner": "root-agent",
+      "activation": "original-svg-or-callable-image-generation",
+      "phase": "after-project-create-before-production-inspect",
+      "admissionBoundary": "project-asset-import-generated-input",
+      "downstreamVisibility": "project-owned-assets-only"
     }
   },
   "invariants": {

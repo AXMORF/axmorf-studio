@@ -37,13 +37,13 @@ Workspace configuration policy fingerprint 绑定 `package.json`、`package-lock
 resource manifest 不能只绑定元数据；selected bytes/checksum drift 必须改变 identity 或 fail closed。private
 secret value 不进入 Revision，只有 private-safe provider/voice/policy identity。
 
-Composition readability policy 作为 Revision policy identity，但 Scene task 只绑定由它确定性派生的
-safe-area-local SceneViewport fingerprint（width/height/min font size/coordinate space）。raw full-frame
-policy fingerprint/width/height/insets 均不进入 Scene workspace；Composition 在 runtime 重新从当前 policy 派生
-SceneViewport，并与 task/package 绑定的 boundary version/fingerprint fail-closed 对齐。
+Composition readability policy 作为 Revision policy identity，Scene task 绑定由它确定性派生的 SceneViewport
+fingerprint。新 create 固化 policyVersion 3 与 `canvasMode: "full-frame"`：正文使用 schemaVersion 2、
+`scene-full-frame` 坐标系、完整 width/height、min font size 与独立 textSafeArea。该矩形也进入 viewport identity；
+raw policy 留在 Composition。runtime 重新派生 viewport，并与 task/package 绑定的 boundary/fingerprint fail-closed 对齐。
 
-新建 authored-frames 固化 policyVersion 2 与 `captionBand: "none"`，以对称安全边界派生 viewport；
-旁白与旧 frozen policyVersion 1 的 bytes、几何和 fingerprint namespace version 保留。
+fixed template-copy 首尾在 policyVersion 3 下仍派生旧 schemaVersion 1 safe-area-local viewport。
+既有 policyVersion 1/2 的 bytes、几何和 fingerprint namespace/version 保留；无旁白的新 policy 不预留字幕带。
 current validation 与 revision 使用完整 frozen policy，不能仅按 edgeInset 重建或自动迁移。
 
 Configured template instance 另外绑定 copied Renderer adapter 与完整 import graph。adapter 只做
@@ -54,6 +54,12 @@ Configured template instance 另外绑定 copied Renderer adapter 与完整 impo
 VisualStyle/Revision/Task/delivery fingerprint 链，copied Renderer 读取当前主题而不改写 immutable bytes。
 Composition 固定绘制 background；themed GlobalVisual base 为机械验证的 null，decoration 在正文后方通过固定 8% 上限的隔离组合成，主题对比度校验覆盖其最差范围。旧文档缺少 theme 时不补字段，
 不改变其 VisualStyle identity；含旧 immutable 首尾的 Project 拒绝直接添加新主题。
+新 full-frame 正文的 Scene-owned 背景、图像、SVG 与光影不受 GlobalVisual 的氛围层上限限制；其颜色和内容
+由 Scene source/media identity 绑定，实际局部文字对比度不由四角色主题校验代替。
+
+原创图片/SVG 在首次 inspect 前由固定 importer 校验并冻结到 Project-owned media、manifest、资源池与目标 Scene。
+生成工具调用、临时候选路径不进入 runtime；同一准入素材的 bytes 与原创 provenance 决定资源 identity。
+生成 provenance 不包含运行时 timestamp、child/session identity；第三方许可媒体继续使用受检 receipt 路径。
 
 ## 3. TaskRevision 与精确失效
 
@@ -149,6 +155,8 @@ anchors 和 cue 相交区间确定性裁剪，保留 renderer/source audio offse
 合成模式在 create 前生成 original WAV/timeline；create 复验 checksum、PCM 时长/fps 后冻结，sound.json.synthesizedMusic
 进入声音 identity，Scene music-timing 输入把同一网格绑定到各 owner，调音增益不使视觉失效。播放原点固定 composition zero，
 全片只一条 loop、抑制 Scene/模板配乐但保留独立音效；音乐不改变 sealed narration、字幕或逐 Beat 窗口。
+helper 的 optional arrangement 确定性编译调性、和声、分段配器、密度、力度与 swing，仍输出同一公开 timeline；
+旧 recipe 省略 arrangement 时保留原生成 bytes，不隐式改编已冻结音乐。
 兼容的选曲 BGM 使用 canonical content window，只抑制正文 Scene 配乐，保留首尾模板及独立音效。
 composition→content-window 的显式 sound revision 进入 Project 声音 identity；同 policy 下不改变 owner artifacts，
 只更新合成与交付。运行时升级仍可能改变 policy、Revision 与 Task identity，不能承诺跨版本无条件复用。

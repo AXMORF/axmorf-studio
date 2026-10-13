@@ -84,7 +84,14 @@ test("mainstream agent entrypoints import one repository authority", async () =>
   assert.match(workflow, /Resolved execution mode/u);
   assert.match(workflow, /explicit inline/u);
   assert.match(workflow, /仓库只产出通用 workspace 与 shell command/u);
-  assert.match(status, /policy schema v19 \/ policy v23/u);
+  const policy = JSON.parse(
+    await readRepositoryFile(".agents/skills/axmorf-video/policy.json"),
+  );
+  assert.ok(
+    status.includes(
+      `policy schema v${policy.schemaVersion} / policy ${policy.policyVersion.replace("axmorf-video-policy-", "")}`,
+    ),
+  );
   assert.match(status, /内置 `subagents`\/4 默认/u);
   assert.match(status, /project:attempt:recover-inspect/u);
   assert.match(producerConfig, /private\/execution-preferences\.json/u);

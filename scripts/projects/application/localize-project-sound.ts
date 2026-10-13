@@ -246,6 +246,9 @@ export const prepareProjectSound = async ({
       descriptor,
     ],
     externalAssets: manifest.externalAssets,
+    ...(manifest.generatedAssets === undefined
+      ? {}
+      : { generatedAssets: manifest.generatedAssets }),
   });
   const descriptorFingerprint = computeResourceDescriptorFingerprint({
     ...descriptor,

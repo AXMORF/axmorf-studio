@@ -617,7 +617,10 @@ test("visual preview verifies explicit null narration manifests and uses the rea
   assert.deepEqual(inputs.captionCues, []);
   assert.deepEqual(inputs.publicFiles, []);
   const entry = buildSceneTaskPreviewEntry({ snapshot, inputs });
-  assert.match(entry, /<SceneViewport policy=\{policy\}><Renderer/u);
+  assert.match(
+    entry,
+    /<SceneViewport policy=\{policy\} storyBeat=\{props.storyBeat\}><Renderer/u,
+  );
   assert.match(entry, /<CaptionLayer captionCues=\{captions\}/u);
   assert.match(entry, /durationInFrames=\{120\} fps=\{30\}/u);
   assert.match(entry, /const narration = null/u);

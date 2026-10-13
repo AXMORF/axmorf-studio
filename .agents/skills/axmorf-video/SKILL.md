@@ -11,7 +11,7 @@ exact attempt-bound worker 走 [task protocol](references/task-execution-protoco
 
 已授权制作同轮继续工具，以进度消息汇报；仅交付/blocker/暂停/native work 等待才结束。
 
-新片/改造/审片读 [film direction／创作手册](references/film-direction.md)，落实构图/声画节奏；据 context API guides 选能力或说明自绘。
+新片/改造/审片读 [film direction](references/film-direction.md)，按 context capabilityIndex/recipes 选表现手法。
 新片代码合成配乐，冻结 timeline/WAV；旁白时序优先，无旁白可音乐主导。
 
 新建用 `npm run project:create:context -- --project <storyId>` 的完整 `fieldExamples`；按 `durationBudget` 扣首尾/lead-tail 预算正文，报告旁白实测偏差。
@@ -20,7 +20,7 @@ exact attempt-bound worker 走 [task protocol](references/task-execution-protoco
 读 [policy](policy.json)、[workflow](references/direct-production-workflow.md)、
 [Producer config](references/producer-config.md). 报告首尾 Scene 的继承、选择或禁用。
 User silence means inheritance：省略 `sceneTemplates`，never infer `null`；新建用 `project:create`，修改走隔离 revision。
-theme 默认 dark，可选 light/四角色 hex；全片按主题取色，palette 不覆盖主题。
+theme 默认 dark，可选 light/四角色 hex，约束文字/品牌与兜底背景；新正文 full-frame 可自定场景色彩，文字用独立安全区与局部对比。
 
 `story.filmPlan` 定整片意图，`visualScenes` 合组连续正文、保留逐 Beat 语义；按 film direction 定边界，fixed 首尾独立。
 核 installed schema，不自动重组。旁白用 sealed-narration；visual-scene 按帧/null 旁白，另可显式 authored-frames + silent scene-owner preset；无旁白均零 provider/字幕。
@@ -32,7 +32,8 @@ theme 默认 dark，可选 light/四角色 hex；全片按主题取色，palette
 
 ## Load optional Agent capabilities
 
-Inspect 前仅看 current Agent's actually callable tools。同一 MCP 暴露 `get_provider_status`、`search_images`、
+素材先按 [原创素材](references/generated-artwork.md) 选择生图或原创 SVG，create 后、首次 inspect 前导入并分配 Scene。
+外部图库仅看 current Agent's actually callable tools。同一 MCP 暴露 `get_provider_status`、`search_images`、
 `preview_images`、`acquire_image` 且 receipt 兼容 import 才启用；config, shell, another Agent's tools do not count。
 缺失时完整省略，不报错、不造 placeholder/DAG node。启用后先查 Catalog，再 `project:asset:import`；MCP 数据不进下游。
 
@@ -60,15 +61,12 @@ unknown/0/未验/exact mismatch 在 prepare 前阻塞。不复用 resolver；只
 先按 [task protocol](references/task-execution-protocol.md) exact bind；task-worker-bound 前零读写，之后仅 declared outputs。
 TaskExecutionContract attempt-neutral；validated ArtifactAttestation/task-terminal events 才是 durable authority。
 
-Prepare 前按 host probe 保留跨超时句柄；Codex 保留 session/cell ID，部分 wait-any 不算整批完成。
+按 host probe 保留跨超时 session/cell ID；partial wait-any 不算整批完成。Inline 每次一个 workspace；subagents 按
+effectiveMaxConcurrency/native wait-any 或整批终态补位，不复用 child。spawn/transport 用 spawnFailureCommand，
+immutable/controller 用 fixedFailureCommand，仅记录终态，不获 content access/换模式；执行/admit 后 continue。
 
-Inline 一次一个 workspace；subagents 按 effectiveMaxConcurrency/native wait-any 或整批终态补位，不复用已完成 child。
-spawn/transport fault 用 Root spawnFailureCommand；immutable/controller fault 用 fixedFailureCommand。
-仅记录终态，不获 content access 或换模式；全部执行/admit 后 continue，提前审片见下方。
-
-交付前审片按 [workflow](references/direct-production-workflow.md) 与 film direction：原生终态后、唯一 continuation 前用
-`project:preview`（candidate 带 exact `--candidate`）。不覆盖 artifact、不重置期限；修改走 revision。
-另记媒体哈希/观察范围/未观察项，receipt 不等于创作通过。
+交付前按 [workflow](references/direct-production-workflow.md) 原生终态后、唯一 continuation 前 `project:preview`；candidate 带 exact `--candidate`。
+不覆盖 artifact/重置期限，修改走 revision；记录媒体哈希与观察范围，receipt 不等于创作通过。
 
 ## Hand off to fixed continuation
 
@@ -86,8 +84,7 @@ Task failure exits nonzero without converge; all-success converges exactly once;
 
 ## Classify failure by task owner
 
-中断无终态先报告；用户明确恢复后，`project:attempt:interrupt-inspect` 证明 owner/子进程死亡才执行返回的
-`project:attempt:interrupt`，再走 recovery。禁止手删 lock/claim；legacy ownership 阻塞。细节见下方 hardening。
+中断无终态先报告；用户明确恢复后用 `project:attempt:interrupt-inspect` 证明 owner/子进程死亡，再 `project:attempt:interrupt` 与 recovery。禁止手删 lock/claim；legacy ownership 阻塞。
 
 按 [hardening](references/agent-rework-and-system-hardening.md) 分类，只指导原 executor 修 agent-output。
 每请求最多一次自动恢复已证创作错误；旧 continuation/workers 全退出，recover-inspect ready 才零 provider

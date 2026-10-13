@@ -104,10 +104,11 @@ fingerprint 不匹配、未知字段或结构
   width/height，提供 9:16、16:9、4:5 与 1:1 四个常用规格；没有目标时长。
   create input 的可选 `render.width/height/fps/locale` 按字段优先于此默认值；用户未指定的字段省略并继承。
   单次项目覆盖不改写配置。创建响应返回已冻结 `render`，Agent 在 provider preparation 前复核其符合用户要求。
-- `readability.edgeInsetPx`：以 1080 短边为基准的 Scene 边缘留白。字幕底边 = 缩放后边缘留白 × 2；
-  Scene 底边 = 字幕底边 + 字幕盒高度 + gap，再向上取整到 10px。RenderSpec 不再保存字幕安全区。
-  该值由 Composition 拥有的 readability policy 解析成 full-frame inset；Scene task 只收到派生的
-  safe-area-local SceneViewport width/height/min font size，不需要、也不允许重复计算裁剪区域。
+- `readability.edgeInsetPx`：以 1080 短边为基准的文字安全留白。字幕底边 = 缩放后边缘留白 × 2；
+  有字幕时文字安全区底边 = 字幕底边 + 字幕盒高度 + gap，再向上取整到 10px；无旁白不留字幕带。
+  新 create 冻结 policyVersion 3，正文 Scene 取得 full-frame viewport 和独立 textSafeArea，留白不裁掉场景美术。
+  fixed template-copy 首尾及旧 policyVersion 1/2 继续使用原 safe-area-local viewport；revision 保留冻结 policy。
+  原始 policy 与挂载由 Composition 拥有，Scene 只消费派生尺寸、min font size 与适用的 textSafeArea，不重复计算 policy。
 - `publishingCollections`：有稳定 ID、名称和适用描述的数组。Agent 必须选一个最合适的已有合集；
   PublishingIntent v2 封存所选 ID/名称及当时的合集目录 fingerprint。
 - `tts`：稳定的通用边界。`speech.rate` 在 provider 返回后、PCM 实测前处理并进入 provider-attempt
@@ -122,10 +123,10 @@ fingerprint 不匹配、未知字段或结构
   Mistral、Murf、OpenAI、Resemble、SmallestAI、Speechify 与 xAI；没有 Key 的厂商只有源码和 mock
   验证，不声称线上实测。`remote-clone`/`remote-designed` 只声明已在厂商侧存在的 voice ID 来源；
   narration generation 不创建、覆盖或删除远端声线，避免隐式计费、授权与生命周期副作用。
-- `tts.providers[].kind = "edge-tts"`：无需 Key，固定使用 Microsoft Edge Read Aloud consumer endpoint
+- `tts.providers[].kind = "edge-tts"`：无需 Key，固定使用 Microsoft Edge Read Aloud 的 `api.msedgeservices.com` endpoint
   与远端 voice ID/locale。配置页只允许从当前 adapter 元数据核验过的 14 个中文声线中下拉选择，
   locale 随声线自动绑定；目录外 ID 和不匹配 locale 会被合同拒绝。它是 MIT
-  `node-edge-tts@1.2.10` 封装的非官方客户端协议，不是 Microsoft 对外承诺 SLA 的公共 TTS API；
+  `node-edge-tts@1.2.11` 封装的非官方客户端协议，不是 Microsoft 对外承诺 SLA 的公共 TTS API；
   adapter 向客户端显式传递宿主的 HTTPS/HTTP 代理环境变量（小写优先），并遵守服务域名/端口对应的
   `no_proxy`/`NO_PROXY` 例外。代理属于当前宿主 transport，不写入 Project/config fingerprint，也不记录代理 URL 或凭证。
   依赖互联网，协议与声线目录都可能由上游改变。

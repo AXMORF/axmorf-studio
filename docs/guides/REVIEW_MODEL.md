@@ -21,9 +21,10 @@ Current automatic flow 只有机械 acceptance，不把 Agent 自评或主观审
 | materialized verification    | fixed reader                    | live Project exact bytes match attestations                                                                                                                      |
 | delivery validation          | fixed media/filesystem adapters | exact four files, codec/channel/dimensions/fps/frames/checksum/EOF                                                                                               |
 
-Scene validator 另外机械拒绝 Renderer 重新拥有 SceneViewport、raw readability/inset 或
-`useVideoConfig()` full-frame dimensions。Scene 的可接受坐标合同是 task 中已派生的
-safe-area-local viewport，裁剪、映射与 CaptionLayer 仍由 Composition exactly once 拥有。
+Scene validator 另外机械拒绝 Renderer 重新拥有 SceneViewport/provider 或读取 raw Composition readability policy。
+Scene 只使用 task 中已派生的 viewport：新 policyVersion 3 正文是 full-frame 画布与独立 textSafeArea；
+旧 policyVersion 1/2 和 fixed template-copy 仍是 safe-area-local。裁剪、映射与 CaptionLayer 由 Composition
+exactly once 拥有。主题对比度校验只覆盖 fallback 背景及共享装饰，不能证明文字在 Scene-owned 图片上的可读性。
 
 Scene exact-reference checks可验证 lineage、license、source graph、phase pairing 与 renderer binding；不输出
 “正常速度可辨识”“审美通过”等 Agent 判断。Scene authoring 仍遵循 repository-local

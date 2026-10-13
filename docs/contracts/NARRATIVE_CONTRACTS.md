@@ -77,14 +77,28 @@ Fixed projection clips/rebases shots, anchors and sound cues and preserves each 
 It does not edit copied source/media/license bytes. Full boundary identity/order remains fixed during revision.
 SceneTask v7 carries the exact `VideoBrief.sourceReferences` consumed by a copied credits Renderer, so changing
 visible credits invalidates the Scene task and all downstream identities. It also carries only Scene-specific
-requirements and a derived safe-area-local SceneViewport; the raw Composition readability policy, full-frame
-dimensions and insets remain composition-owned. ScenePackage v6 binds `scene-composition-boundary-v2` and
-`scene-visual-runtime-v3`, so an old full-frame Renderer/package cannot cross the clean-break boundary.
+requirements and a derived SceneViewport; the raw Composition readability policy remains composition-owned.
+ScenePackage v6 binds `scene-composition-boundary-v2` and
+`scene-visual-runtime-v3`; a Renderer/package without the matching derived viewport identity cannot cross that boundary.
 
-New authored-frame Projects use canonical readability policyVersion 2 with required `captionBand: "none"`; all four
-Scene safe edges equal the edge inset. Version 1 retains its original representation, caption reservation and fingerprint.
-Current validation and revisions preserve the complete frozen policy. Version 2 rejects narrated timing and active caption
-rendering; the Scene receives only its derived viewport, without raw policy or full-frame authority.
+New Projects use canonical readability policyVersion 3 with `canvasMode: "full-frame"`. Content receives viewport
+schemaVersion 2, `coordinateSpace: "scene-full-frame"`, full canvas dimensions and a separate textSafeArea. Scenic
+backgrounds, imagery, material, light and occlusion may occupy the canvas inside a transparent Scene root. Text uses
+SceneTextSafeArea outside camera transforms, or the equivalent frozen rectangle, with contrast against the actual local
+image. Captions remain Composition-owned; no-narration content reserves no caption band. Fixed template-copy bookends
+keep the prior safe-area-local viewport, independent of the content canvas.
+
+Existing policyVersion 1/2 representations, geometry and fingerprints remain unchanged. Version 2 retains its authored-frame
+restriction and captionBand none. Current validation and revisions preserve the complete frozen policy. Every Scene receives
+only its derived viewport; it cannot mount a second viewport/provider or read raw policy.
+
+Original artwork is admitted only into a new Project before its first inspect via
+`project:asset:import --project <storyId> --input <absolute-generated-artwork-json>`. The strict public
+`GeneratedArtworkImportInputSchema` names an original image-generated or authored-svg file and target sceneMeaningIds;
+fixed validation and atomic promotion update Project-owned bytes, provenance, manifest, Catalog, pool and target Scene
+selection together. Creator metadata describes the tool or artwork author, never an execution/session identity.
+The licensed `--receipt` route remains distinct. Workers consume admitted resources, never generation tools or temporary
+files; revision candidates cannot add media beyond their frozen base snapshot.
 
 ## Fingerprints
 
@@ -191,6 +205,9 @@ authored before create as `backgroundMusic:{mode:"synthesized",sourcePath,timeli
 the original PCM/checksum/fps and freezes `sound.json.synthesizedMusic`, including the strict public
 `SynthesizedMusicTimelineSchema` with absolute-rounded beat positions. One `playbackScope:"composition"`
 loop starts at frame zero, replaces template/content scores and retains narration and independent effects.
+The helper's optional arrangement authors tonic, major/minor mode, scale-degree progression, swing and sections with
+bars/instruments/density/energy. It compiles to the existing timeline contract; recipes without arrangement preserve their
+original output. These creative choices do not introduce a second runtime clock or modify frozen media during revision.
 After semantic timing is sealed, each content Scene receives the same grid projected as Scene-local `musicTiming`.
 Its beat/bar frames guide visual events within allowed semantic windows; they do not retime speech, captions or boundaries.
 
@@ -250,3 +267,13 @@ The checker never repairs any of these artifacts.
 Generated Workspace `project:check -- --project <story-id> --level final` instead read-only verifies the current
 Revision, materialized artifacts and exact-four-file Delivery. It reports structured failure reasons and does not
 write baseline or auto-check evidence. Use the installed Workspace surface and [review model](../guides/REVIEW_MODEL.md).
+
+## Optional Scene capabilities
+
+New Project resource pools may freeze `optionalCapabilityIds`, a sorted subset of allowed IDs that must resolve to approved
+runtime capability descriptors. Scene tasks add these IDs to the candidate allowlist only for authored owners and record
+only IDs absent from the brief in their optional list. `availableResources` must still exactly resolve that complete list.
+Silent owner presets retain exact mandatory resource consumption after optional capability IDs are excluded; template-copy
+presets cannot acquire optional capabilities. Selected optional entries must be capabilities and actually invoked by the
+Renderer. No asset, authoring reference, missing entry or blocked descriptor gains permission through this field.
+Omitting the field preserves legacy fingerprints and selection semantics. Revision preserves the original pool.

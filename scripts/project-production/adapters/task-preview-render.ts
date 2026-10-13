@@ -333,8 +333,8 @@ export const loadSceneTaskPreviewInputs = async ({
           { storyBeat: taskInput.storyBeat, timingBeat: taskInput.timingBeat },
         ],
       ) ||
-    resolveSceneViewport(requirements.readabilityPolicy).viewportFingerprint !==
-      taskInput.sceneViewport.viewportFingerprint ||
+    resolveSceneViewport(requirements.readabilityPolicy, storyBeat)
+      .viewportFingerprint !== taskInput.sceneViewport.viewportFingerprint ||
     timing.fps !== render.fps
   )
     throw new Error("Scene preview fixed inputs differ from its frozen task.");
@@ -528,7 +528,7 @@ const narration = ${serializeCanonicalJson(inputs.narrationAudio)} as null | {pu
 const Preview = () => {
  const sceneFrame = useCurrentFrame();
  return <AbsoluteFill style={{backgroundColor: ${JSON.stringify(visualStyle.theme?.background ?? "#020617")}}}>
-  <SceneViewport policy={policy}><Renderer {...props} sceneFrame={sceneFrame}/></SceneViewport>
+  <SceneViewport policy={policy} storyBeat={props.storyBeat}><Renderer {...props} sceneFrame={sceneFrame}/></SceneViewport>
   <CaptionLayer captionCues={captions} safeAreaPx={policy.captionSafeAreaPx} readabilityPolicy={policy}/>
   {narration === null ? null : <Audio src={staticFile(narration.publicPath.slice(7))} trimBefore={narration.trimBefore} trimAfter={narration.trimAfter}/>}
   {sounds.map(contribution => <SoundContribution key={contribution.contributionId} contribution={contribution}/>)}

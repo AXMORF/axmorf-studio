@@ -2,7 +2,7 @@
 
 Root only. Assigned workers follow [task protocol](task-execution-protocol.md).
 
-create-context/inspect 汇报后同轮继续。Hermes 的 assistant text 须搭配下一次 tool call，单独 final 会结束轮次；暂停/yield 按 Skill。
+create-context/inspect 后继续工具；Hermes 单独 final 会结束轮次，暂停/yield 按 Skill。
 
 ## 1. Create or revise Project inputs
 
@@ -24,16 +24,17 @@ npm run project:originality:freeze -- --project <storyId>
 Root 预定跨 owner 的 `outgoingHandoff.subject`；v1 给 `trackedState`。child 对照
 `continuity.handoffs`；scene-owner 可交接，fixed 不连续，仅组尾定义外部接缝。
 
-## 2. Load the optional external-asset MCP slot
+## 2. Prepare missing visual assets
 
-仅当 Root 实际可调用同一 MCP 的 `get_provider_status`、`search_images`、`preview_images`、`acquire_image`
+原创图片/SVG 按 [素材准入](generated-artwork.md) 在 create 后、首次 inspect 前导入并分配目标 Scene。
+图库获取仅当 Root 实际可调用同一 MCP 的 `get_provider_status`、`search_images`、`preview_images`、`acquire_image`
 且 receipt 兼容 import 才启用。先查 Catalog，仅获取缺少的图片：
 
 ```bash
-npm run project:asset:import -- --project <storyId> --receipt <absolute-receipt-path> --asset <assetId>
+npm run project:asset:import -- --project <storyId> --receipt <absolute-receipt-path> --role scene-visual
 ```
 
-If the MCP is absent, omit this entire stage without error, placeholder task, prompt, estimate, or DAG node.
+If that MCP is absent, omit licensed acquisition without error or placeholder; original SVG and actually callable image generation remain independent choices.
 child 不接收 MCP/receipt/candidate；仅导入后的 Project-owned manifest IDs and fingerprints 进入生产。
 
 ## 3. Resolve each production once
@@ -63,7 +64,7 @@ Attempt IDs never enter TaskRevision；diagnostics 不入 content identity。
 
 ## 5. Execute dirty Agent tasks
 
-每 TaskRevision 只归属一个 executor。`inputs/task-contract.json` 是 immutable、attempt-neutral exact output contract，无 host command。Root 按 transport 整段转发 prepare `workerPrompts` 的完整角色/路径/bind。
+每 TaskRevision 一个 executor；`inputs/task-contract.json` 是 immutable、attempt-neutral output contract，无 host command。Root 按 transport 完整转发 prepare `workerPrompts`。
 短 ordinal 只解析 exact attempt 的 immutable task；不混用 full binding 参数。
 
 仅用 prepare 的 exact commands，见 [task protocol](task-execution-protocol.md)。先 zero-write gate bind，
@@ -120,4 +121,4 @@ npm run project:attempt:reissue -- --project <storyId> --attempt <failedAttemptI
 
 Reissue 无需 current delivery；复用 valid artifacts/drafts，返回 fresh bindings/continuation，派 fresh workers；拒绝 active/stale/fixed-flow recovery，不重开旧 attempt。系统/外部故障只诊断报告。
 
-`npm run compositions`、`npm run check` 首次用 host permissions（宿主权限）。沙箱失败不能证明 VoxCPM 不可用或作为降低 Chromium sandbox 的依据。
+`npm run compositions`、`npm run check` 首次用 host permissions（宿主权限）；沙箱失败不能证明 VoxCPM 不可用或降低 Chromium sandbox。

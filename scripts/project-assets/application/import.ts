@@ -51,7 +51,7 @@ const LegacyProjectAssetManifestSchema = z
   })
   .strict();
 
-const parseExistingManifest = (
+export const parseExistingManifest = (
   bytes: Uint8Array | null,
   projectId: string,
 ): ProjectAssetManifest => {
@@ -212,6 +212,9 @@ export const importProjectAsset = async ({
       },
     } as const;
     const manifest = buildProjectAssetManifest({
+      ...(previousManifest.generatedAssets === undefined
+        ? {}
+        : { generatedAssets: previousManifest.generatedAssets }),
       projectId,
       assets: [
         ...previousManifest.assets,

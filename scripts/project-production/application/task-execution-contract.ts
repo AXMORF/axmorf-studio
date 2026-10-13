@@ -204,6 +204,19 @@ const buildSceneContract = (rawContext: unknown) => {
       ...record,
       currentCatalogFingerprint: taskInput.resourceCatalogFingerprint,
     });
+  for (const id of taskInput.optionalCapabilityIds ?? []) {
+    const descriptor = availableResources.find(
+      ({ selected }) => selected.resourceId === id,
+    )?.descriptor;
+    if (
+      descriptor?.kind !== "capability" ||
+      descriptor.status !== "approved" ||
+      descriptor.allowedUse !== "runtime-approved"
+    )
+      throw new Error(
+        "Optional Scene capabilities must resolve to approved runtime capabilities.",
+      );
+  }
   const durationInFrames =
     taskInput.timingBeat.endFrame - taskInput.timingBeat.startFrame;
   if (
@@ -212,7 +225,11 @@ const buildSceneContract = (rawContext: unknown) => {
     visualStyle.resourceCatalogFingerprint !==
       taskInput.resourceCatalogFingerprint ||
     JSON.stringify(brief.candidateResourceIds) !==
-      JSON.stringify([...taskInput.allowedResourceIds].sort())
+      JSON.stringify(
+        taskInput.allowedResourceIds
+          .filter((id) => !(taskInput.optionalCapabilityIds ?? []).includes(id))
+          .sort(),
+      )
   ) {
     throw new Error("Scene creative context is stale against its task input.");
   }
@@ -377,11 +394,11 @@ const buildSceneContract = (rawContext: unknown) => {
             "Use scene.musicTiming.beatFrames/barFrames as Scene-local accents from the frozen synthesized score. Preserve exact narrationCues and covered Beat boundaries; select musical landings only inside the permitted action window. Quiet transitions and continuous long Scenes are valid. Do not synthesize or mount BGM in a Scene.",
           ]),
       "When taskInput.coveredBeats is present, this one renderer owns all listed semantic Beats. Use scene.coveredBriefs for each Beat's visual decisions; keep subjects and camera continuous across their boundaries. sceneFrame spans the complete group and never resets at an internal Beat. Split modules only within declared owning paths.",
-      "Read the complete VisualStyle from inputs/context.json; when theme is present its background, primaryText, secondaryText, and accent roles are the shared color authority.",
+      "Read the complete VisualStyle from inputs/context.json; when theme is present its background, primaryText, secondaryText, and accent roles anchor the shared fallback background, text and brand. Follow the canvas-specific scenic color guidance below.",
       "Use scene.taskInput in inputs/context.json as immutable identity, timing, viewport, and allowlist authority.",
       "Use scene.brief and scene.visualStyle for visual, composition, motion, sound, and continuity decisions. Narrated Scenes use scene.narrationCues as exact Scene-local spoken ranges. Visual Scenes have no narration or captions: show the meaning through evolving subjects and short readable labels within their authored frame budget.",
-      "Evaluate scene.availableResources capability authoring guides before implementing equivalent behavior yourself. Use the exact public imports, parameters and examples when a capability fits; keep authored content specific to this StoryBeat. Record the chosen capabilities and concrete reasons for self-authored alternatives in visual-plan.json styleRealization.",
-      "Before writing the renderer, decide what the viewer sees first, what visibly changes, and what final state makes the StoryBeat's causal point clear. Use one or more shots according to the meaning and duration, with purposeful entry, transformation, and result.",
+      "Evaluate scene.availableResources by useCases and authoring.recipes before implementing equivalent behavior yourself. Optional capabilities are choices, never a usage quota; select only APIs that implement this Scene's intended action, material, camera or data. Use content-parameterized recipes and public imports; demoOnlyExports have fixed example content and must not substitute for authored subjects. Record concrete API choices in visual-plan.json styleRealization and only actually invoked capabilities in selected-resources.json. If none fits, self-authored visuals remain valid without boilerplate rejection lists.",
+      "Before writing the renderer, design the fully revealed key image: subject scale, framing, negative space and, when depth matters, actual light, material edges, contact shadow and overlap. Choose available generated artwork, authored SVG or spatial geometry for the subject; an intentional flat composition remains valid. Decide what the viewer sees first, what visibly changes and which result explains the causal point. Write concrete initial/change/result states and time windows into visual-plan.json and shot-plan.json, replacing scaffold causalLink/state prose; use one or more purposeful shots. Panning a flat diagram alone does not create material or spatial depth.",
       "Choose a visual subject with a specific role in the idea. Show cause and consequence through staging, scale, movement, occlusion, or a change in spatial relationship. Geometry and particles can represent a meaningful subject, its aggregation, trajectory or transformation; avoid ambient filler and motion that only illustrates a keyword. Masks, morphs and effects remain free choices, not required recipes.",
       "Give each shot one focal subject and a readable silhouette. Use wide views, close-ups and large short claims to direct attention and reveal a relationship or change; preserve the subject across reframing. Text can become a visual actor rather than staying a small label. Follow the brief's pace: alternate action with readable holds, and let the next meaningful event take over instead of filling the remaining budget with a static result. Leave the Composition-owned caption area visually quiet.",
       "Align meaningful changes to narrationCues in narrated Scenes; in visual Scenes author event anchors from the cause, consequence and reading rhythm. Declare anchors used by shots or sound. The optional resolveSceneActionTiming public helper consumes action ranges, anchors and result holds; Renderer continuity contains the frozen seam. Keep plan, code and visible result consistent.",
@@ -402,7 +419,7 @@ const buildSceneContract = (rawContext: unknown) => {
         format: "tsx",
         instructions: [
           "Default-export a component assignable to SceneRendererComponent from @axmorf/studio/remotion.",
-          "Use sceneFrame, durationInFrames, fps, viewportWidth, and viewportHeight; never assume full-frame coordinates.",
+          "Use sceneFrame, durationInFrames, fps, viewportWidth, and viewportHeight; follow scene.taskInput.sceneViewport.coordinateSpace rather than assuming a canvas mode.",
           requiresMotion
             ? "Realize the explanatory intent in shots.motionPlan using content-appropriate frame-driven code: custom SVG, Canvas or supported 3D capabilities, composition and camera choices are allowed. Intent v2 prescribes no geometry, trajectories or components. Optional tracked v1 plans/data-motion-object bindings enable a limited DOM dependency probe. Unsupported probes mean temporal-review-required, never creative invalidity or automatic approval. Render and review low-cost action/boundary previews against the intent; preserve facts, readability and narration alignment."
             : "The runtime supplies the verified shot-plan.json. Realize its intent with authored frame-driven animation or optional selected capabilities. Tracked geometry is optional; a plan does not certify visible, semantic or aesthetic quality.",
@@ -414,7 +431,9 @@ const buildSceneContract = (rawContext: unknown) => {
               ]
             : []),
           "Keep the root transparent and do not own captions, narration, or GlobalVisual decoration.",
-          "For themed Projects, use visualStyle.theme semantic roles for readable text and accents; Composition draws theme.background and Scene must not replace it with a full-frame surface.",
+          taskInput.sceneViewport.schemaVersion === 2
+            ? "This Scene owns a full-frame art canvas. Its transparent root may contain full-size scenic backgrounds, approved imagery, authored SVG, material, light and foreground occlusion; scenic colors are not restricted to theme text roles. Composition's theme.background remains the fallback behind it. Keep readable text in SceneTextSafeArea outside camera transforms, or within the equivalent frozen sceneViewport.textSafeArea rectangle; preserve contrast against the actual local image using a deliberate plate, scrim or quiet region. Captions remain Composition-owned above the Scene."
+            : "For this frozen safe-area-local Scene, use visualStyle.theme semantic roles for readable text and accents; Composition draws theme.background and Scene must not replace it with a full-frame surface.",
           "Keep visible text at the task viewport minimum font size with clear contrast against its actual background; pure layout and graphic containers do not need a font size.",
         ],
         example: `import type {SceneRendererProps} from "@axmorf/studio/remotion";

@@ -1,0 +1,61 @@
+{
+  "date": "2026-10-13",
+  "scope": "Unreleased source capability routing and reusable treatments",
+  "baseCommit": "008fae4328557d8401f45fc5b5c5a60094019e1c",
+  "checks": [
+    {
+      "command": "npm run check",
+      "exitCode": 0,
+      "tests": 1453,
+      "passed": 1453,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "command": "npm run packages:build",
+      "exitCode": 0
+    },
+    {
+      "command": "npm run check:package --workspaces --if-present",
+      "exitCode": 0
+    },
+    {
+      "command": "npx --yes react-doctor@latest --verbose --scope changed",
+      "exitCode": 0,
+      "score": 94,
+      "reportedIssues": 0
+    }
+  ],
+  "renderProofs": [
+    {
+      "path": "out/capability-proof-20261013/material-action.mp4",
+      "codec": "h264",
+      "width": 360,
+      "height": 640,
+      "fps": 30,
+      "frames": 125,
+      "sizeBytes": 358772,
+      "sha256": "598b94333d248d1efeb2ee5de08608b4736895ac343245153845d927b3780a64",
+      "fullDecode": "passed",
+      "contactSheetInspected": true
+    },
+    {
+      "path": "out/capability-proof-20261013/spatial.mp4",
+      "codec": "h264",
+      "width": 360,
+      "height": 640,
+      "fps": 30,
+      "frames": 60,
+      "sizeBytes": 123122,
+      "sha256": "14af398a958bf372922fe7c79b94dd4b7908e92c7130aaecc52567a280d39f73",
+      "fullDecode": "passed",
+      "contactSheetInspected": true
+    }
+  ],
+  "limits": [
+    "Render proofs exercise capabilities under SceneViewport and are not four-file Project deliveries or independent Agent first-run acceptance.",
+    "Proof source and media are local ignored out/ artifacts, not shipped examples or user videos.",
+    "No publication, existing Project migration or installed Workspace upgrade was performed.",
+    "No claim of guaranteed first-pass aesthetic quality."
+  ]
+}

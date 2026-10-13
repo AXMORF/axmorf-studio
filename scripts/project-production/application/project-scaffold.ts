@@ -126,7 +126,6 @@ const render = RenderSpecSchema.parse(renderJson);
 const resourceCatalog = ResourceCatalogSchema.parse(resourceCatalogJson);
 const projectSound = ProjectSoundPlanSchema.parse(projectSoundJson);
 const requirements = AuthoringRequirementsSchema.parse(requirementsJson);
-const sceneViewport = resolveSceneViewport(requirements.readabilityPolicy);
 const projectSoundResourceIds = new Set(projectSound.contributions.map(({resourceId}) => resourceId));
 export const productionSceneCoverage = SceneCoverageMapSchema.parse(coverageJson);
 const scenes = rawScenes.map((raw) => ({
@@ -150,7 +149,7 @@ if (
         const coverage = productionSceneCoverage.entries.find((entry) => entry.meaningId === meaningId);
         return coverage?.status !== "ready" || coverage.packageFingerprint !== scene.scenePackage.packageFingerprint;
       }) ||
-      scene.task.sceneViewport.viewportFingerprint !== sceneViewport.viewportFingerprint ||
+      scene.task.sceneViewport.viewportFingerprint !== resolveSceneViewport(requirements.readabilityPolicy, scene.task.storyBeat).viewportFingerprint ||
       scene.task.sceneCompositionBoundaryVersion !== requirements.sceneBoundaryOwnership.sceneCompositionBoundaryVersion;
   })
 ) throw new Error("Production Scene runtime inputs are stale.");

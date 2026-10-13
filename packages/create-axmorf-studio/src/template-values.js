@@ -22,7 +22,7 @@ const APPLICATION_DEPENDENCIES = Object.freeze({
   "@remotion/transitions": "4.0.489",
   "@speech-sdk/core": "0.27.0",
   "lottie-web": "5.13.0",
-  "node-edge-tts": "1.2.10",
+  "node-edge-tts": "1.2.11",
   ogl: "1.0.11",
   react: "19.2.3",
   "react-dom": "19.2.3",

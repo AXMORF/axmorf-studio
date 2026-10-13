@@ -1,11 +1,12 @@
 # Visual narrative quality
 
-This development branch extends the published 0.1.16 workflow. Technical validation proves
-identity, rights, timing and deliverable integrity. It does not prove aesthetic quality.
+This guide describes current source behavior; implemented and published scope is maintained in
+[Iteration Status](../ITERATION_STATUS.md). Technical validation proves identity, rights, timing
+and deliverable integrity. It does not prove aesthetic quality.
 
-The published baseline already has intent motionPlan v2, custom frame-driven SVG/Canvas/3D,
-plan consumption checks, local revision and artifact reuse. This branch connects additional
-inputs and runtime behavior; the director and Scene executor still author the visual mechanism.
+The workflow has intent motionPlan v2, custom frame-driven SVG/Canvas/3D, plan consumption
+checks, local revision and artifact reuse. Current authoring exposes optional capability guides,
+full-frame content art and verified generated media; the director and Scene executor still author the visual mechanism.
 It does not add an autonomous aesthetic reviewer or guarantee a good first result for every topic.
 
 | Entry                             | Formal consumption                                                                          |
@@ -41,6 +42,12 @@ allows a new conclusion. Express those decisions in the existing Scene brief and
 there is no mandatory metaphor, scene count, transition count, geometry or camera quota.
 Choose SVG, Canvas, supported 3D or localized media for that specific mechanism. Long text
 fades and decorative movement alone cannot demonstrate a causal relationship.
+
+Before motion, establish a complete image: subject, scale, environment, lighting, material and
+foreground/background relationships. New policyVersion 3 body art fills the frame while
+`SceneTextSafeArea` protects text outside camera transforms; legacy policies and fixed bookends
+retain their framing. Root can admit original images or static SVG before first inspection through
+the [verified artwork route](../../.agents/skills/axmorf-video/references/generated-artwork.md).
 
 Keep useful subjects alive through state changes. A Scene brief can freeze an outgoing
 subject shared with the next content Scene. Both workers receive that seam through their
@@ -98,11 +105,13 @@ Select effect IDs into the Project resource pool and the relevant Scene allowlis
 descriptor's onset or swell-center guidance to offset startFrame against the visible anchor;
 the entire media duration must fit the Scene. Sparse accents support the motion and voice.
 
-New Workspaces default to automatic approved global loop selection. The context's `backgroundMusic.candidates`
-lets the Agent choose by the subject and mood through create input `{mode:"selected",resourceId,volume?}`;
-omission inherits settings, null explicitly disables music, and an empty library reports unavailable.
-Creation freezes the selected license and bytes in the Project. One Composition-owned track plays across all Scenes,
-including unvoiced boundaries and lead/tail; Scene scores are suppressed while effects remain independent.
+New-video Skills synthesize a score before create, including topic-specific harmony and section arrangement;
+the single composition loop replaces template/content music and preserves independent effects.
+For compatible library selection, `backgroundMusic.candidates` lets the Agent choose by subject and mood through
+`{mode:"selected",resourceId,volume?}`; omission inherits auto/file/null settings, null disables all background music,
+and an empty library reports unavailable. Creation freezes the selected license and bytes in the Project.
+Library/file music covers only the continuous `content-window`, suppressing content Scene scores while preserving
+boundary-template music and all independent effects. It does not play over boundaries or lead/tail.
 Naming music in a brief or Scene resource allowlist alone does not enable it. An isolated Scene preview excludes Project
 BGM, so review the final music, effects and narration when used together. Technical audio
 levels and successful decode do not establish the subjective mix.

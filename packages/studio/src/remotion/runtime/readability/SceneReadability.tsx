@@ -6,10 +6,39 @@ import {
   type ReactNode,
   type SVGProps,
 } from "react";
+import type { SceneViewport } from "../../../contracts/scene-readability";
 
-const MinimumSceneFontSizeContext = createContext<number | null>(null);
+const MinimumSceneFontSizeContext = createContext<SceneViewport | null>(null);
 
 export const SceneTypographyProvider = MinimumSceneFontSizeContext.Provider;
+
+/** Keep labels outside the camera/artwork transform and inside the frozen text rectangle. */
+export const SceneTextSafeArea: FC<{ readonly children: ReactNode }> = ({
+  children,
+}) => {
+  const viewport = useContext(MinimumSceneFontSizeContext);
+  if (viewport === null)
+    throw new Error("SceneTextSafeArea must render inside SceneViewport.");
+  const area =
+    viewport.schemaVersion === 2
+      ? viewport.textSafeArea
+      : { top: 0, right: 0, bottom: 0, left: 0 };
+  return (
+    <div
+      data-scene-text-safe-area="true"
+      style={{
+        position: "absolute",
+        top: area.top,
+        left: area.left,
+        width: viewport.width - area.left - area.right,
+        height: viewport.height - area.top - area.bottom,
+        overflow: "hidden",
+      }}
+    >
+      {children}
+    </div>
+  );
+};
 
 const assertReadableFontSize = (
   minimumFontSizePx: number,
@@ -50,7 +79,7 @@ export const SceneText: FC<SceneTextProps> = ({
   if (minimumFontSizePx === null) {
     throw new Error("SceneText must render inside SceneViewport.");
   }
-  assertReadableFontSize(minimumFontSizePx, fontSizePx);
+  assertReadableFontSize(minimumFontSizePx.minFontSizePx, fontSizePx);
   assertUnscaledTextStyle(style);
   return <div style={{ ...style, fontSize: fontSizePx }}>{children}</div>;
 };
@@ -71,7 +100,7 @@ export const SceneSvgText: FC<SceneSvgTextProps> = ({
   if (minimumFontSizePx === null) {
     throw new Error("SceneSvgText must render inside SceneViewport.");
   }
-  assertReadableFontSize(minimumFontSizePx, fontSizePx);
+  assertReadableFontSize(minimumFontSizePx.minFontSizePx, fontSizePx);
   assertUnscaledTextStyle(style);
   if ((props as { readonly transform?: unknown }).transform !== undefined) {
     throw new Error("SceneSvgText must not use a scale transform.");

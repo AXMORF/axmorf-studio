@@ -75,6 +75,16 @@ export const queryResourceCatalog = (
       descriptor.title,
       descriptor.description,
       ...descriptor.useCases,
+      ...descriptor.tags,
+      ...(descriptor.kind === "capability" && descriptor.authoring
+        ? [
+            ...descriptor.authoring.exports,
+            ...(descriptor.authoring.recipes ?? []).flatMap((recipe) => [
+              recipe.id,
+              recipe.whenToUse,
+            ]),
+          ]
+        : []),
     ].some((value) =>
       value.toLocaleLowerCase("en-US").includes(normalizedText),
     );

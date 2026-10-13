@@ -25,8 +25,17 @@ capabilities cannot be satisfied, report the blocker instead of changing the
 product.
 
 For new authoring, read the Skill authoring reference and use `project:create:context`
-to obtain a complete example and current public choices. Inherit boundary templates
+to obtain a complete example, capabilityIndex and public recipes. New Projects freeze approved runtime capabilities as optional Scene choices; media still requires explicit admission and preset resources remain mandatory. Use resources.capabilityAccess="explicit" to restrict capabilities. Inherit boundary templates
 and execution settings unless the user explicitly changes them. In subagents mode, unknown runtime capacity blocks before costly preparation; verify the requested bounded native probe batch and pass its tested capacity to execution resolution.
+
+Choose the medium from the subject and audience using context `visualApproaches`; the example is not a preferred style.
+Design a representative fully revealed frame, subject scale, light, material and useful depth before animation, then specify
+initial/action/result states and reading time in the existing art direction and Scene brief fields.
+After create and before first inspect, fill real asset gaps with a currently callable image-generation tool or original SVG.
+Use `project:asset:import --project <storyId> --input <absolute-generated-artwork-json>` with original provenance and target
+sceneMeaningIds; the fixed importer admits validated files into Project media, the pool and those Scenes atomically.
+The licensed acquisition `--receipt` route remains available for compatible tools; never fabricate such a receipt for original art.
+Workers receive only admitted Project-owned bytes. Revision candidates retain their base media bounds.
 
 Explicit user dimensions/orientation, fps and locale go in create input `render.width/height/fps/locale`.
 Omit unspecified fields to inherit settings. Convert orientation to concrete dimensions; do not change saved
@@ -76,6 +85,8 @@ do not admit new media or change sealed audio. New scores follow the local Skill
 `backgroundMusic.mode:synthesized` freezes original WAV/timeline and replaces Scene/template music with one composition
 loop, preserving independent effects. Preserve synthesizedMusic metadata in sound revisions. Scene-local musicTiming
 follows measured speech; do not retime narration or captions for a beat. Existing library/file music keeps content scope.
+The helper's optional arrangement authors tonic, mode, progression, swing and sections with instruments/density/energy;
+choose them for the film. It compiles to the same timeline, and old recipes without arrangement keep their original behavior.
 Legacy playback scopes remain frozen until an explicit revision.
 Read the authoring reference for raw input shapes and runtime-upgrade base verification.
 The bound `scene.priorSource`, when present, is only the owning Scene's verified, frozen current base graph and declarations.
@@ -120,8 +131,11 @@ remain per Beat. Keep world/camera and sceneFrame continuous inside a group. Mis
 Pure motion supports `visual-scene` durations with null narration, or explicit `timingSource: "authored-frames"` and silent
 scene-owner presets. Neither calls a provider or creates narration/captions. The published visual path keeps null seal/master
 records; explicit silent-owner timing creates neither file. Fixed bookends stay separate. Read the installed schemas.
-New authored-frame Projects use readability policyVersion 2 with captionBand none and symmetric safe insets; no empty
-caption band. Narrated and legacy frozen version 1 layouts stay unchanged. Revision preserves the frozen policy.
+New Projects freeze readability policyVersion 3. Content Scenes receive a full-frame art canvas and separate textSafeArea;
+use SceneTextSafeArea outside camera transforms, or the equivalent frozen text rectangle. Scene-owned child layers may
+paint scenic backgrounds, imagery, material and light while the root stays transparent. No-narration content reserves no
+caption band. Fixed template-copy bookends retain safe-area-local framing. Existing version 1/2 geometry and fingerprints
+stay unchanged, and revisions preserve the frozen policy. Do not reconstruct raw policy or mount another SceneViewport.
 
 For review before final rendering, wait for native worker terminal completion and run `npm run project:preview -- --project
 <storyId>` (preserve exact `--candidate` for a revision), then start the original continuation once. Preview validates artifacts
@@ -129,7 +143,7 @@ and projects a private frozen view; no live source/current Delivery writes, prov
 Never pause a running continuation; its total deadline does not reset. Preview receipts mark motion/continuity/listening
 not-assessed and cannot certify creative quality or current delivery. Committed artifacts remain immutable.
 
-GlobalVisual exports a full-Composition base layer and a decoration layer that
+GlobalVisual exports `GlobalVisualBaseLayer` as a full-Composition base and `GlobalVisualDecorationLayers` as decoration that
 is sequenced from the first through last content Beat (narrated or authored scene-owner) with local frame zero at
 that window's start. It must not read Scene output or carry Beat-specific copy.
 
@@ -142,6 +156,6 @@ Root 优先整段转发 prepare/reissue 的 `workerPrompts`；进程工具返回
 每个命令都保留完整工具结果与 shell 终态退出码；外层 code cell 结束不表示 shell 已结束。inspect/prepare 同样适用。
 prepare 原始结果或句柄遗失时报告阻塞，禁止从磁盘、日志或 child 消息重建派发及 continuation 命令。
 
-New Projects freeze `visualStyle.theme`: dark (default), light, or validated opaque hex roles background/primaryText/secondaryText/accent. Composition paints that background. Themed GlobalVisualBaseLayer must return null; Scene and boundary colors use the same theme. Legacy immutable boundaries are never silently migrated; incompatible theme revisions fail before mutation.
+New Projects freeze `visualStyle.theme`: dark (default), light, or validated opaque hex roles background/primaryText/secondaryText/accent. Composition paints the fallback background; theme roles anchor text and brand. New full-frame Scene art may use its own scenic colors with readable text contrast against the actual local image. Themed GlobalVisualBaseLayer still returns null and its decoration group remains capped at 8%; this ambient-layer limit does not cap Scene-owned artwork. Fixed boundaries keep theme colors. Legacy immutable boundaries are never silently migrated; incompatible theme revisions fail before mutation.
 
 Content can be narrated-scene with sealed PCM timing or visual-scene with authored frame timing, explicit null narration and zero TTS. Adapt create context visualFirst for a no-narration request; preserve both modes. Shared-workspace Scene workers may use their exact bound commands.preview before commit, without writing extra task files or treating it as aesthetic approval.

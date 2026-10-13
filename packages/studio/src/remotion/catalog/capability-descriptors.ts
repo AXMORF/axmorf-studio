@@ -4,7 +4,6 @@ import { capabilityAuthoringGuides } from "./capability-guides";
 const common = {
   schemaVersion: 1,
   status: "approved",
-  useCases: ["scene authoring"],
   allowedUse: "runtime-approved",
 } as const;
 
@@ -14,14 +13,20 @@ export const WORKSPACE_REMOTION_FACADE_PATH =
 const declarations = [
   {
     id: "capability.camera",
+    useCases: [
+      "depth and occlusion 分层视差",
+      "spatial relationships 3D 空间",
+      "subject tracking 镜头跟随",
+    ],
     title: "Camera",
-    description: "Approved 2D camera staging entrypoint",
+    description: "2D, layered and 3D cameras for authored subjects",
     tags: ["camera", "shared"],
     exportName: "ProducerCamera2D",
     sourceFile: WORKSPACE_REMOTION_FACADE_PATH,
   },
   {
     id: "capability.chart",
+    useCases: ["quantitative comparison 数据对比", "trend over time 趋势变化"],
     title: "Chart primitives",
     description: "Approved chart rendering entrypoint",
     tags: ["chart", "shared"],
@@ -30,6 +35,7 @@ const declarations = [
   },
   {
     id: "capability.effects",
+    useCases: ["print and paper texture 印刷纸纹", "subject material 材质"],
     title: "Effects",
     description: "Approved effect preset resolver",
     tags: ["effects", "shared"],
@@ -38,6 +44,7 @@ const declarations = [
   },
   {
     id: "capability.layout",
+    useCases: ["parallel facts 并列信息"],
     title: "Layout primitives",
     description: "Approved composition layout entrypoint",
     tags: ["layout", "shared"],
@@ -46,6 +53,11 @@ const declarations = [
   },
   {
     id: "capability.media",
+    useCases: [
+      "approved footage 本地视频",
+      "authored illustration 插画",
+      "local animation 动画素材",
+    ],
     title: "Local media",
     description: "Approved repository-local video entrypoint",
     tags: ["media", "shared"],
@@ -54,6 +66,11 @@ const declarations = [
   },
   {
     id: "capability.motion",
+    useCases: [
+      "continuous action 连续动作",
+      "gather and transform 汇聚变形",
+      "semantic timing 语义节奏",
+    ],
     title: "Content-driven object motion",
     description:
       "Narration-aligned object-state motion and optional treatments",
@@ -63,6 +80,11 @@ const declarations = [
   },
   {
     id: "capability.visual-components",
+    useCases: [
+      "authored transition 内容转场",
+      "material grain 颗粒材质",
+      "typography 文字动画",
+    ],
     title: "Visual components",
     description: "Approved visual component entrypoint",
     tags: ["shared", "visual-components"],
@@ -71,6 +93,7 @@ const declarations = [
   },
   {
     id: "capability.sound",
+    useCases: ["audible semantic events 事件音效"],
     title: "Scene sound library",
     description: "Approved verified local sound resolver",
     tags: ["shared", "sound"],
@@ -79,6 +102,7 @@ const declarations = [
   },
   {
     id: "capability.transitions",
+    useCases: ["motivated shot changes 镜头衔接"],
     title: "Transitions",
     description: "Approved visual transition preset resolver",
     tags: ["shared", "transitions"],

@@ -73,7 +73,11 @@ export const resolveCaptionLayout = ({
         "CaptionLayer readability policy does not match the Composition dimensions.",
       );
     }
-    if (readabilityPolicy.policyVersion === 2) {
+    if (
+      readabilityPolicy.policyVersion === 2 ||
+      (readabilityPolicy.policyVersion === 3 &&
+        readabilityPolicy.captionBand === "none")
+    ) {
       throw new Error(
         "CaptionLayer cannot render an authored-frame policy without a caption band.",
       );

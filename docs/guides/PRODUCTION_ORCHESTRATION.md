@@ -17,17 +17,17 @@ candidate-routed commands，不能手工移除或替换 `--candidate`。
 
 ## 1. Project optional Agent capabilities
 
-新 Project 已创建且尚未进入 inspect 时，Root 只检查自己当前实际 callable 的 tools。若同一
-外部图片 MCP 暴露 `get_provider_status`、`search_images`、`preview_images`、`acquire_image`，并能产出
-`project:asset:import` 接受的 receipt，则启用 external-asset acquisition slot。仅本机安装/配置、shell 能
-发现或其他 Agent 可调用都不构成启用条件。
+新 Project 已创建且尚未进入 inspect 时，Root 先用 `catalog:query` 查本地资源，再按代表画面的实际需求补足素材。
+可用当前实际 callable 的生图工具生成图片，或创作原创 SVG，并以
+`project:asset:import --project <storyId> --input <absolute-generated-artwork-json>` 校验真实文件与原创来源、
+原子准入 Project pool 和目标正文 Scene；需要独立运动或遮挡的主体与环境可分文件准备。
 
-启用后先用 `catalog:query` 查本地资源；确有素材缺口时才 search/preview/acquire，并在 inspect 前完成固定
-准入。若当前 Agent 没有该 MCP，整个阶段从本次编排中省略，不报错，也不生成 placeholder、child prompt、
-estimate 或 DAG node。该 slot 只属于 Root 的 pre-inspect authoring plane；Scene/GlobalVisual/Cover child、
-ProductionRevision、Artifact Store、continuation 和 runtime 都不加载 MCP。下游只看 import 后的 Project
-manifest identity 与 bytes fingerprint。revision candidate 本轮没有独立 asset import；它只引用 base snapshot
-已经准入的 Project-owned media，不在 candidate flow 中激活该 slot。
+许可图片获取仍单独要求同一 MCP 暴露 `get_provider_status`、`search_images`、`preview_images`、`acquire_image`，
+并产出固定 importer 接受的 receipt。仅安装/配置、shell 能发现或其他 Agent 可调用不算当前 Root 可用；
+没有该 MCP 只省略其 acquisition slot，不妨碍原创图片/SVG 路径，也不伪造 receipt。
+所有素材准备都在 Root pre-inspect authoring plane，无需素材或工具不可用时不生成 placeholder、child prompt、
+estimate 或 DAG node。child、continuation 与 runtime 不加载生成工具或 MCP；下游只消费 import 后的 Project
+manifest identity、来源与 bytes fingerprint。revision candidate 只引用 base snapshot 已准入媒体，本轮不激活新素材准入。
 
 ## 2. Resolve Agent execution
 

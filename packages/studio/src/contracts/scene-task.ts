@@ -154,6 +154,11 @@ const SceneTaskInputObject = z
     resourceCatalogFingerprint: Sha256DigestSchema,
     allowedSnapshots: z.array(AllowedSnapshotSchema).max(8).readonly(),
     allowedResourceIds: z.array(ResourceIdSchema).max(128).readonly(),
+    optionalCapabilityIds: z
+      .array(ResourceIdSchema)
+      .max(128)
+      .readonly()
+      .optional(),
     continuity: ContinuityBriefSchema,
     allowedDirectories: SceneAllowedDirectoriesSchema,
     sceneRequirements: z.array(SceneTaskRequirementSchema).max(256).readonly(),
@@ -349,14 +354,33 @@ const addSceneTaskIssues = (
       path: ["sceneRequirements"],
     });
   }
+  const optionalCapabilities = task.optionalCapabilityIds ?? [];
+  const optionalIds = new Set(optionalCapabilities);
+  const allowedIds = new Set(task.allowedResourceIds);
+  const sortedOptionalIds = [...optionalCapabilities].sort();
+  if (
+    optionalIds.size !== optionalCapabilities.length ||
+    optionalCapabilities.some(
+      (id, index) => !allowedIds.has(id) || id !== sortedOptionalIds[index],
+    ) ||
+    (optionalCapabilities.length > 0 && !isSceneOwnerBeat(task.storyBeat))
+  )
+    context.addIssue({
+      code: "custom",
+      message:
+        "Optional capabilities must be sorted, unique, allowed and owned by an authored Scene.",
+      path: ["optionalCapabilityIds"],
+    });
   if (
     task.storyBeat.kind === "silent-scene" &&
-    JSON.stringify(task.allowedResourceIds) !==
-      JSON.stringify(task.storyBeat.preset.resourceIds)
+    JSON.stringify(
+      task.allowedResourceIds.filter((id) => !optionalIds.has(id)),
+    ) !== JSON.stringify(task.storyBeat.preset.resourceIds)
   ) {
     context.addIssue({
       code: "custom",
-      message: "Silent Scene task resources must equal its preset resources.",
+      message:
+        "Silent Scene task resources excluding optional capabilities must equal its preset resources.",
       path: ["allowedResourceIds"],
     });
   }

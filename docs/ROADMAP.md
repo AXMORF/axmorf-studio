@@ -25,8 +25,10 @@ continuation 内部 application，不是 Root 命令。
 - execution mode 按用户提示词、settings、内置 `subagents`/4 默认解析；inline 一次一个 workspace，subagents bounded pool
   最多四个且需要本次 verified `shared-workspace` 或 `controller-io` transport；transport 不持久化；一个 dirty
   task 只归属一个 executor，template task 不由 Agent 创作；
-- Composition exactly once 拥有 raw readability/insets 与 SceneViewport mount；Scene child 只看到
-  safe-area-local viewport dimensions/min font size，不得恢复 full-frame authority；
+- Composition exactly once 拥有 raw readability policy 与 SceneViewport mount；新正文获得 full-frame viewport 与
+  独立 textSafeArea，fixed template-copy 首尾及旧 policyVersion 1/2 保持 safe-area-local 几何；revision 不自动迁移；
+- 新片先决定代表画面的主体、构图、光影、材质与变化，再准备缺失图片/SVG；fixed import 在首次 inspect 前
+  原子准入原创素材和目标 Scene，生产与 worker 只使用已验证 Project-owned bytes，candidate 不扩展媒体范围；
 - 每个 dirty Agent task 绑定 immutable、attempt-neutral TaskExecutionContract；新 contract 只让对应 task artifact
   一次失效，current delivery 不动；
 - `task bind` 在任何 content read/write 前以零写入校验 exact attempt/contract。shared-workspace 只授予 declared
@@ -44,10 +46,15 @@ continuation 内部 application，不是 Root 命令。
   active/stale/fixed-flow recovery fail closed，系统/外部/未知故障只诊断报告。
   commit 对明确输出缺失或 JSON/TypeScript 语法错误保存受检 outputFailure；无证据的历史通用 commit failure 继续阻塞。
 - 新片 Skill 的合成 BGM 从 Composition frame zero 全片循环，替换模板/正文配乐，保留旁白与独立音效；
+  helper 的可选分段编曲确定性编译为既有 timeline，旧 recipe bytes 保留；
   兼容库/文件选曲只覆盖正文，保留模板配乐。Scene-local musicTiming 不改变 sealed 口播时序；
   旧兼容 composition 范围仅经正式 sound revision 显式收窄，合成模式保持网格与播放原点。
 
 ## 当前里程碑状态
+
+2026-10-13 源码已补齐默认可选能力范围、全幅正文与独立文字安全区、原创图片/SVG 准入、分段配乐及
+Edge TTS 端点迁移。工程样片与新 Workspace 的正式四文件生产已验证；这些改进尚未发布到 npm。
+最终检查和验证边界由[当前实现状态](ITERATION_STATUS.md)维护，不以一次成片宣称稳定审美或独立发布首用通过。
 
 整片 filmPlan、连续正文 visualScenes、authored-frame 时间轴、确定性相机/形变/语义重定时、
 artifact-backed 草稿与参考节奏诊断已随 0.1.18 发布，保留唯一 production/artifact/four-file delivery 主链。

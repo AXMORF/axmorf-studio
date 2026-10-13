@@ -33,6 +33,7 @@ import {
   computeNoNarrationFingerprint,
   createFingerprint,
   isVisualStory,
+  isSceneOwnerBeat,
   serializeCanonicalJson,
   validateSceneProductionBrief,
   validateStoryResourcePool,
@@ -360,6 +361,11 @@ export const loadProjectProductionInputs = async ({
     );
     const buildTask =
       group.beats.length > 1 ? buildSceneTaskInputV8 : buildSceneTaskInputV7;
+    const optionalCapabilityIds = isSceneOwnerBeat(beat)
+      ? (resourcePool.optionalCapabilityIds ?? []).filter(
+          (id) => !authoredBrief.candidateResourceIds.includes(id),
+        )
+      : [];
     const taskInput = buildTask({
       storyId: projectId,
       meaningId: beat.meaningId,
@@ -381,7 +387,11 @@ export const loadProjectProductionInputs = async ({
       visualStyleFingerprint,
       resourceCatalogFingerprint: catalog.catalogFingerprint,
       allowedSnapshots,
-      allowedResourceIds: authoredBrief.candidateResourceIds,
+      allowedResourceIds: [
+        ...authoredBrief.candidateResourceIds,
+        ...optionalCapabilityIds,
+      ].sort(),
+      ...(optionalCapabilityIds.length > 0 ? { optionalCapabilityIds } : {}),
       continuity: {
         previousMeaningId: previousBeat?.meaningId ?? null,
         previousSummary: previousBeat?.narrativePurpose ?? null,
@@ -428,7 +438,7 @@ export const loadProjectProductionInputs = async ({
           statement,
           severity,
         })),
-      sceneViewport: resolveSceneViewport(requirements.readabilityPolicy),
+      sceneViewport: resolveSceneViewport(requirements.readabilityPolicy, beat),
       sceneCompositionBoundaryVersion:
         requirements.sceneBoundaryOwnership.sceneCompositionBoundaryVersion,
     });

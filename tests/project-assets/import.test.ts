@@ -5,6 +5,7 @@ import {
   mkdtemp,
   readFile,
   readdir,
+  realpath,
   rm,
   symlink,
   writeFile,
@@ -62,7 +63,9 @@ const receiptFor = (overrides: Record<string, unknown> = {}) => ({
 });
 
 const createFixture = async (context: TestContext) => {
-  const rootDir = await mkdtemp(join(tmpdir(), "rsp-project-asset-import-"));
+  const rootDir = await realpath(
+    await mkdtemp(join(tmpdir(), "rsp-project-asset-import-")),
+  );
   context.after(() => rm(rootDir, { recursive: true, force: true }));
   const projectId = "story-example";
   const candidateDir = join(rootDir, "candidates", "pexels", "2014422");

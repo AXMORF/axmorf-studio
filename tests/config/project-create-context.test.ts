@@ -46,9 +46,10 @@ test("create context supplies a usable example from current public choices witho
     context.example.visualStyle.theme,
     VISUAL_THEME_PRESETS.dark,
   );
+  assert.equal(context.example.resources.capabilityAccess, "all-approved");
   assert.ok(
-    context.example.resources.allowedResourceIds.some(
-      (id) => id === "capability.camera",
+    context.capabilityIndex.some(({ recipes }) =>
+      recipes.some(({ id }) => id === "material-grain"),
     ),
   );
   assert.match(

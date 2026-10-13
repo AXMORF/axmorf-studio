@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { createFingerprint } from "./fingerprint";
+import { GeneratedArtworkSourceSchema } from "./generated-artwork";
 import { Sha256DigestSchema, type Sha256Digest } from "./primitives";
 import { StyleProfileIdSchema } from "./scene-primitives";
 
@@ -210,10 +211,27 @@ const ResourceAssetDescriptorObject = z
     checksum: Sha256DigestSchema,
     license: LicenseRecordSchema,
     externalSource: ExternalAssetSourceSchema.optional(),
+    generatedSource: GeneratedArtworkSourceSchema.optional(),
     media: ResourceMediaMetadataSchema.optional(),
   })
   .strict()
   .superRefine((descriptor, context) => {
+    if (
+      descriptor.generatedSource !== undefined &&
+      (descriptor.externalSource !== undefined ||
+        descriptor.mediaRole !== "scene-visual" ||
+        !["image", "svg"].includes(descriptor.assetKind) ||
+        (descriptor.generatedSource.kind === "authored-svg") !==
+          (descriptor.assetKind === "svg") ||
+        descriptor.license.sourceEvidenceFingerprint !==
+          descriptor.generatedSource.provenanceFingerprint)
+    )
+      context.addIssue({
+        code: "custom",
+        message:
+          "Generated artwork provenance conflicts with its asset descriptor.",
+        path: ["generatedSource"],
+      });
     const isAudio = descriptor.assetKind === "audio";
     const isAudioRole = !["scene-visual", "global-visual"].includes(
       descriptor.mediaRole,
@@ -271,6 +289,29 @@ export const CapabilityAuthoringGuideSchema = z
       .max(16)
       .readonly(),
     example: z.string().trim().min(1).max(10000),
+    recipes: z
+      .array(
+        z
+          .strictObject({
+            id: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/u),
+            whenToUse: z.string().trim().min(1).max(1000),
+            exports: z
+              .array(z.string().regex(/^[A-Za-z_$][A-Za-z0-9_$]*$/u))
+              .min(1)
+              .max(32)
+              .readonly(),
+            example: z.string().trim().min(1).max(10000),
+          })
+          .readonly(),
+      )
+      .max(16)
+      .readonly()
+      .optional(),
+    demoOnlyExports: z
+      .array(z.string().regex(/^[A-Za-z_$][A-Za-z0-9_$]*$/u))
+      .max(128)
+      .readonly()
+      .optional(),
     selectionAdvice: z
       .array(z.string().trim().min(1).max(1000))
       .min(1)
@@ -278,6 +319,27 @@ export const CapabilityAuthoringGuideSchema = z
       .readonly(),
   })
   .strict()
+  .superRefine((guide, context) => {
+    const demos = guide.demoOnlyExports ?? [];
+    const recipes = guide.recipes ?? [];
+    const exports = new Set(guide.exports);
+    const demoNames = new Set(demos);
+    if (
+      demoNames.size !== demos.length ||
+      demos.some((name) => !exports.has(name)) ||
+      new Set(recipes.map(({ id }) => id)).size !== recipes.length ||
+      recipes.some((recipe) =>
+        recipe.exports.some(
+          (name) => !exports.has(name) || demoNames.has(name),
+        ),
+      )
+    )
+      context.addIssue({
+        code: "custom",
+        message:
+          "Capability recipes must name unique recipes and available non-demo exports; demo exports must be declared and unique.",
+      });
+  })
   .readonly();
 
 const ResourceCapabilityDescriptorObject = z

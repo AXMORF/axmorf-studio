@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   SceneMotionPlanSchema,
+  ResourceIdSchema,
   buildNotApplicableFidelityReceipt,
   buildSceneContinuityContract,
   buildSceneSoundPlan,
@@ -19,6 +20,7 @@ import { createScenePackageInput } from "../fixtures/scene/package-input";
 const createSilentOwnerBundle = (
   handoffKind: "continuous" | "motivated-cut",
   outgoingSubject?: string,
+  optionalCapabilities: readonly string[] = [],
 ) => {
   const fixture = createScenePackageInput();
   const durationInFrames = fixture.shots.sceneDurationInFrames;
@@ -72,7 +74,17 @@ const createSilentOwnerBundle = (
       presetFingerprint: preset.presetFingerprint,
       presetDurationInFrames: durationInFrames,
     },
-    allowedResourceIds: preset.resourceIds,
+    allowedResourceIds: [
+      ...preset.resourceIds,
+      ...optionalCapabilities.map((id) => ResourceIdSchema.parse(id)),
+    ].sort(),
+    ...(optionalCapabilities.length
+      ? {
+          optionalCapabilityIds: optionalCapabilities.map((id) =>
+            ResourceIdSchema.parse(id),
+          ),
+        }
+      : {}),
     continuity: {
       previousMeaningId: null,
       previousSummary: null,
@@ -250,5 +262,15 @@ test("silent Scene motion anchors do not require narration cues, while narrated 
         narrationCues: [],
       }),
     /sync anchor/u,
+  );
+});
+
+test("silent owner can leave optional code capabilities unused while preset resources stay exact", () => {
+  assert.doesNotThrow(() =>
+    validateSceneArtifactBundle(
+      createSilentOwnerBundle("motivated-cut", undefined, [
+        "capability.camera",
+      ]),
+    ),
   );
 });

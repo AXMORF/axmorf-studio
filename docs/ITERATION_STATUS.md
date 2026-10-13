@@ -1,5 +1,78 @@
 # Iteration Status
 
+## 当前源码与公开版本（2026-10-13）
+
+当前源码已完成能力可发现性、全幅正文与独立文字安全区、原创图片/SVG 准入、分段配乐及 Edge TTS 端点修复。
+最终完整 `npm run check` 退出 0：1499 项测试全部通过，无失败或跳过，类型、Lint、文档、资源、
+Web/Remotion 构建与宿主检查通过；runtime/creator 构建和 package checks 通过。
+文档收口后，32 项文档回归、12 项 Workspace scaffold 回归、全部当前文档链接/npm 命令引用检查及两包
+package checks 再次通过；Skill 上下文预算和共享创作文件同步保持原门槛。
+
+包含这些改进的本地 tarball 已在新 Workspace 完成 `rea-inside-the-black-box` 正式生产：
+76.5 秒、1080×1920、30fps、2295 帧 H.264/AAC stereo 视频，以及两张封面和 `publish.json`。
+唯一 continuation 返回 `project-production-complete`；Compositions 与七项 final check 通过。
+抽查 36 帧预览、9 帧正式视频和两张封面；最终 AAC 约 −15.72 LUFS / −2.26 dBTP，技术分析确认配乐实际混入。
+完整连续播放、主观听审、实机手机播放和独立发布首用认证不在本次验证范围内。
+具体故障、恢复与交付 identity 见[本地生产记录](evidence/2026-10-13-edge-tts-endpoint-incident.md)。
+
+2026-10-13 回读两包 npm `latest` 仍为 **0.1.21**，已发布范围见[发布记录](evidence/v0.1.21-publication.json)。本地 tarball 仍使用该版本号，
+但包含上述未发布源码，不能用包版本号将两者等同。Git 提交或推送不会更新已安装的 npm 包；原有 Workspace 与
+既有作品未迁移。下方日期小节保留各阶段的实现和验证范围，较早测试数不代表最终累计结果。
+
+## Edge TTS 端点迁移（2026-10-13，源码验证完成，未发布）
+
+真实制作首段失败后，用户明确选择保留 Edge TTS 并排查。原 `node-edge-tts@1.2.10` 对旧端点握手返回 403；
+同一宿主代理下，隔离安装的 1.2.11 对上游迁移后的端点握手成功，两次诊断均未请求语音。
+源码、runtime 与 creator 统一固定 1.2.11；NO_PROXY 按新服务域名判断，错误只额外保留受限 HTTP 状态码和
+固定超时信号，不记录任意上游消息、URL 或凭证，不增加重试或替代 provider。
+20 项 focused 回归通过；最终全仓验证见上方当前状态。新 Workspace 通过正常 npm install 更新本地 tarball 后，
+六项 doctor 通过。正式 prepare 缓存十段配音后遇到 HTTP 429 并停止；用户明确授权后，fresh host probe/inspect
+及一次 prepare 仅新增剩余五次请求，复用原十段。全部十五段完成 seal，五个 fresh native workers 提交 artifacts，
+唯一 continuation 完成上述正式四文件交付。未切换 provider，也未增加自动重试。
+详见[故障与修复记录](evidence/2026-10-13-edge-tts-endpoint-incident.md)。
+
+## 内容画面、原创素材与分段配乐（2026-10-13，源码与渲染验证完成，未发布）
+
+新建正文使用 readability policyVersion 3 / viewport schema 2 全画布，文字通过 `SceneTextSafeArea` 使用独立安全区；
+旁白继续保留字幕带。既有 policy 1/2、revision freeze 和固定首尾模板的几何不迁移。场景可独立安排背景图片、
+SVG、光色、材质与前景遮挡，theme 仍拥有兜底底色及文字/品牌角色；全局装饰的原有边界保持不变。
+
+`project:asset:import --input` 验证原创生图或静态 SVG，并原子加入 Project manifest、Story pool 和指定 Scene candidates，
+支持分组与 silent scene-owner。旧图库 receipt 模式保留；新素材只在首次 inspect 前准入，revision 不扩张素材范围。
+创建入口去除 editorial-tech 优先选择，TaskExecutionContract v4 强调编码前的完整画面和具体动作状态。
+配乐 helper 可显式编写调性、和声、分段配器/疏密/力度/休止及 swing，旧配方 bytes 兼容。
+Skill 使用 policy schema v21 / policy v28，原创素材与编曲细节按需读取，未增加审美评分或自动返工轮数。
+
+素材准入增加真实像素解码、容器完整性与 SVG namespace/XML 校验；常规测试入口补入 project-assets。
+silent Scene 的 preset/brief 意图与资源冲突在创建锁之前拒绝，避免延后到素材导入或制作阶段才失败。
+
+此阶段完整 `npm run check` 退出 0：1498 项全部通过，无失败/跳过；类型、Lint、文档、资源、Web/Remotion 构建、
+Compositions 和宿主 source gate 通过（当前源码仓库零 Project）。runtime/creator 构建与 package checks 通过；
+React Doctor 94/100，无报告问题。实际生图 PNG 与原创 SVG 经隔离 Project 导入并分配到 owning Scene；
+两段不同表现的工程样片均为 H.264/AAC stereo、1280×720、30fps、240 帧，完整解码与关键帧查看通过。
+两套不同编曲的原创 PCM 也通过合约与完整解码，未宣称主观听审通过。
+详见[本轮验证记录](evidence/2026-10-13-content-quality.json)。样片不属于四文件正式交付或独立 Agent 首用验收，
+也不作为新默认模板。后续新 Workspace 的正式生产见上方当前状态；原有 Workspace 和既有作品未改写。
+
+## 能力可发现性与首次制作输入（2026-10-13，源码完成、未发布）
+
+新 Project 默认把当前已批准 runtime capabilities 冻结为 Story pool 的 `optionalCapabilityIds`，正文 task 自动
+收到相应指南；`resources.capabilityAccess:explicit` 可保留显式限制。媒体准入没有扩大，silent preset 仍要求
+消费全部必选资源，可选代码能力不构成使用配额。既有 Project 不迁移，revision 保留冻结集合。
+
+create context 提供用途索引，Catalog 支持 API 名称、用途和中文配方查询。新增六个可编译配方，覆盖分层、3D、
+汇聚、连续跟随、颗粒和内容甩镜；59 个固定内容/数据/时序演示 export 明确标注。WhipPan 与 NoiseGrain 改为
+接受作品内容或参数的透明组件，不再附带样例文案和配色。该阶段 TaskExecutionContract v3 同步选择与实际调用规则，
+不增加审美打分或循环返工要求。Skill 与 creator 入口分别保留宿主职责并同步能力使用指南。
+随后内容画面阶段升级为当前 v4，保留这些能力规则。
+
+此阶段完整 `npm run check` 退出 0：1453 项全部通过，无失败/跳过；类型、Lint、文档、资源、Web/Remotion 构建、
+Compositions 和宿主 source gate 通过。runtime/creator 构建与 package checks 通过；React Doctor 改动扫描
+94/100，未报告问题。真实渲染验证了分层/汇聚/纹理/甩镜与 3D 镜头，H.264 125/60 帧、30fps、360×640，
+完整解码与抽帧查看通过。这些是能力工程验证，不是四文件成片交付或独立 Agent 首用验收。
+详见[本轮验证记录](evidence/2026-10-13-capability-routing.json)。此时尚未升级安装的 Workspace；后续本地候选生产
+见上方当前状态，不改变该工程样片的证据范围。
+
 ## 0.1.21已发布与文档收口（2026-10-12）
 
 本版整合下方此前未发布的输出失败恢复、兼容正文BGM隔离、共享循环素材、代码合成原创配乐、

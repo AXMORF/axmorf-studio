@@ -72,5 +72,6 @@
 | bound Scene preview | shared-workspace scene-owner 在 commit 前通过 exact binding 渲染 owning Scene 的诊断短片；不含相邻 Scene、GlobalVisual 或 Project BGM，不进入 Artifact/Delivery identity。 |
 | sound envelope | contribution-local 的可选首尾线性增益；循环音频沿完整 contribution 时间应用，不每圈重启，不修改 source bytes 或 narration。 |
 | scene-owner Scene | 需要一个 dirty Scene task executor 在独占 workspace 内创作的 Scene。 |
-| SceneViewport | Composition 拥有的 safe-area-local Scene 容器；把本地 `(0, 0)` 映射到内容安全区左上角，并只向 Renderer 暴露 `viewportWidth`/`viewportHeight`。 |
+| SceneViewport | Composition 拥有的 Scene 容器。新 policyVersion 3 正文使用 schemaVersion 2 的 full-frame 画布与 textSafeArea；旧 policyVersion 1/2 和 fixed template-copy 保持 safe-area-local。Renderer 只使用派生 viewport，不读取 raw policy。 |
+| SceneTextSafeArea | 在冻结文字矩形内定位、裁切内容的公开组件；置于相机/美术变换之外，使正文美术可铺满画面而文字保留安全边界。 |
 | historical `.producer-runs` | 旧架构只读历史数据；current pipeline 不读取，只允许 Project 删除器按严格 ownership 清理。 |

@@ -1,0 +1,205 @@
+{
+  "date": "2026-10-13",
+  "scope": "Unreleased source: first-pass content artwork, full-frame body canvas, independent text safety and authored music arrangement",
+  "baseCommit": "008fae4328557d8401f45fc5b5c5a60094019e1c",
+  "contracts": {
+    "readabilityPolicyVersion": 3,
+    "bodyViewportSchemaVersion": 2,
+    "agentTaskExecutionContract": "agent-task-execution-contract-v4",
+    "skillPolicy": "axmorf-video-policy-v28"
+  },
+  "checks": [
+    {
+      "command": "npm run check",
+      "exitCode": 0,
+      "tests": 1498,
+      "passed": 1498,
+      "failed": 0,
+      "skipped": 0,
+      "sourceProjectCount": 0,
+      "log": "out/content-quality-proof-20261013/verification/npm-check.log"
+    },
+    {
+      "command": "npm run packages:build",
+      "exitCode": 0
+    },
+    {
+      "command": "npm run check:package --workspaces --if-present",
+      "exitCode": 0
+    },
+    {
+      "command": "npx react-doctor@latest --verbose --scope changed",
+      "exitCode": 0,
+      "score": 94,
+      "reportedIssues": 0
+    },
+    {
+      "command": "npx remotion compositions out/content-quality-proof-20261013/index.tsx",
+      "exitCode": 0,
+      "compositionIds": [
+        "ContentDepth",
+        "SvgGrowth"
+      ]
+    }
+  ],
+  "generatedAssetIntegration": {
+    "status": "actual-generated-raster-and-authored-svg-imported",
+    "route": "createProject -> importGeneratedProjectAsset -> Project manifest, pool and owning silent Scene candidates",
+    "fixture": "isolated temporary Project; the decoder used the real repository-local Remotion FFmpeg invocation",
+    "assets": [
+      {
+        "resourceId": "asset.generated.glass-subject.e6bb5ceb94de7d85",
+        "checksum": "sha256:9d22085332e92efef3ad3509558cdbd1fc1b882e6d4b4e96ed6de05c473a979d",
+        "sceneMeaningIds": [
+          "opening"
+        ],
+        "renderPublicPath": "assets/content-quality-proof-20261013/subject.png"
+      },
+      {
+        "resourceId": "asset.generated.environment.e6bb5ceb94de7d85",
+        "checksum": "sha256:6502b42de62eb88e04ef1fea7ef92bb49d4495d44d39d344b9b44756fdf469f8",
+        "sceneMeaningIds": [
+          "opening"
+        ],
+        "renderPublicPath": "assets/content-quality-proof-20261013/environment.svg"
+      }
+    ],
+    "imagePromptPath": "out/content-quality-proof-20261013/image-prompt.txt",
+    "sceneRoutingCoverage": [
+      "narrated-scene",
+      "visual-scene-group",
+      "silent-scene-owner"
+    ],
+    "regressionCoverage": [
+      "default test discovery",
+      "pixel decode and container completeness",
+      "SVG namespace and XML text validity",
+      "no mutation on invalid assets",
+      "rollback",
+      "idempotency",
+      "frozen production and revision rejection",
+      "existing music preservation",
+      "create-time silent Scene consistency"
+    ]
+  },
+  "renderProofs": [
+    {
+      "path": "out/content-quality-proof-20261013/content-depth.mp4",
+      "sha256": "4ceedc0bf0fdb750db86b34a06e0b0d9a358b6d3e89bfe2ccecf6bef5a1e3546",
+      "sizeBytes": 2278167,
+      "codec": "h264",
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "width": 1280,
+      "height": 720,
+      "fps": 30,
+      "frames": 240,
+      "videoDurationSeconds": 8,
+      "containerDurationSeconds": 8.042667,
+      "fullDecode": "passed",
+      "inspectedFrames": [
+        0,
+        60,
+        120,
+        180,
+        239
+      ]
+    },
+    {
+      "path": "out/content-quality-proof-20261013/svg-growth.mp4",
+      "sha256": "5c24d29995b0fbe638ec576fc84ee394bb0810521197224b936321a2499b602f",
+      "sizeBytes": 562609,
+      "codec": "h264",
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "width": 1280,
+      "height": 720,
+      "fps": 30,
+      "frames": 240,
+      "videoDurationSeconds": 8,
+      "containerDurationSeconds": 8.042667,
+      "fullDecode": "passed",
+      "inspectedFrames": [
+        0,
+        60,
+        120,
+        180,
+        239
+      ]
+    }
+  ],
+  "musicProofs": [
+    {
+      "id": "restrained",
+      "status": "score-synthesized",
+      "backgroundMusic": {
+        "mode": "synthesized",
+        "sourcePath": "public/assets/generated-score/restrained/music.wav",
+        "timelinePath": "public/assets/generated-score/restrained/timeline.json",
+        "volume": 0.12
+      },
+      "bpm": 92,
+      "durationInFrames": 626,
+      "audioChecksum": "sha256:a227cfe6d1202d40311ee1c899abd0728f141ed15c94cc008fcef7beb96dac49",
+      "audioPath": "out/music-arrangement-proof-20261013/public/assets/generated-score/restrained/music.wav",
+      "events": 56,
+      "probe": [
+        {
+          "codec_name": "pcm_s16le",
+          "sample_rate": "48000",
+          "channels": 2,
+          "duration": "20.866667"
+        }
+      ],
+      "measured": {
+        "integratedLufs": -14.61,
+        "truePeakDbtp": -2.7,
+        "loudnessRangeLu": 6.7
+      },
+      "contractValid": true,
+      "fullDecodePassed": true
+    },
+    {
+      "id": "propulsive",
+      "status": "score-synthesized",
+      "backgroundMusic": {
+        "mode": "synthesized",
+        "sourcePath": "public/assets/generated-score/propulsive/music.wav",
+        "timelinePath": "public/assets/generated-score/propulsive/timeline.json",
+        "volume": 0.12
+      },
+      "bpm": 128,
+      "durationInFrames": 450,
+      "audioChecksum": "sha256:bf5b0a5985d525c70cf9d059a8d8969c619803e9a8326c8217974db47081b6e4",
+      "audioPath": "out/music-arrangement-proof-20261013/public/assets/generated-score/propulsive/music.wav",
+      "events": 111,
+      "probe": [
+        {
+          "codec_name": "pcm_s16le",
+          "sample_rate": "48000",
+          "channels": 2,
+          "duration": "15.000000"
+        }
+      ],
+      "measured": {
+        "integratedLufs": -15.16,
+        "truePeakDbtp": -2.66,
+        "loudnessRangeLu": 8.5
+      },
+      "contractValid": true,
+      "fullDecodePassed": true
+    }
+  ],
+  "compatibility": [
+    "Existing readability policies 1/2 and their fingerprints remain frozen through revisions.",
+    "Fixed template bookend viewports retain their original framing.",
+    "Legacy six-field music recipes preserve their previous PCM checksum."
+  ],
+  "limits": [
+    "Engineering proofs are authored test clips, not exact-four-file Project deliveries or independent Agent first-run acceptance.",
+    "Selected key frames were visually inspected; full motion and subjective music listening are not certified by decode checks.",
+    "No publication, commit, push, installed Workspace upgrade or existing Project migration was performed.",
+    "Installed user Workspace remains @axmorf/studio 0.1.21; these source changes are not claimed to be active there.",
+    "Proof source and media are local ignored artifacts, not a new default visual template."
+  ]
+}

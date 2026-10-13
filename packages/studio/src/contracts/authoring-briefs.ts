@@ -16,7 +16,14 @@ const sortedUnique = (values: readonly string[], context: z.RefinementCtx, path:
 
 export const STORY_RESOURCE_POOL_VERSION = "story-resource-pool-v1" as const;
 const SnapshotSchema = z.object({ sourceId: z.literal("video-shotcraft"), snapshotFingerprint: Sha256DigestSchema, allowedCardIds: z.array(CardIdSchema).min(1).max(128).readonly() }).strict().superRefine((value, context) => sortedUnique(value.allowedCardIds, context, "allowedCardIds")).readonly();
-const PoolInput = z.object({ schemaVersion: z.literal(1), contractVersion: z.literal(STORY_RESOURCE_POOL_VERSION), storyId: StoryIdSchema, requirementsFingerprint: Sha256DigestSchema, resourceCatalogFingerprint: Sha256DigestSchema, allowedResourceIds: z.array(ResourceIdSchema).max(256).readonly(), allowedSnapshots: z.array(SnapshotSchema).max(16).readonly(), selfAuthoredVisualsAllowed: z.literal(true) }).strict().superRefine((pool, context) => sortedUnique(pool.allowedResourceIds, context, "allowedResourceIds"));
+const PoolInput = z.object({ schemaVersion: z.literal(1), contractVersion: z.literal(STORY_RESOURCE_POOL_VERSION), storyId: StoryIdSchema, requirementsFingerprint: Sha256DigestSchema, resourceCatalogFingerprint: Sha256DigestSchema, allowedResourceIds: z.array(ResourceIdSchema).max(256).readonly(), optionalCapabilityIds: z.array(ResourceIdSchema).max(128).readonly().optional(), allowedSnapshots: z.array(SnapshotSchema).max(16).readonly(), selfAuthoredVisualsAllowed: z.literal(true) }).strict().superRefine((pool, context) => {
+  sortedUnique(pool.allowedResourceIds, context, "allowedResourceIds");
+  if (pool.optionalCapabilityIds !== undefined) {
+    sortedUnique(pool.optionalCapabilityIds, context, "optionalCapabilityIds");
+    const allowedIds = new Set(pool.allowedResourceIds);
+    if (pool.optionalCapabilityIds.some((id) => !allowedIds.has(id))) context.addIssue({ code: "custom", message: "Optional capabilities must belong to the Story pool.", path: ["optionalCapabilityIds"] });
+  }
+});
 export const StoryResourcePoolInputSchema = PoolInput.readonly();
 export const computeStoryResourcePoolFingerprint = (raw: unknown) => { const value = { ...(raw as Record<string, unknown>) }; delete value.poolFingerprint; return createFingerprint({ namespace: "story-resource-pool", version: 1, value: StoryResourcePoolInputSchema.parse(value) }); };
 export const StoryResourcePoolSchema = PoolInput.extend({ poolFingerprint: Sha256DigestSchema }).strict().superRefine((pool, context) => { if (pool.poolFingerprint !== computeStoryResourcePoolFingerprint(pool)) context.addIssue({ code: "custom", message: "Story resource pool fingerprint is stale.", path: ["poolFingerprint"] }); }).readonly();
@@ -26,6 +33,10 @@ export const validateStoryResourcePool = ({ pool: rawPool, catalog: rawCatalog, 
   if (pool.requirementsFingerprint !== Sha256DigestSchema.parse(requirementsFingerprint) || pool.resourceCatalogFingerprint !== catalog.catalogFingerprint) throw new Error("Story resource pool identity is stale.");
   const catalogById = new Map(catalog.entries.map((entry) => [entry.descriptor.id, entry] as const));
   for (const id of pool.allowedResourceIds) { const entry = catalogById.get(id); if (entry === undefined || entry.descriptor.status !== "approved" || entry.descriptor.allowedUse === "blocked" || entry.descriptor.kind === "authoring-reference") throw new Error(`Story resource pool contains an unavailable resource: ${id}.`); }
+  for (const id of pool.optionalCapabilityIds ?? []) {
+    const descriptor = catalogById.get(id)?.descriptor;
+    if (descriptor?.kind !== "capability" || descriptor.status !== "approved" || descriptor.allowedUse !== "runtime-approved") throw new Error(`Optional capability is not runtime-approved: ${id}.`);
+  }
   return pool;
 };
 export type StoryResourcePool = z.infer<typeof StoryResourcePoolSchema>;

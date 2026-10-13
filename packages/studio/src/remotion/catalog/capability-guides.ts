@@ -1,7 +1,9 @@
 import { CapabilityAuthoringGuideSchema } from "../../contracts";
+import { capabilityRecipes } from "./capability-recipes";
 
 export const capabilityAuthoringGuides = {
   "capability.camera": CapabilityAuthoringGuideSchema.parse({
+    recipes: capabilityRecipes.camera,
     importSource: "@axmorf/studio/remotion",
     exports: [
       "ProducerCamera2D",
@@ -22,6 +24,14 @@ export const capabilityAuthoringGuides = {
     ],
   }),
   "capability.chart": CapabilityAuthoringGuideSchema.parse({
+    demoOnlyExports: [
+      "AreaChart",
+      "CircularProgress",
+      "ComparisonChart",
+      "PieChart",
+      "ProgressBars",
+      "StatCounter",
+    ],
     importSource: "@axmorf/studio/remotion",
     exports: [
       "AreaChart",
@@ -88,6 +98,7 @@ export const capabilityAuthoringGuides = {
     ],
   }),
   "capability.motion": CapabilityAuthoringGuideSchema.parse({
+    recipes: capabilityRecipes.motion,
     importSource: "@axmorf/studio/remotion",
     exports: [
       "ProducerMotionTreatment",
@@ -124,6 +135,62 @@ export const capabilityAuthoringGuides = {
     ],
   }),
   "capability.visual-components": CapabilityAuthoringGuideSchema.parse({
+    recipes: capabilityRecipes.visual,
+    demoOnlyExports: [
+      "AnimatedList",
+      "BlindsTransition",
+      "BounceText",
+      "BubblePopText",
+      "CameraShake",
+      "CardFlip",
+      "ChapterTitle",
+      "CinematicTitleIntro",
+      "ClockWipe",
+      "CountdownIntro",
+      "CountdownTimer",
+      "CreditsRoll",
+      "EndCard",
+      "FadeThroughBlack",
+      "FilmBurn",
+      "FloatingBubbleText",
+      "GlitchText",
+      "ImageCarousel",
+      "ImageComparisonSlider",
+      "ImageZoomReveal",
+      "IrisTransition",
+      "LetterboxReveal",
+      "LogoBlurReveal",
+      "LogoBounceDrop",
+      "LogoGlitchReveal",
+      "LogoScaleRotate",
+      "LogoSpinReveal",
+      "LogoSplitReveal",
+      "LogoStrokeDraw",
+      "LogoTypewriter",
+      "LowerThird",
+      "MasonryGallery",
+      "MorphTransition",
+      "NotificationPop",
+      "PhotoStack",
+      "PictureInPicture",
+      "PolaroidFrame",
+      "ProgressSteps",
+      "PulsingText",
+      "PushTransition",
+      "QuoteCard",
+      "RotatingCarousel",
+      "SlideText",
+      "SlideWipe",
+      "SoundWave",
+      "SplitScreen",
+      "SpotlightReveal",
+      "SubscribeReminder",
+      "TextHighlight",
+      "TitleSplit",
+      "TypewriterSubtitle",
+      "VignettePulse",
+      "ZoomThrough",
+    ],
     importSource: "@axmorf/studio/remotion",
     exports: [
       "AnimatedList",
@@ -208,7 +275,8 @@ export const capabilityAuthoringGuides = {
     ],
     parameters: [
       "AnimatedText: text, color, fontSize, staggerInFrames, style. PoppingText: text, fontSize and colors.",
-      "Other exported primitives cover text, scene patterns, backgrounds, cinematic treatments, image layouts and transitions; some are fixed demos. Select only a component whose configurable content fits the brief.",
+      "WhipPan: from/to React content, Scene-local startFrame/durationInFrames, direction, blurPx. NoiseGrain: transparent overlay inside a positioned subject; opacity, seed, grainSize, holdFrames. Neither inserts demo copy or a background.",
+      "demoOnlyExports are legacy fixed-content examples, not production content components. Other exports need their documented parameters; prefer the content-parameterized recipes.",
     ],
     example:
       'import {AnimatedText} from "@axmorf/studio/remotion";\nexport const Example = () => <AnimatedText text="One clear step" fontSize={64} color="#292624" staggerInFrames={2} />;',

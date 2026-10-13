@@ -1,124 +1,78 @@
-import { interpolate, useCurrentFrame, useVideoConfig } from "remotion";
+import type { ReactNode } from "react";
+import { Easing, interpolate, useCurrentFrame } from "remotion";
 
-function WhipPan() {
+export type WhipPanProps = {
+  readonly from?: ReactNode;
+  readonly to?: ReactNode;
+  readonly startFrame?: number;
+  readonly durationInFrames?: number;
+  readonly direction?: "left" | "right" | "up" | "down";
+  readonly blurPx?: number;
+};
+
+/** A Scene-local content transition; it never retimes children or spoken frames. */
+export default function WhipPan({
+  from = null,
+  to = null,
+  startFrame = 30,
+  durationInFrames = 12,
+  direction = "left",
+  blurPx = 8,
+}: WhipPanProps) {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-
-  const panStart = fps * 1;
-  const panEnd = fps * 1.4;
-
-  const translateA = interpolate(frame, [panStart, panEnd], [0, -100], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
-
-  const translateB = interpolate(frame, [panStart, panEnd], [100, 0], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
-
-  // Motion blur stretch effect during fast pan
-  const stretchX = interpolate(
+  if (
+    !Number.isFinite(startFrame) ||
+    !Number.isFinite(durationInFrames) ||
+    durationInFrames <= 0
+  )
+    throw new Error(
+      "WhipPan requires finite startFrame and positive durationInFrames.",
+    );
+  if (!Number.isFinite(blurPx) || blurPx < 0)
+    throw new Error("WhipPan blurPx must be nonnegative.");
+  const progress = interpolate(
     frame,
-    [panStart, (panStart + panEnd) / 2, panEnd],
-    [1, 1.6, 1],
+    [startFrame, startFrame + durationInFrames],
+    [0, 1],
     {
       extrapolateLeft: "clamp",
       extrapolateRight: "clamp",
+      easing: Easing.inOut(Easing.cubic),
     },
   );
-
+  const sign = direction === "left" || direction === "up" ? -1 : 1;
+  const axis = direction === "left" || direction === "right" ? "X" : "Y";
+  const blur = Math.sin(progress * Math.PI) * blurPx;
   return (
     <div
       style={{
         position: "relative",
         width: "100%",
         height: "100%",
-        backgroundColor: "#111827",
         overflow: "hidden",
       }}
     >
-      {/* Scene A - Blue */}
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
-          alignItems: "center",
-          background: "linear-gradient(135deg, #1e3a5f, #111827)",
-          transform: `translateX(${translateA}%) scaleX(${stretchX})`,
-        }}
-      >
+      {[
+        { id: "from", content: from, index: 0 },
+        { id: "to", content: to, index: 1 },
+      ].map(({ id, content, index }) => (
         <div
+          key={id}
           style={{
-            width: "80px",
-            height: "80px",
-            borderRadius: "50%",
-            background: "linear-gradient(135deg, #3b82f6, #1d4ed8)",
-            marginBottom: "1rem",
-          }}
-        />
-        <h2
-          style={{
-            color: "white",
-            fontSize: "2.5rem",
-            fontWeight: "bold",
-            margin: 0,
-            fontFamily: "Inter, sans-serif",
+            position: "absolute",
+            inset: 0,
+            transform: `translate${axis}(${sign * (progress - index) * 100}%)`,
+            filter:
+              progress > 0 && progress < 1 ? `blur(${blur}px)` : undefined,
+            visibility:
+              (index === 0 && progress === 1) || (index === 1 && progress === 0)
+                ? "hidden"
+                : "visible",
           }}
         >
-          Scene A
-        </h2>
-        <p
-          style={{ color: "#93c5fd", fontSize: "1.1rem", marginTop: "0.5rem" }}
-        >
-          Blue content
-        </p>
-      </div>
-
-      {/* Scene B - Purple */}
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
-          alignItems: "center",
-          background: "linear-gradient(135deg, #3b1f5e, #111827)",
-          transform: `translateX(${translateB}%) scaleX(${stretchX})`,
-        }}
-      >
-        <div
-          style={{
-            width: "80px",
-            height: "80px",
-            borderRadius: "12px",
-            background: "linear-gradient(135deg, #a855f7, #7209b7)",
-            marginBottom: "1rem",
-          }}
-        />
-        <h2
-          style={{
-            color: "white",
-            fontSize: "2.5rem",
-            fontWeight: "bold",
-            margin: 0,
-            fontFamily: "Inter, sans-serif",
-          }}
-        >
-          Scene B
-        </h2>
-        <p
-          style={{ color: "#c084fc", fontSize: "1.1rem", marginTop: "0.5rem" }}
-        >
-          Purple content
-        </p>
-      </div>
+          {content}
+        </div>
+      ))}
     </div>
   );
 }
-
-export default WhipPan;

@@ -28,7 +28,7 @@ type EdgeTtsClientOptions = Readonly<{
 const environmentProxy = (
   env: Readonly<Record<string, string | undefined>>,
 ): string | undefined => {
-  const serviceHost = "speech.platform.bing.com";
+  const serviceHost = "api.msedgeservices.com";
   const bypass = (env.no_proxy || env.NO_PROXY || "")
     .toLowerCase()
     .split(/[\s,]+/u)
@@ -75,6 +75,17 @@ const containsUnsupportedXmlControl = (value: string) =>
     );
   });
 
+const safeFailureDetail = (error: unknown): string => {
+  if (error === "Timed out") return " (synthesis timed out)";
+  if (error instanceof Error) {
+    const status = /^Unexpected server response: ([1-5][0-9]{2})$/u.exec(
+      error.message,
+    )?.[1];
+    if (status) return ` (WebSocket handshake HTTP ${status})`;
+  }
+  return "";
+};
+
 export const createEdgeTtsChunkGenerator = ({
   resolved,
   env = process.env,
@@ -117,8 +128,10 @@ export const createEdgeTtsChunkGenerator = ({
       const bytes = await readFile(outputPath);
       if (bytes.length === 0) throw new Error("empty provider audio");
       return bytes;
-    } catch {
-      throw new Error(`Edge TTS request failed for chunk ${request.chunkId}.`);
+    } catch (error) {
+      throw new Error(
+        `Edge TTS request failed for chunk ${request.chunkId}${safeFailureDetail(error)}.`,
+      );
     } finally {
       await rm(workDir, { recursive: true, force: true });
     }

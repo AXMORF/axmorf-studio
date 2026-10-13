@@ -85,6 +85,11 @@ Explicit render requests use optional `render.width/height/fps/locale` fields in
 inherit settings without changing saved defaults; create returns the frozen render values for verification before production.
 Use the generated Workspace-local authoring and host-execution references for exact task execution and interruption recovery.
 
+The current source template also guides optional capability selection, full-frame body art with independent text safety,
+verified original images/SVG and topic-specific score arrangements. Its dependency table pins Edge TTS SDK 1.2.11 for the
+migrated endpoint. These additions require the corresponding unreleased runtime and creator; public 0.1.21 does not include
+them. See [current implementation status](https://github.com/AXMORF/axmorf-studio/blob/HEAD/docs/ITERATION_STATUS.md).
+
 New video Skills default to local code synthesis using the bundled Node/FFmpeg helper, with a frozen original WAV/timeline.
 Synthesized music spans the composition, replaces template/Scene scores and preserves independent effects; measured speech
 still defines semantic timing. Existing configured library/file defaults remain compatible and play across content only.

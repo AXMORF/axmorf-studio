@@ -3,11 +3,16 @@ import test from "node:test";
 
 import {
   ResourceDescriptorSchema,
+  buildStoryResourcePool,
+  validateStoryResourcePool,
   SelectedResourceRefSchema,
   assertResourceAllowedForUse,
   computeResourceDescriptorFingerprint,
   validateSelectedResourceRef,
 } from "@axmorf/studio/contracts";
+
+import { buildResourceCatalog } from "../../scripts/catalog/domain";
+import { capabilityDescriptorDeclarations } from "../../packages/studio/src/remotion/catalog/capability-descriptors";
 
 const digest = (character: string) => `sha256:${character.repeat(64)}`;
 
@@ -234,4 +239,73 @@ test("background music and global visual have exact runtime contexts", () => {
     assert.doesNotThrow(() => assertResourceAllowedForUse(asset, role));
     assert.throws(() => assertResourceAllowedForUse(asset, "sound-effect"));
   }
+});
+
+test("optional capability pools reject media, missing, blocked and reference-only entries", () => {
+  const camera = capabilityDescriptorDeclarations.find(
+    ({ id }) => id === "capability.camera",
+  )!;
+  for (const descriptor of [
+    visualAsset,
+    { ...camera, status: "blocked", allowedUse: "blocked" },
+  ]) {
+    const catalog = buildResourceCatalog([descriptor]);
+    const pool = buildStoryResourcePool({
+      storyId: "pool-proof",
+      requirementsFingerprint: digest("1"),
+      resourceCatalogFingerprint: catalog.catalogFingerprint,
+      allowedResourceIds: [descriptor.id],
+      optionalCapabilityIds: [descriptor.id],
+      allowedSnapshots: [],
+      selfAuthoredVisualsAllowed: true,
+    });
+    assert.throws(
+      () =>
+        validateStoryResourcePool({
+          pool,
+          catalog,
+          requirementsFingerprint: digest("1"),
+        }),
+      /unavailable|not runtime-approved/u,
+    );
+  }
+  assert.equal(
+    ResourceDescriptorSchema.safeParse({
+      ...camera,
+      allowedUse: "reference-only",
+    }).success,
+    false,
+  );
+  const emptyCatalog = buildResourceCatalog([]);
+  const missingPool = buildStoryResourcePool({
+    storyId: "pool-proof",
+    requirementsFingerprint: digest("1"),
+    resourceCatalogFingerprint: emptyCatalog.catalogFingerprint,
+    allowedResourceIds: [camera.id],
+    optionalCapabilityIds: [camera.id],
+    allowedSnapshots: [],
+    selfAuthoredVisualsAllowed: true,
+  });
+  assert.throws(
+    () =>
+      validateStoryResourcePool({
+        pool: missingPool,
+        catalog: emptyCatalog,
+        requirementsFingerprint: digest("1"),
+      }),
+    /unavailable/u,
+  );
+  assert.throws(
+    () =>
+      buildStoryResourcePool({
+        storyId: "pool-proof",
+        requirementsFingerprint: digest("1"),
+        resourceCatalogFingerprint: digest("2"),
+        allowedResourceIds: [],
+        optionalCapabilityIds: [camera.id],
+        allowedSnapshots: [],
+        selfAuthoredVisualsAllowed: true,
+      }),
+    /belong/u,
+  );
 });

@@ -21,7 +21,7 @@ test("production Scene runtime guards current package and task schema versions",
   assert.match(source, /readabilityPolicy: requirements\.readabilityPolicy/u);
   assert.match(
     source,
-    /resolveSceneViewport\(requirements\.readabilityPolicy\)/u,
+    /resolveSceneViewport\(requirements\.readabilityPolicy, scene\.task\.storyBeat\)/u,
   );
   assert.match(source, /scene\.task\.sceneViewport\.viewportFingerprint/u);
 });

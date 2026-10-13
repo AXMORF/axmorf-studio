@@ -670,7 +670,10 @@ const prepareCreation = async ({
       ...input.production.additionalRequirements,
       SCENE_MOTION_REQUIREMENT,
     ],
-    readability: { edgeInsetPx: config.readability.edgeInsetPx },
+    readability: {
+      edgeInsetPx: config.readability.edgeInsetPx,
+      canvasMode: "full-frame",
+    },
   });
   const baseDescriptors = currentDescriptors.filter(
     (descriptor) =>
@@ -706,10 +709,23 @@ const prepareCreation = async ({
   const configuredSceneResourceIds = story.beats.flatMap((beat) =>
     beat.kind === "silent-scene" ? beat.preset.resourceIds : [],
   );
+  const optionalCapabilityIds =
+    input.resources.capabilityAccess === "explicit"
+      ? []
+      : projectCatalog.entries
+          .flatMap(({ descriptor }) =>
+            descriptor.kind === "capability" &&
+            descriptor.status === "approved" &&
+            descriptor.allowedUse === "runtime-approved"
+              ? [descriptor.id]
+              : [],
+          )
+          .sort();
   const allowedResourceIds = [
     ...new Set([
       ...input.resources.allowedResourceIds,
       ...configuredSceneResourceIds,
+      ...optionalCapabilityIds,
     ]),
   ].sort((left, right) => left.localeCompare(right));
   const resourcePool = buildStoryResourcePool({
@@ -717,6 +733,7 @@ const prepareCreation = async ({
     requirementsFingerprint: requirements.requirementsFingerprint,
     resourceCatalogFingerprint: projectCatalog.catalogFingerprint,
     allowedResourceIds,
+    ...(optionalCapabilityIds.length > 0 ? { optionalCapabilityIds } : {}),
     allowedSnapshots: [],
     selfAuthoredVisualsAllowed: true,
   });

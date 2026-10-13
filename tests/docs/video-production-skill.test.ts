@@ -11,8 +11,8 @@ const wordCount = (value: string) => value.trim().split(/\s+/u).length;
 
 const PolicySchema = z
   .object({
-    schemaVersion: z.literal(20),
-    policyVersion: z.literal("axmorf-video-policy-v27"),
+    schemaVersion: z.literal(21),
+    policyVersion: z.literal("axmorf-video-policy-v28"),
     rootEndpoints: z.tuple([
       z.literal("project-production-complete"),
       z.literal("project-production-current"),
@@ -97,6 +97,14 @@ const PolicySchema = z
       .strict(),
     optionalCapabilitySlots: z
       .object({
+        generatedArtwork: z.strictObject({
+          slotVersion: z.literal("generated-artwork-agent-slot-v1"),
+          owner: z.literal("root-agent"),
+          activation: z.literal("original-svg-or-callable-image-generation"),
+          phase: z.literal("after-project-create-before-production-inspect"),
+          admissionBoundary: z.literal("project-asset-import-generated-input"),
+          downstreamVisibility: z.literal("project-owned-assets-only"),
+        }),
         externalAssetAcquisition: z
           .object({
             slotVersion: z.literal("external-asset-acquisition-agent-slot-v1"),
@@ -257,7 +265,7 @@ test("repository video skill uses Revision, Task DAG, artifacts, and synchronous
   );
   assert.match(
     workflow,
-    /If the MCP is absent[\s\S]*omit this entire stage without error, placeholder task,[\s\S]*DAG node/u,
+    /If that MCP is absent[\s\S]*omit licensed acquisition without error or placeholder[\s\S]*original SVG[\s\S]*image generation/u,
   );
   assert.match(
     workflow,
@@ -462,11 +470,13 @@ test("skill directory contains only the declared production and creative bundle"
     "direct-production-workflow.md",
     "execution-capabilities.md",
     "film-direction.md",
+    "generated-artwork.md",
     "global-visual-agent-orchestration.md",
     "paper-collage.md",
     "producer-config.md",
     "project-revision.md",
     "scene-agent-orchestration.md",
+    "score-arrangement.md",
     "task-execution-protocol.md",
   ]);
 });

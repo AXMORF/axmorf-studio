@@ -113,24 +113,37 @@ test("Edge TTS honors inherited HTTPS/HTTP proxies and service-specific NO_PROXY
     {
       env: {
         HTTPS_PROXY: "http://proxy.example:8080",
-        NO_PROXY: "speech.platform.bing.com:443",
+        NO_PROXY: "api.msedgeservices.com:443",
       },
       expectedProxy: undefined,
     },
     {
       env: {
         HTTPS_PROXY: "http://proxy.example:8080",
-        NO_PROXY: "speech.platform.bing.com:80",
+        NO_PROXY: "api.msedgeservices.com:80",
       },
       expectedProxy: "http://proxy.example:8080",
     },
     {
-      env: { HTTPS_PROXY: "http://proxy.example:8080", no_proxy: ".BING.COM" },
+      env: {
+        HTTPS_PROXY: "http://proxy.example:8080",
+        no_proxy: ".MSEDGESERVICES.COM",
+      },
       expectedProxy: undefined,
     },
     {
-      env: { HTTPS_PROXY: "http://proxy.example:8080", NO_PROXY: "*.bing.com" },
+      env: {
+        HTTPS_PROXY: "http://proxy.example:8080",
+        NO_PROXY: "*.msedgeservices.com",
+      },
       expectedProxy: undefined,
+    },
+    {
+      env: {
+        HTTPS_PROXY: "http://proxy.example:8080",
+        NO_PROXY: "speech.platform.bing.com",
+      },
+      expectedProxy: "http://proxy.example:8080",
     },
     {
       env: { HTTPS_PROXY: "http://proxy.example:8080", NO_PROXY: "*" },
@@ -220,4 +233,32 @@ test("Edge TTS errors are redacted and dispatcher does not fallback", async () =
   });
   assert.deepEqual(await dispatched(request), Buffer.from("edge"));
   assert.deepEqual(calls, ["edge-tts"]);
+});
+
+test("Edge TTS preserves safe HTTP and timeout diagnostics without retrying", async () => {
+  for (const [cause, expected] of [
+    [
+      new Error("Unexpected server response: 403"),
+      /WebSocket handshake HTTP 403/u,
+    ],
+    ["Timed out", /synthesis timed out/u],
+    [
+      new Error("Unexpected server response: 403 secret-token"),
+      /^Edge TTS request failed for chunk edge-01\.$/u,
+    ],
+  ] as const) {
+    let calls = 0;
+    const generate = createEdgeTtsChunkGenerator({
+      resolved,
+      env: {},
+      clientFactory: () => ({
+        ttsPromise: async () => {
+          calls += 1;
+          throw cause;
+        },
+      }),
+    });
+    await assert.rejects(generate(request), { message: expected });
+    assert.equal(calls, 1);
+  }
 });

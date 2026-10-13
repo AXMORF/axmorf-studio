@@ -68,9 +68,10 @@ Story `resources.allowedResourceIds` 是准入池；silent preset 的 `resourceI
 全部冻结进去。先去重排序，再通过公开 builder 生成；对应 brief 的 candidateResourceIds 必须与 preset 一致。
 按本片实际动作选择能力与音效，避免为满足过宽列表而强塞无关效果。输入生成/校验失败时不继续调用 create。
 
-新建 authored-frames Project 使用 readability policyVersion 2、`captionBand: "none"`，Scene 四边只保留
-safe-area inset，不再为空字幕留出底部区域。旁白模式继续使用 policyVersion 1 的字幕布局；既有 Project
-及其 revision 保留已冻结 policy，不静默改变几何或 fingerprint。所有 Scene 仍只使用派生 viewport，不能越过安全区。
+新 Project 冻结 readability policyVersion 3：正文使用 full-frame 画布，图像、材质、灯光与遮挡可以铺满；
+文字使用独立 textSafeArea，并放在相机变换外的 SceneTextSafeArea 或等价冻结矩形内。无旁白不预留字幕带。
+fixed template-copy 首尾仍使用原 safe-area-local viewport；既有 policyVersion 1/2 及其 revision 保留已冻结
+几何与 fingerprint。Scene 只消费派生 viewport，不读取 raw policy 或重新安装裁剪容器。
 新 credits 模板也按实际 viewport 分配正文/引用空间，长引用显式省略为标题与来源域名；完整值保存在 Story。
 新实例不替换既有 immutable template。几何预算与分页停留的具体边界见
 [能力目录](CAPABILITY_CATALOG.md#当前已迁入能力)，不能把文字未裁切当成阅读停留充分。

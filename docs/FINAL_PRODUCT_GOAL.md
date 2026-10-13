@@ -11,9 +11,10 @@ source 生产为一个 Composition 和一个本地 current delivery。runtime/CL
 预构建 Web 来自 npm package；用户 Project、配置、媒体、artifacts 和 Delivery 只属于 Workspace。产品不含
 Desktop、Electron、Runtime Pack 或 `rsp` control plane。唯一主链是：
 
-在确定性主链之前，Root 可从“当前 Agent 实际 callable 的 tools”投影外部图片 MCP 插槽。该能力存在时才
-在本地 Catalog 缺少合适素材后 acquire，并经 `project:asset:import` 准入；不存在时整个阶段无错误、无占位
-地省略。这个可选 authoring 输入通道不属于 ProductionRevision/Task DAG，也不向 child/runtime 暴露 MCP。
+在确定性主链之前，Root 按题材选择素材：本地 Catalog 不足时，可用当前实际可调用的生图工具生成图片、
+创作原创 SVG，或通过兼容工具获取已许可图片。新 Project 在首次 inspect 前经 `project:asset:import`
+验证真实 bytes 与来源并准入；工具过程不属于 ProductionRevision/Task DAG，child/runtime 只消费冻结的
+Project-owned 媒体。revision candidate 仍限于 base snapshot 已有媒体。
 
 1. 冻结 ProductionRevision；
 2. 建立 content-addressed Task DAG；
@@ -41,11 +42,13 @@ source/public/narration/delivery 四个 Project-owned roots；失败完整 rollb
   两种时间源不能混合，template-copy 仅在首尾。
 - Agent-authored `ttsChunks` 不被工具改写；sealed PCM sample measurement 和累计 sample frame 是时间
   authority。
-- Scene root 透明；Composition 顶层 exactly once owns safe-area-local SceneViewport、captions、narration 和
-  GlobalVisual。GlobalVisual base 覆盖完整 Composition；decoration 仅覆盖正文 Beat 的连续
-  窗口，不进入 silent boundary。Scene 只在本地 viewport 内布局，不感知 full-frame inset。
+- Scene root 透明；Composition 顶层 exactly once owns SceneViewport、captions、narration 和 GlobalVisual。
+  新正文以完整画布组织主体、环境、材质、光影与层次，独立 textSafeArea 保护文字；fixed template-copy
+  首尾及旧 policyVersion 1/2 保留 safe-area-local 几何，revision 不自动迁移。GlobalVisual decoration
+  只在正文窗口提供共享氛围，不替代 Scene-owned 美术或限制其颜色、层次与铺满画面的表达。
 - template-copy Scene 是 Project-local immutable instance，由 fixed task 产出，不派发 Agent。
 - 新片 Skill 优先代码合成原创 BGM，以全片音轨替换 Scene/模板配乐、保留旁白及独立音效；实测口播时序优先。
+  题材决定调性、和声、分段乐器、密度与力度，默认配方不作为固定风格。
   兼容选曲模式连续覆盖正文窗口、保留模板配乐；既有媒体不自动迁移，合成时间轴不通过调音修订改变。
 - package-owned shared Workspace resources 只通过 runtime policy、manifest、checksum 与 license gate 发行；
   bootstrap 投影到保留的 Workspace paths 和 Catalog，template-copy Scene 只把实际使用的资源复制为
@@ -120,6 +123,8 @@ decode 全部通过后才替换。相同完整 identity 是只读 no-op。
 - Project 删除使用完整 storyId 确认并清理该 Project 的全部 ownership roots，同时保护其他 Project、
   core、shared media、private config 与 voice profiles。
 - 每个完成状态都有机械证据；聊天成功、Agent 自评、文件存在或进程启动都不代表交付完成。
+- 首次创作先落实代表画面的主体、构图、光线、材质与有意义的空间关系，再组织动作与阅读停留；
+  素材供给、画布和任务指南支持这些选择。能力数量、风格标签、机械交付通过均不等于视觉质量。
 - 有效 owner artifacts 齐全后可先生成冻结草稿，再执行正式 continuation；草稿按比例降低像素而保留布局、fps、
   时间和声音。独立 receipt 绑定源码、资源、artifacts、runtime 和 profile，审片结论独立于 checksum/EOF 通过。
 - 新建视频的尺寸/横竖屏、fps、locale 按用户明确要求优先、未指定字段继承配置。Agent 将要求写入结构化 create

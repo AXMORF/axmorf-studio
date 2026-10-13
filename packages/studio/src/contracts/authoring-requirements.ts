@@ -242,7 +242,10 @@ const addFreezeInputIssues = (
         computeNoNarrationFingerprint()) ||
     (freeze.readabilityPolicy.policyVersion === 1 &&
       (freeze.normalizedSummary.voiceProfileId === null) !==
-        (freeze.readabilityPolicy.captionMode === "none"))
+        (freeze.readabilityPolicy.captionMode === "none")) ||
+    (freeze.readabilityPolicy.policyVersion === 3 &&
+      freeze.normalizedSummary.voiceProfileId === null &&
+      freeze.readabilityPolicy.captionBand !== "none")
   ) {
     context.addIssue({
       code: "custom",
@@ -519,7 +522,7 @@ type AuthoringRequirementsBuildInput = Parameters<
   typeof buildAuthoringRequirementsBase
 >[0] & {
   readonly readability:
-    | Readonly<{ edgeInsetPx: number }>
+    | Readonly<{ edgeInsetPx: number; canvasMode?: "full-frame" }>
     | Readonly<{ frozenPolicy: SceneReadabilityPolicy }>;
 };
 
@@ -535,6 +538,7 @@ export const buildAuthoringRequirements = (
           width: base.normalizedSummary.width,
           height: base.normalizedSummary.height,
           edgeInsetPx: input.readability.edgeInsetPx,
+          canvasMode: input.readability.canvasMode,
           timingSource: source.story.timingSource,
           ...(isVisualStory(source.story)
             ? { captionMode: "none" as const }

@@ -44,7 +44,7 @@ test("runtime-only libraries are declared instead of relying on workspace hoisti
   assert.deepEqual(manifest.dependencies, {
     "@speech-sdk/core": "0.27.0",
     "lottie-web": "5.13.0",
-    "node-edge-tts": "1.2.10",
+    "node-edge-tts": "1.2.11",
     ogl: "1.0.11",
     typescript: "5.9.3",
     zod: "4.3.6",

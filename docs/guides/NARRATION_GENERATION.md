@@ -46,7 +46,9 @@ and cumulative-sample timing pipeline.
 Edge uses the current worker process's inherited `HTTPS_PROXY`/`https_proxy`, then `HTTP_PROXY`/`http_proxy`,
 and respects service-specific `NO_PROXY`/`no_proxy`. This is the host running TTS, which may be a local or cloud
 machine; it does not read another computer's proxy settings. The adapter passes the selected proxy to
-`node-edge-tts`, retains one-shot requests and redacted errors, and adds no fallback or automatic retry.
+`node-edge-tts@1.2.11` at `api.msedgeservices.com`, retains one-shot requests and redacted errors, and adds no fallback or automatic retry.
+Only recognized WebSocket HTTP status codes and the client's fixed timeout signal survive error redaction;
+arbitrary upstream messages, request URLs and credentials are never copied into the public failure.
 
 New-video Skills synthesize music before create, while normal prepare still generates and seals narration.
 Measured speech determines Scene/caption windows; the later Scene-local musical grid only guides permitted visual events.

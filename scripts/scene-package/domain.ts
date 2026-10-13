@@ -146,6 +146,15 @@ export const validateSceneArtifactBundle = (
   const selectedResources = rawInput.selectedResources
     .map(({ selected, descriptor }) => {
       const parsedDescriptor = ResourceDescriptorSchema.parse(descriptor);
+      if (
+        (task.optionalCapabilityIds ?? []).includes(parsedDescriptor.id) &&
+        (parsedDescriptor.kind !== "capability" ||
+          parsedDescriptor.status !== "approved" ||
+          parsedDescriptor.allowedUse !== "runtime-approved")
+      )
+        throw new Error(
+          "Optional Scene capabilities cannot authorize media or unapproved resources.",
+        );
       return validateSelectedResourceRef({
         selected,
         descriptor: parsedDescriptor,
@@ -172,8 +181,11 @@ export const validateSceneArtifactBundle = (
   }
   if (
     task.storyBeat.kind === "silent-scene" &&
-    JSON.stringify(selectedResources.map(({ resourceId }) => resourceId)) !==
-      JSON.stringify(task.storyBeat.preset.resourceIds)
+    JSON.stringify(
+      selectedResources
+        .map(({ resourceId }) => resourceId)
+        .filter((id) => !(task.optionalCapabilityIds ?? []).includes(id)),
+    ) !== JSON.stringify(task.storyBeat.preset.resourceIds)
   ) {
     throw new Error(
       "Silent Scene package resources must exactly consume its selected preset.",

@@ -26,8 +26,10 @@ import {
   SealedNarrationManifestSchema,
   ScenePriorSourceIndexSchema,
   SCENE_PRIOR_SOURCE_PATH,
+  StoryResourcePoolSchema,
   StorySpecSchema,
   VISUAL_THEME_PRESETS,
+  buildAuthoringRequirements,
   buildDeliveryPublish,
   buildDeliveryPublishing,
   buildProductionRevision,
@@ -45,6 +47,7 @@ import {
   buildShotPlanSet,
   buildShotRecipeSelection,
   buildSilentScenePreset,
+  buildStoryResourcePool,
   resolveSceneViewport,
   serializeCanonicalJson,
   createDeliveryBuildId,
@@ -254,14 +257,21 @@ const fixture = async (
   },
   boundaryTemplates = false,
   authoredFrames = false,
+  legacyReadability = false,
 ) => {
   const prepared = await prepareProjectCreateFixture();
   context.after(() => rm(prepared.rootDir, { recursive: true, force: true }));
-  if (authoredFrames)
+  if (authoredFrames) {
+    const scene = {
+      ...validProjectCreateInput.scenes[0],
+      visualIntent: "Retain one continuous visual world.",
+      soundIntent: "No narration or captions.",
+    };
     await writeFile(
       prepared.inputPath,
       JSON.stringify({
         ...validProjectCreateInput,
+        scenes: [scene],
         story: {
           ...validProjectCreateInput.story,
           timingSource: "authored-frames",
@@ -273,8 +283,8 @@ const fixture = async (
               preset: buildSilentScenePreset({
                 presetId: "opening",
                 durationInFrames: 120,
-                visualIntent: "Retain one continuous visual world.",
-                soundIntent: "No narration or captions.",
+                visualIntent: scene.visualIntent,
+                soundIntent: scene.soundIntent,
                 resourceIds: [],
                 implementation: { kind: "scene-owner" },
               }),
@@ -283,6 +293,7 @@ const fixture = async (
         },
       }),
     );
+  }
   if (boundaryTemplates)
     await writeFile(
       prepared.inputPath,
@@ -301,6 +312,73 @@ const fixture = async (
     env: { RSP_PRODUCER_CONFIG: prepared.configPath },
     runtimeResources: prepared.runtimeResources,
   });
+  if (legacyReadability) {
+    const projectRoot = join(
+      prepared.rootDir,
+      "src/projects",
+      validProjectCreateInput.storyId,
+    );
+    const read = (path: string) => readFile(join(projectRoot, path), "utf8");
+    const [brief, story, narration, render, sound, previous, previousPool] =
+      await Promise.all([
+        read("brief.json"),
+        read("story.json"),
+        read("narration.json"),
+        read("render.json"),
+        read("sound.json"),
+        read("production/requirements.json"),
+        read("production/story-resource-pool.json"),
+      ]);
+    const requirements = AuthoringRequirementsSchema.parse(
+      JSON.parse(previous),
+    );
+    const pool = StoryResourcePoolSchema.parse(JSON.parse(previousPool));
+    // Model a stored legacy Project with canonical builders, not edited hashes.
+    const legacyRequirements = buildAuthoringRequirements({
+      source: {
+        brief: JSON.parse(brief),
+        story: JSON.parse(story),
+        narration: JSON.parse(narration),
+        render: JSON.parse(render),
+        projectSound: JSON.parse(sound),
+      },
+      sourceChecksums: {
+        videoBrief: checksum(brief),
+        storySpec: checksum(story),
+        narrationSpec: checksum(narration),
+        renderSpec: checksum(render),
+        projectSound: checksum(sound),
+      },
+      enhancementSelection: requirements.enhancementSelection,
+      resourcePolicy: requirements.resourcePolicy,
+      additionalRequirements: requirements.additionalRequirements,
+      readability: {
+        edgeInsetPx: requirements.readabilityPolicy.baseEdgeInsetPx,
+      },
+    });
+    const legacyPool = buildStoryResourcePool({
+      storyId: pool.storyId,
+      requirementsFingerprint: legacyRequirements.requirementsFingerprint,
+      resourceCatalogFingerprint: pool.resourceCatalogFingerprint,
+      allowedResourceIds: pool.allowedResourceIds,
+      ...(pool.optionalCapabilityIds === undefined
+        ? {}
+        : { optionalCapabilityIds: pool.optionalCapabilityIds }),
+      allowedSnapshots: pool.allowedSnapshots,
+      selfAuthoredVisualsAllowed: pool.selfAuthoredVisualsAllowed,
+    });
+    await Promise.all(
+      ([
+        ["production/requirements.json", legacyRequirements],
+        ["production/story-resource-pool.json", legacyPool],
+      ] as const).map(([path, value]) =>
+        writeFile(
+          join(projectRoot, path),
+          `${serializeCanonicalJson(value)}\n`,
+        ),
+      ),
+    );
+  }
   if (!authoredFrames) {
     await mkdir(
       join(
@@ -1795,9 +1873,19 @@ test("revision cannot migrate an existing narrated Story to authored-frame timin
   );
 });
 
-test("a scenes-only revision retains the exact frozen readability policy for narrated and authored Projects", async (context) => {
-  for (const authoredFrames of [false, true]) {
-    const current = await fixture(context, false, authoredFrames);
+test("a scenes-only revision retains the exact frozen readability policy for new and legacy narrated and authored Projects", async (context) => {
+  for (const { authoredFrames, legacyReadability } of [
+    { authoredFrames: false, legacyReadability: false },
+    { authoredFrames: true, legacyReadability: false },
+    { authoredFrames: false, legacyReadability: true },
+    { authoredFrames: true, legacyReadability: true },
+  ]) {
+    const current = await fixture(
+      context,
+      false,
+      authoredFrames,
+      legacyReadability,
+    );
     const requirementsPath = join(
       current.rootDir,
       "src/projects/story-example/production/requirements.json",
@@ -1808,12 +1896,17 @@ test("a scenes-only revision retains the exact frozen readability policy for nar
     );
     assert.equal(
       previous.readabilityPolicy.policyVersion,
-      authoredFrames ? 2 : 1,
+      legacyReadability ? (authoredFrames ? 2 : 1) : 3,
     );
+    const revisionContext = await readProjectRevisionContext({
+      rootDir: current.rootDir,
+      projectId: validProjectCreateInput.storyId,
+      dependencies: current.dependencies,
+    });
     const input = {
       ...current.input,
       patch: {
-        scenes: validProjectCreateInput.scenes.map((scene) => ({
+        scenes: revisionContext.editable.scenes.map((scene) => ({
           ...scene,
           compositionIntent:
             "Place the same subject along a readable diagonal.",
@@ -1850,10 +1943,26 @@ test("a scenes-only revision retains the exact frozen readability policy for nar
       candidate.requirementsFingerprint,
       previous.requirementsFingerprint,
     );
-    assert.equal(
-      resolveSceneViewport(candidate.readabilityPolicy).height,
-      authoredFrames ? 1740 : 1470,
+    const viewport = resolveSceneViewport(candidate.readabilityPolicy);
+    assert.deepEqual(
+      viewport,
+      resolveSceneViewport(previous.readabilityPolicy),
     );
+    assert.equal(viewport.schemaVersion, legacyReadability ? 1 : 2);
+    assert.equal(viewport.width, legacyReadability ? 900 : 1080);
+    assert.equal(
+      viewport.height,
+      legacyReadability ? (authoredFrames ? 1740 : 1470) : 1920,
+    );
+    if (viewport.schemaVersion === 2) {
+      assert.equal(viewport.coordinateSpace, "scene-full-frame");
+      assert.deepEqual(viewport.textSafeArea, {
+        top: 90,
+        right: 90,
+        bottom: authoredFrames ? 90 : 360,
+        left: 90,
+      });
+    }
     assert.deepEqual(await readFile(requirementsPath), requirementsBytes);
     if (authoredFrames) {
       for (const path of [

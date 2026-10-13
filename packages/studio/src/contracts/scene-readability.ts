@@ -6,6 +6,7 @@ import {
   StorySpecSchema,
   StoryTimingSourceSchema,
   type StorySpec,
+  type StoryBeat,
   type StoryTimingSource,
 } from "./story";
 
@@ -98,10 +99,18 @@ const AuthoredFrameReadabilityPolicyInputObject =
     captionBand: z.literal("none"),
   }).strict();
 
+const FullFrameReadabilityPolicyInputObject =
+  SceneReadabilityPolicyInputObject.extend({
+    policyVersion: z.literal(3),
+    canvasMode: z.literal("full-frame"),
+    captionBand: z.enum(["none", "reserved"]),
+  }).strict();
+
 const SceneReadabilityPolicyInputSchema = z
   .discriminatedUnion("policyVersion", [
     SceneReadabilityPolicyInputObject,
     AuthoredFrameReadabilityPolicyInputObject,
+    FullFrameReadabilityPolicyInputObject,
   ])
   .readonly();
 
@@ -124,12 +133,14 @@ const buildSceneReadabilityPolicyInput = ({
   edgeInsetPx: rawEdgeInsetPx,
   timingSource: rawTimingSource = "sealed-narration",
   captionMode,
+  canvasMode,
 }: {
   readonly width: number;
   readonly height: number;
   readonly edgeInsetPx: number;
   readonly timingSource?: StoryTimingSource;
   readonly captionMode?: "none";
+  readonly canvasMode?: "full-frame";
 }) => {
   const timingSource = StoryTimingSourceSchema.parse(rawTimingSource);
   const authoredFrames = timingSource === "authored-frames";
@@ -161,8 +172,16 @@ const buildSceneReadabilityPolicyInput = ({
   return SceneReadabilityPolicyInputSchema.parse({
     schemaVersion: 1,
     policyId: SCENE_READABILITY_POLICY_ID,
-    policyVersion: authoredFrames ? 2 : 1,
-    ...(authoredFrames ? { captionBand: "none" } : {}),
+    policyVersion: canvasMode === "full-frame" ? 3 : authoredFrames ? 2 : 1,
+    ...(canvasMode === "full-frame"
+      ? {
+          canvasMode,
+          captionBand:
+            authoredFrames || captionMode === "none" ? "none" : "reserved",
+        }
+      : authoredFrames
+        ? { captionBand: "none" }
+        : {}),
     ...(captionMode === undefined ? {} : { captionMode }),
     width: parsedWidth,
     height: parsedHeight,
@@ -215,6 +234,9 @@ export const SceneReadabilityPolicySchema = z
     AuthoredFrameReadabilityPolicyInputObject.extend({
       policyFingerprint: Sha256DigestSchema,
     }).strict(),
+    FullFrameReadabilityPolicyInputObject.extend({
+      policyFingerprint: Sha256DigestSchema,
+    }).strict(),
   ])
   .superRefine((policy, context) => {
     const expected = buildSceneReadabilityPolicyInput({
@@ -222,7 +244,13 @@ export const SceneReadabilityPolicySchema = z
       height: policy.height,
       edgeInsetPx: policy.baseEdgeInsetPx,
       timingSource:
-        policy.policyVersion === 2 ? "authored-frames" : "sealed-narration",
+        policy.policyVersion === 2 ||
+        (policy.policyVersion === 3 &&
+          policy.captionBand === "none" &&
+          policy.captionMode === undefined)
+          ? "authored-frames"
+          : "sealed-narration",
+      ...(policy.policyVersion === 3 ? { canvasMode: policy.canvasMode } : {}),
       ...(policy.captionMode === undefined
         ? {}
         : { captionMode: policy.captionMode }),
@@ -254,22 +282,54 @@ const SceneViewportInputObject = z
   })
   .strict();
 
+const FullFrameViewportInputObject = SceneViewportInputObject.extend({
+  schemaVersion: z.literal(2),
+  coordinateSpace: z.literal("scene-full-frame"),
+  textSafeArea: SafeAreaSchema,
+}).strict();
+
+const SceneViewportInputSchema = z.discriminatedUnion("schemaVersion", [
+  SceneViewportInputObject,
+  FullFrameViewportInputObject,
+]);
+
 export const computeSceneViewportFingerprint = (rawViewport: unknown) => {
   const record = { ...(rawViewport as Record<string, unknown>) };
   delete record.viewportFingerprint;
-  const viewport = SceneViewportInputObject.parse(record);
+  const viewport = SceneViewportInputSchema.parse(record);
   return createFingerprint({
-    namespace: "scene-safe-area-local-viewport",
-    version: 1,
+    namespace:
+      viewport.schemaVersion === 1
+        ? "scene-safe-area-local-viewport"
+        : "scene-full-frame-viewport",
+    version: viewport.schemaVersion,
     value: viewport,
   });
 };
 
-export const SceneViewportSchema = SceneViewportInputObject.extend({
-  viewportFingerprint: Sha256DigestSchema,
-})
-  .strict()
+export const SceneViewportSchema = z
+  .discriminatedUnion("schemaVersion", [
+    SceneViewportInputObject.extend({
+      viewportFingerprint: Sha256DigestSchema,
+    }).strict(),
+    FullFrameViewportInputObject.extend({
+      viewportFingerprint: Sha256DigestSchema,
+    }).strict(),
+  ])
   .superRefine((viewport, context) => {
+    if (
+      viewport.schemaVersion === 2 &&
+      (viewport.textSafeArea.left + viewport.textSafeArea.right >=
+        viewport.width ||
+        viewport.textSafeArea.top + viewport.textSafeArea.bottom >=
+          viewport.height)
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Scene text safe area must fit inside its canvas.",
+        path: ["textSafeArea"],
+      });
+    }
     if (
       viewport.viewportFingerprint !== computeSceneViewportFingerprint(viewport)
     ) {
@@ -282,16 +342,33 @@ export const SceneViewportSchema = SceneViewportInputObject.extend({
   })
   .readonly();
 
-export const resolveSceneViewport = (rawPolicy: unknown) => {
+export const resolveSceneViewport = (
+  rawPolicy: unknown,
+  storyBeat?: StoryBeat,
+) => {
   const policy = SceneReadabilityPolicySchema.parse(rawPolicy);
   const safeArea = policy.sceneContentSafeAreaPx;
-  const input = SceneViewportInputObject.parse({
-    schemaVersion: 1,
-    coordinateSpace: SCENE_VIEWPORT_COORDINATE_SPACE,
-    width: policy.width - safeArea.left - safeArea.right,
-    height: policy.height - safeArea.top - safeArea.bottom,
-    minFontSizePx: policy.typographyPolicy.minFontSizePx,
-  });
+  const template =
+    storyBeat?.kind === "silent-scene" &&
+    storyBeat.preset.implementation.kind === "template-copy";
+  const input = SceneViewportInputSchema.parse(
+    policy.policyVersion === 3 && !template
+      ? {
+          schemaVersion: 2,
+          coordinateSpace: "scene-full-frame",
+          width: policy.width,
+          height: policy.height,
+          minFontSizePx: policy.typographyPolicy.minFontSizePx,
+          textSafeArea: safeArea,
+        }
+      : {
+          schemaVersion: 1,
+          coordinateSpace: SCENE_VIEWPORT_COORDINATE_SPACE,
+          width: policy.width - safeArea.left - safeArea.right,
+          height: policy.height - safeArea.top - safeArea.bottom,
+          minFontSizePx: policy.typographyPolicy.minFontSizePx,
+        },
+  );
   return SceneViewportSchema.parse({
     ...input,
     viewportFingerprint: computeSceneViewportFingerprint(input),
@@ -304,12 +381,14 @@ export const resolveSceneReadabilityPolicy = ({
   edgeInsetPx = 90,
   timingSource,
   captionMode,
+  canvasMode,
 }: {
   readonly width: number;
   readonly height: number;
   readonly edgeInsetPx?: number;
   readonly timingSource?: StoryTimingSource;
   readonly captionMode?: "none";
+  readonly canvasMode?: "full-frame";
 }) => {
   const input = buildSceneReadabilityPolicyInput({
     width,
@@ -317,6 +396,7 @@ export const resolveSceneReadabilityPolicy = ({
     edgeInsetPx,
     timingSource,
     captionMode,
+    canvasMode,
   });
   return SceneReadabilityPolicySchema.parse({
     ...input,
@@ -439,6 +519,15 @@ export const validateStoryCaptionReadability = ({
   if (policy.policyVersion === 2 && story.timingSource !== "authored-frames") {
     throw new Error(
       "Readability without a caption band requires an authored-frame Story.",
+    );
+  }
+  if (
+    policy.policyVersion === 3 &&
+    (policy.captionBand === "reserved") !==
+      story.beats.some((beat) => beat.kind === "narrated-scene")
+  ) {
+    throw new Error(
+      "Full-frame text caption reservation must match the Story narration.",
     );
   }
   return story.beats.flatMap((beat) =>

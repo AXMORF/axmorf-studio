@@ -2,7 +2,7 @@
 
 > 文档类型：唯一导航入口
 >
-> 最后复核：2026-10-12
+> 最后复核：2026-10-13
 
 先按问题选择文档，不要从历史计划或 evidence 反推 current implementation。
 
@@ -38,7 +38,7 @@
 | bound Scene 预览与时序审阅                                                                                    | [guides/CONTENT_MOTION_REVIEW.md](guides/CONTENT_MOTION_REVIEW.md)             |
 | 音效、音乐选择与循环素材维护                                                                                  | [guides/SCENE_SOUND_EFFECTS.md](guides/SCENE_SOUND_EFFECTS.md)                 |
 | Project-owned profile 与复验命令                                                                              | [guides/FORMAL_PROJECT_VERIFICATION.md](guides/FORMAL_PROJECT_VERIFICATION.md) |
-| 资源与共享能力目录                                                                                            | [guides/CAPABILITY_CATALOG.md](guides/CAPABILITY_CATALOG.md)                   |
+| 资源、能力配方与原创图片/SVG 准入                                                                              | [guides/CAPABILITY_CATALOG.md](guides/CAPABILITY_CATALOG.md)                   |
 | 新仓库初始化和白名单迁移                                                                                      | [guides/BOOTSTRAP_IMPORT_MANIFEST.md](guides/BOOTSTRAP_IMPORT_MANIFEST.md)     |
 | Narrative data contracts                                                                                      | [contracts/NARRATIVE_CONTRACTS.md](contracts/NARRATIVE_CONTRACTS.md)           |
 | DeliveryBuild identity、四文件提交与失败回滚                                                                  | [contracts/DELIVERY_BUILD_CONTRACT.md](contracts/DELIVERY_BUILD_CONTRACT.md)   |
@@ -48,6 +48,10 @@
 ## 证据、提案与历史
 
 - `evidence/` 记录发生时的验收证据，不定义 current runtime。
+- 2026-10-13 的[能力工程验证](evidence/2026-10-13-capability-routing.json)、
+  [内容画面与编曲验证](evidence/2026-10-13-content-quality.json)及
+  [Edge TTS 修复后的本地成片](evidence/2026-10-13-edge-tts-endpoint-incident.md)
+  覆盖当前未发布源码；本地 tarball 的版本号不代表这些改进已在 npm 发布。
 - 连续视频源码、fresh packed Workspace 与局部修订的原工程验证见
   [连续视频验收](evidence/2026-10-08-continuous-video-acceptance.md)；Oct7记录保留为前一工程快照。
 - [合并后完整成片](evidence/2026-10-09-post-merge-video-verification.json)验证 60 秒连续正文；

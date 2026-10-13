@@ -78,16 +78,9 @@ export const inspectProjectCreateContext = async ({
       ? configuredMusic.resourceIds
       : undefined,
   );
-  const exampleResources = [
-    ...capabilities
-      .filter(({ descriptor }) => descriptor.id === "capability.camera")
-      .map(({ descriptor }) => descriptor.id),
-    ...exampleSoundResources,
-  ].sort();
-  const style =
-    styleProfiles.find(
-      ({ styleProfileId }) => styleProfileId === "editorial-tech",
-    ) ?? styleProfiles[0];
+  const exampleResources = [...exampleSoundResources].sort();
+  // A schema example needs a valid ID; it is not a recommended visual direction.
+  const style = styleProfiles[0];
   const collection = config.publishingCollections[0];
   if (style === undefined || collection === undefined) {
     throw new Error(
@@ -166,7 +159,11 @@ export const inspectProjectCreateContext = async ({
       continuityRules: ["光点与纸张地图贯穿两段，暖色强调只标记找到的那一步。"],
       forbiddenTreatments: ["不要用与行动无关的漂浮粒子或抽象圆形填充画面。"],
     },
-    resources: { allowedResourceIds: exampleResources, allowedSnapshots: [] },
+    resources: {
+      capabilityAccess: "all-approved",
+      allowedResourceIds: exampleResources,
+      allowedSnapshots: [],
+    },
     scenes: [
       {
         meaningId: "stuck-goal",
@@ -369,6 +366,20 @@ export const inspectProjectCreateContext = async ({
     })),
     styleProfiles,
     capabilities,
+    capabilityIndex: capabilities.map(({ descriptor }) => ({
+      resourceId: descriptor.id,
+      useCases: descriptor.useCases,
+      recipes:
+        descriptor.kind === "capability"
+          ? (descriptor.authoring?.recipes ?? []).map(
+              ({ id, whenToUse, exports }) => ({ id, whenToUse, exports }),
+            )
+          : [],
+      demoOnlyExports:
+        descriptor.kind === "capability"
+          ? (descriptor.authoring?.demoOnlyExports ?? [])
+          : [],
+    })),
     soundResources,
     backgroundMusic: {
       status:
@@ -408,9 +419,37 @@ export const inspectProjectCreateContext = async ({
       backgroundMusicConfigured: config.audioDefaults?.globalBgm != null,
       backgroundMusicVolume: config.audioDefaults?.globalBgm?.volume ?? null,
     },
+    visualApproaches: [
+      {
+        medium: "generated-artwork",
+        useWhen:
+          "Recognizable subjects, environments, illustration, material and lighting carry the idea.",
+        preparation:
+          "Generate the designed environment and subject separately when movement or occlusion needs separate planes; use transparent subject images when appropriate. Import actual files and assign target Scene IDs before inspect.",
+      },
+      {
+        medium: "authored-svg",
+        useWhen:
+          "Precise diagrams, custom silhouettes, typography or evolving geometry carry the idea.",
+        preparation:
+          "Author shapes for this subject; use local gradients, occlusion and contact shadows when useful. Import shared original SVG, or author scene-local vector geometry in the bound renderer.",
+      },
+      {
+        medium: "spatial-geometry",
+        useWhen:
+          "Volume, perspective, camera travel or spatial relationships explain the meaning.",
+        preparation:
+          "Choose approved spatial capabilities and plan camera/light/subject positions; layer stable text outside camera transforms.",
+      },
+    ],
     example,
     fieldExamples: {
       render: { ...example.render, width: 1920, height: 1080 },
+      "resources.explicit": {
+        capabilityAccess: "explicit",
+        allowedResourceIds: [],
+        allowedSnapshots: [],
+      },
       visualFirst,
       backgroundMusic: { mode: "auto", volume: 0.15 },
       "backgroundMusic.synthesized": {
@@ -423,9 +462,10 @@ export const inspectProjectCreateContext = async ({
       "production.additionalRequirements": [AUTHORING_REQUIREMENT_EXAMPLE],
     },
     guidance: [
-      "Adapt example to the requested brief; do not submit it unchanged as the user's video.",
+      "Adapt example to the requested brief; do not submit it unchanged as the user's video. Its first available styleProfileId is a schema illustration, not a preferred style. Choose the visual medium and art direction from the subject and audience, using visualApproaches and current styleProfiles; do not start each film by reskinning this example.",
+      "Before create, design the representative fully revealed image in the existing artDirection and compositionIntent fields: subject, scale, framing, light, material and meaningful foreground/background relationships. Then plan initial/action/result states and readable time windows in motionIntent. Acquire or generate missing subject/environment assets after create and import them into the target Scene pool before inspect. New content uses a full-frame art canvas with a separate frozen text-safe rectangle; boundary template framing stays unchanged. Theme roles anchor text/brand colors, while scene-owned imagery and scenic lighting may use their own palette with local readable text contrast.",
       "Use fieldExamples.visualFirst when the requested explanation should be carried by visuals without narration. Choose either visual-scene content with durationInFrames or narrated-scene content with ttsChunks; keep inherited silent boundaries separate. Do not create empty spoken chunks or silent narration audio for a visual story.",
-      "Evaluate current capabilities and their authoring guides before choosing self-authored implementations. Match the story's camera, data, typography, media and motion needs to concrete APIs; put selected capability IDs in the Story pool and each relevant Scene candidateResourceIds. Empty selections remain valid when no capability fits; describe the reason in the visual intent.",
+      "Evaluate current capabilities and their authoring guides before choosing self-authored implementations. Use capabilityIndex to match visual intent to use cases and runnable recipes. New Projects default to all-approved capability access: create freezes approved runtime capabilities as optional Scene choices, so missing candidate IDs do not hide APIs. Explicit assets still require pool and Scene selection. Use resources.capabilityAccess=explicit only to deliberately restrict code choices. Never populate a silent preset with every capability; its listed resources remain mandatory. An unused capability is not a failure or a quality score. demoOnlyExports contain fixed sample content and are not Scene-ready recipes.",
       "Resolve each render field from the explicit user request first, otherwise renderDefaults. Convert an orientation/aspect-ratio request to concrete width and height in render; do not leave it only in brief.deliveryConstraints or production.additionalRequirements. Unspecified fields stay omitted, and saved settings remain unchanged. Verify the returned frozen render against the request before production.",
       "The example's paper map and light point are illustrative. Choose a different subject and visual metaphor when the user's story calls for one; do not repeat the example's motif across unrelated videos.",
       "production.additionalRequirements is an array of objects, never strings. Keep [] when no additional requirement is needed; otherwise adapt fieldExamples to the user's requirement, preserving every required field.",

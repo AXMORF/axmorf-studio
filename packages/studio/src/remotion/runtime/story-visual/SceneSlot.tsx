@@ -39,15 +39,15 @@ export const renderSceneRendererMount = (
   if (readabilityPolicy === undefined) {
     throw new Error("Scene mount requires the frozen readability policy.");
   }
-  const viewport = resolveSceneViewport(readabilityPolicy);
   const storyBeat = rendererOwnedProps.storyBeat;
+  const viewport = resolveSceneViewport(readabilityPolicy, storyBeat);
   const playbackWindow =
     storyBeat?.kind === "silent-scene" &&
     storyBeat.preset.implementation.kind === "template-copy"
       ? storyBeat.preset.implementation.playbackWindow
       : undefined;
   return (
-    <SceneViewport policy={readabilityPolicy}>
+    <SceneViewport policy={readabilityPolicy} storyBeat={storyBeat}>
       <Renderer
         {...rendererOwnedProps}
         sceneFrame={sceneFrame + (playbackWindow?.startFrame ?? 0)}

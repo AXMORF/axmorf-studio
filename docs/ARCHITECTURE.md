@@ -5,6 +5,8 @@
 ## 视觉、音频与局部修订
 
 新片 Skill 默认以代码合成配乐；creator 分发无额外 npm 依赖的 Node/FFmpeg helper。
+helper 的可选 arrangement 把 tonic/mode/progression/swing 与分段乐器、密度、力度编译为既有音乐事件网格；
+省略 arrangement 的旧 recipe 保持原 bytes，不改变 runtime timeline 合同。
 create input 的 synthesized 模式只接收 Workspace-owned generated-score WAV/timeline：创建前独立生成，
 创建事务校验 checksum/PCM 时长/fps 并冻结 sound.json.synthesizedMusic，仍保持 create 零 provider/零媒体生成。
 全片 composition loop 替换 Scene/模板配乐、保留独立音效。Scene task 在 prepare 后获得局部 musicTiming，
@@ -102,7 +104,7 @@ flowchart TD
   Create[Atomic configured authoring] --> Inputs[Explicit authoring contracts + selected bytes]
   Current[Verified current Revision + Delivery] --> Candidate[Strict isolated revision candidate]
   Candidate --> Inputs
-  AgentTools[Current Root callable MCP tools] -. optional receipt import .-> Inputs
+  AgentTools[Root original artwork or licensed visual assets] -. validated import .-> Inputs
   Prompt[Explicit user execution fields] --> Execution[One-run execution resolution]
   Settings[Independent execution preferences] --> Execution
   Builtin[Built-in subagents default: max 4] --> Execution
@@ -138,10 +140,12 @@ TaskDecisionExplanation、diagnostic baseline 与 ExecutionAttempt 都不是。�
 materialization、delivery identity/authority。Agent chat、child identity、process lifecycle、clock 与 absolute
 path 都在 authority graph 之外。
 
-`AgentTools` 是 create/edit 后、inspect 前的可选 capability slot，不属于 production data plane。只有当前
-Root 实际 callable 的兼容 MCP tools 才激活；缺失时不生成任何结构。它只能通过固定
-`project:asset:import` 把已验证 bytes/manifest identity 接入 `Inputs`，不能把 MCP、remote URL、credential、
-receipt 或 candidate path 投影到 Revision、TaskSpec、child workspace、Artifact Store、delivery 或 runtime。
+`AgentTools` 是新 Project create 后、首次 inspect 前的素材准备通道，不属于 production data plane。
+Root 可调用当前生图工具、创作原创 SVG，或使用兼容的许可图片 MCP；无素材需求或缺少工具时不产生占位任务。
+`project:asset:import --input` 校验 generated-artwork provenance 与真实 bytes，原子接入 Project manifest、
+Catalog、Story pool 和目标正文 Scene；原 `--receipt` 第三方许可路径保留。工具、远程 URL、credential、
+receipt 或 candidate path 不进入 child/runtime，生产只依赖准入后的 manifest identity、来源与 bytes fingerprint。
+revision candidate 仍只使用 base snapshot 已有媒体；没有引入 worker 生图或 runtime 网络调用。
 
 ## 3. Contract boundaries
 
@@ -184,6 +188,7 @@ TypeScript registry 完成。
 | ------------------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------ |
 | Project create/configured authoring         | fixed atomic creator              | existing/partial/conflicting target fail closed；零 provider/media/attempt                 |
 | Optional external acquisition               | current Root Agent + fixed import | callable compatible MCP 才出现；缺失即省略；只在 inspect 前写 Project-owned asset/evidence |
+| Optional generated artwork                 | current Root Agent + fixed import | 原创图片/SVG 仅在首次 inspect 前经 --input 原子准入 bytes/provenance、pool 与目标正文 Scene |
 | Existing Project authoring revision         | fixed candidate builder           | strict exact-base input；isolated candidate；禁止 live in-place edit                       |
 | revision candidate promotion                | fixed promotion transaction       | exact-four preflight；lock 内 base recheck；controlled replace/rollback                    |
 | `.producer-work/<story>/<taskRevision>`     | one bound task executor           | bind 前零写；只写 TaskExecutionContract 允许的 declared Agent/Agent-draft outputs          |
@@ -203,9 +208,9 @@ render 供 Agent 在有成本生产前核对用户要求。既有 Project 的 Re
 ## 5. Task isolation
 
 Scene task reads its complete owning StoryBeat or consecutive group, original covered Beats/timing/briefs, filmPlan,
-Scene-only requirements, a derived safe-area-local SceneViewport, Scene brief, VisualStyleSpec, Scene-local narration chunk ranges, resource pool and
-selected resources. It does not receive the raw
-Composition readability policy, full-frame dimensions or insets. GlobalVisual reads
+Scene-only requirements, a derived SceneViewport, Scene brief, VisualStyleSpec, Scene-local narration chunk ranges, resource pool and
+selected resources. New content receives a full-frame viewport and a separate textSafeArea; legacy content and fixed
+template-copy bookends keep safe-area-local geometry. Raw Composition readability policy stays composition-owned. GlobalVisual reads
 Story/Timing/VisualStyle/requirements/brief/resources but never Scene output. Its fixed layer policy derives a
 full-Composition base range and a first-to-last content Beat decoration range from canonical SemanticTiming;
 the decoration component receives window-local frame zero. Cover reads only
@@ -213,9 +218,11 @@ Story/VisualStyle/fixed CoverSpec. Template-copy is a fixed task over the config
 instance. Its artifact is the exact union of immutable copied source/assets and the canonical derived Scene bundle;
 live-only fixed projections are excluded from its task identity.
 
-New authored-frame Projects freeze readability policyVersion 2 with `captionBand: "none"`: all Scene safe edges use
-the edge inset without reserving a caption band. Narrated Projects use unchanged version 1. Existing Projects and
-revisions preserve the complete validated frozen policy; neither installation nor revision silently migrates layout.
+New Projects freeze readability policyVersion 3 with `canvasMode: "full-frame"`. Content viewport schemaVersion 2
+uses `coordinateSpace: "scene-full-frame"`, full canvas dimensions and textSafeArea insets; no-narration content reserves
+no caption band. SceneTextSafeArea mounts readable text outside art/camera transforms. Fixed template-copy bookends
+derive the prior schemaVersion 1 viewport. Existing policyVersion 1/2 bytes, geometry and fingerprints remain unchanged;
+revisions preserve the complete validated frozen policy rather than silently migrating layout.
 
 Scene owner validator v4 distinguishes actual text from provable JSX-only layout/graphic children. A bounded
 syntax proof resolves lexical const bindings and supports common synchronous map returns; unknown or text-returning
@@ -225,6 +232,9 @@ or text-affecting definitions are exempt from text-scale checks. The proof helpe
 fingerprint; no authored code is evaluated. These source checks do not certify rendered contrast or clipping.
 Default boundary templates keep transparent roots and read semantic colors from `VisualStyleSpec.theme`.
 The Composition directly paints the validated theme background and composites themed decoration behind Scenes in an isolated group capped at 8% opacity; a themed GlobalVisual base must return null and is never mounted.
+The theme is a fallback/text/brand anchor, not a palette limit for new full-frame Scene artwork. A transparent Scene root
+may contain scenic backgrounds, images, SVG, lighting and foreground occlusion. Text must remain readable against its
+actual local image; the GlobalVisual ambient opacity limit does not apply to these Scene-owned layers.
 Legacy Projects without a theme retain their existing base path. Existing Project-local template copies remain immutable;
 incompatible legacy template/theme revisions are rejected before mutation. See [visual theme contract](contracts/VISUAL_THEME_CONTRACT.md).
 
@@ -321,8 +331,9 @@ Template Scene source normalization 使 create-only、fixed-prepared 与 materia
 
 ScenePackage、Coverage、RendererRegistry、GlobalVisualPackage 与 Composition 是 fixed projection，不由 Agent
 workspace伪造。Composition owns global background, SceneViewport, CaptionLayer, narration and sound assembly；
-Scene renderer 保持透明并只看到 safe-area-local SceneViewport 坐标系；Composition 把本地 `(0, 0)` 映射到
-安全区左上角，Scene 不读取或推导 full-frame 尺寸与 inset，并只用 Remotion frame API。
+Scene root 保持透明并只使用任务派生的 viewport 坐标系。policyVersion 3 正文 `(0, 0)` 对应完整画布左上角，
+textSafeArea 单独保护文字；旧 Scene 与 fixed template-copy 仍映射到安全区左上角。Scene 不读取 raw policy，
+不自行安装 viewport，并只用 Remotion frame API。
 
 Configured template 的复制边界由 Project-local `Renderer.tsx` adapter 承担：adapter 实现共享
 `SceneRendererComponent` 的 `viewportWidth`/`viewportHeight` props，再映射到冻结模板组件内部通用的
@@ -386,11 +397,20 @@ terminal failed attempt 保持 immutable。显式 recovery 先做 read-only/zero
 下游 dependency-only `blocked` 仅在完整、无环、identity 匹配的依赖图可追溯到该失败 Agent task 时放行；
 dirty fixed work、独立或未知 blocker 不放行。`recovery-ready` 仍不替代 Root 对原故障与旧 workers 全部退出的核实。
 
-Capability discovery is part of authoring: create context exposes Catalog-bound public API guides. A Scene context
-freezes exactly its allowlisted selected/descriptor records, including guide examples and fingerprints. The canonical
-Scene resource wrapper is shared by contract generation, finalization and checking. Scene source calls or JSX mounts
-must match declared public capabilities, and selected records must match immutable inputs; empty self-authored Scenes
-remain valid. These checks establish source usage, not rendered visibility or aesthetic quality.
+Capability discovery is part of authoring: create context exposes an intent index, public API guides,
+parameterized recipes and explicit fixed-demo markers. Catalog queries search use cases, API names and recipe intent.
+New creates default to `resources.capabilityAccess: "all-approved"`; `"explicit"` preserves a deliberately restricted pool.
+Creation freezes approved runtime capability IDs in the optional `StoryResourcePool.optionalCapabilityIds` and the allowed
+pool. It never admits media, reference-only sources or blocked entries this way. Legacy pools remain unchanged, and
+revisions preserve the frozen capability set rather than discovering newly installed capabilities.
+
+An authored Scene receives the union of its brief candidates and frozen optional capabilities. Task inputs identify only
+those extra IDs as `optionalCapabilityIds`; fixed templates get none. Silent presets still require exact consumption of
+mandatory resources; additional optional code capabilities may be selected when actually invoked. Pool, task context and
+selected-resource validation verify capability kind and approval. The contract freezes the exact available records and
+checks selected calls as before. Contract v3 updates worker instructions; it does not make aesthetics mechanically decidable
+or impose a capability quota. WhipPan accepts authored from/to content and local frame timing; NoiseGrain is a transparent,
+frame-seeded bounded-DOM overlay. Both no longer render sample text or palettes.
 
 Scene authoring 仍必须使用 repository-local `remotion-best-practices`，但 Skill 不能扩大 TaskSpec 或
 validator boundary。

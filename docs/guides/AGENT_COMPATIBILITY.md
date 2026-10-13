@@ -88,7 +88,9 @@ commands；当前宿主负责已解析的 inline 执行或 bounded child admissi
 
 - 原生子 Agent/transport：只影响本次执行并发与 I/O capability，不持久化 child identity，不进入
   Revision、TaskRevision、artifact 或 delivery identity。
-- 外部图片 MCP：只有当前 Agent 实际暴露兼容 tools 时才启用；缺失时完整省略。
+- 原创素材：Root 可使用当前实际可调用的生图工具或创作 SVG，经固定 `project:asset:import --input` 校验，
+  在新 Project 首次 inspect 前原子准入目标 Scene；worker 只消费已验证 Project-owned bytes。
+- 外部图片 MCP：只有当前 Agent 实际暴露兼容 tools 时才启用许可 acquisition；缺失时省略该路径，原创素材不伪造 receipt。
 - OpenAI Skill metadata：只改善 OpenAI host 的展示与显式 `$skill-name` 调用，不是执行前提。
 - revision candidate：只是同一 npm CLI/production 主链的隔离 routing scope，不是 child transport、第二 Workspace
   或第二 production authority。

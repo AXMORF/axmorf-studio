@@ -51,7 +51,7 @@ Before the first command, briefly tell the user the plan. Report inherited bound
 1. Run `npm run doctor`. Prepare only declared host prerequisites when needed;
    never patch package internals, dependencies, or validators to force Green.
 2. Preserve unrelated Workspace changes and inspect existing Project source.
-3. For new authoring, read [authoring](authoring.md) and run `project:create:context` to get a complete example and current public choices. Evaluate its capability API guides before selecting self-authored alternatives; workers receive only selected immutable resource records.
+3. For new authoring, read [authoring](authoring.md) and run `project:create:context` to get a complete example and current public choices. Use its capability guides and recipes; workers receive immutable admitted resources and the frozen optional capability scope, with no usage quota.
    Create or revise strict authoring input without calling providers.
    Project create freezes the Scene originality baseline. A legacy Project
    requires explicit `project:originality:freeze`; never infer an empty baseline.
@@ -113,7 +113,7 @@ Scenes do not own captions or narration. Formal and preview media preserve the s
 lossless PCM once to AAC in MP4 with actual encoder priming metadata; do not compensate with invented frame/audio offsets.
 Agent-owned Scene TS/TSX graphs must be unique against the frozen baseline and
 within the current revision; fixed template-copy Scenes are exempt.
-All visual workers read context.visualStyle and use its semantic theme roles. Composition paints theme.background and composites decoration behind Scenes in an isolated group capped at 8% opacity; GlobalVisualBaseLayer must directly return null and is not mounted. Legacy Projects without a theme retain their base layer. Its decoration export is limited
+All visual workers read context.visualStyle. Theme roles anchor fallback/text/brand; new full-frame Scene children may paint scenic media/material/light, with readable text in SceneTextSafeArea. Composition paints theme.background and composites decoration behind Scenes in an isolated group capped at 8% opacity; GlobalVisualBaseLayer must directly return null and is not mounted. Legacy Projects without a theme retain their base layer. Its decoration export is limited
 to the continuous first-to-last content Scene window (narrated or authored) and receives local frame
 zero at that window's start; neither layer may read Scene output or carry Beat
 copy.

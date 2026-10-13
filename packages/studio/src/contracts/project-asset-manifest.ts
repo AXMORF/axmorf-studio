@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { ExternalImageAssetAcquisitionSchema } from "./external-asset-acquisition";
 import { createFingerprint } from "./fingerprint";
+import { GeneratedArtworkRecordSchema } from "./generated-artwork";
 import { Sha256DigestSchema, StoryIdSchema } from "./primitives";
 import {
   ResourceAssetDescriptorSchema,
@@ -41,6 +42,14 @@ export const ProjectExternalAssetEntrySchema = z
   .strict()
   .readonly();
 
+export const ProjectGeneratedAssetEntrySchema = z
+  .strictObject({
+    resourceId: ResourceIdSchema,
+    creation: GeneratedArtworkRecordSchema,
+    evidencePath: RepositoryPathSchema,
+  })
+  .readonly();
+
 const ProjectAssetManifestInputObject = z
   .object({
     schemaVersion: z.literal(2),
@@ -48,6 +57,10 @@ const ProjectAssetManifestInputObject = z
     projectId: StoryIdSchema,
     assets: z.array(ResourceAssetDescriptorSchema).readonly(),
     externalAssets: z.array(ProjectExternalAssetEntrySchema).readonly(),
+    generatedAssets: z
+      .array(ProjectGeneratedAssetEntrySchema)
+      .readonly()
+      .optional(),
   })
   .strict()
   .superRefine((manifest, context) => {
@@ -58,6 +71,10 @@ const ProjectAssetManifestInputObject = z
     for (const [values, path] of [
       [assetIds, "assets"],
       [externalIds, "externalAssets"],
+      [
+        (manifest.generatedAssets ?? []).map(({ resourceId }) => resourceId),
+        "generatedAssets",
+      ],
     ] as const) {
       if (
         new Set(values).size !== values.length ||
@@ -74,6 +91,45 @@ const ProjectAssetManifestInputObject = z
       }
     }
     const byId = new Map(manifest.assets.map((asset) => [asset.id, asset]));
+    const generatedById = new Map(
+      (manifest.generatedAssets ?? []).map((entry) => [
+        entry.resourceId,
+        entry,
+      ]),
+    );
+    for (const descriptor of manifest.assets) {
+      const generated = generatedById.get(descriptor.id);
+      if (descriptor.generatedSource === undefined && generated === undefined)
+        continue;
+      if (
+        generated === undefined ||
+        generated.evidencePath !==
+          `src/projects/${manifest.projectId}/sources/assets/${descriptor.id}/generated-artwork.json` ||
+        descriptor.generatedSource?.provenanceFingerprint !==
+          generated.creation.provenanceFingerprint ||
+        descriptor.checksum !== generated.creation.file.sha256 ||
+        descriptor.media?.mimeType !== generated.creation.file.mimeType ||
+        descriptor.media?.width !== generated.creation.file.width ||
+        descriptor.media?.height !== generated.creation.file.height ||
+        descriptor.media?.sizeBytes !== generated.creation.file.sizeBytes ||
+        descriptor.generatedSource.kind !==
+          generated.creation.provenance.kind ||
+        descriptor.generatedSource.creator !==
+          generated.creation.provenance.creator
+      )
+        context.addIssue({
+          code: "custom",
+          message:
+            "Generated artwork evidence is stale against its descriptor.",
+          path: ["generatedAssets"],
+        });
+    }
+    if ([...generatedById.keys()].some((id) => !byId.has(id)))
+      context.addIssue({
+        code: "custom",
+        message: "Generated artwork evidence has no asset descriptor.",
+        path: ["generatedAssets"],
+      });
     for (const [index, external] of manifest.externalAssets.entries()) {
       const descriptor = byId.get(external.resourceId);
       if (
@@ -146,6 +202,19 @@ export const buildProjectAssetManifest = (rawInput: unknown) => {
     contractVersion: PROJECT_ASSET_MANIFEST_VERSION,
     assets,
     externalAssets,
+    ...(record.generatedAssets === undefined
+      ? {}
+      : {
+          generatedAssets: [
+            ...(record.generatedAssets as readonly unknown[]),
+          ].sort((left, right) =>
+            ProjectGeneratedAssetEntrySchema.parse(
+              left,
+            ).resourceId.localeCompare(
+              ProjectGeneratedAssetEntrySchema.parse(right).resourceId,
+            ),
+          ),
+        }),
   });
   return ProjectAssetManifestSchema.parse({
     ...input,

@@ -11,6 +11,7 @@ export * from "./delivery-publishing";
 export * from "./fingerprint";
 export * from "./external-reference";
 export * from "./external-asset-acquisition";
+export * from "./generated-artwork";
 export * from "./final-check";
 export * from "./final-assembly";
 export * from "./generation-input";

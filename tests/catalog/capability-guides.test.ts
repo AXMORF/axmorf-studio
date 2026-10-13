@@ -7,6 +7,10 @@ import {
   capabilityDescriptorDeclarations,
   WORKSPACE_CAPABILITY_FACADE_SOURCE,
 } from "../../packages/studio/src/remotion/catalog/capability-descriptors";
+import {
+  queryResourceCatalog,
+  buildResourceCatalog,
+} from "../../scripts/catalog/domain";
 import { validateCapabilityDescriptorExports } from "../../scripts/catalog/project-files";
 import { compileTypeScriptImportGraph } from "../../scripts/project-production/application/typescript-compile";
 
@@ -43,3 +47,32 @@ for (const descriptor of capabilityDescriptorDeclarations) {
     });
   });
 }
+
+for (const descriptor of capabilityDescriptorDeclarations) {
+  for (const recipe of descriptor.authoring?.recipes ?? []) {
+    test(`${descriptor.id}/${recipe.id} recipe compiles with the installed public API`, () => {
+      compileTypeScriptImportGraph({
+        rootDir,
+        rootPath: join(rootDir, "src/capability-recipe-example.tsx"),
+        label: recipe.id,
+        virtualSource: recipe.example,
+      });
+    });
+  }
+}
+test("capabilities can be discovered by API name, recipe intent and Chinese intent", () => {
+  const catalog = buildResourceCatalog(capabilityDescriptorDeclarations);
+  for (const [text, expected] of [
+    ["resolveProducerFollow2D", "capability.motion"],
+    ["纸张", "capability.visual-components"],
+    ["3D", "capability.camera"],
+  ]) {
+    assert.ok(
+      queryResourceCatalog(catalog, {
+        kind: "capability",
+        tag: null,
+        text,
+      }).some(({ descriptor }) => descriptor.id === expected),
+    );
+  }
+});

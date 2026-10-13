@@ -14,6 +14,9 @@
 `backgroundMusic:{mode:"synthesized",sourcePath,timelinePath,volume}` 写入 create input；创建事务复验
 checksum、PCM 时长和 fps 并冻结 Project-owned bytes，不在 create 或 render 内生成音乐。
 具体命令由[配乐与共同时间轴](../../.agents/skills/axmorf-video/references/film-direction.md#code-synthesized-music-and-shared-timing)维护。
+helper 的可选 `arrangement` 可指定调性、和声、swing 及分段乐器、密度、力度和休止，编译为同一 timeline；
+省略该字段的旧 recipe 保持原 bytes。按题材编曲，字段与示例见
+[分段配乐](../../.agents/skills/axmorf-video/references/score-arrangement.md)。
 
 合成配乐从 Composition frame zero 连续循环，以一条全片 contribution 替换模板和正文 Scene 配乐，
 保留旁白、片头音效及其他独立音效。prepare 根据实测 Scene 范围投影同一网格的 Scene-local

@@ -21,8 +21,12 @@ validators 判断一次生产是否真正完成。
 > [当前实现状态](docs/ITERATION_STATUS.md)。
 
 制作 Agent 可通过 `project:create:context` 查看既有视觉能力的公开 API 与示例，并按 Scene 语义选择。
-生产任务冻结选定资源和指南；校验会拒绝仅声明却未调用的能力，以及调用未声明的能力。自绘仍可使用，
-需要说明与现有 API 的适配理由；这些机械检查不代替成片审片。
+源码新增的能力路由会在新片创建时冻结已批准的内置能力，让 Scene 按用途和可编译配方选择；媒体仍需显式准入。
+固定演示组件在目录中标注，颗粒和甩镜已支持作品内容。实际调用仍须声明，自绘和安静镜头均有效，不以能力数量评价质量。
+新的正文画布可铺满画面，文字保留独立安全区；固定首尾和旧作品的几何保持不变。创建入口按题材选择
+生成图片、原创 SVG 或空间几何，先确定主体、构图、材质、光影和动作，再进入制作。Root 可在首次 inspect 前
+把原创图片/SVG 准入指定 Scene，worker 只读取已验证的本地素材。配乐 helper 也支持调性、和声与分段编曲。
+这些源码改进尚未发布，已安装的 0.1.21 不会自动获得；具体验证范围由当前实现状态记录。
 
 当前公开版本为 **0.1.21**，两个 npm 包的 `latest` 均已回读确认；发布、验收和限制由
 [当前实现状态](docs/ITERATION_STATUS.md)维护。[发布与全新公开安装记录](docs/evidence/v0.1.21-publication.json)
@@ -250,8 +254,9 @@ credentials、voice profile 内容或用户 Project 数据。
 生成 Workspace 的 creator 先串行准备固定版本浏览器，doctor 真实执行小图渲染后才报告 ready。
 直连下载受阻时可用 `AXMORF_BROWSER_EXECUTABLE` 指定宿主已安装的兼容 Chrome/Chromium 绝对路径；创建、doctor 与渲染阶段需保持该环境变量，真实小图验证仍执行。
 Agent 用 `project:create:context` 获取完整输入示例与当前风格/模板配置；校验错误给出准确文件行列和修正方式。
-新视频通过 `visualStyle.theme` 选择深色、浅色或已校验的自定义配色，Composition 实际底色与正文、固定首尾共用
-同一来源；默认深色。Logo 的形状、排版与动画固定。详见 [主题合同](docs/contracts/VISUAL_THEME_CONTRACT.md)。
+新视频通过 `visualStyle.theme` 选择深色、浅色或已校验的自定义配色，统一 Composition 兜底底色、文字与品牌角色，
+固定首尾沿用主题；默认深色。当前源码的新全幅正文可按题材安排图片、材质与光色，文字保留独立安全区并按实际
+背景保证可读。Logo 的形状、排版与动画固定。详见 [主题合同](docs/contracts/VISUAL_THEME_CONTRACT.md)。
 continuation 的媒体进程具有期限、进程组清理和独立诊断日志。进程意外退出后通过显式
 `project:attempt:interrupt-inspect` / `interrupt` 验证旧执行者死亡并记录失败，再沿 recover-inspect/reissue 复用产物。
 原 claim 和 content identity 保持不变，不能手动删锁继续。随包 Skill 说明长任务宿主句柄、默认继承与恢复边界。

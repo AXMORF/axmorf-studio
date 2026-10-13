@@ -29,7 +29,11 @@ declared host environment and rerun it; never patch package internals,
 `node_modules`, exact dependencies, or validators. Report unmet host capabilities as blockers.
 
 For a new video, first run `npm run project:create:context -- --project <storyId>`.
-Adapt its complete example using current public choices. Build a strict Project create input from the user brief and run
+Adapt its complete example using current public choices and capabilityIndex/recipes.
+For new content choose the visual medium and complete key image before motion. Full-frame artwork uses a separate text-safe area; theme roles anchor text/brand, not every scenic color. Prepare missing generated images or original SVG through [generated artwork](references/generated-artwork.md) after create and before first inspect.
+
+New Projects freeze approved runtime capabilities as optional Scene choices by default; use resources.capabilityAccess="explicit"
+only to restrict that set. Assets remain explicit. Do not fill silent presets with optional capabilities or use demoOnlyExports as authored content. Build a strict Project create input from the user brief and run
 `npm run project:create`. This command creates authoring source only; it must not
 call a provider or start production.
 Explicit user dimensions/orientation, fps and locale override settings through create input
