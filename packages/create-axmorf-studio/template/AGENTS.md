@@ -1,168 +1,34 @@
 # AXMORF Studio Workspace
 
-This Workspace is the authority for its user-owned Projects, media, production
-artifacts, and Deliveries. Before creating, revising, producing, or delivering a
-video, read `.agents/skills/axmorf-video/SKILL.md` completely.
+This Workspace owns the user's films, media and deliveries. To make or change a video, read
+`.agents/skills/axmorf-film/SKILL.md` completely and follow it. Each film is an ordinary Remotion source directory under
+`src/films/<filmId>/` that the Agent writes directly; the Workspace commands provide narration timing, an original score,
+asset admission, review frames, checks and the verified four-file delivery.
 
-Route by assignment first: an Agent given an exact attempt-bound task bind is a worker. Follow
-[Assigned task worker](.agents/skills/axmorf-video/references/production-workflow.md#assigned-task-worker),
-not the Root production flow. The TaskExecutionContract and validators retain task authority. Global doctor/preflight,
-browser preparation, Project creation and production orchestration belong to the Root; a worker does not repeat them.
+Before the first film in this Workspace, run `npm run doctor`. It verifies a real tiny browser render; if the pinned
+browser is missing, use `npm run browser:prepare` once and rerun doctor. If it fails, prepare the declared
+Node.js/npm environment and host prerequisites, then rerun the same command. Environment preparation may use ordinary
+package-manager or version-manager operations, but do not modify `node_modules`, package internals, exact dependency
+versions, lockfile authority, or checks to force readiness; report the blocker instead.
 
-Use only the npm scripts declared in this Workspace. Do not import package
-internals, mutate `node_modules`, install global tools, or depend on a source
-checkout. Treat structured CLI output, task inputs, fixed validators,
-ArtifactAttestations, and the verified current Delivery as authority; chat or
+Use only the npm scripts declared in this Workspace. Do not import package internals, install global tools, or depend on a
+source checkout. A film is complete only when `npm run film:deliver -- --film <filmId>` reports `film-delivered`; chat or
 self-assessment is not completion evidence.
 
-Before Project work, the Root runs `npm run doctor`. It verifies a real tiny browser render;
-if the pinned browser is missing, use `npm run browser:prepare` once and rerun doctor. If it fails, prepare the declared
-Node.js/npm environment and host prerequisites, then rerun the same command.
-Environment preparation may use ordinary package-manager or version-manager
-operations, but do not modify `node_modules`, package internals, exact dependency
-versions, lockfile authority, or validators to force readiness. If the declared
-capabilities cannot be satisfied, report the blocker instead of changing the
-product.
+Explicit user dimensions, orientation and fps go into that film (`film:new --width/--height/--fps` or its `film.json`);
+do not change saved defaults for one film. Provider failures (TTS, image generation) are external: report them and retry
+only after the user agrees. Never weaken a check to pass it.
 
-For new authoring, read the Skill authoring reference and use `project:create:context`
-to obtain a complete example, capabilityIndex and public recipes. New Projects freeze approved runtime capabilities as optional Scene choices; media still requires explicit admission and preset resources remain mandatory. Use resources.capabilityAccess="explicit" to restrict capabilities. Inherit boundary templates
-and execution settings unless the user explicitly changes them. In subagents mode, unknown runtime capacity blocks before costly preparation; verify the requested bounded native probe batch and pass its tested capacity to execution resolution.
-
-Choose the medium from the subject and audience using context `visualApproaches`; the example is not a preferred style.
-Design a representative fully revealed frame, subject scale, light, material and useful depth before animation, then specify
-initial/action/result states and reading time in the existing art direction and Scene brief fields.
-After create and before first inspect, fill real asset gaps with a currently callable image-generation tool or original SVG.
-Use `project:asset:import --project <storyId> --input <absolute-generated-artwork-json>` with original provenance and target
-sceneMeaningIds; the fixed importer admits validated files into Project media, the pool and those Scenes atomically.
-The licensed acquisition `--receipt` route remains available for compatible tools; never fabricate such a receipt for original art.
-Workers receive only admitted Project-owned bytes. Revision candidates retain their base media bounds.
-
-Explicit user dimensions/orientation, fps and locale go in create input `render.width/height/fps/locale`.
-Omit unspecified fields to inherit settings. Convert orientation to concrete dimensions; do not change saved
-defaults for one Project. Compare the returned frozen `render` with the request before provider preparation.
-
-For each live or candidate production, including an autonomous revision within the same request, repeat current capability
-verification and one successful `project:execution:resolve` before inspect; never reuse the previous production's probe or resolver.
-Run `npm run project:produce:inspect` and report `sourceState`, estimated cost, artifact reuse and structured invalidations
-before any costly preparation. For local corrections, unrelated dirty tasks require a narrower raw patch and a new validated
-candidate before prepare; a complete visual rebuild is not local reuse success. Only
-`npm run project:produce:prepare` may call configured providers. An Agent task
-must run prepare's exact attempt-bound bind command before reading or writing
-task content. Only `task-worker-bound` grants access to immutable `task.json`,
-`inputs/context.json`, and `inputs/task-contract.json` plus declared outputs.
-Use the returned transport and bound describe/finalize/check/commit/failure
-commands. Start prepare's exact continuation once per attempt. Root remains responsible using blocking waits on the original host
-handle or native notifications; use the longest wait within host deadlines, normally 30–60 seconds or longer, never repeated 1-second waits. Normal timeouts only renew the wait. No child/status polling, repeated log reads or unchanged progress
-reasoning. On error notifications Root diagnoses and guides the original live executor without reading/writing its workspace or
-repairing the running continuation. Report the fixed final result once; ignore duplicate success notices and never infer delivery
-from a background acknowledgement.
-
-`project:create` freezes the Project's Scene originality baseline. A legacy
-Project without it requires the user's explicit migration request and
-`npm run project:originality:freeze -- --project <storyId>` before inspect;
-production must not infer an empty baseline. Agent-owned Scenes must not duplicate
-a frozen historical or same-revision TS/TSX source graph; fixed template-copy
-Scenes are exempt, and convergence checks again before live materialization.
-
-Create and revision validation may return structured
-`authoring-validation-failed` issues. For
-`caption-display-budget-exceeded`, shorten or semantically split the authored
-`ttsChunk` to stay within 72 `caption-display-unit-v1` half-units; never weaken
-the validator.
-
-Never edit a current Project in place. For an existing Project, obtain the
-exact current Revision and verified four-file Delivery with
-`project:revise:context -- --project <storyId>`, validate strict raw input with
-`project:revise:validate -- --input <repository-relative-json>`, then create an isolated
-candidate with `project:revise -- --project <storyId> --input <repository-relative-json>`.
-Revision commands have no `--schema`; validate accepts no `--project`. Read the installed public revision schema as shown in
-[authoring](.agents/skills/axmorf-video/references/authoring.md#existing-project-revision); use only supported fields.
-For a local Scene layout fix, change only that Scene's authoring in the full `patch.scenes` list; preserve unrelated Scenes,
-VisualStyle, GlobalVisual, Story and TTS. Do not invent a Cover-only patch API. Carry the candidate ID through production.
-If the installed schema supports boundary/music revisions, preserve the complete context lists and all immutable identities.
-Only choose existing template source frames, alter existing track gain/envelopes, or narrow composition music to content-window;
-do not admit new media or change sealed audio. New scores follow the local Skill's code-synthesis method before create:
-`backgroundMusic.mode:synthesized` freezes original WAV/timeline and replaces Scene/template music with one composition
-loop, preserving independent effects. Preserve synthesizedMusic metadata in sound revisions. Scene-local musicTiming
-follows measured speech; do not retime narration or captions for a beat. Existing library/file music keeps content scope.
-The helper's optional arrangement authors tonic, mode, progression, swing and sections with instruments/density/energy;
-choose them for the film. It compiles to the same timeline, and old recipes without arrangement keep their original behavior.
-New films use `engine: "studio-v2"` and keep the helper's `underSpeechVolume`, which lowers music only under measured
-narration; Scenes then receive sectionFrames/accentFrames to land their biggest moments on the music.
-Legacy playback scopes remain frozen until an explicit revision.
-Read the authoring reference for raw input shapes and runtime-upgrade base verification.
-The bound `scene.priorSource`, when present, is only the owning Scene's verified, frozen current base graph and declarations.
-Compare its previous brief with the current brief and apply the delta while preserving unaffected behavior and exact license/lineage
-bytes. It grants no access to base snapshot paths, other Scenes, history or another workspace. Without it, create from the current
-brief and do not claim preservation of existing source.
-Candidate promotion changes the current Project and Delivery only after its own
-exact four files pass validation; it replaces only source/public/narration/delivery
-as one transaction, and any promotion failure must roll all four back.
-Retry only `project:revision:promote`, not the completed production attempt.
-
-Execution defaults to `subagents` with maximum four, subject to available native child capacity. Explicit user choices override
-saved execution settings and the built-in default; explicit inline remains supported. Before inspect, follow the Skill
-[host probe](.agents/skills/axmorf-video/references/execution-capabilities.md) with its helper-generated absolute paths and complete prompts; release all completed probe slots, then pass verified capacity and transport to
-`project:execution:resolve`. The Root assigns each different TaskRevision to a fresh native child/session and never authors task outputs in subagents mode.
-With explicit user authorization before prepare, `--allow-inline-fallback` may resolve a non-exact blocked request to inline; report the retained requested execution and blockers. It never changes saved preferences, dispatched attempts, exact concurrency requirements, or release validation.
-Never reuse a finished child through follow-up or resume for a different task; same-task corrections remain with its original
-executor before terminal. Releasing a capacity slot does not authorize reusing that child session.
-Subagents require bounded runtime-native children and verified
-`shared-workspace` or `controller-io` transport for this production. Transport is
-host capability evidence, not saved Workspace configuration. A failed attempt is
-immutable. The Skill host-recovery guide allows at most one automatic task-recovery cycle per user production request for proven
-Agent-authored output faults, after the continuation and all previous workers have exited. Read-only `project:attempt:recover-inspect`
-plus diagnosis/reuse reporting precedes zero-provider same-Revision `project:attempt:reissue` only if ready. Use fresh workers and
-bindings; stop on repeated/no-progress failures. Unknown, system and external faults are diagnosed and reported, not automatically
-repaired or retried. No package/source/dependency/validator changes belong to video-task recovery.
-Commit preserves validated outputFailure evidence for missing declared outputs or JSON/TypeScript syntax errors.
-Generic commit failures without that evidence remain blocked; later draft edits or narrative reports cannot establish the original cause.
-
-An external interruption without terminal first stops with diagnosis. After a later explicit user recovery request, use
-`project:attempt:interrupt-inspect`, then its returned `project:attempt:interrupt`
-only when owner and subprocess death are proven. Follow recover-inspect/reissue.
-Never manually delete a lock or claim; old claims without ownership evidence fail closed.
-
-Load `.agents/skills/remotion-best-practices/SKILL.md` before implementing a
-Scene. Render-critical motion uses Remotion frame APIs, Scene roots stay
-transparent, and the Composition alone owns narration and captions.
-
-Plan the film concept/subject/camera/rhythm/sound in `story.filmPlan`, then group consecutive content Beats with
-`story.visualScenes`. One group has one task/path owner (its first meaningId), Renderer and ScenePackage; Coverage/timing
-remain per Beat. Keep world/camera and sceneFrame continuous inside a group. Missing grouping preserves single-Beat Scenes.
-Pure motion supports `visual-scene` durations with null narration, or explicit `timingSource: "authored-frames"` and silent
-scene-owner presets. Neither calls a provider or creates narration/captions. The published visual path keeps null seal/master
-records; explicit silent-owner timing creates neither file. Fixed bookends stay separate. Read the installed schemas.
-New Projects freeze readability policyVersion 3. Content Scenes receive a full-frame art canvas and separate textSafeArea;
-use SceneTextSafeArea outside camera transforms, or the equivalent frozen text rectangle. Scene-owned child layers may
-paint scenic backgrounds, imagery, material and light while the root stays transparent. No-narration content reserves no
-caption band. Fixed template-copy bookends retain safe-area-local framing. Existing version 1/2 geometry and fingerprints
-stay unchanged, and revisions preserve the frozen policy. Do not reconstruct raw policy or mount another SceneViewport.
-
-For review before final rendering, wait for native worker terminal completion and run `npm run project:preview -- --project
-<storyId>` (preserve exact `--candidate` for a revision), then start the original continuation once. Preview validates artifacts
-and projects a private frozen view; no live source/current Delivery writes, provider calls, new attempt or promotion.
-Never pause a running continuation; its total deadline does not reset. Preview receipts mark motion/continuity/listening
-not-assessed and cannot certify creative quality or current delivery. Committed artifacts remain immutable.
-
-GlobalVisual exports `GlobalVisualBaseLayer` as a full-Composition base and `GlobalVisualDecorationLayers` as decoration that
-is sequenced from the first through last content Beat (narrated or authored scene-owner) with local frame zero at
-that window's start. It must not read Scene output or carry Beat-specific copy.
+Films made before 0.2.0 live in `src/projects/<storyId>/` and use the Project production chain. Work on them only when the
+user asks, by reading `.agents/skills/axmorf-video/SKILL.md`; new videos always use `axmorf-film`. An Agent given an exact
+attempt-bound `project:task:bind` is a worker of that chain: follow
+[Assigned task worker](.agents/skills/axmorf-video/references/production-workflow.md#assigned-task-worker) only.
 
 When the user asks to upgrade this Workspace, run `npm run workspace:upgrade -- --dry-run`, report the listed changes and
-`localChanges`, then run `npm run workspace:upgrade`. It replaces only product-managed files after backing them up,
-keeps Projects and private configuration, and restores everything if install, bootstrap or doctor fails. Never upgrade
-`@axmorf/studio` alone: the Skill and runtime facades must change together. Do not upgrade during an active production.
+`localChanges`, then run `npm run workspace:upgrade`. It replaces only product-managed files after backing them up, keeps
+films, Projects and private configuration, and restores everything if install, bootstrap or doctor fails. Never upgrade
+`@axmorf/studio` alone: the Skill and runtime must change together. Do not upgrade while a film command is running.
 
-Never publish, push, delete a Project, or expose private configuration unless
-the user explicitly requests that action. Project deletion must use
+Never publish, push, delete a film or Project, or expose private configuration unless the user explicitly requests that
+action. Delete films only with `npm run film:delete -- --film <filmId> --confirm-delete` and legacy Projects only with
 `npm run project:delete -- --project <storyId> --confirm-delete`.
-
-短 `--assignment` 只路由 exact project/attempt 的 immutable dirty task 序号；CLI 还原 full task/binding 后继续原验证，不能混入手写长身份。
-Root 优先整段转发 prepare/reissue 的 `workerPrompts`；进程工具返回 session/cell handle 时完整保留并等待，不能只取 output 或提前结束 Root。
-每个命令都保留完整工具结果与 shell 终态退出码；外层 code cell 结束不表示 shell 已结束。inspect/prepare 同样适用。
-prepare 原始结果或句柄遗失时报告阻塞，禁止从磁盘、日志或 child 消息重建派发及 continuation 命令。
-
-New Projects freeze `visualStyle.theme`: dark (default), light, or validated opaque hex roles background/primaryText/secondaryText/accent. Composition paints the fallback background; theme roles anchor text and brand. New full-frame Scene art may use its own scenic colors with readable text contrast against the actual local image. Themed GlobalVisualBaseLayer still returns null and its decoration group remains capped at 8%; this ambient-layer limit does not cap Scene-owned artwork. Fixed boundaries keep theme colors. Legacy immutable boundaries are never silently migrated; incompatible theme revisions fail before mutation.
-
-Content can be narrated-scene with sealed PCM timing or visual-scene with authored frame timing, explicit null narration and zero TTS. Adapt create context visualFirst for a no-narration request; preserve both modes. Shared-workspace Scene workers may use their exact bound commands.preview before commit, without writing extra task files or treating it as aesthetic approval.

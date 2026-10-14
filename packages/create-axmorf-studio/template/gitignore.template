@@ -6,6 +6,8 @@ private/
 
 src/projects/
 public/projects/
+src/films/
+public/films/
 public/assets/axmorf-shared/
 src/remotion/catalog/assets.manifest.json
 src/remotion/catalog/scene-template-audio.defaults.json
@@ -30,3 +32,6 @@ dist/
 .DS_Store
 Thumbs.db
 .axmorf/backups/
+.axmorf/cache/
+.axmorf/history/
+.axmorf/staging/

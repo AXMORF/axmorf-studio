@@ -266,7 +266,6 @@ test("active docs expose originality, bound capabilities, layered GlobalVisual, 
   ).join("\n");
   assert.match(templateDocs, /GlobalVisualBaseLayer/u);
   assert.match(templateDocs, /GlobalVisualDecorationLayers/u);
-  assert.match(templateDocs, /local frame zero/iu);
 
   const transportDocs = (
     await Promise.all([

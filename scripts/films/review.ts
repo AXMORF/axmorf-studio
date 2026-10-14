@@ -1,0 +1,202 @@
+import {
+  copyFile,
+  mkdir,
+  mkdtemp,
+  readdir,
+  rm,
+  writeFile,
+} from "node:fs/promises";
+import { join, relative } from "node:path";
+
+import {
+  FILM_CONTACT_SHEET_ID,
+  filmCompositionIds,
+  FilmMusicSchema,
+  type FilmTiming,
+} from "@axmorf/studio/contracts";
+
+import {
+  filmPaths,
+  loadFilmSpec,
+  readOptionalJsonFile,
+  workspacePath,
+} from "./files";
+import { renderContactSheet, renderFilmReviewFrames } from "./media";
+import { loadCurrentFilmTiming } from "./music";
+
+export type ReviewFrame = Readonly<{ frame: number; reason: string }>;
+
+const MAX_REVIEW_FRAMES = 36;
+
+/**
+ * Picks the frames worth looking at: the middle of each sentence (what the
+ * viewer sees while hearing it), section starts and accents (where the music
+ * expects a visual landing), and the opening and closing images.
+ */
+export const selectReviewFrames = ({
+  timing,
+  music,
+}: {
+  readonly timing: FilmTiming;
+  readonly music: {
+    sectionFrames: readonly number[];
+    accentFrames: readonly number[];
+  } | null;
+}): ReviewFrame[] => {
+  const last = timing.durationInFrames - 1;
+  const candidates: ReviewFrame[] = [
+    { frame: Math.min(last, 10), reason: "opening" },
+    ...timing.sentences.map(({ id, startFrame, endFrame }) => ({
+      frame: Math.floor((startFrame + endFrame) / 2),
+      reason: `sentence ${id}`,
+    })),
+    ...(music?.sectionFrames ?? []).map((frame) => ({
+      frame: Math.min(last, frame + 2),
+      reason: "music section",
+    })),
+    ...(music?.accentFrames ?? []).map((frame) => ({
+      frame: Math.min(last, frame + 2),
+      reason: "music accent",
+    })),
+    { frame: Math.max(0, last - 5), reason: "ending" },
+  ];
+  const byFrame = new Map<number, string[]>();
+  for (const { frame, reason } of candidates) {
+    if (frame < 0 || frame > last) continue;
+    byFrame.set(frame, [...(byFrame.get(frame) ?? []), reason]);
+  }
+  const frames = [...byFrame.entries()]
+    .sort(([left], [right]) => left - right)
+    .map(([frame, reasons]) => ({ frame, reason: reasons.join(", ") }));
+  if (frames.length <= MAX_REVIEW_FRAMES) return frames;
+  // Keep an even spread when a long film has more moments than fit on a sheet.
+  return Array.from(
+    { length: MAX_REVIEW_FRAMES },
+    (_, index) =>
+      frames[
+        Math.round((index * (frames.length - 1)) / (MAX_REVIEW_FRAMES - 1))
+      ]!,
+  );
+};
+
+export const runFilmReview = async ({
+  rootDir,
+  filmId,
+  frames: requested,
+  scale = 0.5,
+}: {
+  readonly rootDir: string;
+  readonly filmId: string;
+  readonly frames?: readonly number[];
+  readonly scale?: number;
+}) => {
+  const spec = await loadFilmSpec(rootDir, filmId);
+  const timing = await loadCurrentFilmTiming(rootDir, spec);
+  const paths = filmPaths(rootDir, filmId);
+  const music =
+    spec.music === null
+      ? null
+      : await readOptionalJsonFile(
+          paths.music,
+          FilmMusicSchema,
+          "generated/music.json",
+        );
+  const selected: ReviewFrame[] =
+    requested === undefined || requested.length === 0
+      ? selectReviewFrames({ timing, music })
+      : requested.map((frame) => {
+          if (
+            !Number.isInteger(frame) ||
+            frame < 0 ||
+            frame >= timing.durationInFrames
+          ) {
+            throw new Error(
+              `Frame ${frame} is outside the film (0–${timing.durationInFrames - 1}).`,
+            );
+          }
+          return { frame, reason: "requested" };
+        });
+  await rm(paths.review, { recursive: true, force: true });
+  await mkdir(paths.review, { recursive: true });
+  // Remotion reads anything after the last dot of a sequence directory as an
+  // extension, so the scratch name has no dot and is passed relative to rootDir.
+  const scratch = await mkdtemp(join(paths.review, "render-"));
+  try {
+    const propsPath = join(scratch, "props.json");
+    await writeFile(
+      propsPath,
+      JSON.stringify({ frames: selected.map(({ frame }) => frame) }),
+    );
+    await renderFilmReviewFrames({
+      rootDir,
+      compositionId: filmCompositionIds(paths.id).review,
+      propsPath,
+      outputDirectory: relative(rootDir, join(scratch, "frames")),
+      count: selected.length,
+      scale,
+    });
+    const rendered = (await readdir(join(scratch, "frames")))
+      .filter((name) => name.startsWith("review-"))
+      .sort(
+        (left, right) =>
+          Number(left.match(/\d+/u)?.[0]) - Number(right.match(/\d+/u)?.[0]),
+      );
+    if (rendered.length !== selected.length) {
+      throw new Error(
+        `Expected ${selected.length} review frames, got ${rendered.length}.`,
+      );
+    }
+    // The sheet Still loads frames through staticFile(), so they also go under public/.
+    const sheetFrames = join(paths.publicDir, "review");
+    await rm(sheetFrames, { recursive: true, force: true });
+    await mkdir(sheetFrames, { recursive: true });
+    const images = [];
+    for (const [index, name] of rendered.entries()) {
+      const { frame, reason } = selected[index]!;
+      const tile = String(index + 1).padStart(2, "0");
+      const target = join(paths.review, `${tile}-frame-${frame}.jpeg`);
+      await copyFile(join(scratch, "frames", name), target);
+      await copyFile(target, join(sheetFrames, `${tile}.jpeg`));
+      images.push({
+        tile: index + 1,
+        frame,
+        reason,
+        image: workspacePath(rootDir, target),
+      });
+    }
+    const sheet = join(paths.review, "contact-sheet.jpeg");
+    const columns =
+      images.length <= 4 ? images.length : images.length <= 12 ? 4 : 6;
+    const cellWidth = 360;
+    const sheetProps = join(scratch, "sheet.json");
+    await writeFile(
+      sheetProps,
+      JSON.stringify({
+        cells: images.map(({ tile, frame, reason }) => ({
+          image: `films/${paths.id}/review/${String(tile).padStart(2, "0")}.jpeg`,
+          label: `#${tile} · f${frame} · ${reason}`,
+        })),
+        columns,
+        cellWidth,
+        cellHeight: Math.round(
+          (cellWidth * spec.render.height) / spec.render.width,
+        ),
+      }),
+    );
+    await renderContactSheet({
+      rootDir,
+      compositionId: FILM_CONTACT_SHEET_ID,
+      propsPath: sheetProps,
+      outputPath: sheet,
+    });
+    return {
+      status: "film-review-rendered",
+      filmId: paths.id,
+      contactSheet: workspacePath(rootDir, sheet),
+      frames: images,
+      next: "Open the contact sheet and the frames; check subject, framing, readable text, and that changes land on the listed sentences and accents.",
+    } as const;
+  } finally {
+    await rm(scratch, { recursive: true, force: true });
+  }
+};

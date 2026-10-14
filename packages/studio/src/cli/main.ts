@@ -124,6 +124,9 @@ const createDefaultRunners = (output: Output): CliRunners => {
         import("../../../../scripts/scene-templates/audio-projection"),
       ]);
       await generateSceneTemplateAudioProjection({ rootDir, mode: "write" });
+      const { generateFilmRegistry } =
+        await import("../../../../scripts/films/registry");
+      const films = await generateFilmRegistry(rootDir);
       const catalog = await generateResourceCatalog({
         rootDir,
         mode: "write",
@@ -132,6 +135,7 @@ const createDefaultRunners = (output: Output): CliRunners => {
         JSON.stringify({
           ...workspace,
           catalogEntryCount: catalog.entryCount,
+          filmCount: films.filmCount,
         }),
       );
     },
@@ -186,6 +190,18 @@ const createDefaultRunners = (output: Output): CliRunners => {
         }),
       );
       return service;
+    },
+    film: async ({ rootDir, args }) => {
+      await runtime();
+      const { runFilmCli } = await import("../../../../scripts/films/cli");
+      await runFilmCli(args, {
+        rootDir,
+        env: process.env,
+        stdout: stdoutLine,
+        setExitCode: (code) => {
+          process.exitCode = code;
+        },
+      });
     },
     projectCreate: async ({ rootDir, args }) => {
       const { resources } = await runtime();

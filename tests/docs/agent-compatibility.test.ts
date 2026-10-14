@@ -108,7 +108,13 @@ test("mainstream agent entrypoints import one repository authority", async () =>
   assert.match(productGoal, /src\/films\/<filmId>\//u);
   assert.match(productGoal, /film:deliver/u);
   assert.match(roadmap, /promotions\/2026-10-14-direct-film-production\.md/u);
-  for (const source of [workspaceAgents, workspaceSkill, workspaceWorkflow]) {
+  assert.match(workspaceAgents, /\.agents\/skills\/axmorf-film\/SKILL\.md/u);
+  assert.match(workspaceAgents, /film:deliver/u);
+  assert.match(
+    workspaceAgents,
+    /project:task:bind[\s\S]*Assigned task worker/u,
+  );
+  for (const source of [workspaceSkill, workspaceWorkflow]) {
     assert.match(source, /inputs\/task-contract\.json/u);
     assert.match(source, /project:attempt:recover-inspect/u);
     assert.match(source, /project:revise:context/u);
@@ -118,8 +124,9 @@ test("mainstream agent entrypoints import one repository authority", async () =>
       /\brsp\b|Desktop|DeliveryPolicy|source-current/iu,
     );
   }
+  assert.doesNotMatch(workspaceAgents, /\brsp\b|Desktop|DeliveryPolicy/iu);
   assert.match(
-    `${workspaceAgents}\n${workspaceSkill}\n${workspaceWorkflow}`,
+    `${workspaceSkill}\n${workspaceWorkflow}`,
     /isolated[\s\S]{0,120}candidate|candidate[\s\S]{0,120}isolated/iu,
   );
 });

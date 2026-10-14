@@ -7,49 +7,23 @@
 
 **让你的 Agent 在本地搭好完整视频生产 Workspace，再从创作需求走到可验证交付。**
 
-AXMORF Studio 是一个基于 [Remotion](https://www.remotion.dev/) 的 Agent-first 视频生产 Workspace。它把创作交给
-你正在使用的 coding Agent，把项目、媒体、配置、生产 artifacts 和最终视频留在本地，并用固定 contracts 和
-validators 判断一次生产是否真正完成。
+AXMORF Studio 是一个基于 [Remotion](https://www.remotion.dev/) 的 Agent-first 本地视频工作室。你正在使用的 coding
+Agent 像导演兼动效设计师一样，直接用 Remotion 代码制作讲解短视频；Workspace 替它完成旁白与实测时序、原创配乐与节拍、
+素材许可、审片联系表和交付校验。项目、媒体、配置和最终视频都留在本地。
 
 - **Agent-first**：支持 Codex、Claude Code、Cursor、Gemini CLI、GitHub Copilot，以及其他能读写文件并运行 npm 的
   Agent。
+- **直接创作**：每部片是 `src/films/<film-id>/` 下一个普通的 Remotion 工程，构图、镜头、转场和字幕样式都由
+  Agent 决定，并通过审片联系表看图迭代。
 - **Local-first**：Workspace 和视频资产属于用户，不需要 AXMORF 云端账号。
-- **可恢复、可复用**：内容寻址 artifacts 让未变化的 Scene、封面和旁白无需重复生产。
 - **可验证交付**：完成结果固定为视频、两张封面和发布清单四个文件，不把聊天中的“完成了”当作成功。
 
 > 当前为 `0.x` public beta。生产前请保留 Workspace 备份，并查看
 > [当前实现状态](docs/ITERATION_STATUS.md)。
 
-制作 Agent 可通过 `project:create:context` 查看既有视觉能力的公开 API 与示例，并按 Scene 语义选择。
-源码新增的能力路由会在新片创建时冻结已批准的内置能力，让 Scene 按用途和可编译配方选择；媒体仍需显式准入。
-固定演示组件在目录中标注，颗粒和甩镜已支持作品内容。实际调用仍须声明，自绘和安静镜头均有效，不以能力数量评价质量。
-新的正文画布可铺满画面，文字保留独立安全区；固定首尾和旧作品的几何保持不变。创建入口按题材选择
-生成图片、原创 SVG 或空间几何，先确定主体、构图、材质、光影和动作，再进入制作。Root 可在首次 inspect 前
-把原创图片/SVG 准入指定 Scene，worker 只读取已验证的本地素材。配乐 helper 也支持调性、和声与分段编曲。
-这些源码改进尚未发布，已安装的 0.1.21 不会自动获得；具体验证范围由当前实现状态记录。
-
-当前公开版本为 **0.1.21**，两个 npm 包的 `latest` 均已回读确认；发布、验收和限制由
-[当前实现状态](docs/ITERATION_STATUS.md)维护。[发布与全新公开安装记录](docs/evidence/v0.1.21-publication.json)
-保留精确包和来源校验；本版按维护者批准复用此前验收，没有新的独立原生首用认证。
-安装后的 Workspace 以自身 public schemas 和生成指南为准；推送源码不会升级现有安装或迁移作品。
-
-有口播视频先生成、封存配音，再以实测 PCM 时间制作字幕和画面。无口播可选 `visual-scene` 的
-`durationInFrames`，或显式 `authored-frames` 的 silent owner preset；两者都不调用 TTS，使用相同正式生产流程。
-[连续视频创作](docs/guides/CONTINUOUS_VIDEO_AUTHORING.md)通过 filmPlan、相邻 Beat 分组、共享主体与相机组织整片，
-允许长 Scene 和安静转场。横竖屏、尺寸和帧率服从用户本次选择；场景数量和示例风格不是固定门槛。
-
-新片 Skill 默认在创建前用代码合成原创配乐，冻结 WAV 与同源音乐时间轴；整片音轨替换模板和 Scene 配乐，
-保留旁白及独立音效。prepare 将同一音乐网格投影为 Scene-local `musicTiming`；关键动作可在语义窗口内选落点，
-封存口播、字幕和语义边界保持实测时间。兼容的自动/指定/文件选曲仍在正文连续播放，保留首尾模板配乐；
-`backgroundMusic:null` 明确禁用配乐。方法见[配乐与时序](.agents/skills/axmorf-video/references/film-direction.md#code-synthesized-music-and-shared-timing)。
-
-[创作手册与示例](docs/guides/VIDEO_CREATIVE_PLAYBOOK.md)沉淀完整构图、材质、动作阶段、共同声音事件和阅读停留，
-并提供剪纸案例及独立教学小片。它们是设计方法，不锁定配色、BPM、画幅或版式。Scene worker 用 binding 的
-exact `commands.preview` 在提交前检查实际画面；全片接缝、混音、连续观看和听审仍须分别记录。
-
-当前版本还包含明确输出缺失/语法错误的受检恢复证据、正文选曲与模板配乐隔离，以及五首获授权的原始循环
-BGM seed，供兼容选曲使用。曲目与许可见[音乐指南](docs/guides/SCENE_SOUND_EFFECTS.md#循环音乐与试听版本)。
-现有作品通过[隔离修订](docs/guides/PROJECT_REVISION.md)修改；封面专用局部修订接口尚未提供。
+源码已经实现 direct film 制作方式（[实施计划](docs/promotions/2026-10-14-direct-film-production.md)），将作为 0.2.0 发布；
+已发布的 0.1.x 仍使用 Project production 主链（内容寻址任务、attempt 与 continuation），0.3.0 将删除该主链。
+公开版本、验收范围与限制以[当前实现状态](docs/ITERATION_STATUS.md)为准。
 
 ## 把这段提示词交给你的 Agent
 
@@ -102,57 +76,51 @@ AXMORF 不用操作系统 allowlist 预先阻止安装。Agent 可以准备声�
 ## 它如何工作
 
 ```text
-视频 brief
-  → 用户自有 Workspace
-  → strict Project create / isolated revision candidate
-  → 本次宿主 capability 验证与 execution resolve
-  → read-only inspect（readiness、成本、复用、blocker）
-  → explicit prepare（唯一允许调用 provider 的入口）
-  → Agent 创作 dirty Scenes / GlobalVisual / Covers
-  → fixed validation、convergence 和 render
-  → verified current Delivery
+视频需求
+  → film:new 建立 src/films/<film-id>/（film.json 剧本 + Film.tsx + Cover.tsx）
+  → film:voice 逐句 TTS，按实测音频给出每句起止帧
+  → film:music 按编曲配方合成原创配乐，给出段落、重音与小节帧
+  → Agent 用 useFilmTiming() 编写画面，挂载 <FilmSoundtrack /> 与 <FilmCaptions />
+  → film:review 渲染联系表，看图修改（至少一轮）
+  → film:check 硬规则检查
+  → film:deliver 渲染并复验四个交付文件
 ```
-
-每个 Story 对应一个 Remotion Composition。生产会冻结内容 revision，复用仍然有效的 artifacts，只让 Agent 处理真正
-dirty 的任务；fixed continuation 在所有任务终态后完成 materialization、渲染和机械复验。修改现有作品时先在隔离
-candidate 中生产，成功后才受控替换 current Project 和 Delivery。
 
 最终交付固定为：
 
 ```text
-deliveries/<storyId>/video.mp4
-deliveries/<storyId>/cover-4x3.png
-deliveries/<storyId>/cover-3x4.png
-deliveries/<storyId>/publish.json
+deliveries/<film-id>/video.mp4
+deliveries/<film-id>/cover-4x3.png
+deliveries/<film-id>/cover-3x4.png
+deliveries/<film-id>/publish.json
 ```
+
+`film:check` 只拦会导致渲染失败、交付不合格或许可问题的情况：TypeScript 错误、渲染时联网、CSS 动画、
+不确定的随机数与时间、未登记的媒体、跨片导入，以及与 `film.json` 不一致的旁白和配乐。审美和可读性靠
+Skill 中的创作方法和看图回路。修改作品就是修改源码后重新交付，上一版交付自动移到 `.axmorf/history/`。
 
 ## 常用命令
 
-| 目标                                      | 命令                                                                  |
-| ----------------------------------------- | --------------------------------------------------------------------- |
-| 检查当前环境                              | `npm run doctor`                                                      |
-| 同时打开控制中心与 Remotion Studio        | `npm run dev`                                                         |
-| 只打开 Web 控制中心                       | `npm run web`                                                         |
-| 只打开 Remotion Studio                    | `npm run preview`                                                     |
-| 读取创作示例与能力                        | `npm run project:create:context -- --project <story-id>`              |
-| 创建 Project                              | `npm run project:create -- --project <story-id> --input <input.json>` |
-| 只读检查生产计划                          | `npm run project:produce:inspect -- --project <story-id>`             |
-| 开始有成本的准备                          | `npm run project:produce:prepare -- --project <story-id>`             |
-| 交付后复核每个 Scene 的关键画面           | `npm run project:scene:review -- --project <story-id>`                |
-| 从有效 artifacts 生成审阅草稿（当前源码） | `npm run project:preview -- --project <story-id>`                     |
-| 本地参考视频切换/运动/帧证据（当前源码）  | `npm run reference:analyze -- --input public/<reference.mp4>`         |
-| 交付后审阅完整 Scene 与衔接               | `npm run project:scene:review -- --project <story-id> --motion`       |
-| 复验当前四文件交付                        | `npm run project:check -- --project <story-id> --level final`         |
+| 目标                               | 命令                                                       |
+| ---------------------------------- | ---------------------------------------------------------- |
+| 检查当前环境                       | `npm run doctor`                                           |
+| 同时打开控制中心与 Remotion Studio | `npm run dev`                                              |
+| 新建一部片                         | `npm run film:new -- --film <film-id> --title "<标题>"`    |
+| 生成旁白与时序                     | `npm run film:voice -- --film <film-id>`                   |
+| 生成配乐与节拍网格                 | `npm run film:music -- --film <film-id>`                   |
+| 登记生成图片或原创 SVG             | `npm run film:asset -- --film <film-id> --file <path> ...` |
+| 渲染审片联系表                     | `npm run film:review -- --film <film-id>`                  |
+| 交付前检查                         | `npm run film:check -- --film <film-id>`                   |
+| 渲染并复验四个交付文件             | `npm run film:deliver -- --film <film-id>`                 |
+| 列出所有片与交付状态               | `npm run film:list`                                        |
 
-日常使用建议让 Agent 消费结构化输出和返回的 exact commands，不要手工拼接内部参数。完整顺序见
-[生产流程](docs/PRODUCTION_WORKFLOW.md) 和 [生产编排指南](docs/guides/PRODUCTION_ORCHESTRATION.md)。
-
-新建视频时，提示词明确指定的横竖屏、尺寸、帧率优先于配置；未指定字段继承配置，单次覆盖不改写长期默认值。
-worker 的提交前 Scene 预览使用 bind 返回的 exact `commands.preview`；完整动作与音乐仍需连续观看和听审。
-用户本地循环音乐与包内共享资源分开维护，选曲和试听退役规则见 [音效与音乐指南](docs/guides/SCENE_SOUND_EFFECTS.md)。
+新建视频时，提示词明确指定的横竖屏、尺寸、帧率写入该片的 `film.json`；未指定字段继承配置，单次覆盖不改写长期默认值。
+制作方法见 Workspace 内的 `.agents/skills/axmorf-film/SKILL.md`。
 
 <details>
-<summary>Agent / 高级生产命令参考</summary>
+<summary>0.1.x Project production 主链命令（0.3.0 删除）</summary>
+
+0.2.0 之前制作的作品位于 `src/projects/<story-id>/`，仍由 `axmorf-video` Skill 与下列命令处理。
 
 执行策略默认是 `subagents`，最大并发 4，受宿主可用 child 容量限制。用户或配置可明确选择 `inline`。
 Agent 先按 [host probe](.agents/skills/axmorf-video/references/execution-capabilities.md) 验证原生 child 读写，

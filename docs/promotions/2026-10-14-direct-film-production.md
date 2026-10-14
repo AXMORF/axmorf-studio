@@ -2,7 +2,8 @@
 
 > 文档类型：实施计划
 >
-> 状态：已批准（2026-10-14），实施中：第 1 步
+> 状态：已批准（2026-10-14），实施中：第 1 步源码完成，待发布验收（实现事实与偏差见
+> [ITERATION_STATUS.md](../ITERATION_STATUS.md)）
 >
 > 目标 authority 见 [FINAL_PRODUCT_GOAL.md](../FINAL_PRODUCT_GOAL.md)；阶段门槛见 [ROADMAP.md](../ROADMAP.md)。
 > 当前实现仍是 Project production 主链，事实以 [ITERATION_STATUS.md](../ITERATION_STATUS.md) 为准。
@@ -61,7 +62,7 @@ deliveries/<filmId>/    video.mp4、cover-4x3.png、cover-3x4.png、publish.json
 
 `render` 未写的字段继承 Workspace 配置；`narration` 可为空数组表示无旁白；`music` 可为 `null`。
 
-### 2.2 运行时组件与 hook（`@axmorf/studio/film`）
+### 2.2 运行时组件与 hook（`@axmorf/studio/remotion`）
 
 | API                                   | 作用                                                   |
 | ------------------------------------- | ------------------------------------------------------ |
@@ -127,7 +128,7 @@ worker transport 与 execution resolve、revision candidate/promotion、original
 
 1. 文档 authority：重写产品目标与路线图，登记本计划（本 PR）。
 2. 合同：`FilmSpec`、`FilmTiming`、`FilmMusic`、`FilmAssets` schema 与 `publish.json`。
-3. 运行时：`@axmorf/studio/film` 的 hook 和组件；Remotion Root 同时注册 films 与旧 Projects。
+3. 运行时：`@axmorf/studio/remotion` 中的 film hook 和组件；Remotion Root 同时注册 films 与旧 Projects。
 4. CLI：第 2.3 节命令。
 5. Skill 与模板：新增 `axmorf-film`，Workspace AGENTS.md 把新视频路由到它；旧 Skill 只处理旧作品。
 6. creator：新模板含 `src/films/`；`workspace:upgrade` 把新 Skill 加入托管目录。
