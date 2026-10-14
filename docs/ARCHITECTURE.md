@@ -1,6 +1,9 @@
 # Architecture
 
 > 文档类型：架构 authority
+>
+> 本文描述已发布的 Project production 主链。产品目标已改为 direct 方式，0.3.0 删除本主链，
+> 目标结构见 [Direct Film 生产方案](promotions/2026-10-14-direct-film-production.md)。
 
 ## 视觉、音频与局部修订
 

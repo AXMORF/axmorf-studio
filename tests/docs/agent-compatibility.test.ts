@@ -105,10 +105,9 @@ test("mainstream agent entrypoints import one repository authority", async () =>
   assert.match(readme, /project:attempt:recover-inspect/u);
   assert.match(readme, /project:revise:context/u);
   assert.match(readme, /project:revision:promote/u);
-  assert.match(productGoal, /TaskExecutionContract/u);
-  assert.match(productGoal, /current delivery/u);
-  assert.match(roadmap, /controller-io/u);
-  assert.match(roadmap, /same-Revision reissue/u);
+  assert.match(productGoal, /src\/films\/<filmId>\//u);
+  assert.match(productGoal, /film:deliver/u);
+  assert.match(roadmap, /promotions\/2026-10-14-direct-film-production\.md/u);
   for (const source of [workspaceAgents, workspaceSkill, workspaceWorkflow]) {
     assert.match(source, /inputs\/task-contract\.json/u);
     assert.match(source, /project:attempt:recover-inspect/u);

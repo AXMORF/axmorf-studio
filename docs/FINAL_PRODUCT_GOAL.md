@@ -2,140 +2,81 @@
 
 > 文档类型：产品目标 authority
 >
-> 当前实现事实见 [ITERATION_STATUS.md](ITERATION_STATUS.md)。
+> 当前实现事实见 [ITERATION_STATUS.md](ITERATION_STATUS.md)；迁移步骤见
+> [Direct Film 生产方案](promotions/2026-10-14-direct-film-production.md)。当前发布版本仍以 Project production
+> 主链生产，下面描述的是迁移完成后的产品。
 
 ## 1. 产品结论
 
-AXMORF Studio 通过 npm creator 建立一个用户自有 Workspace，再把其中可审计的 Project authoring
-source 生产为一个 Composition 和一个本地 current delivery。runtime/CLI、contracts、Remotion exports 与
-预构建 Web 来自 npm package；用户 Project、配置、媒体、artifacts 和 Delivery 只属于 Workspace。产品不含
-Desktop、Electron、Runtime Pack 或 `rsp` control plane。唯一主链是：
+AXMORF Studio 是一个本地视频工作室：Agent 像导演兼动效设计师一样，直接用 Remotion 代码制作讲解短视频。
 
-在确定性主链之前，Root 按题材选择素材：本地 Catalog 不足时，可用当前实际可调用的生图工具生成图片、
-创作原创 SVG，或通过兼容工具获取已许可图片。新 Project 在首次 inspect 前经 `project:asset:import`
-验证真实 bytes 与来源并准入；工具过程不属于 ProductionRevision/Task DAG，child/runtime 只消费冻结的
-Project-owned 媒体。revision candidate 仍限于 base snapshot 已有媒体。
+用户通过 `create-axmorf-studio` 建立普通 npm Workspace。`@axmorf/studio` 提供 CLI、合同、Remotion 组件、
+旁白与配乐服务和交付校验；Workspace-local Skill 提供创作方法。每部作品是 `src/films/<filmId>/` 下一个
+普通的 Remotion 源码目录，由 Agent 完整拥有。产品不含 Desktop、Electron、Runtime Pack 或 `rsp`。
 
-1. 冻结 ProductionRevision；
-2. 建立 content-addressed Task DAG；
-3. 为 dirty Agent tasks 冻结 immutable TaskExecutionContract，并复用有效 ArtifactAttestation；
-4. 每个 executor 经 attempt-bound zero-write bind 后，只通过 verified capability 执行 exact contract；
-5. Root 完成 inline execution 或 bounded child admission 后以阻塞等待/事件通知低 token 监督，由 attempt-bound fixed continuation 处理全部 task terminal；
-6. 全部成功后 fixed convergence 原子物化 live 或 isolated candidate production scope；
-7. 同步生成并机械复验 exact four-file delivery；candidate scope 随后才尝试受控 current promotion。
+一部片的制作过程：
 
-ExecutionAttempt 只记录一次执行诊断。它的失败或丢失不拥有产物、不改变 content identity，也不阻止
-后续 attempt 复用已经验证的 artifact。Root 负责定位视频任务错误并指导原 executor；terminal 后仅在旧 workers 全退出、
-只读恢复检查通过时最多自动恢复一次，使用新 attempt 和新 workers。底层程序及外部故障诊断后报告，不自动修程序。
-commit 失败的恢复资格必须由原始受检输出诊断证明；缺证据的历史通用失败不能由后补文件或聊天说明放行。
+1. 写剧本与配方 `film.json`（旁白分句、渲染规格、配乐编曲、发布文案）；
+2. `film:voice` 生成旁白并实测时序；
+3. `film:music` 按整片时长合成配乐与节拍网格；
+4. 按需用 `film:asset` 准入生成图片、原创 SVG 或许可素材；
+5. Agent 自由编写 `Film.tsx` 与 `Cover.tsx`，用 hook 读取时序和节拍；
+6. 用 `dev` 和 `film:review` 渲染出来看，反复修改；
+7. `film:check` 检查硬规则；
+8. `film:deliver` 渲染并复验四个交付文件。
 
-修改现有 Project 不是 live in-place edit：strict revision input 必须绑定 exact current Revision 与已复验
-four-file Delivery，先在隔离 candidate 中走同一 production 主链。candidate Delivery 完整后才受控提升 current
-source/public/narration/delivery 四个 Project-owned roots；失败完整 rollback，且 promotion 可独立幂等重试。
+## 2. 设计原则
 
-## 2. 必须长期保持的产品不变量
+- **创作源码归 Agent**：Composition 结构、镜头、图层、转场、字幕样式都由 Agent 决定，系统只提供可选组件。
+- **服务做 Agent 做不稳的事**：TTS 与实测时序、确定性配乐与节拍、素材许可、媒体编码与复验。
+- **硬规则只防真实故障**：只拦截会导致渲染失败、交付不合格或许可问题的情况；审美和可读性靠创作方法、
+  渲染后实测和看图回路，不用静态代理指标拦截。
+- **本地单用户，保持简单**：没有任务 DAG、执行 attempt、内容寻址 artifact 或候选晋级；修改作品就是修改源码
+  并重新交付，旧交付自动归档。
+- **质量要看成片**：机械检查通过只说明可交付，不说明好看；审美结论来自实际观看。
 
-- 一 Story 一个 Composition；一 StoryBeat 一个 meaningId。一个 Scene/Renderer/ScenePackage 可拥有多个连续正文 Beat，
-  语义 Coverage、旁白和章节仍逐 Beat；分组来自严格有序的 `story.visualScenes`，全片意图来自 `story.filmPlan`。
-- narrated 与 silent Beat 是 discriminated contract。缺省 sealed-narration 模式的 silent 只位于首尾；显式
-  authored-frames 模式以 silent scene-owner 正文的 preset 帧数定义时间，没有 TTS、CaptionCue、seal 或 mastered WAV。
-  两种时间源不能混合，template-copy 仅在首尾。
-- Agent-authored `ttsChunks` 不被工具改写；sealed PCM sample measurement 和累计 sample frame 是时间
-  authority。
-- Scene root 透明；Composition 顶层 exactly once owns SceneViewport、captions、narration 和 GlobalVisual。
-  新正文以完整画布组织主体、环境、材质、光影与层次，独立 textSafeArea 保护文字；fixed template-copy
-  首尾及旧 policyVersion 1/2 保留 safe-area-local 几何，revision 不自动迁移。GlobalVisual decoration
-  只在正文窗口提供共享氛围，不替代 Scene-owned 美术或限制其颜色、层次与铺满画面的表达。
-- template-copy Scene 是 Project-local immutable instance，由 fixed task 产出，不派发 Agent。
-- 新片 Skill 优先代码合成原创 BGM，以全片音轨替换 Scene/模板配乐、保留旁白及独立音效；实测口播时序优先。
-  题材决定调性、和声、分段乐器、密度与力度，默认配方不作为固定风格。
-  兼容选曲模式连续覆盖正文窗口、保留模板配乐；既有媒体不自动迁移，合成时间轴不通过调音修订改变。
-- package-owned shared Workspace resources 只通过 runtime policy、manifest、checksum 与 license gate 发行；
-  bootstrap 投影到保留的 Workspace paths 和 Catalog，template-copy Scene 只把实际使用的资源复制为
-  Project-local bytes。用户修改或冲突的保留路径必须 fail closed，不能静默覆盖。
-- `project:create` 同事务冻结创建前其他 Project 的完整 Scene TS/TSX source graph；旧 Project 缺失 baseline
-  时只能由用户显式运行零 provider、持 repository lock 的 originality freeze，production 不静默补空。
-- originality baseline fingerprint/context 只进入 `scene-owner` TaskRevision；template-copy 豁免。Scene validator
-  拒绝 frozen historical graph，converge 在物化前拒绝同 Revision exact 或 token-normalized duplicate。
-- `project:create` 与 revision validate/create 在任何 staging/lock mutation 前执行同一 structured authoring
-  validation；每个 authored `ttsChunk` 最多 72 caption display half-units，超限由 Agent 改写或按语义拆分，
-  不能降低合同。
-- Scene、GlobalVisual、Cover authoring 相互隔离。每个 Agent 只写自己的 task workspace。
-- TaskExecutionContract 是 attempt-neutral immutable input，描述 purpose/workflow/constraints、component
-  signatures、exact outputs 与 Agent/fixed ownership；不嵌入 transport、binding、failure 或 command。
-- subagents 只在当前宿主为本次 production 验证 `shared-workspace` 或 `controller-io` 时启用；transport 不持久化、
-  不进入任何 content identity。controller-io 只通过 strict bound file-read/file-write 接触允许文件。
-- Scene authoring 使用 repository-local `remotion-best-practices`，但 TaskSpec/contracts/validators 始终
-  拥有更高 authority。
-- render runtime 使用静态 registry 和 repository-local media，不调用网络、Agent、Skill、MCP 或目录扫描。
-- private config 和 voice profile 不进入 identity、artifact、日志、UI 或 Git。
-- candidateId、隔离路径和 promotion 状态只属于 routing/diagnostic plane，不进入 ProductionRevision、
-  TaskRevision、ArtifactAttestation 或 DeliveryBuildId。
+## 3. 必须长期保持的产品不变量
 
-## 3. 内容寻址生产目标
-
-ProductionRevision 绑定 Story/Narration/Render/VisualStyle/PublishingIntent、sound、authoring requirements、
-readability、Scene/GlobalVisual briefs、template instances、selected resource bytes、narration generation
-identity 与相关 policy fingerprints。它不含 Agent output 或执行过程。
-
-每个 ProducerTaskSpec 具有最小 complete input、dependency artifacts、declared read/output set 与 task-kind
-validator version。TaskRevision 只随真正输入变化；单 Scene、Cover、TTS chunk 或 validator 变化应精确
-失效目标 task 与必要 downstream，而不是让无关工作重做。
-
-Agent TaskRevision 还绑定 canonical TaskExecutionContract fingerprint。采用新 contract 会让既有 Agent task
-artifact 一次失效以获得新执行语义，但不改变 ProductionRevision，也绝不改写已有 current delivery。
-
-ArtifactAttestation 绑定 TaskRevision、dependencies、validator policy 和 exact sorted output manifest。
-Artifact Store 命中必须重新验证路径、文件类型、size 和 checksum。相同 identity/bytes 是 no-op；相同
-identity/different bytes 是确定性冲突。
+- 只使用宿主 Node.js/npm 与 Workspace-local Remotion CLI，不使用 Docker；所有 `remotion` 与 `@remotion/*`
+  使用完全相同的精确版本。Agent 不得修改 `node_modules`、package internals 或 validator 来通过检查。
+- 环境由生成的 `npm run doctor` 判定是否 ready；无法通过时报告 blocker。
+- 渲染期间不调用网络、Agent、Skill、MCP、Git 或目录扫描；运动只由 Remotion frame API 驱动，不使用 CSS
+  animation/transition。Remotion Root 通过生成的静态注册表引用各 film。
+- 所有媒体位于当前 Workspace `public/`，通过 `film:asset` 或共享素材清单登记来源与许可；未确认许可的
+  音频不得进入作品。
+- 旁白每句由 Agent 写定，工具不改写；每句最多 72 caption display half-units。实测 PCM samples 是时间
+  authority，帧边界统一为 `ceilDiv(cumulativeSamples × fps, sampleRate)`；字幕与旁白来自同一时序。
+- 配乐由配方确定性生成，导出拍、小节、段落与重音帧；有旁白时配乐在旁白下平滑压低。
+- 用户明确的尺寸、横竖屏、fps、locale 写入该片 `film.json`，未指定字段继承配置，不为单次需求修改默认值。
+- 交付恰好是 `video.mp4`、`cover-4x3.png`、`cover-3x4.png`、`publish.json`，见第 4 节。
+- private config 与 voice profile 不进入 Git、交付或日志。
+- 删除作品只用 `film:delete`，只清理该 film 自有的源码、媒体、缓存引用与交付，不触碰其他作品、共享素材、
+  private config 与 `public/voice_profile/`。
 
 ## 4. 交付目标
 
-converge 仅在全部 required artifacts 有效时物化 Project，并在物化后按 attestation 复验 live bytes。
-随后同步生成：
-
 ```text
-deliveries/<storyId>/video.mp4
-deliveries/<storyId>/cover-4x3.png
-deliveries/<storyId>/cover-3x4.png
-deliveries/<storyId>/publish.json
+deliveries/<filmId>/video.mp4
+deliveries/<filmId>/cover-4x3.png
+deliveries/<filmId>/cover-3x4.png
+deliveries/<filmId>/publish.json
 ```
 
-DeliveryBuildId 绑定 revisionId、artifact set、Composition metadata 与 build policy，不绑定 attempt。
-current delivery 只有在 exact 文件集合、checksums、H.264/AAC/channels、尺寸、fps/frame count、PNG 与 EOF
-decode 全部通过后才替换。相同完整 identity 是只读 no-op。
+`film:deliver` 先在临时目录渲染，复验 H.264/AAC、声道、尺寸、fps、帧数、PNG、checksum 与 EOF decode，
+全部通过后才写 `publish.json` 并替换当前交付；被替换的旧交付移入 `.axmorf/history/<filmId>/`。
+任何一步失败都保留原交付不变。
 
 ## 5. 用户体验目标
 
-- 创作从讲解含义出发，选择能展示因果的对象、状态变化与景别，再按主题选择技术和素材。连续主体、阅读停留与
-  音画时机服务当前内容，不固定效果模板或用人工审美分数代替成片。提交前 owning Scene 预览和交付后定向修订
-  支持实际观察；跨主题稳定质量必须另用正式生产、连续观看/听审和重复实验取得证据，不能从机械 Green 推断。
-- 用户只需复制 public README 的一句 Agent prompt：根据项目最新 README 在指定本地路径完成 Workspace 搭建
-  与可用性验收，并停止在视频生产之前。环境、安装和验证细节只由 README 及其当前引用拥有，不在 prompt 中复制。
-  Workspace ready 后，用户才通过 generated README 的视频 prompt 提交具体创作需求。
-- settings 列出 current source Projects，展示 Revision、task reused/dirty/blocked、latest attempt diagnostic
-  和 current four-file delivery，不把 output-only 目录伪装成 Project。
-- 局部修改只重做真正 dirty 的创作或媒体。terminal failed attempt 永不重开；显式 read-only/zero-provider
-  recover inspection 后，same-Revision reissue 复用有效 TTS/Agent artifacts 与合法 drafts、创建 fresh bindings，
-  且不要求 current delivery。
-- 用户修改现有作品时先获得机器可读 current context，再提交 strict patch；上一 current video/Covers 在 candidate
-  生产或 promotion 失败时持续可用。production 成功但 promotion 失败只重试 promotion，不重开生产 attempt。
-- Project 删除使用完整 storyId 确认并清理该 Project 的全部 ownership roots，同时保护其他 Project、
-  core、shared media、private config 与 voice profiles。
-- 每个完成状态都有机械证据；聊天成功、Agent 自评、文件存在或进程启动都不代表交付完成。
-- 首次创作先落实代表画面的主体、构图、光线、材质与有意义的空间关系，再组织动作与阅读停留；
-  素材供给、画布和任务指南支持这些选择。能力数量、风格标签、机械交付通过均不等于视觉质量。
-- 有效 owner artifacts 齐全后可先生成冻结草稿，再执行正式 continuation；草稿按比例降低像素而保留布局、fps、
-  时间和声音。独立 receipt 绑定源码、资源、artifacts、runtime 和 profile，审片结论独立于 checksum/EOF 通过。
-- 新建视频的尺寸/横竖屏、fps、locale 按用户明确要求优先、未指定字段继承配置。Agent 将要求写入结构化 create
-  input；fixed creator 解析并冻结 Project RenderSpec，返回实际值供有成本生产前复核，不自动改写长期默认配置。
-- Agent 执行模式按用户提示词明确字段、配置页、内置 `subagents`/4 默认逐级解析；默认要求
-  bounded runtime-native children 和 verified transport，用户仍可明确选择 inline；
-  策略不进入 production identity。continuation 启动后 Root 以阻塞等待/通知监督，错误时诊断；failure 直接终止该 attempt，all-success 只由持有
-  exact-attempt one-shot claim 的 fixed continuation 触发一次 converge；缺失终态受 attempt 创建起一小时总
-  deadline 约束。
+- 用户只需复制 public README 的一句 Agent prompt，让 Agent 在指定路径完成 Workspace 搭建与可用性验收，
+  停在视频制作之前；之后用 generated README 的视频 prompt 提交创作需求。
+- 从讲解含义出发：先定整片构思和代表画面，再组织镜头、运动、阅读停留和音乐落点。
+- Agent 在交付前至少看一次联系表，并在说明中指出关键画面与卡点位置。
+- 修改作品只需说明要改什么，Agent 直接修改源码并重新交付；上一版交付保留在 history。
+- 长片可由 Root 规划后把各 scene 文件分给子 Agent 并行编写，最终由 Root 统一审片；这是可选做法。
+- Runtime 升级通过 `workspace:upgrade` 同时更新 Skill 与运行时，不改动用户作品。
 
 ## 6. 非目标
 
-不实现平台上传、账号、远程队列/Artifact Store、常驻 Agent scheduler、child identity 持久化、主观审美
-gate、自动 capability promotion、Docker 或新的 TTS Gateway。
+不实现平台上传、账号、远程队列或存储、常驻调度器；不实现任务 DAG、执行 attempt、内容寻址 artifact、
+候选晋级、原创性指纹或静态审美/可读性 gate；不引入 Docker 或新的 TTS Gateway。

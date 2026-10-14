@@ -63,12 +63,12 @@ test("active production docs expose resolved bounded execution and fixed continu
     "docs/guides/LOCAL_DELIVERY.md",
     "docs/guides/PRODUCTION_ORCHESTRATION.md",
   ] as const;
+  // The product goal and roadmap describe the direct-film target; the
+  // released Project production chain stays documented by these authorities.
   const authorityPaths = [
     "docs/ARCHITECTURE.md",
     "docs/DETERMINISTIC_EXECUTION.md",
-    "docs/FINAL_PRODUCT_GOAL.md",
     "docs/ITERATION_STATUS.md",
-    "docs/ROADMAP.md",
     "docs/TERMINOLOGY.md",
   ] as const;
   const operational = await Promise.all(
@@ -225,7 +225,7 @@ test("active docs expose originality, bound capabilities, layered GlobalVisual, 
       read("docs/guides/REVIEW_MODEL.md"),
     ]);
 
-  assert.match(goal, /originality baseline/iu);
+  assert.match(status, /originality baseline/iu);
   assert.match(goal, /72 caption display half-units/iu);
   for (const term of [
     "TaskExecutionContract",
@@ -289,4 +289,38 @@ test("active docs expose originality, bound capabilities, layered GlobalVisual, 
     "docs/guides/FORMAL_PROJECT_VERIFICATION.md",
   )}`;
   assert.match(deletionDocs, /revision candidates/u);
+});
+
+test("the product goal and roadmap target direct film production", async () => {
+  const read = (relativePath: string) =>
+    readFile(path.join(process.cwd(), relativePath), "utf8");
+  const plan = "promotions/2026-10-14-direct-film-production.md";
+  const [goal, roadmap, index, promotion] = await Promise.all([
+    read("docs/FINAL_PRODUCT_GOAL.md"),
+    read("docs/ROADMAP.md"),
+    read("docs/README.md"),
+    read(`docs/${plan}`),
+  ]);
+
+  assert.match(promotion, /状态：已批准/u);
+  for (const source of [goal, roadmap, index]) {
+    assert.ok(source.includes(plan));
+  }
+  for (const command of [
+    "film:voice",
+    "film:music",
+    "film:review",
+    "film:check",
+    "film:deliver",
+  ]) {
+    assert.match(goal, new RegExp(command, "u"));
+    assert.match(promotion, new RegExp(command, "u"));
+  }
+  assert.match(
+    goal,
+    /cover-4x3\.png[\s\S]*cover-3x4\.png[\s\S]*publish\.json/u,
+  );
+  assert.match(goal, /ceilDiv\(cumulativeSamples × fps, sampleRate\)/u);
+  assert.match(goal, /## 6\. 非目标[\s\S]*任务 DAG[\s\S]*原创性指纹/u);
+  assert.match(roadmap, /0\.2\.0[\s\S]*0\.3\.0：删除旧主链/u);
 });

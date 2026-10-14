@@ -77,7 +77,8 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
 
 ## 权威文档
 
-- 产品目标：`docs/FINAL_PRODUCT_GOAL.md`
+- 产品目标：`docs/FINAL_PRODUCT_GOAL.md`（已改为 direct 方式；迁移计划见
+  `docs/promotions/2026-10-14-direct-film-production.md`。迁移完成前，下文的 production 规则仍约束已发布主链）
 - 生产流程：`docs/PRODUCTION_WORKFLOW.md`
 - 当前事实：`docs/ITERATION_STATUS.md`
 - 阶段门槛：`docs/ROADMAP.md`
