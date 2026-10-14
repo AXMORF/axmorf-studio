@@ -19,7 +19,22 @@ package checks 再次通过；Skill 上下文预算和共享创作文件同步�
 但包含上述未发布源码，不能用包版本号将两者等同。Git 提交或推送不会更新已安装的 npm 包；原有 Workspace 与
 既有作品未迁移。下方日期小节保留各阶段的实现和验证范围，较早测试数不代表最终累计结果。
 
-## Workspace 升级、配乐与卡点（2026-10-14，源码验证中，未发布）
+## 0.1.23 发布（2026-10-14）
+
+`0.1.23-rc.1` 的 Codex 验收在 prepare 阶段失败：studio-v2 配乐给 Scene 合同新增了一条 workflow，分组且有 filmPlan 的
+Scene 因此超过 16 条上限。修复后发布 `rc.2`；Codex 验收进行到正文预览时因账号额度耗尽中止（外部阻塞，未交付）。
+维护者随后批准由 Claude 作为宿主验收：用 `npx create-axmorf-studio@next upgrade` 将维护者的 0.1.21 Workspace
+就地升级到 `0.1.23-rc.2`（16 秒，doctor 六项通过，20 个作品与交付保留，替换文件已备份），再按 Skill 完成
+`https-handshake-20261014`。这次运行按 Workspace 保存的偏好使用 inline 执行，由 Root 依次完成 Scene、GlobalVisual
+与 Cover；Edge TTS 首次返回 429，经维护者授权重试一次后补齐两段配音。交付 44.47 秒、1080×1920、30fps，
+exact 四文件复验通过并完整解码，-15.7 LUFS、-2.3 dBFS。以原始配乐作参照逐 0.5 秒估计成片中的配乐增益：
+旁白期间稳定在 0.08–0.10（设定 0.09），旁白结束后 8 帧内升到 0.239（设定 0.24）。抽帧确认全幅取景逐段变化、
+钥匙高潮对齐小节线与重音、标题之外没有冗余文字。这不等于 Codex 的原生验收，也未经人工试听。
+
+制作中发现的限制：Scene 源码不能出现 `https://` 字面量（地址栏只能显示域名）；封面不能用 `url(#id)` 引用
+SVG 渐变；GlobalVisual 不接受 `.map()` 生成的子元素；运行时升级后，较旧 Project 的 catalog 快照漂移，导致无法 inspect。
+
+## Workspace 升级、配乐与卡点（2026-10-14）
 
 只升级 `@axmorf/studio` 会让 Workspace 的 Skill 停留在旧版本，bootstrap 还会因 runtime facade 过期而失败。新增
 `npx create-axmorf-studio@latest upgrade`：同步产品托管的 Skill、指南、facade 与 npm scripts，合并 `package.json`，
@@ -30,7 +45,7 @@ rc1 验收片的配乐只有正弦波音色，音量固定为 0.08，段落和�
 滤波和失谐音色、军鼓与拍手、两小节主题动机、混响与同步延迟、底鼓 sidechain，以及进入鼓组段落前的过门、riser 和 crash；
 timeline 冻结 sections/accentFrames，Scene 得到投影后的局部重音。旧引擎配方的音频逐字节不变。`underSpeechVolume`
 冻结为 `speechDucking`，Composition 只在实测旁白分段下平滑压低音乐。新增 `snapProducerFrameToBeat`，质量底线加入卡点自审。
-量化对比显示新配乐覆盖完整频段，响度动态范围从 5.5 增至 8.6 LU；尚未经过人工试听。
+量化对比显示新配乐覆盖完整频段，响度动态范围从 5.5 增至 8.6 LU。
 
 ## 0.1.22 发布（2026-10-14）
 
