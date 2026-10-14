@@ -155,7 +155,9 @@ export const inspectProjectVideo = async ({
 }: {
   readonly rootDir: string;
   readonly absolutePath: string;
-  readonly render: RenderSpec;
+  readonly render: Pick<RenderSpec, "width" | "height" | "fps"> & {
+    readonly output: Pick<RenderSpec["output"], "audioChannels">;
+  };
   readonly frameCount: number;
   readonly runProcess?: ProcessRunner;
 }) => {

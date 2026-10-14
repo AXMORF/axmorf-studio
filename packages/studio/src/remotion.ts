@@ -22,4 +22,5 @@ export * from "./remotion/runtime/scene-sound";
 export * from "./remotion/runtime/sound-design";
 export * from "./remotion/runtime/story-visual";
 export * from "./remotion/runtime/story-visual/SceneContinuityVisual";
+export * from "./remotion/film";
 export * from "./remotion/create-remotion-root";

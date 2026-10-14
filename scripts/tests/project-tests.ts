@@ -39,6 +39,7 @@ const CORE_TEST_ROOTS = [
   "tests/final-assembly",
   "tests/scene-runtime-proof",
   "tests/config",
+  "tests/films",
   "tests/package-boundary",
   "tests/npm-install-e2e",
 ] as const;

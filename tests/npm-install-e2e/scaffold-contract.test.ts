@@ -27,6 +27,7 @@ import {
 } from "@axmorf/studio/contracts";
 import { WORKSPACE_CAPABILITY_FACADE_SOURCE } from "../../packages/studio/src/remotion/catalog/capability-descriptors";
 import { WORKSPACE_STYLE_FACADE_SOURCE } from "../../packages/studio/src/remotion/catalog/style-descriptors";
+import { renderFilmRegistrySource } from "../../scripts/films/registry";
 
 const creatorTemplate = join(
   process.cwd(),
@@ -355,9 +356,24 @@ test("no-install creates a standalone, host-neutral workspace without claiming r
   const remotionEntry = await readFile(join(workspace, "src/index.ts"), "utf8");
   assert.match(
     remotionEntry,
-    /createRemotionRoot\(projectRegistry, \{ sceneTemplateAudioProjection \}\)/u,
+    /createRemotionRoot\(projectRegistry, \{\s*sceneTemplateAudioProjection,\s*films: filmRegistry,\s*\}\)/u,
   );
   assert.match(remotionEntry, /\.\/projects\/project-registry\.generated/u);
+  assert.match(remotionEntry, /from "\.\/films\/index"/u);
+  assert.equal(
+    await readFile(join(workspace, "src/films/index.ts"), "utf8"),
+    renderFilmRegistrySource([]),
+  );
+  for (const command of [
+    "new",
+    "voice",
+    "music",
+    "review",
+    "check",
+    "deliver",
+  ]) {
+    assert.equal(manifest.scripts[`film:${command}`], `axmorf film ${command}`);
+  }
   assert.doesNotMatch(
     remotionEntry,
     /import \{ RemotionRoot \} from "@axmorf/u,
@@ -420,7 +436,10 @@ test("no-install creates a standalone, host-neutral workspace without claiming r
   const workspaceAgents = await readFile(join(workspace, "AGENTS.md"), "utf8");
   assert.match(workspaceReadme, /npm run doctor/u);
   assert.match(workspaceReadme, /Ask your Agent for a video/u);
-  assert.match(workspaceReadme, /`AGENTS\.md` and local Skill supply/u);
+  assert.match(
+    workspaceReadme,
+    /`AGENTS\.md` and the local `axmorf-film` Skill supply/u,
+  );
   assert.match(
     workspaceReadme,
     /You do not need to include internal commands/u,
@@ -443,13 +462,38 @@ test("no-install creates a standalone, host-neutral workspace without claiming r
   assert.match(workspaceSkill, /intermediate progress message/u);
   assert.match(workspaceSkill, /same turn/u);
   assert.match(workspaceSkill, /not a final answer/u);
-  assert.match(workspaceAgents, /the Root runs `npm run doctor`/u);
-  for (const entrypoint of [workspaceAgents, workspaceSkill]) {
-    assert.ok(
-      entrypoint.indexOf("exact attempt-bound") <
-        entrypoint.indexOf("npm run doctor"),
-    );
-    assert.match(entrypoint, /production-workflow\.md#assigned-task-worker/u);
+  assert.match(
+    workspaceAgents,
+    /Before the first film in this Workspace, run `npm run doctor`/u,
+  );
+  assert.match(workspaceAgents, /\.agents\/skills\/axmorf-film\/SKILL\.md/u);
+  assert.match(
+    workspaceAgents,
+    /production-workflow\.md#assigned-task-worker/u,
+  );
+  assert.ok(
+    workspaceSkill.indexOf("exact attempt-bound") <
+      workspaceSkill.indexOf("npm run doctor"),
+  );
+  assert.match(workspaceSkill, /production-workflow\.md#assigned-task-worker/u);
+  const filmSkill = await readFile(
+    join(workspace, ".agents/skills/axmorf-film/SKILL.md"),
+    "utf8",
+  );
+  assert.equal(
+    filmSkill,
+    await readFile(
+      join(creatorTemplate, ".agents/skills/axmorf-film/SKILL.md"),
+      "utf8",
+    ),
+  );
+  for (const command of [
+    "film:voice",
+    "film:music",
+    "film:review",
+    "film:deliver",
+  ]) {
+    assert.match(filmSkill, new RegExp(command, "u"));
   }
   const workspaceWorkflow = await readFile(
     join(
@@ -492,10 +536,6 @@ test("no-install creates a standalone, host-neutral workspace without claiming r
   assert.match(
     workspaceSkill,
     /project:revision:promote[\s\S]*never reissue/iu,
-  );
-  assert.match(
-    workspaceAgents,
-    /isolated\s+candidate[\s\S]*current Project and Delivery/iu,
   );
   assert.doesNotMatch(
     workspaceSkill,

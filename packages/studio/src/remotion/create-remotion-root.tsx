@@ -10,6 +10,7 @@ import {
   SceneTemplateAudioPreloader,
   SourceFollowTemplatePreview,
 } from "./compositions/scene-template-previews/SceneTemplatePreviews";
+import { FilmCompositions, type FilmRegistryEntry } from "./film/compositions";
 
 export type RemotionProjectRegistryEntry = Readonly<{
   id: string;
@@ -25,6 +26,8 @@ export type RemotionProjectRegistryEntry = Readonly<{
 
 export type RemotionRootOptions = Readonly<{
   sceneTemplateAudioProjection?: unknown;
+  /** Entries of the Workspace-generated `src/films/index.ts`. */
+  films?: readonly FilmRegistryEntry[];
 }>;
 
 /**
@@ -75,6 +78,7 @@ export const createRemotionRoot = (
           height={1920}
         />
       </Folder>
+      <FilmCompositions films={options.films ?? []} />
       <Folder name="Stories">
         {entries.map((entry) => (
           <Composition

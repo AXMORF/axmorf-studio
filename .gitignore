@@ -34,3 +34,9 @@ public/voice_profile/
 # Ignore the output video from Git but not videos you import into src/.
 out
 deliveries/
+
+# Direct film working files
+/src/films/
+/public/films/
+/.axmorf/
+/.film-test-*/

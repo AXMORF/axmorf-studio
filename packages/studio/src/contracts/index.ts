@@ -65,3 +65,4 @@ export * from "./visual-style";
 export * from "./visual-theme";
 export * from "./background-music";
 export * from "./synthesized-music";
+export * from "./film";

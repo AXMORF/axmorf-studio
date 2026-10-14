@@ -2,6 +2,14 @@ export const describeWorkspaceCliHelp = () => ({
   status: "help" as const,
   commands: [
     "npm run doctor",
+    "npm run film:new -- --film <filmId> --title <title> [--width <px>] [--height <px>] [--fps <n>]",
+    "npm run film:voice -- --film <filmId>",
+    "npm run film:music -- --film <filmId>",
+    "npm run film:asset -- --film <filmId> --file <absolute-path> --name <file-name> --origin generated|original|licensed --creator <who> --license <license>",
+    "npm run film:review -- --film <filmId> [--frames <f1,f2,...>]",
+    "npm run film:check -- --film <filmId>",
+    "npm run film:deliver -- --film <filmId>",
+    "npm run film:list",
     "npm run browser:prepare",
     "npm run project:create:context -- --project <storyId>",
     "npm run project:create -- --schema",
@@ -22,6 +30,7 @@ export const describeWorkspaceCliHelp = () => ({
     "npm run dev",
   ],
   guidance: [
+    "New videos are direct films: read .agents/skills/axmorf-film/SKILL.md. Project commands below remain only for films made before 0.2.0.",
     "Read .agents/skills/axmorf-video/SKILL.md and its references for the current stage.",
     "Use exact task bind/finalize/check/commit and continuation commands returned by prepare; do not reconstruct their identities.",
     "Execution precedence: explicit user fields, private/execution-preferences.json, then built-in subagents with maximum 4. Explicit inline remains supported.",

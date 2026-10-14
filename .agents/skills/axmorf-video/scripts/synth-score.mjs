@@ -456,7 +456,7 @@ export const synthesizeTimeline = (timeline) => {
   return wav(pcm);
 };
 
-const master = (raw, directory) => {
+export const master = (raw, directory) => {
   const source = join(directory, "raw.wav");
   const output = join(directory, "master.wav");
   writeFileSync(source, raw);

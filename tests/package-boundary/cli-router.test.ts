@@ -103,6 +103,7 @@ test("the public CLI maps grouped commands exactly without leaking routing argum
     renderer: createRunner(calls, "renderer"),
     scene: createRunner(calls, "scene"),
     narration: createRunner(calls, "narration"),
+    film: createRunner(calls, "film"),
   };
   const rootDir = "/canonical/workspace";
   const cases: readonly [readonly string[], string, readonly string[]][] = [
@@ -298,6 +299,11 @@ test("the public CLI maps grouped commands exactly without leaking routing argum
       "narration",
       ["check", "--project", "story"],
     ],
+    [
+      ["film", "voice", "--film", "story"],
+      "film",
+      ["voice", "--film", "story"],
+    ],
   ];
   for (const [args, name, forwarded] of cases) {
     await routeCliCommand({ rootDir, args, runners });
@@ -329,11 +335,13 @@ test("the router rejects aliases partial commands and arguments on fixed command
     renderer: noOp,
     scene: noOp,
     narration: noOp,
+    film: noOp,
   };
   for (const args of [
     [],
     ["bootstrap", "extra"],
     ["project:create"],
+    ["film"],
     ["project"],
     ["project", "produce"],
     ["project", "revise"],
@@ -393,6 +401,7 @@ test("CLI composition resolves Workspace before invoking any command runner", as
     renderer: runner,
     scene: runner,
     narration: runner,
+    film: runner,
   };
   await runCli({ cwd: nested, args: ["doctor"], runners });
   assert.deepEqual(calls, [rootDir]);

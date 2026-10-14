@@ -29,6 +29,7 @@ export type CliRunners = Readonly<{
   renderer: CliCommandRunner;
   scene: CliCommandRunner;
   narration: CliCommandRunner;
+  film: CliCommandRunner;
 }>;
 
 export class CliUsageError extends Error {
@@ -36,7 +37,7 @@ export class CliUsageError extends Error {
 }
 
 const usage =
-  "Expected bootstrap|doctor|web|preview|dev|project <command>|reference analyze|catalog <command>|registry <command>|renderer <command>|scene <command>|narration <command>.";
+  "Expected bootstrap|doctor|web|preview|dev|film <command>|project <command>|reference analyze|catalog <command>|registry <command>|renderer <command>|scene <command>|narration <command>.";
 
 const exactFixedCommand = async ({
   args,
@@ -173,6 +174,9 @@ export const routeCliCommand = async ({
   }
   if (args[0] === "dev") {
     return runners.dev({ rootDir, args: args.slice(1) });
+  }
+  if (args[0] === "film" && args.length >= 2) {
+    return runners.film({ rootDir, args: args.slice(1) });
   }
   if (args[0] === "project") return routeProject(input, runners);
   if (args[0] === "reference" && args[1] === "analyze") {

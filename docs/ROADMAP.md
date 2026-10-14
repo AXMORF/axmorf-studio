@@ -20,7 +20,7 @@ attempt-bound task execution、fixed continuation 与 exact four-file delivery�
 
 ### 0.2.0：direct 成为默认
 
-- `film.json` 合同、`@axmorf/studio/film` hook 与组件、`film:*` 命令、`axmorf-film` Skill 与新 Workspace 模板；
+- `film.json` 合同、`@axmorf/studio/remotion` 中的 film hook 与组件、`film:*` 命令、`axmorf-film` Skill 与新 Workspace 模板；
 - `workspace:upgrade` 把新 Skill 加入已有 Workspace；Remotion Root 同时注册 films 与旧 Projects；
 - 旧 `project:*` 主链冻结，只修阻塞性缺陷，不再新增功能；
 - 进入条件：一部片从 `film:new` 到四文件交付不调用任何 task、attempt 或 revision 命令；在维护者已升级的
