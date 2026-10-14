@@ -2,7 +2,7 @@
 
 > 文档类型：唯一导航入口
 >
-> 最后复核：2026-10-13
+> 最后复核：2026-10-14
 
 先按问题选择文档，不要从历史计划或 evidence 反推 current implementation。
 
@@ -59,6 +59,8 @@
   [六场景成片](evidence/2026-10-09-v0.1.20-native-video-verification.json)已通过。
   0.1.19 未发布，原标签和[失败记录](evidence/v0.1.19-ci-failure.json)保留。
 - `promotions/` 保存尚未完全达到完成定义的提案和实施计划；每份文档必须明确自身批准/实施状态。
+- [Direct Film 生产方案](promotions/2026-10-14-direct-film-production.md)已批准、实施中：作品改为 Agent 直接编写的
+  Remotion 工程，0.2.0 设为默认，0.3.0 删除 Project production 主链。
 - npm Workspace 开源方案已经完成并
   [归档实施计划](archive/implementation-plans/2026-08-30-npm-workspace-open-source-implementation-plan.md)。
   0.1.21已公开发布新的代码配乐与创作方法，[发布与公开安装](evidence/v0.1.21-publication.json)验证两包
