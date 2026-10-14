@@ -21,8 +21,9 @@ Agent 像导演兼动效设计师一样，直接用 Remotion 代码制作讲解�
 > 当前为 `0.x` public beta。生产前请保留 Workspace 备份，并查看
 > [当前实现状态](docs/ITERATION_STATUS.md)。
 
-源码已经实现 direct film 制作方式（[实施计划](docs/promotions/2026-10-14-direct-film-production.md)），将作为 0.2.0 发布；
-已发布的 0.1.x 仍使用 Project production 主链（内容寻址任务、attempt 与 continuation），0.3.0 将删除该主链。
+0.2.0 起新视频使用 direct film 制作方式（[实施计划](docs/promotions/2026-10-14-direct-film-production.md)）；
+0.2.0 之前的作品仍由 Project production 主链（内容寻址任务、attempt 与 continuation）处理，0.3.0 将删除该主链。
+已有 Workspace 用 `npx create-axmorf-studio@latest upgrade` 同时升级 Skill 与运行时。
 公开版本、验收范围与限制以[当前实现状态](docs/ITERATION_STATUS.md)为准。
 
 ## 把这段提示词交给你的 Agent
