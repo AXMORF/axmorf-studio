@@ -1,6 +1,6 @@
 {
   "name": "@axmorf/studio",
-  "version": "0.1.23",
+  "version": "0.2.0-rc.1",
   "description": "Agent-first video production runtime, CLI, contracts, Remotion components, and local Web control center for AXMORF Studio.",
   "license": "Apache-2.0",
   "type": "module",
