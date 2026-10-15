@@ -124,6 +124,16 @@ export const createFilm = async ({
       }),
     });
     const fps = render?.fps ?? config.renderDefaults.fps;
+    // The Workspace's saved opening/closing choice becomes this film's bookends.
+    const { introSceneTemplateId, outroSceneTemplateId } = config.sceneDefaults;
+    const intro =
+      introSceneTemplateId === "axmorf-brand-reveal-v1"
+        ? introSceneTemplateId
+        : null;
+    const outro =
+      outroSceneTemplateId === "axmorf-source-follow-v1"
+        ? outroSceneTemplateId
+        : null;
     const spec = FilmSpecSchema.parse({
       schemaVersion: 1,
       filmId: paths.id,
@@ -140,6 +150,7 @@ export const createFilm = async ({
       narration: [],
       music: null,
       publish: { title, description: "", tags: [] },
+      bookends: { intro, outro, theme: "dark", sources: [] },
     });
     await mkdir(join(paths.dir, "generated"), { recursive: true });
     await writeJsonFile(paths.spec, spec);
@@ -155,6 +166,7 @@ export const createFilm = async ({
       status: "film-created",
       filmId: paths.id,
       render: spec.render,
+      bookends: spec.bookends,
       files: ["film.json", "Film.tsx", "Cover.tsx", "assets.json"].map(
         (name) => `src/films/${paths.id}/${name}`,
       ),

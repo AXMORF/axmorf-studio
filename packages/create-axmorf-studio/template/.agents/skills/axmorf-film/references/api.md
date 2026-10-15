@@ -37,6 +37,23 @@ t.music?.barFrames;          // 另有 beatFrames、sectionFrames、accentFrames
   `mouse-click`、`keyboard-tap`、`typing-burst`、`toggle-switch`、`drag-pickup`、`drop-settle`、`swish-reverse`、`card-flip`、
   `notification-ping`、`warning-blip`、`success-arpeggio` 等，文件名为 `axmorf-<名称>-v1.wav`。
 
+## 片头片尾
+
+`film.json` 的 `bookends` 由 `film:new` 按 Workspace 配置写入，交付时系统自动在正片前后接上：
+
+```json
+"bookends": {
+  "intro": "axmorf-brand-reveal-v1",
+  "outro": "axmorf-source-follow-v1",
+  "theme": "dark",
+  "sources": [{ "title": "Cloudflare：DNS 服务器类型", "url": "https://www.cloudflare.com/learning/dns/dns-server-types/" }]
+}
+```
+
+- 片头 2 秒、片尾 8 秒（按 30 fps 计，其他帧率按秒换算），各自带原来的音效与音乐；配乐只覆盖正片。
+- `theme` 取 `dark` 或 `light`；`sources` 最多 6 条，显示在片尾前半段。
+- `Film.tsx`、`useFilmTiming()` 与审片联系表都只计正片的帧；Remotion Studio 里的同名组合播放完整成片。
+
 ## 镜头
 
 `ProducerShotStage`：全幅分层舞台，按关键帧推拉摇，背景和前景按深度做视差。

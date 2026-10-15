@@ -78,7 +78,10 @@ export const createRemotionRoot = (
           height={1920}
         />
       </Folder>
-      <FilmCompositions films={options.films ?? []} />
+      <FilmCompositions
+        films={options.films ?? []}
+        audioProjection={sceneTemplateAudioProjection}
+      />
       <Folder name="Stories">
         {entries.map((entry) => (
           <Composition

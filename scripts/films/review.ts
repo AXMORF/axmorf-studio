@@ -21,6 +21,7 @@ import {
   readOptionalJsonFile,
   workspacePath,
 } from "./files";
+import { meanAbsoluteDifference, readFrameSignature } from "./frame-compare";
 import { renderContactSheet, renderFilmReviewFrames } from "./media";
 import { loadCurrentFilmTiming } from "./music";
 
@@ -77,6 +78,45 @@ export const selectReviewFrames = ({
         Math.round((index * (frames.length - 1)) / (MAX_REVIEW_FRAMES - 1))
       ]!,
   );
+};
+
+/** Below this average 0–255 difference two review frames look the same. */
+export const STILL_FRAME_DIFFERENCE = 3;
+/** Holds shorter than this are reading pauses, not a static picture. */
+export const STILL_FRAME_MIN_SECONDS = 2;
+
+/**
+ * Flags review frames that stay visually unchanged across a long stretch,
+ * the "static slide" a viewer reads as the video having stopped.
+ */
+export const findStillStretches = ({
+  frames,
+  fps,
+}: {
+  readonly frames: readonly { frame: number; signature: Uint8Array }[];
+  readonly fps: number;
+}) => {
+  const ordered = [...frames].sort((left, right) => left.frame - right.frame);
+  const stretches = [];
+  for (let index = 1; index < ordered.length; index++) {
+    const before = ordered[index - 1]!;
+    const after = ordered[index]!;
+    const seconds = (after.frame - before.frame) / fps;
+    if (seconds < STILL_FRAME_MIN_SECONDS) continue;
+    const difference = meanAbsoluteDifference(
+      before.signature,
+      after.signature,
+    );
+    if (difference < STILL_FRAME_DIFFERENCE) {
+      stretches.push({
+        frames: [before.frame, after.frame] as const,
+        seconds: Number(seconds.toFixed(1)),
+        difference: Number(difference.toFixed(2)),
+        message: `Frames ${before.frame} and ${after.frame} are ${seconds.toFixed(1)}s apart and look nearly identical; keep a visible change or slow secondary motion outside short reading holds.`,
+      });
+    }
+  }
+  return stretches;
 };
 
 export const runFilmReview = async ({
@@ -189,11 +229,27 @@ export const runFilmReview = async ({
       propsPath: sheetProps,
       outputPath: sheet,
     });
+    const signatures = [];
+    for (const image of images) {
+      signatures.push({
+        frame: image.frame,
+        signature: await readFrameSignature({
+          rootDir,
+          imagePath: join(rootDir, image.image),
+          signaturePath: join(scratch, `signature-${image.tile}.png`),
+        }),
+      });
+    }
+    const stillWarnings = findStillStretches({
+      frames: signatures,
+      fps: spec.render.fps,
+    });
     return {
       status: "film-review-rendered",
       filmId: paths.id,
       contactSheet: workspacePath(rootDir, sheet),
       frames: images,
+      stillWarnings,
       next: "Open the contact sheet and the frames; check subject, framing, readable text, and that changes land on the listed sentences and accents.",
     } as const;
   } finally {

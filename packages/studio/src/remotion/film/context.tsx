@@ -4,6 +4,7 @@ import {
   FilmMusicSchema,
   FilmSpecSchema,
   FilmTimingSchema,
+  resolveFilmBookendFrames,
   type FilmMusic,
   type FilmSpec,
   type FilmTiming,
@@ -15,7 +16,12 @@ export type FilmRuntime = Readonly<{
   timing: FilmTiming | null;
   /** Null when the film has no score or `film:music` has not run yet. */
   music: FilmMusic | null;
+  /** Length of the authored body; useCurrentFrame() inside Film counts from its start. */
   durationInFrames: number;
+  introFrames: number;
+  outroFrames: number;
+  /** Delivered length: system intro + body + system outro. */
+  totalDurationInFrames: number;
 }>;
 
 const FilmContext = createContext<FilmRuntime | null>(null);
@@ -44,7 +50,16 @@ export const resolveFilmRuntime = (input: {
     timing?.durationInFrames ??
     spec.timeline.durationInFrames ??
     spec.render.fps * PLACEHOLDER_DURATION_SECONDS;
-  return { spec, timing, music, durationInFrames };
+  const { introFrames, outroFrames } = resolveFilmBookendFrames(spec);
+  return {
+    spec,
+    timing,
+    music,
+    durationInFrames,
+    introFrames,
+    outroFrames,
+    totalDurationInFrames: introFrames + durationInFrames + outroFrames,
+  };
 };
 
 export const FilmProvider = ({

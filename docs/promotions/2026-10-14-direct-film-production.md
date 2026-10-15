@@ -64,13 +64,13 @@ deliveries/<filmId>/    video.mp4、cover-4x3.png、cover-3x4.png、publish.json
 
 ### 2.2 运行时组件与 hook（`@axmorf/studio/remotion`）
 
-| API                                   | 作用                                                   |
-| ------------------------------------- | ------------------------------------------------------ |
-| `useFilmTiming()`                     | 旁白每句的起止帧、总帧数；配乐的拍、小节、段落与重音帧 |
-| `<FilmCaptions />`                    | 按实测时序显示字幕，样式可覆盖，默认放在安全区         |
-| `<FilmSoundtrack />`                  | 旁白、配乐、旁白下的 ducking，可加独立音效             |
-| `<AxmorfIntro />` / `<AxmorfOutro />` | 品牌片头片尾，可选，带各自的音频                       |
-| `snapToBeat()` 等                     | 现有 motion、camera、ShotStage、界面组件全部可直接导入 |
+| API                       | 作用                                                                              |
+| ------------------------- | --------------------------------------------------------------------------------- |
+| `useFilmTiming()`         | 旁白每句的起止帧、总帧数；配乐的拍、小节、段落与重音帧                            |
+| `<FilmCaptions />`        | 按实测时序显示字幕，样式可覆盖，默认放在安全区                                    |
+| `<FilmSoundtrack />`      | 旁白、配乐、旁白下的 ducking，可加独立音效                                        |
+| `film.json` 的 `bookends` | 系统按 Workspace 配置在正片前后接上品牌片头片尾（带各自音频），Agent 不必自行制作 |
+| `snapToBeat()` 等         | 现有 motion、camera、ShotStage、界面组件全部可直接导入                            |
 
 Composition 由 Agent 自己组织：字幕、旁白、配乐通过组件放入，不再有强制的顶层图层、透明 Scene root、
 GlobalVisual/Cover 任务隔离或 decoration 占比上限。
