@@ -4,6 +4,7 @@
 不代表当前代码、路径、命令或状态。
 
 - `implementation-plans/`：M1–M9.5 及后续 hardening 的历史实施计划和批准规格。
+- `iteration-status-0.1.21-and-earlier.md`：0.1.21 及更早版本的实现、验收与发布记录，从当前状态文档迁出。
 
 当前事实从 [文档导航](../README.md) 进入。归档内容默认不参加 active 文档链接门禁；不要从
 归档计划复制旧路径或状态后直接执行。

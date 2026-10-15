@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(npm run test:*)",
+      "Bash(npm run typecheck:*)",
+      "Bash(npm run lint:*)",
+      "Bash(npm run docs:check-links:*)",
+      "Bash(npm run check:static:*)",
+      "Bash(npx tsx --test:*)",
+      "Bash(npx tsc --noEmit:*)",
+      "Bash(npx eslint:*)",
+      "Bash(npx prettier --check:*)",
+      "Bash(codegraph explore:*)",
+      "Bash(codegraph node:*)",
+      "Bash(codegraph query:*)",
+      "Bash(codegraph status:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "mcp__codegraph__codegraph_explore"
+    ]
+  }
+}
