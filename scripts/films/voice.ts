@@ -104,9 +104,11 @@ export const buildFilmTiming = ({
 export const createFilmVoiceService = async ({
   rootDir,
   env,
+  createGenerator = createChunkAudioGenerator,
 }: {
   readonly rootDir: string;
   readonly env: NodeJS.ProcessEnv;
+  readonly createGenerator?: typeof createChunkAudioGenerator;
 }): Promise<FilmVoiceService> => {
   const configPath = await resolveProducerConfigPathFromEnvironment({
     rootDir,
@@ -123,7 +125,7 @@ export const createFilmVoiceService = async ({
     env: { ...env, RSP_PRODUCER_CONFIG: configPath },
     narration,
   });
-  const generate = createChunkAudioGenerator({ resolved });
+  const generate = createGenerator({ resolved });
   const cacheDir = join(rootDir, ".axmorf/cache/voice");
   return {
     speak: async ({ id, text }) => {

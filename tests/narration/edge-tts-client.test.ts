@@ -262,3 +262,110 @@ test("Edge TTS preserves safe HTTP and timeout diagnostics without retrying", as
     assert.equal(calls, 1);
   }
 });
+
+test("Edge TTS serializes requests and waits ten seconds after completion only when needed", async () => {
+  let now = 0;
+  const starts: number[] = [];
+  const waits: number[] = [];
+  const generate = createEdgeTtsChunkGenerator({
+    resolved,
+    env: {},
+    clock: {
+      now: () => now,
+      sleep: async (milliseconds) => {
+        waits.push(milliseconds);
+        now += milliseconds;
+      },
+    },
+    reportDiagnostic: () => undefined,
+    clientFactory: () => ({
+      ttsPromise: async (_text, outputPath) => {
+        starts.push(now);
+        now += 300;
+        await writeFile(outputPath, Buffer.from([1, 2, 3]));
+      },
+    }),
+  });
+
+  await Promise.all([
+    generate(request),
+    generate({ ...request, chunkId: "edge-02" }),
+    generate({ ...request, chunkId: "edge-03" }),
+  ]);
+  assert.deepEqual(starts, [0, 10_300, 20_600]);
+  assert.deepEqual(waits, [10_000, 10_000]);
+  now += 20_000;
+  await generate({ ...request, chunkId: "edge-04" });
+  assert.equal(starts[3], 40_900);
+  assert.deepEqual(waits, [10_000, 10_000]);
+});
+
+test("Edge TTS stops queued requests after a failure without retry or cooldown delay", async () => {
+  let calls = 0;
+  const waits: number[] = [];
+  const generate = createEdgeTtsChunkGenerator({
+    resolved,
+    env: {},
+    clock: {
+      now: () => 0,
+      sleep: async (milliseconds) => {
+        waits.push(milliseconds);
+      },
+    },
+    reportDiagnostic: () => undefined,
+    clientFactory: () => ({
+      ttsPromise: async () => {
+        calls += 1;
+        throw new Error("Unexpected server response: 429");
+      },
+    }),
+  });
+  const results = await Promise.allSettled([
+    generate(request),
+    generate({ ...request, chunkId: "edge-02" }),
+  ]);
+  assert.deepEqual(
+    results.map(({ status }) => status),
+    ["rejected", "rejected"],
+  );
+  assert.equal(calls, 1);
+  assert.deepEqual(waits, []);
+});
+
+test("Edge TTS diagnostics record timing and route while redacting text, credentials and arbitrary errors", async () => {
+  for (const [cause, outcome, httpStatus] of [
+    [new Error("Unexpected server response: 429"), "failed", 429],
+    ["Timed out", "timeout", undefined],
+    [new Error("secret-upstream-url-and-token"), "failed", undefined],
+  ] as const) {
+    let now = 100;
+    const events: unknown[] = [];
+    const generate = createEdgeTtsChunkGenerator({
+      resolved,
+      env: {
+        HTTPS_PROXY: "http://secret-user:secret-password@private-proxy:8080",
+      },
+      clock: { now: () => now, sleep: async () => undefined },
+      reportDiagnostic: (event) => events.push(event),
+      clientFactory: () => ({
+        ttsPromise: async () => {
+          now += 250;
+          throw cause;
+        },
+      }),
+    });
+    await assert.rejects(generate({ ...request, ttsText: "secret-narration" }));
+    assert.equal(events.length, 2);
+    const [start, end] = events as Array<Record<string, unknown>>;
+    assert.equal(start.event, "edge-tts-request");
+    assert.equal(start.phase, "start");
+    assert.equal(start.chunkId, "edge-01");
+    assert.equal(start.route, "proxy");
+    assert.equal(Number.isFinite(Date.parse(start.timestamp as string)), true);
+    assert.equal(end.phase, "end");
+    assert.equal(end.elapsedMs, 250);
+    assert.equal(end.outcome, outcome);
+    assert.equal(end.httpStatus, httpStatus);
+    assert.doesNotMatch(JSON.stringify(events), /secret-|private-proxy/u);
+  }
+});

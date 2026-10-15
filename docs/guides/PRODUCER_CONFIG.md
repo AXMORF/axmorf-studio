@@ -129,6 +129,10 @@ fingerprint 不匹配、未知字段或结构
   `node-edge-tts@1.2.11` 封装的非官方客户端协议，不是 Microsoft 对外承诺 SLA 的公共 TTS API；
   adapter 向客户端显式传递宿主的 HTTPS/HTTP 代理环境变量（小写优先），并遵守服务域名/端口对应的
   `no_proxy`/`NO_PROXY` 例外。代理属于当前宿主 transport，不写入 Project/config fingerprint，也不记录代理 URL 或凭证。
+  同一 adapter 实例串行发送真实请求，前一次结束后至少间隔 10 秒；首句和缓存命中不等待，音频中的停顿不承担网络限速。
+  失败立即停止该实例的排队请求，不自动重试。10 秒仅是缓解初值，未证明能避免所有 429，也不能约束其他进程或共享出口的流量。
+  stderr 的 `edge-tts-request` JSON 只包含开始/结束时间、chunk ID、代理/直连标签、耗时和固定 HTTP/超时状态；
+  标签只描述应用层代理选择，HTTP 状态仍不能单独区分代理 CONNECT 与微软 Upgrade 的响应。
   依赖互联网，协议与声线目录都可能由上游改变。
 - SpeechSDK 当前固定官方开源包
   [`@speech-sdk/core@0.27.0`](https://www.npmjs.com/package/@speech-sdk/core/v/0.27.0)，许可证为
