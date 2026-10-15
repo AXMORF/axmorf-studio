@@ -24,6 +24,7 @@ const RECOVERY_LOCK = ".project-operation.recovery.lock";
 /** Product-owned skill directories are mirrored exactly; other skills are untouched. */
 export const MIRRORED_DIRECTORIES = Object.freeze([
   ".agents/skills/axmorf-film",
+  ".claude/skills/axmorf-film",
   ".agents/skills/axmorf-video",
   ".agents/skills/remotion-best-practices",
 ]);

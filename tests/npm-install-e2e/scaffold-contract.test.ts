@@ -495,6 +495,14 @@ test("no-install creates a standalone, host-neutral workspace without claiming r
   ]) {
     assert.match(filmSkill, new RegExp(command, "u"));
   }
+  // Claude Code only discovers .claude/skills; that entry points at the shared Skill.
+  const claudeEntry = await readFile(
+    join(workspace, ".claude/skills/axmorf-film/SKILL.md"),
+    "utf8",
+  );
+  const frontmatter = (source: string) => source.split("---")[1];
+  assert.equal(frontmatter(claudeEntry), frontmatter(filmSkill));
+  assert.match(claudeEntry, /\.agents\/skills\/axmorf-film\/SKILL\.md/u);
   const workspaceWorkflow = await readFile(
     join(
       workspace,

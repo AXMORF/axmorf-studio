@@ -155,7 +155,7 @@
     "final:assembly": "node --import tsx scripts/final-assembly/cli.ts",
     "compositions": "remotion compositions src/index.ts",
     "precompositions": "npm run bootstrap",
-    "check:static": "npm run test && npm run typecheck && npm run lint && npm run docs:check-links && npm run scene-template-audio:check && npm run catalog:check && npm run registry:check && npm run config:build && npm run build",
+    "check:static": "npm run test && npm run typecheck && npm run lint && npm run docs:check-links && npm run scene-template-audio:check && npm run catalog:check && npm run registry:check && npm run config:build && npm run build && npm --workspace create-axmorf-studio run check:package",
     "check:host": "npm run compositions && npm run project:verify -- --all --scope source",
     "check": "npm run check:static && npm run check:host",
     "release:prepare": "node --import tsx scripts/release/prepare-version.ts",

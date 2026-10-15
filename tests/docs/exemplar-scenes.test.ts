@@ -57,7 +57,15 @@ test("shipped exemplar Scenes typecheck against the installed public API", async
 });
 
 test("exemplar permission is scoped to the shipped file, not user history", async () => {
-  const agents = await readFile(join(rootDir, "AGENTS.md"), "utf8");
+  // The Scene-source rules moved with the rest of the frozen Project chain.
+  const agents = await readFile(
+    join(rootDir, "docs/guides/LEGACY_PROJECT_PRODUCTION_RULES.md"),
+    "utf8",
+  );
+  assert.match(
+    await readFile(join(rootDir, "AGENTS.md"), "utf8"),
+    /LEGACY_PROJECT_PRODUCTION_RULES\.md/u,
+  );
   assert.match(agents, /exemplar-scenes\.md/u);
   assert.match(agents, /不得搜索、比较、模仿或复制用户历史 Scene/u);
   const skill = await readFile(

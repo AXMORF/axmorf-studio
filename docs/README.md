@@ -24,6 +24,7 @@
 
 | 主题                                                                                                          | 文档                                                                           |
 | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| 旧 Project production 主链的 Agent 规则（修改旧主链或旧作品前必读）                                          | [guides/LEGACY_PROJECT_PRODUCTION_RULES.md](guides/LEGACY_PROJECT_PRODUCTION_RULES.md) |
 | 主流 Agent 入口、最低能力与宿主适配边界                                                                       | [guides/AGENT_COMPATIBILITY.md](guides/AGENT_COMPATIBILITY.md)                 |
 | 现有 Project 的 exact-base candidate revision 与 promotion                                                    | [guides/PROJECT_REVISION.md](guides/PROJECT_REVISION.md)                       |
 | 统一 Producer/TTS/Scene defaults 配置                                                                         | [guides/PRODUCER_CONFIG.md](guides/PRODUCER_CONFIG.md)                         |
