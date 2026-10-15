@@ -13,7 +13,8 @@ Open this workspace in an Agent that has file access and can run npm commands, a
 要有旁白和字幕，做完先看审片联系表修改一轮，最后给我视频和封面。
 ```
 
-The workspace's `AGENTS.md` and the local `axmorf-film` Skill supply the method. You do not need to include internal commands
+The workspace's `AGENTS.md` and the local `axmorf-film` Skill supply the method. In Claude Code the Skill is also
+discoverable as `/axmorf-film`. You do not need to include internal commands
 in your request. Give any strict duration limit or orientation in the brief.
 
 The Agent writes each film as ordinary Remotion code in `src/films/<film-id>/`, generates narration and an original score,

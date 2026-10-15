@@ -48,6 +48,9 @@ for (const relativePath of [
   "template/out/.gitkeep",
   "template/src/generated-json.d.ts",
   "template/src/index.ts",
+  "template/src/films/index.ts",
+  "template/.agents/skills/axmorf-film/SKILL.md",
+  "template/.claude/skills/axmorf-film/SKILL.md",
 ]) {
   const metadata = await lstat(resolve(packageRoot, relativePath));
   assert.equal(metadata.isFile(), true, `${relativePath} must be a file.`);
@@ -69,8 +72,8 @@ assert.match(
 );
 assert.match(
   templateEntry,
-  /createRemotionRoot\(projectRegistry, \{ sceneTemplateAudioProjection \}\)/u,
-  "The generated Workspace root must pass its local audio projection to the runtime root.",
+  /createRemotionRoot\(projectRegistry, \{\s*sceneTemplateAudioProjection,\s*films: filmRegistry,\s*\}\)/u,
+  "The generated Workspace root must pass its audio projection and film registry to the runtime root.",
 );
 
 assert.notEqual(

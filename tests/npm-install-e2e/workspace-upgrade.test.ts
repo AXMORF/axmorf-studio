@@ -47,6 +47,7 @@ const legacyWorkspace = async () => {
   );
   const root = join(parent, "ws");
   await rm(join(root, ".axmorf"), { recursive: true });
+  await rm(join(root, ".claude"), { recursive: true });
   await writeFile(join(root, skillPath), "old skill\n");
   await rm(join(root, qualityBar));
   await writeFile(
@@ -137,6 +138,7 @@ test("legacy upgrade refreshes managed files and keeps user data", async () => {
     assert.deepEqual(result.runtime, { from: "0.1.0", to: "9.9.9" });
     assert.ok(result.updated.includes(skillPath));
     assert.ok(result.created.includes(qualityBar));
+    assert.ok(result.created.includes(".claude/skills/axmorf-film/SKILL.md"));
     assert.deepEqual(result.removed, [
       ".agents/skills/axmorf-video/references/retired.md",
     ]);
