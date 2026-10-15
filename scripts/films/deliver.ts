@@ -7,6 +7,7 @@ import {
   FilmAssetsSchema,
   filmCompositionIds,
   FilmPublishSchema,
+  resolveFilmBookendFrames,
 } from "@axmorf/studio/contracts";
 
 import {
@@ -85,6 +86,9 @@ export const deliverFilm = async ({
     const timing = await loadCurrentFilmTiming(rootDir, spec);
     const paths = filmPaths(rootDir, filmId);
     const ids = filmCompositionIds(paths.id);
+    const { introFrames, outroFrames } = resolveFilmBookendFrames(spec);
+    // The delivered video adds the system bookends around the authored body.
+    const totalFrames = introFrames + timing.durationInFrames + outroFrames;
     await generateFilmRegistry(rootDir);
 
     const stagingRoot = join(rootDir, ".axmorf/staging");
@@ -102,7 +106,7 @@ export const deliverFilm = async ({
         rootDir,
         absolutePath: videoPath,
         render: { ...spec.render, output: { audioChannels: 2 } },
-        frameCount: timing.durationInFrames,
+        frameCount: totalFrames,
       });
       for (const { variant, file, width, height } of FILM_COVER_VARIANTS) {
         const coverPath = join(staging, file);
@@ -130,7 +134,7 @@ export const deliverFilm = async ({
         title: spec.publish.title,
         description: spec.publish.description,
         tags: spec.publish.tags,
-        durationInFrames: timing.durationInFrames,
+        durationInFrames: totalFrames,
         ...spec.render,
         deliveredAt: deliveredAt.toISOString(),
         files: {
@@ -197,8 +201,9 @@ export const deliverFilm = async ({
         filmId: paths.id,
         delivery: workspacePath(rootDir, paths.delivery),
         files: ["video.mp4", "cover-4x3.png", "cover-3x4.png", "publish.json"],
-        durationInFrames: timing.durationInFrames,
-        seconds: Number((timing.durationInFrames / spec.render.fps).toFixed(2)),
+        durationInFrames: totalFrames,
+        seconds: Number((totalFrames / spec.render.fps).toFixed(2)),
+        bookends: { introFrames, outroFrames },
         previousDelivery:
           archived === null ? null : workspacePath(rootDir, archived),
         warnings: report.warnings,

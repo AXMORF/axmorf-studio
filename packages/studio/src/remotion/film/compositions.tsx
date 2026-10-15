@@ -20,6 +20,8 @@ import {
   resolveContactSheetSize,
   type ContactSheetProps,
 } from "./ContactSheet";
+import type { SceneTemplateAudioProjection } from "../capabilities/scene-templates/template-audio";
+import { FilmWithBookends } from "./FilmBookends";
 import { FilmProvider, resolveFilmRuntime, type FilmRuntime } from "./context";
 
 type FilmModule = Promise<{ default: ComponentType }>;
@@ -47,6 +49,27 @@ const provide = (runtime: FilmRuntime, load: () => FilmModule) => async () => {
   );
   return { default: Provided };
 };
+
+/** The delivered film: system intro, the authored body, system outro. */
+const filmLoader =
+  (
+    runtime: FilmRuntime,
+    load: () => FilmModule,
+    audioProjection: SceneTemplateAudioProjection,
+  ) =>
+  async () => {
+    const { default: Authored } = await load();
+    const Delivered = () => (
+      <FilmProvider runtime={runtime}>
+        <FilmWithBookends
+          runtime={runtime}
+          audioProjection={audioProjection}
+          body={<Authored />}
+        />
+      </FilmProvider>
+    );
+    return { default: Delivered };
+  };
 
 /** Shows each requested film frame once, so a review renders in one pass. */
 const reviewLoader =
@@ -100,8 +123,10 @@ const contactSheetDefaults: ContactSheetProps = {
 
 export const FilmCompositions = ({
   films,
+  audioProjection,
 }: {
   readonly films: readonly FilmRegistryEntry[];
+  readonly audioProjection: SceneTemplateAudioProjection;
 }) => (
   <Folder name="Films">
     <Still
@@ -139,14 +164,15 @@ export const FilmCompositions = ({
         <Folder key={filmId} name={filmId}>
           <Composition
             id={ids.film}
-            lazyComponent={provide(runtime, entry.film)}
-            durationInFrames={runtime.durationInFrames}
+            lazyComponent={filmLoader(runtime, entry.film, audioProjection)}
+            durationInFrames={runtime.totalDurationInFrames}
             fps={render.fps}
             width={render.width}
             height={render.height}
           />
-          {/* As long as the film, so a frozen frame is never clamped; the CLI
-              renders only the first frames.length frames of it. */}
+          {/* As long as the body, so a frozen frame is never clamped; the CLI
+              renders only the first frames.length frames of it. Review covers
+              the authored body; the system bookends are not authored. */}
           <Composition
             id={ids.review}
             lazyComponent={reviewLoader(runtime, entry.film)}

@@ -24,10 +24,14 @@ Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐�
    npm run film:new -- --film <filmId> --title "<标题>"
    ```
    用户明确要求的尺寸、横竖屏、fps 用 `--width/--height/--fps` 写入本片，不修改 Workspace 默认配置。
+   `film:new` 按 Workspace 配置写入 `bookends`：系统会在正片前后自动接上品牌片头（2 秒）和片尾（8 秒，先列出
+   `bookends.sources` 里的参考来源，再显示品牌）。不要在正片里再做品牌开场或结尾；只有用户明确不要时才把
+   `intro`/`outro` 设为 `null`。`Film.tsx` 里的帧号只计正片，交付时长 = 片头 + 正片 + 片尾。
 4. **写剧本** `src/films/<filmId>/film.json`：
    - `narration` 按自然句写，每句是一行字幕，最多 72 个半角单位（一个汉字算 2）；需要停顿时给 `pauseAfterMs`。
    - 有旁白时删除 `timeline.durationInFrames`，总长由实测旁白加 `tailFrames` 决定；无旁白的纯视觉片保留它。
-   - `narrationStartFrame` 留给开场画面；`publish` 写标题、简介和标签。
+   - `narrationStartFrame` 留给正片的开场画面；`publish` 写标题、简介和标签；用到的事实来源写进
+     `bookends.sources`（标题 + 网址），会显示在片尾。
    - 需要配乐时写 `music.score`（见 [配乐与卡点](references/music.md)）。
 5. **生成旁白**：`npm run film:voice -- --film <filmId>`。输出每句的起止帧。修改旁白文本后重新运行；
    没改过的句子来自缓存，不会重复调用 TTS。
@@ -41,13 +45,15 @@ Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐�
    ```bash
    npm run film:review -- --film <filmId>
    ```
-   打开输出的 `contact-sheet.jpeg` 和单帧图片，按 [画面手艺](references/craft.md#审片) 逐条检查，修改后再次审片。
+   打开输出的 `contact-sheet.jpeg` 和单帧图片，按 [画面手艺](references/craft.md#审片) 逐条回答并写下帧号证据，
+   修改后再次审片。输出里的 `stillWarnings` 列出相隔 2 秒以上却几乎没变的帧，必须改或说明理由。
    至少完成一轮“审片 → 修改 → 再审片”。需要看某些帧时用 `--frames 120,240,360`。
    用户想实时预览时，可运行 `npm run dev` 打开 Remotion Studio。
 10. **检查**：`npm run film:check -- --film <filmId>`。错误必须修复；警告逐条判断。
 11. **交付**：`npm run film:deliver -- --film <filmId>`。它先检查，再渲染并复验
     `deliveries/<filmId>/video.mp4`、`cover-4x3.png`、`cover-3x4.png`、`publish.json`；旧交付自动移到 `.axmorf/history/`。
-12. **报告**：交付路径、时长、关键画面与卡点所在帧、审片发现并修正了什么、还没验证的（例如没有实际听音）。
+12. **报告**：交付路径、时长、关键画面与卡点所在帧、每轮审片清单的结论与帧号、修正了什么、
+    还没验证的（例如没有实际听音）。
 
 ## 修改已有的片
 

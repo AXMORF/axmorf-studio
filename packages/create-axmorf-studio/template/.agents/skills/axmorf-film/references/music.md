@@ -32,7 +32,7 @@
 }
 ```
 
-`score` 不写 `fps`（使用本片 fps）。乐器：`kick`、`snare`、`clap`、`hat`、`bass`、`pad`、`pluck`、`lead`；
+`score` 不写 `fps`（使用本片 fps）。配乐只覆盖正片，片头片尾使用各自的模板音频。乐器：`kick`、`snare`、`clap`、`hat`、`bass`、`pad`、`pluck`、`lead`；
 `sections` 的小节数之和必须等于 `bars`，最多 64 小节。
 
 ## 按故事编曲

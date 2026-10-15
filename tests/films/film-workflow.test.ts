@@ -217,7 +217,11 @@ test("the scaffolded film passes check", async (context) => {
   });
 });
 
-const fakeMedia = (calls: string[], failStill = false): FilmDeliveryMedia => ({
+const fakeMedia = (
+  calls: string[],
+  failStill = false,
+  expectedFrames = 90,
+): FilmDeliveryMedia => ({
   renderVideo: async ({ outputPath }) => {
     calls.push("video");
     await writeFile(outputPath, "video-bytes");
@@ -228,7 +232,7 @@ const fakeMedia = (calls: string[], failStill = false): FilmDeliveryMedia => ({
     await writeFile(outputPath, compositionId);
   },
   inspectVideo: async ({ frameCount }) => {
-    assert.equal(frameCount, 90);
+    assert.equal(frameCount, expectedFrames);
     return {} as never;
   },
   inspectCover: async () => ({}) as never,
@@ -341,4 +345,33 @@ test("delete needs confirmation and removes only the film's own paths", async (c
   const registry = await readFile(join(root, "src/films/index.ts"), "utf8");
   assert.doesNotMatch(registry, /drop-film/u);
   assert.match(registry, /keep-film/u);
+});
+
+test("delivery verifies the system bookends around the authored body", async (context) => {
+  const root = await createWorkspace(context);
+  const paths = await writeFilm(root, "bookend-film", {
+    spec: {
+      bookends: {
+        intro: "axmorf-brand-reveal-v1",
+        outro: "axmorf-source-follow-v1",
+      },
+    },
+  });
+  await runFilmVoice({
+    rootDir: root,
+    filmId: "bookend-film",
+    createService: fakeVoice,
+  });
+  // 60 intro + 90 body + 240 outro at 30 fps.
+  const result = await deliverFilm({
+    rootDir: root,
+    filmId: "bookend-film",
+    media: fakeMedia([], false, 390),
+  });
+  assert.equal(result.durationInFrames, 390);
+  assert.deepEqual(result.bookends, { introFrames: 60, outroFrames: 240 });
+  const publish = FilmPublishSchema.parse(
+    JSON.parse(await readFile(join(paths.delivery, "publish.json"), "utf8")),
+  );
+  assert.equal(publish.durationInFrames, 390);
 });

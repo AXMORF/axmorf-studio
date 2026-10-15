@@ -1,5 +1,19 @@
 # Iteration Status
 
+## 片头片尾与审片自查（2026-10-16，源码完成，未发布）
+
+0.2.0 的 direct 流程没有接 Workspace 配置里的 `sceneDefaults.introSceneTemplateId/outroSceneTemplateId`，
+Codex 制作的 `dns-address-journey` 因此没有片头片尾。现在：
+- `film.json` 新增可选 `bookends`（`intro`、`outro`、`theme`、`sources`），`film:new` 按配置写入；省略即无片头片尾，既有片不变。
+- 交付组合在正片前后自动接上系统模板 `axmorf-brand-reveal-v1`（2 秒）与 `axmorf-source-follow-v1`（8 秒），各带模板音频；
+  其他帧率按秒换算。`Film.tsx`、`useFilmTiming()`、审片与配乐仍只计正片。交付校验与 `publish.json` 使用总长。
+- `film:review` 新增 `stillWarnings`：相隔 2 秒以上、64×64 灰度缩略图平均差小于 3 的相邻审片帧。阈值用该片校准：
+  结尾静止 4 秒的两帧差 2.37，有变化的相邻帧 4.9–14.3。只提示，不拦截交付。
+- Skill 要求审片清单逐条给出帧号证据，新增“每段顶部标题 + 居中物体 + 底部字幕”的失败信号与替代做法，结尾同样需要次级运动。
+
+验证：film 测试 19 项通过；本地打包的 runtime 在测试 Workspace 交付 510 帧（60 + 210 + 240），抽帧与分段音量确认片头、
+正片、片尾参考来源与品牌落版及各自音频都在。
+
 ## Edge TTS 请求节奏与诊断（2026-10-15，0.2.1-rc.1 预发布）
 
 隔离诊断的五次低频请求全部获得 HTTP 101 与可解码音频：当前 API/v1 与 Bing/v2 均通过代理和应用层直连，

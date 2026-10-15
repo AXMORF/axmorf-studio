@@ -90,6 +90,51 @@ export const FilmMusicSpecSchema = z
   });
 export type FilmMusicSpec = z.infer<typeof FilmMusicSpecSchema>;
 
+/**
+ * System brand bookends. Durations are authored at 30 fps and scale with the
+ * film fps; they must stay equal to the scene-template timing.
+ */
+export const FILM_BOOKEND_TEMPLATES = {
+  "axmorf-brand-reveal-v1": { role: "intro", durationAt30Fps: 60 },
+  "axmorf-source-follow-v1": { role: "outro", durationAt30Fps: 240 },
+} as const;
+export type FilmBookendTemplateId = keyof typeof FILM_BOOKEND_TEMPLATES;
+
+export const FilmBookendsSchema = z
+  .object({
+    intro: z.literal("axmorf-brand-reveal-v1").nullable(),
+    outro: z.literal("axmorf-source-follow-v1").nullable(),
+    theme: z.enum(["dark", "light"]).default("dark"),
+    /** References listed on the outro before the brand lockup. */
+    sources: z
+      .array(
+        z
+          .object({
+            title: z.string().trim().min(1).max(80),
+            url: z.string().trim().min(1).max(200),
+          })
+          .strict(),
+      )
+      .max(6)
+      .default([]),
+  })
+  .strict();
+export type FilmBookends = z.infer<typeof FilmBookendsSchema>;
+
+const bookendFrames = (id: FilmBookendTemplateId | null, fps: number) =>
+  id === null
+    ? 0
+    : Math.round((FILM_BOOKEND_TEMPLATES[id].durationAt30Fps * fps) / 30);
+
+/** Frames the system intro and outro add around the authored film body. */
+export const resolveFilmBookendFrames = (spec: {
+  readonly render: { readonly fps: number };
+  readonly bookends?: FilmBookends | undefined;
+}) => ({
+  introFrames: bookendFrames(spec.bookends?.intro ?? null, spec.render.fps),
+  outroFrames: bookendFrames(spec.bookends?.outro ?? null, spec.render.fps),
+});
+
 export const FilmSpecSchema = z
   .object({
     schemaVersion: z.literal(FILM_SCHEMA_VERSION),
@@ -116,6 +161,8 @@ export const FilmSpecSchema = z
       .default({ narrationStartFrame: 15, tailFrames: 45 }),
     narration: z.array(FilmSentenceSchema).max(200),
     music: FilmMusicSpecSchema.nullable().default(null),
+    /** Omitted means no bookends; film:new fills it from the Workspace defaults. */
+    bookends: FilmBookendsSchema.optional(),
     publish: z
       .object({
         title: z.string().trim().min(1).max(80),
