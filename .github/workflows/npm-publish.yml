@@ -172,12 +172,28 @@ jobs:
         run: |
           set -euo pipefail
 
+          # A new version can take ten minutes or more to become visible in the public registry.
+          wait_for_integrity() {
+            local package_name="$1" package_version="$2" attempts="$3" integrity=""
+            for (( attempt = 1; attempt <= attempts; attempt++ )); do
+              integrity="$(npm view "$package_name@$package_version" dist.integrity 2>/dev/null || true)"
+              if [[ -n "$integrity" ]]; then
+                echo "$integrity"
+                return
+              fi
+              if (( attempt < attempts )); then
+                echo "Waiting for $package_name@$package_version to become visible in the public registry ($attempt/$attempts)." >&2
+                sleep 10
+              fi
+            done
+          }
+
           publish_or_verify() {
             package_name="$1"
             package_version="$2"
             tarball="$3"
             local_integrity="$4"
-            registry_integrity="$(npm view "$package_name@$package_version" dist.integrity 2>/dev/null || true)"
+            registry_integrity="$(wait_for_integrity "$package_name" "$package_version" 1)"
 
             if [[ -n "$registry_integrity" ]]; then
               test "$registry_integrity" = "$local_integrity"
@@ -185,18 +201,16 @@ jobs:
               return
             fi
 
-            npm publish "$tarball" --access public --provenance --tag "$DIST_TAG"
-            registry_integrity=""
-            for attempt in {1..30}; do
-              registry_integrity="$(npm view "$package_name@$package_version" dist.integrity 2>/dev/null || true)"
-              if [[ -n "$registry_integrity" ]]; then
-                break
+            publish_log="$(mktemp)"
+            if ! npm publish "$tarball" --access public --provenance --tag "$DIST_TAG" 2>&1 | tee "$publish_log"; then
+              # An earlier run may have published this version before the registry showed it;
+              # the integrity check below still decides whether that copy is the expected one.
+              if ! grep -Eq 'EPUBLISHCONFLICT|cannot publish over the previously published versions' "$publish_log"; then
+                exit 1
               fi
-              if (( attempt < 30 )); then
-                echo "Waiting for $package_name@$package_version to become visible in the public registry ($attempt/30)."
-                sleep 10
-              fi
-            done
+              echo "$package_name@$package_version was already published; verifying the registry copy."
+            fi
+            registry_integrity="$(wait_for_integrity "$package_name" "$package_version" 180)"
             test "$registry_integrity" = "$local_integrity"
           }
 
