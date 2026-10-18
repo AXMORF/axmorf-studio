@@ -14,14 +14,9 @@ import { WORKSPACE_VERSION } from "../workspace/resolve-workspace";
 
 const WORKSPACE_DIRECTORIES = [
   "private",
-  "src/projects",
+  "src/films",
   "src/remotion/catalog",
-  "public/projects",
   "public/assets/axmorf-shared",
-  ".narration-work",
-  ".producer-work",
-  ".producer-artifacts",
-  ".producer-attempts",
   "out",
   "deliveries",
 ] as const;

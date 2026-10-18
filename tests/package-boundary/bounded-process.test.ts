@@ -80,53 +80,6 @@ test("interruption rejects through finally so callers can release exclusive prep
   }
 });
 
-test("ownership registration failure drains child output before closing its log", async () => {
-  const root = await mkdtemp(join(tmpdir(), "axmorf-process-registration-"));
-  const logPath = join(root, "process.log");
-  try {
-    await assert.rejects(
-      runBoundedProcess(
-        process.execPath,
-        [
-          "-e",
-          "setInterval(()=>process.stdout.write('streaming-output\\n'),1)",
-        ],
-        { trackOwnership: true, timeoutMs: 2000, logPath },
-        {
-          registerOwnedProcess: async () => ({
-            started: async () => {
-              const { watch, existsSync, readFileSync } =
-                await import("node:fs");
-              await new Promise<void>((resolve, reject) => {
-                const timer = setTimeout(() => {
-                  observer.close();
-                  reject(new Error("Fixture output absent"));
-                }, 2000);
-                const observer = watch(logPath, () => {
-                  if (
-                    existsSync(logPath) &&
-                    readFileSync(logPath, "utf8").includes("streaming-output")
-                  ) {
-                    clearTimeout(timer);
-                    observer.close();
-                    resolve();
-                  }
-                });
-              });
-              throw new Error("Registration write failed");
-            },
-            spawnFailed: async () => undefined,
-          }),
-        },
-      ),
-      /Registration write failed/u,
-    );
-    assert.match(await readFile(logPath, "utf8"), /streaming-output/u);
-  } finally {
-    await rm(root, { recursive: true, force: true });
-  }
-});
-
 test("fixture startup failure reports child diagnostics before the readiness timeout", async () => {
   const { spawn } = await import("node:child_process");
   const root = await mkdtemp(join(tmpdir(), "axmorf-fixture-failure-"));
@@ -179,9 +132,6 @@ test("an EPERM cleanup race is accepted only after signal zero proves the group 
     ["-e", "console.log('rendered')"],
     {},
     {
-      registerOwnedProcess: async () => {
-        throw new Error("unexpected registration");
-      },
       signalProcess: (_pid, signal) => {
         calls.push(signal);
         throw signal === 0 ? missingGroupError() : permissionError();
@@ -209,9 +159,6 @@ for (const probe of ["active", "denied"] as const) {
         ],
         {},
         {
-          registerOwnedProcess: async () => {
-            throw new Error("unexpected registration");
-          },
           exitedGroupHasNoWriters: () => false,
           signalProcess: (_pid, signal) => {
             if (signal === 0 && probe === "active") return true;
@@ -281,36 +228,6 @@ test(
       // The fixture owns this deliberately unkillable-by-the-adapter child.
       stopOwnedFixture(target);
     }
-  },
-);
-
-test(
-  "a closed process cannot hang forever on pending ownership registration",
-  { timeout: 5000 },
-  async () => {
-    await assert.rejects(
-      runBoundedProcess(
-        process.execPath,
-        ["-e", "console.error('registration pending');process.exit(7)"],
-        { timeoutMs: 500, trackOwnership: true },
-        {
-          registerOwnedProcess: async () => ({
-            started: () => new Promise<void>(() => {}),
-            spawnFailed: async () => undefined,
-          }),
-        },
-      ),
-      (error: unknown) => {
-        assert.ok(error instanceof Error);
-        assert.match(error.message, /timed out after 500/u);
-        assert.equal((error as Error & { status: number }).status, 7);
-        assert.match(
-          (error as Error & { stderr: string }).stderr,
-          /registration pending/u,
-        );
-        return true;
-      },
-    );
   },
 );
 
@@ -443,93 +360,6 @@ test(
       output,
       "Process-group inspection via /bin/ps unavailable (snapshot-read-failed; EPERM).",
     );
-  },
-);
-
-test(
-  "registration and cleanup failures preserve the original failure, process identity, and streamed log",
-  { timeout: 5000 },
-  async () => {
-    const root = await mkdtemp(
-      join(tmpdir(), "axmorf-process-register-cleanup-"),
-    );
-    const logPath = join(root, "process.log");
-    let target: number | undefined;
-    const before = [
-      process.listenerCount("exit"),
-      process.listenerCount("SIGTERM"),
-      process.listenerCount("SIGINT"),
-    ];
-    try {
-      await assert.rejects(
-        runBoundedProcess(
-          process.execPath,
-          [
-            "-e",
-            "console.log('registered writer output');setInterval(()=>{},1000)",
-          ],
-          { trackOwnership: true, timeoutMs: 3000, logPath },
-          {
-            registerOwnedProcess: async () => ({
-              started: async () => {
-                const { watch, readFileSync } = await import("node:fs");
-                await new Promise<void>((resolve, reject) => {
-                  const observer = watch(logPath, () => {
-                    if (
-                      readFileSync(logPath, "utf8").includes(
-                        "registered writer output",
-                      )
-                    ) {
-                      observer.close();
-                      clearTimeout(timer);
-                      resolve();
-                    }
-                  });
-                  const timer = setTimeout(() => {
-                    observer.close();
-                    reject(new Error("fixture output missing"));
-                  }, 2000);
-                });
-                throw new Error("original registration failure");
-              },
-              spawnFailed: async () => undefined,
-            }),
-            signalProcess: (pid, signal) => {
-              target = pid;
-              if (signal === 0) return true;
-              throw permissionError();
-            },
-          },
-        ),
-        (error: unknown) => {
-          assert.ok(error instanceof Error);
-          assert.match(
-            error.message,
-            /original registration failure.*owned process(?: group)? [0-9]+.*EPERM/u,
-          );
-          assert.match(
-            (error as Error & { stdout: string }).stdout,
-            /registered writer output/u,
-          );
-          return true;
-        },
-      );
-      const log = await readFile(logPath, "utf8");
-      assert.match(log, /registered writer output/u);
-      assert.match(log, /original registration failure/u);
-      assert.match(log, /EPERM/u);
-      assert.deepEqual(
-        [
-          process.listenerCount("exit"),
-          process.listenerCount("SIGTERM"),
-          process.listenerCount("SIGINT"),
-        ],
-        before,
-      );
-    } finally {
-      stopOwnedFixture(target);
-      await rm(root, { recursive: true, force: true });
-    }
   },
 );
 

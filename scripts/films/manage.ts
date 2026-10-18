@@ -24,18 +24,19 @@ export const listFilms = async (rootDir: string) => {
       FilmPublishSchema,
       "publish.json",
     ).catch(() => null);
+    const music: "none" | "ready" | "missing" =
+      spec?.music === null
+        ? "none"
+        : (await exists(paths.music))
+          ? "ready"
+          : "missing";
     films.push({
       filmId: id,
       title: spec?.publish.title ?? null,
       render: spec?.render ?? null,
       sentences: spec?.narration.length ?? null,
       voice: await exists(paths.timing),
-      music:
-        spec?.music === null
-          ? "none"
-          : (await exists(paths.music))
-            ? "ready"
-            : "missing",
+      music,
       delivered:
         publish === null
           ? null

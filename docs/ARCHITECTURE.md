@@ -1,434 +1,81 @@
 # Architecture
 
-> 文档类型：架构 authority
+> 文档类型：当前架构 authority
 >
-> 本文描述已发布的 Project production 主链。产品目标已改为 direct 方式，0.3.0 删除本主链，
-> 目标结构见 [Direct Film 生产方案](promotions/2026-10-14-direct-film-production.md)。
+> 最后复核：2026-10-19（0.3.0）
 
-## 视觉、音频与局部修订
+AXMORF Studio 由两个 npm 包和一个用户 Workspace 组成。Agent 直接编写每部片的 Remotion 源码；工具只负责
+旁白时序、原创配乐、素材准入、审片帧、硬规则检查和经过复验的交付。
 
-新片 Skill 默认以代码合成配乐；creator 分发无额外 npm 依赖的 Node/FFmpeg helper。
-helper 的可选 arrangement 把 tonic/mode/progression/swing 与分段乐器、密度、力度编译为既有音乐事件网格；
-省略 arrangement 的旧 recipe 保持原 bytes，不改变 runtime timeline 合同。
-create input 的 synthesized 模式只接收 Workspace-owned generated-score WAV/timeline：创建前独立生成，
-创建事务校验 checksum/PCM 时长/fps 并冻结 sound.json.synthesizedMusic，仍保持 create 零 provider/零媒体生成。
-全片 composition loop 替换 Scene/模板配乐、保留独立音效。Scene task 在 prepare 后获得局部 musicTiming，
-其 identity 绑定冻结音乐网格；sealed narration/semantic timing 不变。调音 revision 必须保留该网格。
-没有口播时可以用节拍预算 authored frames；有口播时音乐网格只是可选动作落点，不成为语音时序 authority。
+## 1. 包与 Workspace
 
-边界修订使用 Story preset 中可选、fingerprint-covered 的 template playback window：immutable instance 与 copied bytes 不变，
-fixed artifact 派生局部 shot/anchor 和音轨源起点，SceneSlot 保持实际 Beat Sequence 时长并偏移模板 source clock。
-Project/Scene 音轨可选首尾线性包络；循环 BGM 的包络延续到整条 contribution，不能每轮重置。
-正式 revision 开放既有 template 区间、既有 track 的增益/包络，以及 composition→content-window 的单向范围收窄。
-运行时升级后须正式重验 current delivery；
-missing artifact 的 owning Scene task input 完全不变时可冻结其已验证 current source 为 bound priorSource，
-保留既有画面后重新执行 validators 和提交，不能把 current source 当 artifact hit。
+| 部分                   | 内容                                                                                   |
+| ---------------------- | -------------------------------------------------------------------------------------- |
+| `create-axmorf-studio` | 创建与升级 Workspace；携带模板、`axmorf-film` Skill 与 Claude Code 入口                |
+| `@axmorf/studio`       | `axmorf` CLI、`/contracts`、`/remotion` 公共导出、预构建 Web 控制中心与共享媒体种子    |
+| Workspace              | 用户的 `src/films/`、`public/`、`deliveries/`、`private/` 配置与 `.axmorf/` 缓存和历史 |
 
-无旁白正文沿同一 production 主链：`visual-scene` 的 authored frames 生成 `authored-frames-v1`
-SemanticTiming，旁白 source/两份 manifest 明确为 null，不创建 provider/narration tasks。Composition
-省略 NarrationAudioTrack，保留顶层 caption ownership；空 captions 回收字幕预留区。
-兼容的选曲 BGM 与 GlobalVisual decoration 使用正文窗口；GlobalVisual base 仍覆盖完整 Composition。
-正文 BGM 跨 Scene 连续播放，只抑制正文 Scene 配乐，保留首尾模板配乐及独立音效。
-旧 composition scope 继续覆盖完整影片；正式 sound revision 可显式将其收窄到 content-window，保留媒体身份与 bytes。
-Scene 可通过公开 action timing helper 消费计划，并接收冻结 continuity。
-可选 `outgoingHandoff.visual` 是自由 SVG 数据，与相邻任务共享同一 immutable seam；公开
-`SceneContinuityVisual` 只绘制该主体。声明进入 Scene input fingerprint，语义 handoff ID 保持原定义。
-有 visual 时独立检查首/末帧的实际 DOM、输入消费与 viewport 字号；没有 visual 的旧任务不改变。
-这些检查不证明浏览器遮挡、Canvas/3D paint、完整运动或审美质量，仍须实际边界审阅。
-绑定的 task preview 是独立诊断适配器：校验与快照 owning source 后实际渲染，不进入 artifact/delivery
-identity，也不扩展 worker 文件权限。详见[视觉叙事](guides/VISUAL_NARRATIVE_QUALITY.md)。
-create context 的 `soundResources` 只投影当前 Catalog 已批准、runtime-approved、许可 verified 的
-音效与音乐；`backgroundMusic` 另投影已核验的全局 loop 候选、自动/文件/禁用模式及缺曲状态，不暴露私有配置路径。
-create input 可选 `backgroundMusic`：synthesized 为新片 Skill 使用的原创代码配乐；兼容的省略继承、auto 按当前 brief 匹配候选、selected 指定 resourceId、null 明确关闭背景音乐。
-create-time 本地化冻结 checksum/license/Project-owned bytes；一个 content-window 音轨覆盖正文，抑制正文 Scene 的第二条音乐，
-首尾模板配乐保留，音效仍按独立 anchor 混音。旧 composition/narrated-content/content Plan 不自动迁移，空曲库返回 unavailable 和空 Project 音轨。
+仓库根目录本身也是一个开发用 Workspace：`npm run bootstrap` 生成 `src/films/index.ts` 与片头片尾音频投影，
+`src/Root.tsx` 与生成 Workspace 的 `src/index.ts` 调用同一个 `createRemotionRoot`。
 
-发布独立于生产 runtime：推送版本 tag 后，可信 npm Actions 在默认分支已合入的 commit 上运行完整 `npm run check`、
-最小实际渲染与全新外部安装，通过后以 provenance 发布；预发布版本进入 `next`，正式版本进入 `latest`。
-真实 Agent 宿主验收是 `next` 晋级为正式版本的条件，不阻塞发布；`scripts/release/` 的原生运行审计工具保留为可选诊断。
-规则和原生日志不进入公开包。见[发布流程](guides/FIRST_USE_RELEASE_GATE.md)。
-
-## 1. 模块与依赖方向
+## 2. 模块
 
 ```text
-packages/studio/
-  src/contracts/               JSON-safe versioned contracts
-  src/remotion/                runtime capabilities and top-level ownership
-  src/runtime/                 immutable package resources and policy manifest
-  src/cli/                     one compiled workspace-aware CLI
-  src/web/ + dist/web/         loopback HTTP adapter and prebuilt control center
-packages/create-axmorf-studio/
-  src/                         atomic scaffold application
-  template/                    Workspace instructions, generic Skill and static seeds
-src/projects/<storyId>/        ignored Project authoring + materialized current source
-.producer-revisions/<storyId>/ ignored isolated candidate source/media/work/attempt/output/delivery
-src/runtime/                   generated thin public-package facades for bundling
-scripts/project-production/
-  domain/                      pure Revision, DAG, invalidation, plan rules
-  application/                 orchestration/use cases and ports
-  adapters/                    filesystem, Artifact Store, media, progress, host tools
-  cli.ts                       resolve/inspect/prepare/bound-task/recovery/continuation surface
-scripts/projects/              atomic create/revision/originality/promotion/delete use cases
-scripts/narration/             provider attempt cache, PCM validation, seal and timing
-scripts/scene-package/          deterministic ScenePackage/Coverage generation
-scripts/project-preview/        frozen artifact projection and diagnostic draft render
-scripts/reference-analysis/     bounded cut/motion/frame-evidence diagnostics
-scripts/shared/render-h264-aac.ts  lossless PCM and one AAC-to-MP4 encoding path
-scripts/renderer-registry/      static composition-local registry generation
-settings/                      Web source; Vite is monorepo build-time only
-private/execution-preferences.json  ignored Agent execution defaults, separate from ProducerConfig
-AGENTS.md                      contributor instruction authority
-packages/create-axmorf-studio/template/AGENTS.md
-                               generated Workspace instruction authority
-CLAUDE.md / GEMINI.md          thin host imports; no duplicated workflow
-.agents/skills/                contributor workflow; creator owns the user Workspace snapshot
+packages/studio/src/
+  contracts/          zod 合同：film（FilmSpec/Timing/Music/Assets/Publish）、producer-config、旁白与音色、
+                      片头片尾主题与模板音频、合成配乐时间线
+  remotion/film/      FilmProvider、useFilm/useFilmTiming、FilmCaptions、FilmSoundtrack、FilmBookends、
+                      FilmCompositions（正片、--review、两张封面）与联系表 Still
+  remotion/capabilities/  可选的镜头、运动、界面组件、媒体、特效与片头片尾模板
+  remotion/runtime/sound-design/  音频播放、循环与旁白 ducking
+  bootstrap/          Workspace 目录、共享资源种子与 doctor（含真实浏览器渲染）
+  cli/                axmorf 命令路由：bootstrap、doctor、browser prepare、web、preview、dev、film
+  web/                本地 Web 服务：静态资源、API 转发与交付媒体（只读 publish.json 记录的文件）
+scripts/
+  films/              film:new|voice|music|asset|review|check|deliver|list|delete 的实现；score/ 是配乐引擎
+  narration/          TTS provider adapter（Edge、Speech SDK、VoxCPM）、PCM 与响度处理
+  config/             私有 producer config 读写与旁白执行快照
+  scene-templates/    片头片尾模板音频投影
+  shared/             进程、媒体工具、Remotion CLI、原子写入与 Workspace 操作锁
+settings/             Web 控制中心：作品列表与交付预览、通用、片头片尾、TTS 配置与环境诊断
 ```
 
-`AGENTS.md` remains the single repository Agent instruction authority. The creator writes a separate
-Workspace-local `AGENTS.md` and Skill snapshot for the generated user's directory; host adapters only import the
-authority in their own scope and never duplicate its rules.
+依赖方向：`scripts/` 与 `settings/` 依赖 `@axmorf/studio/contracts` 和运行时源码；运行时不依赖 `scripts/`，
+CLI 通过动态 import 加载 `scripts/films` 等实现并由 esbuild 打进 `dist/cli/main.js`。`settings/client` 只依赖浏览器
+安全的合同与自身模块。
 
-根 package 只管理 npm workspaces 和 contributor checks，不是 consumer runtime import target。runtime package
-公开 surface 只包含 `.`, `/contracts`, `/remotion` 和一个 compiled bin；creator 生成的是普通独立 npm application，
-不是嵌套 monorepo。
+## 3. 一部片的数据流
 
-`domain/` 不读取 filesystem 且不依赖 application/adapters/CLI。application 编排 use cases，不承载 host
-details；adapters 实现 filesystem/process/media ports，不能反向成为业务 authority。`scripts/project-production`
-是唯一 production/delivery root，不存在第二条构建链。
-
-`domain/attempt-progress.ts` 负责从 immutable attempt/events 纯计算进度、终态统计与计划诊断字段；
-`adapters/attempt-store.ts` 负责事件读取、原子追加、并发投影刷新与持久化。初始与事件进度共享字段投影，
-重复终态与跨绑定事件仍拒绝。分层检查同时拒绝 domain 直接依赖 filesystem/child-process 模块。
-
-## 2. Authority graph
-
-```mermaid
-flowchart TD
-  Create[Atomic configured authoring] --> Inputs[Explicit authoring contracts + selected bytes]
-  Current[Verified current Revision + Delivery] --> Candidate[Strict isolated revision candidate]
-  Candidate --> Inputs
-  AgentTools[Root original artwork or licensed visual assets] -. validated import .-> Inputs
-  Prompt[Explicit user execution fields] --> Execution[One-run execution resolution]
-  Settings[Independent execution preferences] --> Execution
-  Builtin[Built-in subagents default: max 4] --> Execution
-  Execution -. orchestration only .-> Inspection
-  Inputs --> Inspection[Read-only ProductionInspection]
-  Inspection --> Prepare[Explicit costly preparation]
-  Prepare --> Revision[ProductionRevision]
-  Revision --> Tasks[ProducerTaskSpec DAG]
-  Tasks --> Contracts[Immutable Agent TaskExecutionContracts]
-  Tasks --> Plan[ProducerPlan]
-  Plan --> Work[Dirty task workspaces]
-  Contracts --> Work
-  Plan --> Artifacts[Reused artifacts]
-  Work --> Bind[Attempt-bound zero-write binding]
-  Bind --> Executor[Bound task executor]
-  Executor --> Validator[Fixed validators]
-  Validator --> Artifacts[Artifact Store + attestations]
-  Artifacts --> Continue[One-shot fixed continuation]
-  Artifacts -. optional read-only projection .-> Preview[Frozen draft view]
-  Continue --> Converge[Convergence]
-  Converge --> Scope[Live or isolated candidate materialization]
-  Scope --> Delivery[Exact four-file DeliveryBuild]
-  Delivery --> CandidateGate{Candidate scope?}
-  CandidateGate -->|no| DeliveryCurrent[Exact four-file current delivery]
-  CandidateGate -->|yes| Promote[Controlled candidate promotion]
-  Promote --> DeliveryCurrent
-  Inspection -. diagnostics only .-> Explanation[Estimate + invalidation explanation]
-  Plan -. diagnostics only .-> Attempt[ExecutionAttempt]
+```text
+film:new     → src/films/<filmId>/film.json、Film.tsx、Cover.tsx、assets.json；更新 src/films/index.ts
+film:voice   → TTS（按 provider、音色与文本缓存在 .axmorf/cache/voice）→ public/films/<id>/narration.wav
+               → generated/timing.json（实测 PCM samples 换算帧）
+film:music   → film.json 的 music.score → public/films/<id>/music.wav → generated/music.json（拍、段落、重音帧）
+film:review  → <id>--review 组合按帧渲染 → 联系表与 stillWarnings
+film:check   → TypeScript、网络调用、CSS 动画、随机数与时间、未登记媒体、跨片 import、必须挂载的组件、过期时序
+film:deliver → .axmorf/staging 中渲染正片（片头 + 正片 + 片尾）与两张封面 → 复验 → publish.json
+               → 替换 deliveries/<id>/，旧交付移到 .axmorf/history/<id>/<deliveredAt>
 ```
 
-ProductionRevision/TaskRevision/ArtifactAttestation/DeliveryBuildId 是内容 identities；ProductionInspection、
-TaskDecisionExplanation、diagnostic baseline 与 ExecutionAttempt 都不是。它们不得进入或改变 dispatch、
-materialization、delivery identity/authority。Agent chat、child identity、process lifecycle、clock 与 absolute
-path 都在 authority graph 之外。
+渲染期间不调用网络、Agent、Git 或目录扫描；Remotion Root 只读生成的静态注册表。`Film.tsx` 只看到正片帧，
+片头片尾由 `FilmWithBookends` 在交付组合中接上，各自带模板音频。
 
-`AgentTools` 是新 Project create 后、首次 inspect 前的素材准备通道，不属于 production data plane。
-Root 可调用当前生图工具、创作原创 SVG，或使用兼容的许可图片 MCP；无素材需求或缺少工具时不产生占位任务。
-`project:asset:import --input` 校验 generated-artwork provenance 与真实 bytes，原子接入 Project manifest、
-Catalog、Story pool 和目标正文 Scene；原 `--receipt` 第三方许可路径保留。工具、远程 URL、credential、
-receipt 或 candidate path 不进入 child/runtime，生产只依赖准入后的 manifest identity、来源与 bytes fingerprint。
-revision candidate 仍只使用 base snapshot 已有媒体；没有引入 worker 生图或 runtime 网络调用。
+## 4. 写入所有权与并发
 
-## 3. Contract boundaries
+- `src/films/<id>/` 的源码由 Agent 编写；`generated/` 与注册表只由 CLI 写入。
+- 写操作（new、voice、music、asset、deliver、delete）与 Workspace 升级共用 `.project-operation.lock`；
+  锁被占用时命令失败并报告，不排队、不抢锁。
+- `film:delete` 只删除该片拥有的路径：源码、`public/films/<id>`、交付、历史、`out/films/<id>` 与 staging 残留。
+- 交付在复验通过后才替换；替换失败时恢复旧交付。
 
-StoryBeat 与 Scene ownership 分离：可选 `story.visualScenes` 按顺序完整分组正文，首 meaningId 为 owner。
-任务路径、source graph、ScenePackage 与静态 RendererRegistry 每 owner 一份，Coverage/Timing/Publishing 每 Beat 一条。
-SceneTask v8 保留 coveredBeats 和所有原 briefs/cues/资源；ScenePackage v7 声明 coveredMeaningIds；单 Beat 的 v7/v6 继续可读。
-`filmPlan` 是所有 owner 共享的创作意图，绑定 immutable context。runtime 在整个 owner window 挂载一次，音效每 owner 一次。
+## 5. Workspace 升级
 
-显式 authored-frames 使用累计 preset duration 和独立 fixed semantic task，缺省旁白继续以 PCM 定义时间。
-两者通过 SemanticTiming union 和 `resolveSemanticContentFrameRange` 提供同一正文范围，sealed/mastered 在 authored 分支缺席。
-无旁白 Scene 仍遵守素材、声音、viewport、originality 和交付验证。见[连续创作指南](guides/CONTINUOUS_VIDEO_AUTHORING.md)。
-连续 handoff 统一按 Scene ownership 分类，narrated 与 silent scene-owner 共用冻结接缝，template-copy 不参与。
+`create-axmorf-studio upgrade` 按 `.axmorf/managed.json` 比较托管文件：更新或创建模板文件，删除旧版托管而新版
+不再提供的文件（包括退役的 `axmorf-video` 与旧 `remotion-best-practices` Skill），只删除仍是旧产品值的已退役 npm scripts。被用户改过的托管文件
+先备份再覆盖，并列在 `localChanges`。随后运行 `npm install`、`bootstrap`、`doctor`，任一步失败就恢复备份。
+旧 Project 链留下的目录只列在 `legacyProjectData`，不自动删除。
 
-草稿是 diagnostics：只读取有效 tasks/artifacts，在私有 source/public view 中投影同一 build scaffold，再以缩放 profile 渲染。
-独立 preview receipt/cache 不进入 production data plane，不写 current 或提升 candidate。参考分析通过有界区间细化、
-图像运动与时间戳彩色帧提供可读证据，整目录/hash 复验；相机语义解释和人工观察仍在诊断面。
-正式/草稿渲染共用 lossless PCM 与单次 AAC-to-MP4 mux adapter，保留 encoder priming metadata，原 H.264 stream copy；
-声道在该次编码选择，不另走 AAC 解码后转 mono 的路径。delivery policy fingerprint 覆盖该共同实现。
-正式/草稿统一关闭 parallel encoding，以完整帧序列固定精确视频时间基；帧渲染 concurrency 保留。
+## 6. 发布
 
-- ProductionRevision 只冻结 task inputs；不包含 Agent output、workspace path 或 attempt diagnostic。
-- ProjectRevisionInput 绑定 exact current Revision/Delivery，只允许 strict authored patch；candidateId/scope path
-  只负责路由隔离，不进入 ProductionRevision、TaskRevision、ArtifactAttestation 或 DeliveryBuildId。
-- ProducerTaskSpec 绑定最小 complete input、dependency artifacts、declared read/output set 与 per-kind policy。
-- TaskExecutionContract 只绑定 dirty Agent task 的 purpose/workflow/constraints、component signatures 与 exact
-  output ownership；它是 `inputs/task-contract.json` 中的 immutable、attempt-neutral content input，不包含 host
-  transport、binding、failure state 或 command template。contract 版本变化只精确失效 Agent TaskRevision/artifact，
-  不改变 ProductionRevision 或 current delivery。
-- ProducerPlan 投影结构化 task action、typed artifact state、direct changes、dependency propagation 与 blockedBy；
-  DAG 拒绝 cycle、duplicate 或 unknown dependency。对外 explanation 只含 allowlisted input IDs 与安全 subject。
-- ArtifactAttestation 绑定 exact sorted files、bytes、dependencies 与 validator policy；manifest 最后生成。
-- DeliveryPublish 绑定 DeliveryBuildId、exact repository paths、media facts、checksums 与 publishing projection。
-
-所有 JSON contracts 禁止代码、JSX、动态 module path 或 executable expression。runtime binding 由生成的静态
-TypeScript registry 完成。
-
-## 4. Write ownership
-
-| Surface                                     | Writer                            | Rule                                                                                       |
-| ------------------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------ |
-| Project create/configured authoring         | fixed atomic creator              | existing/partial/conflicting target fail closed；零 provider/media/attempt                 |
-| Optional external acquisition               | current Root Agent + fixed import | callable compatible MCP 才出现；缺失即省略；只在 inspect 前写 Project-owned asset/evidence |
-| Optional generated artwork                 | current Root Agent + fixed import | 原创图片/SVG 仅在首次 inspect 前经 --input 原子准入 bytes/provenance、pool 与目标正文 Scene |
-| Existing Project authoring revision         | fixed candidate builder           | strict exact-base input；isolated candidate；禁止 live in-place edit                       |
-| revision candidate promotion                | fixed promotion transaction       | exact-four preflight；lock 内 base recheck；controlled replace/rollback                    |
-| `.producer-work/<story>/<taskRevision>`     | one bound task executor           | bind 前零写；只写 TaskExecutionContract 允许的 declared Agent/Agent-draft outputs          |
-| `.producer-artifacts`                       | fixed commit adapter              | validator recheck + atomic promotion only                                                  |
-| materialized Scene/GlobalVisual/Cover roots | fixed materializer                | all artifacts present; controlled replace/rollback                                         |
-| generated packages/registry/Composition     | fixed convergence                 | deterministic projection                                                                   |
-| delivery staging/current                    | fixed synchronous builder         | exact identity, media validation, controlled promotion                                     |
-| `.producer-attempts`                        | fixed prepare/progress adapter    | diagnostic snapshot only；不能拥有 artifact/delivery                                       |
-| `out/<storyId>/scene-review`                | delivery review CLI               | local diagnostic PNG/HTML only；不进入任何 production identity                             |
-
-private config、voice profiles、shared media、core、other Projects 与 historical data 不属于 Agent task write scope。
-
-Project create 对 `render.width/height/fps/locale` 按字段解析：明确的 authored override 优先，省略字段继承
-ProducerConfig `renderDefaults`。只把解析结果冻结到 Project RenderSpec，不改写 private config；CLI 返回已复验
-render 供 Agent 在有成本生产前核对用户要求。既有 Project 的 RenderSpec 不由当前默认设置重新覆盖。
-
-## 5. Task isolation
-
-Scene task reads its complete owning StoryBeat or consecutive group, original covered Beats/timing/briefs, filmPlan,
-Scene-only requirements, a derived SceneViewport, Scene brief, VisualStyleSpec, Scene-local narration chunk ranges, resource pool and
-selected resources. New content receives a full-frame viewport and a separate textSafeArea; legacy content and fixed
-template-copy bookends keep safe-area-local geometry. Raw Composition readability policy stays composition-owned. GlobalVisual reads
-Story/Timing/VisualStyle/requirements/brief/resources but never Scene output. Its fixed layer policy derives a
-full-Composition base range and a first-to-last content Beat decoration range from canonical SemanticTiming;
-the decoration component receives window-local frame zero. Cover reads only
-Story/VisualStyle/fixed CoverSpec. Template-copy is a fixed task over the configured Project-local template
-instance. Its artifact is the exact union of immutable copied source/assets and the canonical derived Scene bundle;
-live-only fixed projections are excluded from its task identity.
-
-New Projects freeze readability policyVersion 3 with `canvasMode: "full-frame"`. Content viewport schemaVersion 2
-uses `coordinateSpace: "scene-full-frame"`, full canvas dimensions and textSafeArea insets; no-narration content reserves
-no caption band. SceneTextSafeArea mounts readable text outside art/camera transforms. Fixed template-copy bookends
-derive the prior schemaVersion 1 viewport. Existing policyVersion 1/2 bytes, geometry and fingerprints remain unchanged;
-revisions preserve the complete validated frozen policy rather than silently migrating layout.
-
-Scene owner validator v4 distinguishes actual text from provable JSX-only layout/graphic children. A bounded
-syntax proof resolves lexical const bindings and supports common synchronous map returns; unknown or text-returning
-expressions still require readable text sizing. Numeric 2D translation/rotation is accepted, while shrinking or
-unknown text transforms remain rejected. Only explicit native SVG graphics without text, custom/unknown children,
-or text-affecting definitions are exempt from text-scale checks. The proof helper participates in the Scene policy
-fingerprint; no authored code is evaluated. These source checks do not certify rendered contrast or clipping.
-Default boundary templates keep transparent roots and read semantic colors from `VisualStyleSpec.theme`.
-The Composition directly paints the validated theme background and composites themed decoration behind Scenes in an isolated group capped at 8% opacity; a themed GlobalVisual base must return null and is never mounted.
-The theme is a fallback/text/brand anchor, not a palette limit for new full-frame Scene artwork. A transparent Scene root
-may contain scenic backgrounds, images, SVG, lighting and foreground occlusion. Text must remain readable against its
-actual local image; the GlobalVisual ambient opacity limit does not apply to these Scene-owned layers.
-Legacy Projects without a theme retain their existing base path. Existing Project-local template copies remain immutable;
-incompatible legacy template/theme revisions are rejected before mutation. See [visual theme contract](contracts/VISUAL_THEME_CONTRACT.md).
-
-inspect 前的 execution resolver 按用户提示词、settings、内置 `subagents`/4 默认逐字段选择 Root inline 或 bounded
-subagents，且不进入 production identity。subagents 还要求宿主为本次 production 验证 `shared-workspace` 或
-`controller-io`；transport 不进入 settings 或持久 identity。每个 dirty Agent task 只有一个 executor；inline 一次一个 workspace，
-subagents 最大四个并受 runtime capacity 限制。全部完成或 admission 后 Root 通过原进程阻塞等待或原生通知监督，
-普通超时只续等；错误时才诊断并指导原 executor，不接管 task workspace。每个用户请求最多自动恢复一次已证明的
-视频任务错误：旧 continuation/workers 全退出、recover-inspect ready 后，same-Revision/零 provider reissue 到 fresh
-attempt/bindings/workers；系统/外部/未知故障诊断报告。该策略在 Agent 层执行，CLI 不新增自动重试循环。fixed continuation 以 one-shot
-atomic claim 独占 exact attempt，只订阅 immutable mechanical task-terminal event log；attempt 创建起一小时总
-deadline 防止无限等待。
-ArtifactAttestation 才进入 production data plane。
-
-每个 Agent task 的 binding ID 由 exact TaskRevision/attemptId 得出。`task bind` 是 attempt-bound zero-write gate：
-校验 task/attempt authority、三个 immutable inputs 及其 checksum/contract 后才返回 `task-worker-bound`。
-shared-workspace binding 提供严格 workspace capability；controller-io binding 不提供 filesystem access，只通过
-bound file-read/file-write 读取 immutable/existing-output 或写 declared output。describe/finalize/check/commit 与
-authored task failure 需要 full binding；Root-only spawn failure 与 fixed-controller failure authority 更窄，
-只能记录 exact terminal event，不能访问 task content。child identity 不持久化。
-
-Finalizer 在全部 draft 投影成功前不写 derived outputs；draft schema 错误带 `diagnostic`，包含确切 file、首个 issue path/code/message、
-`failureOwner: agent-output` 与修正指引，source 和 npm CLI 使用相同序列化。Scene shot 越界报告实际 endFrame 与 immutable duration，
-不钳制 authored ranges、不要求 Agent 手算 fingerprint。immutable input、路径与未知 fixed 错误不因 finalizer 命令失败而归为创作错误。
-
-## 6. Artifact Store security
-
-Store/workspace paths 只由 strict storyId/task kind/taskRevision schemas 推导，不接收 arbitrary joined path。
-所有 reads 和 commits 要求 containment、regular parents/files、no symlink/special file、exact declared set、
-sorted unique logical paths、size/checksum current。相同 TaskRevision 与不同 bytes 是不可覆盖冲突。
-
-promotion 在目标同父目录准备 staging，完整验证后写 manifest，最后原子 rename。捕获到 replacement failure
-必须恢复上一有效 artifact。Attempt 写入失败不能污染 store。
-
-## 7. Workspace、RuntimeResources 与 materialization
-
-CLI 先从静态 `axmorf.workspaceVersion` marker 解析 canonical Workspace root；所有用户写入位置都
-由这个 root 的 typed locations 派生。package install path 只用于读取 immutable RuntimeResources，包括
-Scene template source、预构建 Web、Remotion preflight、Workspace seed 和稳定 policy manifest。bootstrap
-只把 policy 覆盖、manifest/checksum/license 已验证的 shared seed bytes 写到保留的 Workspace paths，再生成
-Scene template audio projection 与 Resource Catalog；相同 bytes 幂等，已有不同 bytes 或 symlink fail closed。
-package 仍拥有发行 authority，Workspace 不能写 package directory；package path、cwd、PID、时间和 npm cache
-不进入 creative identity。
-
-预制动效音效沿同一共享 seed/manifest/Catalog 路径发行；原始合成源码只供维护者离线重建，bootstrap、production
-和 render 不执行合成。Root 在 authoring 时选择素材并收窄 Scene 的 candidateResourceIds，Scene executor 从冻结
-availableResources 声明 sound-plan 的 anchor/frame、时长与音量，顶层 SoundDesignTrack 统一播放。
-
-当前源码还沿该路径发行五首获用户授权的原始循环 BGM：源 WAV 位于 package seed，公共 manifest 冻结
-checksum、PCM 元数据和单独分发许可，build 纳入 runtime policy；bootstrap 无需访问用户本地库即可登记
-`asset.axmorf.music.*-loop-v1` 候选。create 沿既有流程选曲并冻结为 Project-owned bytes。
-旧私有 ID 与公共 ID 分开，既有 Project 不迁移；包内容与公开发布状态由 ITERATION_STATUS 维护。
-
-公开 revision context/validate/create 与手动、continuation 自动 promotion 均把已验证的 runtime policy manifest
-传入共享 Revision 读取；candidate 与 live base 使用同一 policy authority。普通 npm Workspace 不提供开发仓库的
-`src/contracts` 等源码树，不能丢弃 manifest 后回落到开发源码扫描。
-
-creator install/bootstrap 与生成 Workspace 的 `doctor` 组成 host capability boundary。Agent 可以在 data plane
-之外准备声明的 Node.js/npm、普通依赖和宿主前置条件；OS/reference-environment label、安装步骤与诊断均不进入
-Revision/Task/Artifact/Delivery identity。doctor 只读检查当前 Workspace 的 declared readiness；它不允许 Agent
-改写 package internals、精确依赖、sandbox 或 validators，也不替代 production/Delivery evidence。
-
-Remotion/FFmpeg/FFprobe/Studio 统一解析 Workspace-local `@remotion/cli` 的 JavaScript entry 并通过
-`process.execPath` 启动，不依赖 shell、PATH 或 platform-specific `.bin`。generated Registry/Catalog 在 bundle
-前写入 Workspace，runtime render 不扫描 package、filesystem 或网络。
-
-Workspace configuration snapshot 要求根目录恰有一个 `remotion.config.mjs` 或 `remotion.config.ts`；creator
-生成 Remotion CLI 自动加载的 `.ts`，`.mjs` 仅供旧 Workspace 的配置快照识别。缺失或同时存在时 fail closed。所选配置与 `package.json`、lockfile
-共同进入独立 configuration fingerprint，不与 package-owned runtime policy 混成同一 identity。
-
-candidate scope 复用同一 immutable runtime/config 与 content-addressed Artifact Store，但隔离 Project source/public、
-narration、task workspace、attempt、disposable output 和 Delivery。所有 production/task/recovery CLI 都通过受信
-candidate resolver 定位这些 roots，不能把 candidate directory 当成第二个 Workspace root。
-Revision snapshot/record v2 对 owned roots 显式记录 present/absent；只有 authored-frames 允许 narration 缺失，
-source/public/delivery 仍 required。安全祖先、root presence 与 bytes 一起复验；candidate 不伪造空目录，
-promotion/rollback/idempotence 保留真实缺失。旧 v1 candidate fail closed，不静默迁移。
-revision builder 在 authoring mutation 前验证并冻结受影响普通 Scene 的当前 base source graph、plans、license/lineage，
-以 `production/scene-prior-source.json` 保存到 authoring-owned source root，并纳入 materialization checksum。
-仅 owning entry 的 fingerprint 参与 Scene TaskRevision；bound context 提供它及精确 helper 输出，不扩展 worker 路径权限。
-未改 entry 不变，promotion 后继续作为冻结输入；禁止从新 materialized output 重算以免循环失效。固定模板豁免。
-GlobalVisual 与 Composition 类型校验读取 candidate source graph，但显式使用 shared Workspace runtime root 的
-TypeScript 配置；candidate 不复制 `tsconfig.json`，不得把隔离源码目录误作编译环境目录。
-末端 current-plan 的诊断 baseline 同样保留两个 root：交付/attempt 从 candidate 读取，媒体 probe 的 npm binary
-从 shared Workspace 解析。诊断不拥有或改写内容 identity，不把 candidate 当作第二个 npm Workspace。
-
-convergence 在任何 live write 前通过 read-only current-plan builder 重新计算 Revision、检查全部 required
-artifacts；它不调用 provider、不创建 workspace 或 planning attempt。Scene/GlobalVisual/Cover roots
-分别 staging 并受控替换；跨 `src`/`public` 操作必须 rollback。物化后重新 hash live exact paths。
-同一 read phase 还验证全部 `scene-owner` artifact 的 exact 与 TypeScript token-normalized source graph 唯一性；
-originality baseline 是 Project-local immutable authoring input，只进入 Scene owner node，不进入 ProductionRevision、
-template-copy 或其他 owner identity。legacy baseline 只能通过显式持锁、零 provider migration 创建。
-Template Scene source normalization 使 create-only、fixed-prepared 与 materialized view 对同一 unchanged input
-产生同一 output set/TaskRevision，但 unknown file、symlink 或 byte drift 仍由 validator/store 拒绝。
-
-ScenePackage、Coverage、RendererRegistry、GlobalVisualPackage 与 Composition 是 fixed projection，不由 Agent
-workspace伪造。Composition owns global background, SceneViewport, CaptionLayer, narration and sound assembly；
-Scene root 保持透明并只使用任务派生的 viewport 坐标系。policyVersion 3 正文 `(0, 0)` 对应完整画布左上角，
-textSafeArea 单独保护文字；旧 Scene 与 fixed template-copy 仍映射到安全区左上角。Scene 不读取 raw policy，
-不自行安装 viewport，并只用 Remotion frame API。
-
-Configured template 的复制边界由 Project-local `Renderer.tsx` adapter 承担：adapter 实现共享
-`SceneRendererComponent` 的 `viewportWidth`/`viewportHeight` props，再映射到冻结模板组件内部通用的
-`width`/`height`。模板组件不 import/安装 SceneViewport，也不读取 raw policy。adapter 与其 import graph
-都进入 template instance/source-graph fingerprint；共享 generator 变化只影响未来 create，不静默改写既有
-Project-local instance。
-
-默认 creator config 选择 `axmorf-brand-reveal-v1` 与 `axmorf-source-follow-v1`。两者引用的 package-authored
-片头 impact WAV 与片尾 BGM WAV 在 Workspace seed 中进入 Catalog，`project:create` 再把所选模板实际使用的 bytes、descriptor 与 sound cue
-冻结到 Project-local source/public roots；既有 Project 不因 package/shared seed 更新而改变。
-
-意图优先 motionPlan v2 与可选 tracked v1 共用 Scene shot-plan/props；自绘代码不强制几何轨迹或组件。技术 task check/commit 单独报告 DOM 已验证、unsupported 或 intent-only，均仍需真实时间序列审查；不把 DOM 依赖当像素/美感证明。执行边界见 [内容动作审阅](guides/CONTENT_MOTION_REVIEW.md)。
-
-Root 可在 Scene brief 的 `outgoingHandoff` 冻结与下一正文 Scene 共用的 subject；load-inputs 为两侧生成相同的
-`continuity.handoffs` 合同，seam identity 只由 Story 与相邻 meaning IDs 确定。tracked v1 另需 Root-authored
-边界 state，v2 不规定几何。shared Scene bundle validator 在提交与物化前核对 kind、ID、subject 和适用的 pose；
-Coverage 仍复验跨 Scene 衔接。未声明的 seam 使用 motivated cut，fixed template 边界禁止 continuous。
-
-## 8. Synchronous delivery
-
-`contracts/delivery-layout.ts` 集中定义 exact 四文件名称与 Project-owned artifact 路径；构建、current
-inspection、revision promotion、publishing schema 与 Web 消费同一规则。封面任务示例、源码检查与媒体复验均从
-`FIXED_COVER_SPEC` 取得尺寸，不分别维护数字副本。规则仍为固定合同，不增加用户配置或改变交付格式。
-
-Delivery builder 在一个 foreground command 内完成 render、probe、EOF decode、publish-last 和 current
-promotion。build-owned staging 允许跨捕获失败复用同 identity 已验证媒体；不同 identity 不混用。
-current directory exact 只允许三份 media 加 `publish.json`，其余文件、symlink、path drift 或 media mismatch
-均 fail closed。
-
-candidate builder 在隔离 delivery 完成同一验证后才触发 promotion。promotion 固定 expected candidate
-Revision/Delivery tuple，在 repository lock 内重验 live base 与 candidate bytes，只受控替换
-source/public/narration/delivery 四个 Project-owned roots 并刷新 Registry/Catalog。任一步失败逆序 rollback；candidate
-保留给独立幂等 promote retry。
-
-## 9. Web、Progress、删除与历史隔离
-
-`web` 只绑定 `127.0.0.1`，普通 Node HTTP server 服务 package 的 `dist/web`，运行时不需要 Vite/`tsx`。
-Host/Origin、CSP 和 body-size gates 保护 config API。Delivery endpoint 不接受 filesystem path，只允许映射已经
-复验 current revision/build identity 的 video 或 cover enum，并在 open 前重新检查 regular-file/no-symlink 和
-file identity。Web 是配置与只读投影界面；Remotion Studio 是实时视觉预览；二者都不修改 Project、创建 candidate
-或调度 Agent。
-
-settings 从 source readiness、read-only inspection、latest ExecutionAttempt 和 current delivery 投影，不扫描
-historical `.producer-runs`，也不自行重算失效原因。删除器是唯一允许读取 legacy manifest ownership 的
-current code path；它只提取严格
-storyId/legacy ID 来安全定位删除目标，不解析或迁移旧 state。
-
-Repository operation locks 保护 Project create/import/delete、prepare、artifact/materialization 和 delivery 的
-互斥 filesystem transitions；inspect 不取 mutation lock。锁与诊断数据都不进入 content identity。
-Agent execution preferences 使用独立 strict contract 与 `0600` 原子存储，不修改 ProducerConfig fingerprint；
-用户提示词 override 不自动写回该文件，解析值也不进入 content identity；worker transport 永远不写入该文件。
-
-terminal failed attempt 保持 immutable。显式 recovery 先做 read-only/zero-provider recover inspection，再在 lock
-内按 same current Revision reissue fresh attempt/bindings；它不要求 current delivery，复用 valid artifacts/drafts，
-并拒绝 active、stale 或 fixed-flow recovery。
-当前 recovery 接受明确的 `producer-agent-task-failed` outcome，或带有受检 `outputFailure` 的
-`producer-task-commit-failed`。后者只由明确的输出缺失、JSON/TypeScript 语法校验产生，包含安全的错误种类和
-排序去重的 task-local 输出路径；恢复时要求匹配原 failed Agent task snapshot 的 declared outputs，不能指向 immutable inputs。
-该可选字段兼容旧 v3 event，不进入 content identity；CLI 同时返回结构化诊断。unknown file、symlink、输入完整性、
-权限、Artifact Store 和未知异常不获此证据。缺少证据的历史通用 commit failure 仍阻塞，不回读现有 draft 来猜原故障。
-下游 dependency-only `blocked` 仅在完整、无环、identity 匹配的依赖图可追溯到该失败 Agent task 时放行；
-dirty fixed work、独立或未知 blocker 不放行。`recovery-ready` 仍不替代 Root 对原故障与旧 workers 全部退出的核实。
-
-Capability discovery is part of authoring: create context exposes an intent index, public API guides,
-parameterized recipes and explicit fixed-demo markers. Catalog queries search use cases, API names and recipe intent.
-New creates default to `resources.capabilityAccess: "all-approved"`; `"explicit"` preserves a deliberately restricted pool.
-Creation freezes approved runtime capability IDs in the optional `StoryResourcePool.optionalCapabilityIds` and the allowed
-pool. It never admits media, reference-only sources or blocked entries this way. Legacy pools remain unchanged, and
-revisions preserve the frozen capability set rather than discovering newly installed capabilities.
-
-An authored Scene receives the union of its brief candidates and frozen optional capabilities. Task inputs identify only
-those extra IDs as `optionalCapabilityIds`; fixed templates get none. Silent presets still require exact consumption of
-mandatory resources; additional optional code capabilities may be selected when actually invoked. Pool, task context and
-selected-resource validation verify capability kind and approval. The contract freezes the exact available records and
-checks selected calls as before. Contract v3 updates worker instructions; it does not make aesthetics mechanically decidable
-or impose a capability quota. WhipPan accepts authored from/to content and local frame timing; NoiseGrain is a transparent,
-frame-seeded bounded-DOM overlay. Both no longer render sample text or palettes.
-
-Scene authoring 仍必须使用 repository-local `remotion-best-practices`，但 Skill 不能扩大 TaskSpec 或
-validator boundary。
-
-## npm Workspace reliability
-
-Browser preparation, real-render readiness, bounded media processes and explicit interrupted-attempt recovery are described in
-[Workspace reliability](guides/WORKSPACE_RELIABILITY.md). Process ownership and logs are diagnostic-only; read-only inspection remains zero-write.
-
-### Attempt-bound task handoff
-
-Workspace-local `native-probe.mjs` 只为临时能力验证生成随机 challenge、完整绝对路径和 worker prompt，不执行原生 child 派发。
-verify 零写入验证 exact 文件集与 bytes，cleanup 复验后只删除本次临时文件；native capacity、child 来源和槽位释放仍由宿主原生证据证明。
-临时 manifest 不包含 host identity/transport 设置，不进入 Project、Revision、Task、artifact 或 delivery；creator 将 helper 与指南一同发行。
-
-`--assignment` 在 exact project/attempt（及 candidate scope）内按 immutable dirty task snapshots 的稳定顺序解析完整 task/binding identity。
-prepare/reissue 生成命令与 `workerPrompts`；它们是 transient diagnostic routing，不写入 TaskExecutionContract、Revision、artifact 或 Delivery identity。
-简短入口继续复用 zero-write bind、active attempt、candidate containment、immutable checksum 和 task validators；缺失或越界 fail closed。
+见[发布流程](guides/RELEASE.md)。CI 在 tag 上完成完整检查、真实渲染与全新 Workspace 冒烟后以 provenance 发布；
+`next` 版本经真实 Agent 宿主做完一部片后再以正式版本发布到 `latest`。

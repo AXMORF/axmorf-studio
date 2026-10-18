@@ -1,43 +1,27 @@
 import { useState } from "react";
 
-import { ExecutionSettings } from "./features/config/ExecutionSettings";
-import { General, SafeArea } from "./features/config/GeneralSettings";
-import {
-  Collections,
-  SceneDefaults,
-} from "./features/config/PublishingSettings";
+import { General } from "./features/config/GeneralSettings";
+import { SceneDefaults } from "./features/config/PublishingSettings";
 import { Tts } from "./features/config/TtsSettings";
-import { ProductionProgressPage } from "./features/progress/ProductionProgressPage";
+import { FilmsPage } from "./features/films/FilmsPage";
 import { useEnvironmentDiagnostics } from "./hooks/useEnvironmentDiagnostics";
-import { useExecutionPreferences } from "./hooks/useExecutionPreferences";
 import { useSettingsConfig } from "./hooks/useSettingsConfig";
 import { isLanAccessHostname, resolveStudioUrl } from "./network";
 
-type TabId =
-  | "progress"
-  | "general"
-  | "scenes"
-  | "safe-area"
-  | "collections"
-  | "execution"
-  | "tts";
+type TabId = "films" | "general" | "scenes" | "tts";
 
 const tabs: ReadonlyArray<
   Readonly<{ id: TabId; label: string; index: string }>
 > = [
-  { id: "progress", label: "制作进度", index: "01" },
+  { id: "films", label: "作品", index: "01" },
   { id: "general", label: "通用", index: "02" },
-  { id: "scenes", label: "默认 Scene", index: "03" },
-  { id: "safe-area", label: "画面安全区", index: "04" },
-  { id: "collections", label: "合集", index: "05" },
-  { id: "execution", label: "Agent 执行", index: "06" },
-  { id: "tts", label: "TTS", index: "07" },
+  { id: "scenes", label: "片头片尾", index: "03" },
+  { id: "tts", label: "TTS", index: "04" },
 ];
 
 export const App = () => {
-  const [activeTab, setActiveTab] = useState<TabId>("progress");
+  const [activeTab, setActiveTab] = useState<TabId>("films");
   const settings = useSettingsConfig();
-  const execution = useExecutionPreferences();
   const environment = useEnvironmentDiagnostics();
   const studioUrl = resolveStudioUrl(
     window.location.href,
@@ -46,7 +30,6 @@ export const App = () => {
       ?.getAttribute("content") ?? null,
   );
   const lanAccess = isLanAccessHostname(window.location.hostname);
-  const activeSettings = activeTab === "execution" ? execution : settings;
   const validation = [
     {
       label: "表单一致性",
@@ -82,24 +65,20 @@ export const App = () => {
             <span key={frame}>{frame}</span>
           ))}
         </div>
-        <div className={`save-state ${activeSettings.dirty ? "dirty" : ""}`}>
+        <div className={`save-state ${settings.dirty ? "dirty" : ""}`}>
           <span />
-          {activeSettings.status}
+          {settings.status}
         </div>
         <button
           className="save-button"
           disabled={
-            activeSettings.config === null ||
-            activeSettings.isSaving ||
-            activeSettings.consistencyError !== null
+            settings.config === null ||
+            settings.isSaving ||
+            settings.consistencyError !== null
           }
-          onClick={() => void activeSettings.save()}
+          onClick={() => void settings.save()}
         >
-          {activeSettings.isSaving
-            ? "保存中"
-            : activeTab === "execution"
-              ? "保存执行配置"
-              : "保存配置"}
+          {settings.isSaving ? "保存中" : "保存配置"}
         </button>
       </header>
 
@@ -126,20 +105,8 @@ export const App = () => {
       </aside>
 
       <main className="workspace">
-        {activeTab === "progress" ? (
-          <ProductionProgressPage />
-        ) : activeTab === "execution" ? (
-          execution.config === null ? (
-            <div className="empty-state">
-              <strong>Agent 执行配置尚未就绪</strong>
-              <p>{execution.status}</p>
-            </div>
-          ) : (
-            <ExecutionSettings
-              config={execution.config}
-              update={execution.update}
-            />
-          )
+        {activeTab === "films" ? (
+          <FilmsPage />
         ) : settings.config === null ? (
           <div className="empty-state">
             <strong>配置尚未就绪</strong>
@@ -155,12 +122,6 @@ export const App = () => {
                 config={settings.config}
                 update={settings.update}
               />
-            ) : null}
-            {activeTab === "safe-area" ? (
-              <SafeArea config={settings.config} update={settings.update} />
-            ) : null}
-            {activeTab === "collections" ? (
-              <Collections config={settings.config} update={settings.update} />
             ) : null}
             {activeTab === "tts" ? (
               <Tts config={settings.config} update={settings.update} />

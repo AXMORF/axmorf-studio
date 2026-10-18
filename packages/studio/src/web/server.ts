@@ -2,6 +2,7 @@ import { realpath } from "node:fs/promises";
 import { createServer } from "node:http";
 
 import { serveDeliveryMedia } from "./delivery-media";
+import { parseDeliveryMediaPath } from "./delivery-route";
 import {
   readApiBody,
   sendEmpty,
@@ -52,8 +53,6 @@ export const startWebControlCenter = async ({
   port = 0,
   studioUrl: rawStudioUrl,
   api,
-  inspectCurrentDelivery,
-  readCurrentRevision,
 }: StartWebControlCenterInput): Promise<RunningWebControlCenter> => {
   if (!Number.isInteger(port) || port < 0 || port > 65_535) {
     throw new Error("Web server port must be an integer from 0 through 65535.");
@@ -84,14 +83,12 @@ export const startWebControlCenter = async ({
       return;
     }
     try {
-      if (pathname.startsWith("/api/delivery/")) {
+      if (parseDeliveryMediaPath(pathname) !== null) {
         await serveDeliveryMedia({
           request,
           response,
           pathname,
           rootDir: canonicalRootDir,
-          inspectCurrentDelivery,
-          readCurrentRevision,
         });
         return;
       }

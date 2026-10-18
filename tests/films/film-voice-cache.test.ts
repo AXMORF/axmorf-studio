@@ -8,7 +8,7 @@ import { writeProducerConfig } from "../../scripts/config/producer-config";
 import { createFilmVoiceService } from "../../scripts/films/voice";
 import { createEdgeTtsChunkGenerator } from "../../scripts/narration/adapters/edge-tts-client";
 import { encodeCanonicalPcmWav } from "../../scripts/narration/domain/pcm-wav";
-import { validProjectCreateProducerConfig } from "../fixtures/project-create";
+import { validProducerConfig } from "../fixtures/producer-config";
 
 test("film cache hits bypass Edge pacing, diagnostics and provider requests", async (context) => {
   const rootDir = await mkdtemp(join(tmpdir(), "axmorf-film-cache-"));
@@ -17,9 +17,9 @@ test("film cache hits bypass Edge pacing, diagnostics and provider requests", as
   await writeProducerConfig({
     configPath,
     value: {
-      ...validProjectCreateProducerConfig,
+      ...validProducerConfig,
       tts: {
-        ...validProjectCreateProducerConfig.tts,
+        ...validProducerConfig.tts,
         defaultProviderId: "edge",
         defaultVoiceProfileId: "narrator",
         providers: [

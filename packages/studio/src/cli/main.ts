@@ -64,15 +64,11 @@ const startWorkspaceWeb = async ({
   port,
   studioUrl,
   resources,
-  runtimePolicyManifest,
 }: {
   readonly rootDir: string;
   readonly port: number;
   readonly studioUrl?: string;
   readonly resources: RuntimeResources;
-  readonly runtimePolicyManifest: Awaited<
-    ReturnType<typeof loadRuntimePolicyManifest>
-  >;
 }) => {
   const { createSettingsWebDependencies } =
     await import("../../../../settings/server/runtime-dependencies");
@@ -80,7 +76,6 @@ const startWorkspaceWeb = async ({
     rootDir,
     env: process.env,
     runtimeResources: resources,
-    runtimePolicyManifest,
   });
   return startWebControlCenter({
     rootDir,
@@ -93,7 +88,6 @@ const startWorkspaceWeb = async ({
 
 const createDefaultRunners = (output: Output): CliRunners => {
   const stdoutLine = lineWriter(output.stdout);
-  const stderrLine = lineWriter(output.stderr);
   let runtimePromise:
     | Promise<
         Readonly<{
@@ -116,28 +110,14 @@ const createDefaultRunners = (output: Output): CliRunners => {
         rootDir,
         workspaceSeedRoot: resources.workspaceSeedRoot,
       });
-      const [
-        { generateResourceCatalog },
-        { generateSceneTemplateAudioProjection },
-      ] = await Promise.all([
-        import("../../../../scripts/catalog/generate"),
-        import("../../../../scripts/scene-templates/audio-projection"),
-      ]);
+      const [{ generateSceneTemplateAudioProjection }, { generateFilmRegistry }] =
+        await Promise.all([
+          import("../../../../scripts/scene-templates/audio-projection"),
+          import("../../../../scripts/films/registry"),
+        ]);
       await generateSceneTemplateAudioProjection({ rootDir, mode: "write" });
-      const { generateFilmRegistry } =
-        await import("../../../../scripts/films/registry");
       const films = await generateFilmRegistry(rootDir);
-      const catalog = await generateResourceCatalog({
-        rootDir,
-        mode: "write",
-      });
-      stdoutLine(
-        JSON.stringify({
-          ...workspace,
-          catalogEntryCount: catalog.entryCount,
-          filmCount: films.filmCount,
-        }),
-      );
+      stdoutLine(JSON.stringify({ ...workspace, filmCount: films.filmCount }));
     },
     doctor: async ({ rootDir }) => {
       stdoutLine(JSON.stringify(await inspectWorkspaceReadiness(rootDir)));
@@ -147,13 +127,12 @@ const createDefaultRunners = (output: Output): CliRunners => {
     },
     web: async ({ rootDir, args }) => {
       const { port } = parseSinglePortArgument(args, "--port", 3100);
-      const { resources, manifest } = await runtime();
+      const { resources } = await runtime();
       const service = wrapWebService(
         await startWorkspaceWeb({
           rootDir,
           port,
           resources,
-          runtimePolicyManifest: manifest,
         }),
       );
       stdoutLine(JSON.stringify({ status: "web-listening", url: service.url }));
@@ -170,7 +149,7 @@ const createDefaultRunners = (output: Output): CliRunners => {
     },
     dev: async ({ rootDir, args }) => {
       const { webPort, studioPort } = parseDevArguments(args);
-      const { resources, manifest } = await runtime();
+      const { resources } = await runtime();
       const service = await startDevServices({
         rootDir,
         webPort,
@@ -179,7 +158,6 @@ const createDefaultRunners = (output: Output): CliRunners => {
           startWorkspaceWeb({
             ...input,
             resources,
-            runtimePolicyManifest: manifest,
           }),
       });
       stdoutLine(
@@ -201,135 +179,6 @@ const createDefaultRunners = (output: Output): CliRunners => {
         setExitCode: (code) => {
           process.exitCode = code;
         },
-      });
-    },
-    projectCreate: async ({ rootDir, args }) => {
-      const { resources } = await runtime();
-      const { runProjectCreateCli } =
-        await import("../../../../scripts/projects/create");
-      await runProjectCreateCli(args, {
-        rootDir,
-        env: process.env,
-        stdout: stdoutLine,
-        runtimeResources: resources,
-      });
-    },
-    projectRevision: async ({ rootDir, args }) => {
-      const { manifest } = await runtime();
-      const { runProjectRevisionCli } =
-        await import("../../../../scripts/projects/revision");
-      const [action, ...actionArgs] = args;
-      const context = {
-        rootDir,
-        env: process.env,
-        stdout: stdoutLine,
-        runtimePolicyManifest: manifest,
-      };
-      switch (action) {
-        case "context":
-        case "validate":
-        case "create":
-        case "promote":
-          await runProjectRevisionCli(action, actionArgs, context);
-          return;
-        default:
-          throw new Error("Project revision action is invalid.");
-      }
-    },
-    projectOriginality: async ({ rootDir, args }) => {
-      await runtime();
-      const { runProjectOriginalityFreezeCli } =
-        await import("../../../../scripts/projects/originality");
-      await runProjectOriginalityFreezeCli(args, {
-        rootDir,
-        stdout: stdoutLine,
-      });
-    },
-    projectDelete: async ({ rootDir, args }) => {
-      await runtime();
-      const { runProjectDeleteCli } =
-        await import("../../../../scripts/projects/delete");
-      await runProjectDeleteCli({ args, rootDir, stdout: output.stdout });
-    },
-    projectAssetImport: async ({ rootDir, args }) => {
-      await runtime();
-      const { runProjectAssetImportCli } =
-        await import("../../../../scripts/project-assets/cli");
-      await runProjectAssetImportCli(args, { rootDir, stdout: stdoutLine });
-    },
-    projectCheck: async ({ rootDir, args }) => {
-      const { manifest } = await runtime();
-      const { runPublicProjectCheck } = await import("./project-check");
-      await runPublicProjectCheck(args, {
-        rootDir,
-        stdout: stdoutLine,
-        runtimePolicyManifest: manifest,
-      });
-    },
-    projectProduction: async ({ rootDir, args }) => {
-      const { manifest } = await runtime();
-      if (args[0] === "prepare") await inspectWorkspaceReadiness(rootDir);
-      const { runProjectProductionCli } =
-        await import("../../../../scripts/project-production/cli");
-      await runProjectProductionCli(args, {
-        rootDir,
-        runtimePolicyManifest: manifest,
-        stdout: stdoutLine,
-      });
-    },
-    projectSceneReview: async ({ rootDir, args }) => {
-      const { runSceneReviewCli } =
-        await import("../../../../scripts/scene-review/cli");
-      await runSceneReviewCli(args, { rootDir, stdout: stdoutLine });
-    },
-    projectPreview: async ({ rootDir, args }) => {
-      const { manifest } = await runtime();
-      const { runProjectPreviewCli } =
-        await import("../../../../scripts/project-preview/cli");
-      await runProjectPreviewCli(args, {
-        rootDir,
-        runtimePolicyManifest: manifest,
-        stdout: stdoutLine,
-      });
-    },
-    referenceAnalysis: async ({ rootDir, args }) => {
-      const { runReferenceAnalysisCli } =
-        await import("../../../../scripts/reference-analysis/cli");
-      await runReferenceAnalysisCli(args, { rootDir, stdout: stdoutLine });
-    },
-    catalog: async ({ rootDir, args }) => {
-      await runtime();
-      const { runCatalogCli } = await import("../../../../scripts/catalog/cli");
-      await runCatalogCli(args, { rootDir, stdout: stdoutLine });
-    },
-    registry: async ({ rootDir, args }) => {
-      await runtime();
-      const { runRegistryCli } =
-        await import("../../../../scripts/registry/cli");
-      await runRegistryCli(args, { rootDir, stdout: stdoutLine });
-    },
-    renderer: async ({ rootDir, args }) => {
-      await runtime();
-      const { runRendererRegistryCli } =
-        await import("../../../../scripts/renderer-registry/cli");
-      await runRendererRegistryCli(args, { rootDir, stdout: stdoutLine });
-    },
-    scene: async ({ rootDir, args }) => {
-      await runtime();
-      const { runScenePackageCli } =
-        await import("../../../../scripts/scene-package/cli");
-      await runScenePackageCli(args, { rootDir, stdout: stdoutLine });
-    },
-    narration: async ({ rootDir, args }) => {
-      await runtime();
-      const narration = await import("../../../../scripts/narration/cli");
-      await narration.runCli(args, {
-        rootDir,
-        env: process.env,
-        stdout: stdoutLine,
-        stderr: stderrLine,
-        createGenerationDependencies:
-          narration.createDefaultGenerationDependencies,
       });
     },
   };

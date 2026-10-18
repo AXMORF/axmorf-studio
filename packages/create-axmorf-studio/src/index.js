@@ -85,7 +85,6 @@ export {
 } from "./upgrade.js";
 export {
   RUNTIME_PACKAGE_NAME,
-  createEmptyResourceCatalog,
   createPackageJson,
   createSafeProducerConfig,
   mergeWorkspacePackageJson,

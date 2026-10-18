@@ -57,22 +57,16 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
 
 ## 通用 Agent 入口
 
-- 先按 assignment 路由：已有 exact attempt-bound task bind 的 worker 直接按 Skill task protocol 绑定并执行该任务，
-  不重跑全局 doctor/preflight；规则见 [旧主链规则](docs/guides/LEGACY_PROJECT_PRODUCTION_RULES.md)。
 - `AGENTS.md` 是唯一仓库级 Agent 指令 authority。`CLAUDE.md`、`GEMINI.md` 与任何宿主专用 metadata
   只能作为导入或发现 adapter，不复制、覆盖或扩展这里的规则。
-- 新视频使用 direct film：必须完整读取 `.agents/skills/axmorf-film/SKILL.md`，片源在 `src/films/<filmId>/`。
-- 旧作品与旧主链（`src/projects/`、`scripts/project-production/`、`scripts/projects/`、`.agents/skills/axmorf-video/SKILL.md`）
-  在 0.2.x 冻结、0.3.0 删除。修改或使用它们之前，必须完整读取
-  [旧 Project production 主链规则](docs/guides/LEGACY_PROJECT_PRODUCTION_RULES.md)（含 TaskExecutionContract、
-  `project:task:bind`、内置执行默认是 `subagents` 等全部约束），并且只修阻塞性缺陷。
+- 制作视频必须完整读取 `.agents/skills/axmorf-film/SKILL.md`，片源在 `src/films/<filmId>/`。
+- Project production 主链已在 0.3.0 删除；历史文档在 `docs/archive/project-production/`，不得据此恢复旧命令或流程。
 - 宿主兼容性、最低能力与入口文件见 `docs/guides/AGENT_COMPATIBILITY.md`。
 
 ## 权威文档
 
-- 产品目标：`docs/FINAL_PRODUCT_GOAL.md`；迁移计划：`docs/promotions/2026-10-14-direct-film-production.md`
-- 当前事实：`docs/ITERATION_STATUS.md`；阶段门槛：`docs/ROADMAP.md`
-- 架构：`docs/ARCHITECTURE.md`；旧主链流程：`docs/PRODUCTION_WORKFLOW.md`、`docs/DETERMINISTIC_EXECUTION.md`
+- 产品目标：`docs/FINAL_PRODUCT_GOAL.md`；架构：`docs/ARCHITECTURE.md`
+- 当前事实：`docs/ITERATION_STATUS.md`；阶段门槛：`docs/ROADMAP.md`；发布：`docs/guides/RELEASE.md`
 - 名词：`docs/TERMINOLOGY.md`
 
 文档冲突时先用 current 可执行代码和测试确认事实，再同步权威文档；不能把目标写成实现。
@@ -91,8 +85,8 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
   display half-units，超限由 Agent 改写或拆分，不得放宽检查。配乐由配方确定性生成，旁白与字幕不为踩拍改时。
 - 用户明确的尺寸/横竖屏、fps 写入该片，不为单次需求改长期默认值。
 - 交付恰好是 `video.mp4`、`cover-4x3.png`、`cover-3x4.png`、`publish.json`，全部复验后才替换当前交付。
-- `public/`、`src/films/`、`src/projects/`、生成的 Registry/Catalog、`.axmorf/`、`.producer-*`、`out/` 与 `deliveries/`
-  都是 ignored 本地产物，不进入 Git。删除作品只用 `film:delete` / `project:delete` 的 owned-path 清理，禁止 broad `rm`。
+- `public/`、`src/films/`、生成的注册表与音频投影、`.axmorf/`、`out/` 与 `deliveries/` 都是 ignored 本地产物，
+  不进入 Git。删除作品只用 `film:delete` 的 owned-path 清理，禁止 broad `rm`。
 - provider、host tool、sandbox、permission 或 authorization failure 是 external blocker；不添加 fallback、自动 retry、
   TTS warm-up 或降低 Chromium sandbox。用户同意后才可重试。
 
@@ -103,11 +97,9 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
   新发布 tag 应指向已合入默认分支的 release commit，不能把独立分支发布当作默认分支已同步。
 - 保护用户未提交修改；不 reset、覆盖或整理无关内容。删除、覆盖、强推、生产发布、密钥或权限变更
   必须有明确授权。精确 staging，不用 `git add .`，不 push，除非用户明确要求。
-- `scripts/project-production/` 采用 `domain/`、`application/`、`adapters/`、根 CLI 分层。domain 不依赖
-  filesystem/application/adapters；application 编排 ports；adapters 不反向承载业务规则。
 - 修改后先 focused checks，再按风险运行 `npm run check`。`npm run check:static` 是无 Chromium 子集；
-  `npm run check:host` 是宿主浏览器/Project gate。
-- `npm run check`、`npm run compositions`、所有 Remotion render/still/compositions 与真实 production
-  preflight 首次直接使用宿主权限。沙箱诊断失败不能判定 VoxCPM 不可用，不得降低 Chromium sandbox。
+  `npm run check:host` 是宿主浏览器门禁（`npm run compositions`）。
+- `npm run check`、`npm run compositions` 与所有 Remotion render/still 首次直接使用宿主权限。沙箱诊断失败不能判定
+  VoxCPM 不可用，不得降低 Chromium sandbox。
 - 新 Composition 至少通过 `npm run compositions`；高风险视觉改动补真实 still/短片。完成后检查
   README、status、architecture、contracts、Skill、active old-authority grep 与完整 diff。

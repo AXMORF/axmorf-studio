@@ -4,25 +4,27 @@ private/
 .env.*
 !.env.example
 
-src/projects/
-public/projects/
 src/films/
 public/films/
 public/assets/axmorf-shared/
 src/remotion/catalog/assets.manifest.json
 src/remotion/catalog/scene-template-audio.defaults.json
 src/remotion/catalog/scene-template-audio.generated.json
-src/remotion/catalog/resource-catalog.generated.json
 
+out/
+deliveries/
+dist/
+
+# Left by the Project chain that 0.3.0 removed; kept ignored until the user deletes them.
+src/projects/
+public/projects/
+src/remotion/catalog/resource-catalog.generated.json
 .narration-work/
 .producer-work/
 .producer-artifacts/
 .producer-attempts/
 .producer-revisions/
 .producer-runs/
-out/
-deliveries/
-dist/
 
 *.log
 .axmorf-browser-prepare.*

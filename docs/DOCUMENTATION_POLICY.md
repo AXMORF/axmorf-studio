@@ -2,21 +2,20 @@
 
 > 文档类型：治理规则
 >
-> 最后复核：2026-08-09
+> 最后复核：2026-10-19
 
 ## 单一事实来源
 
 同一个问题只由一个文档负责：
 
-| 问题                   | 权威文档                     |
-| ---------------------- | ---------------------------- |
-| 产品最终要成为什么     | `FINAL_PRODUCT_GOAL.md`      |
-| 当前系统如何分层和依赖 | `ARCHITECTURE.md`            |
-| 外部如何完成一次生产   | `PRODUCTION_WORKFLOW.md`     |
-| 确定性、指纹和失效规则 | `DETERMINISTIC_EXECUTION.md` |
-| 当前已经实现什么       | `ITERATION_STATUS.md`        |
-| 下一阶段做什么         | `ROADMAP.md`                 |
-| 名词的精确定义         | `TERMINOLOGY.md`             |
+| 问题                   | 权威文档                              |
+| ---------------------- | ------------------------------------- |
+| 产品最终要成为什么     | `FINAL_PRODUCT_GOAL.md`               |
+| 当前系统如何分层和依赖 | `ARCHITECTURE.md`                     |
+| Agent 如何制作一部片   | `.agents/skills/axmorf-film/SKILL.md` |
+| 当前已经实现什么       | `ITERATION_STATUS.md`                 |
+| 下一阶段做什么         | `ROADMAP.md`                          |
+| 名词的精确定义         | `TERMINOLOGY.md`                      |
 
 README 只做入口和快速开始；guide 只解释操作；evidence 只证明一次验收；archive 只保存历史。
 其他文档需要当前事实时应链接到权威文档，不再复制整段里程碑清单、checksum 或状态描述。
@@ -25,8 +24,7 @@ README 只做入口和快速开始；guide 只解释操作；evidence 只证明�
 
 - `docs/`：当前权威文档与文档导航。
 - `docs/guides/`：仍在使用的操作和维护指南。
-- `docs/contracts/`：对外数据合同说明；可执行 schema 以
-  `packages/studio/src/contracts/` 为准。
+- 数据合同以 `packages/studio/src/contracts/` 的可执行 schema 为准，不另写合同文档。
 - `docs/evidence/`：不可替代当前状态的历史验收证据。
 - `docs/promotions/`：尚未成为 current implementation 的能力提案或实施计划；文档内必须明确待批准、已批准或
   实施中状态，完成后移入 archive。
@@ -38,13 +36,12 @@ README 只做入口和快速开始；guide 只解释操作；evidence 只证明�
 ## 修改规则
 
 1. 代码和测试先确认 repo truth，再更新 `ITERATION_STATUS.md`。
-2. 架构边界变化只更新 `ARCHITECTURE.md`；操作步骤变化只更新对应 guide 或 workflow。
+2. 架构边界变化只更新 `ARCHITECTURE.md`；制作方法变化只更新 Skill；操作步骤变化只更新对应 guide。
 3. 已完成任务只在状态表留一行摘要，详细过程放 evidence/archive，不回填到 README。
 4. 新计划在执行完成后必须归档；被取代的方案不得继续留在 active 导航。
 5. 所有当前存在的 active Markdown 必须通过 `npm run docs:check-links`；除 evidence、promotion
    和 archive 的历史/未来快照外，文档引用的 `npm run` script 也必须存在于 current
-   `package.json`。已从当前 Project 集删除的 tracked 历史路径不再被当作 active source，但任何
-   保留文档指向缺失目标仍 fail closed。
+   `package.json`。保留文档指向缺失目标时 fail closed。
 
 ## 文档完成定义
 

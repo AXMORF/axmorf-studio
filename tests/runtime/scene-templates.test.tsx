@@ -12,7 +12,7 @@ import { VISUAL_THEME_PRESETS } from "@axmorf/studio/contracts";
 import { AxmorfIntroScene, AxmorfOutroScene } from "@axmorf/studio/remotion";
 import { BrandFollowScene } from "../../packages/studio/src/remotion/capabilities/scene-templates/axmorf/BrandFollowScene";
 import { SourceCreditsScene } from "../../packages/studio/src/remotion/capabilities/scene-templates/axmorf/SourceCreditsScene";
-import { REFERENCE_CASES } from "../../proofs/scene-theme/source/matrix";
+import { REFERENCE_CASES } from "../fixtures/scene-theme-matrix";
 
 type StyledElement = Readonly<{ children?: ReactNode; style?: CSSProperties }>;
 const styledElement = (node: unknown) => {

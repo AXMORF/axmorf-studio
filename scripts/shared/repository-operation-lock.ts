@@ -57,7 +57,7 @@ export const acquireRepositoryOperationLock = async ({
     initialized = true;
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "EEXIST") {
-      throw new Error("Another Project operation is already active.", {
+      throw new Error("Another Workspace operation is already active.", {
         cause: error,
       });
     }

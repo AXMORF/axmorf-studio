@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import {
   mkdir,
   mkdtemp,
@@ -20,9 +21,10 @@ import {
   upgradeWorkspace,
 } from "../../packages/create-axmorf-studio/src/index.js";
 
-const skillPath = ".agents/skills/axmorf-video/SKILL.md";
-const qualityBar =
-  ".agents/skills/axmorf-video/references/visual-quality-bar.md";
+const skillPath = ".agents/skills/axmorf-film/SKILL.md";
+const craftGuide = ".agents/skills/axmorf-film/references/craft.md";
+const retiredSkill = ".agents/skills/axmorf-video/SKILL.md";
+const retiredReference = ".agents/skills/axmorf-video/references/retired.md";
 
 const recorder = (failOn?: string) => {
   const calls: string[] = [];
@@ -49,11 +51,13 @@ const legacyWorkspace = async () => {
   await rm(join(root, ".axmorf"), { recursive: true });
   await rm(join(root, ".claude"), { recursive: true });
   await writeFile(join(root, skillPath), "old skill\n");
-  await rm(join(root, qualityBar));
-  await writeFile(
-    join(root, ".agents/skills/axmorf-video/references/retired.md"),
-    "retired\n",
-  );
+  await rm(join(root, craftGuide));
+  // The Project-chain Skill that 0.3.0 retired.
+  await mkdir(join(root, ".agents/skills/axmorf-video/references"), {
+    recursive: true,
+  });
+  await writeFile(join(root, retiredSkill), "retired skill\n");
+  await writeFile(join(root, retiredReference), "retired\n");
   await mkdir(join(root, ".agents/skills/my-own-skill"), { recursive: true });
   await writeFile(join(root, ".agents/skills/my-own-skill/SKILL.md"), "mine\n");
   await mkdir(join(root, "src/projects/demo"), { recursive: true });
@@ -67,6 +71,8 @@ const legacyWorkspace = async () => {
     await readFile(join(root, "package.json"), "utf8"),
   );
   manifest.scripts["my:script"] = "echo mine";
+  manifest.scripts["project:create"] = "axmorf project create";
+  manifest.scripts["project:check"] = "echo my own check";
   delete manifest.scripts["workspace:upgrade"];
   manifest.dependencies["left-pad"] = "1.3.0";
   await writeFile(
@@ -90,7 +96,7 @@ test("every template file has an upgrade classification", async () => {
   for (const path of managed.keys()) {
     assert.doesNotMatch(
       path,
-      /^(?:private|public|deliveries|src\/projects)\//u,
+      /^(?:private|public|deliveries|src\/films|src\/projects)\//u,
       path,
     );
   }
@@ -137,20 +143,21 @@ test("legacy upgrade refreshes managed files and keeps user data", async () => {
     assert.equal(result.legacyWithoutManifest, true);
     assert.deepEqual(result.runtime, { from: "0.1.0", to: "9.9.9" });
     assert.ok(result.updated.includes(skillPath));
-    assert.ok(result.created.includes(qualityBar));
+    assert.ok(result.created.includes(craftGuide));
     assert.ok(result.created.includes(".claude/skills/axmorf-film/SKILL.md"));
-    assert.deepEqual(result.removed, [
-      ".agents/skills/axmorf-video/references/retired.md",
-    ]);
+    assert.deepEqual(result.removed, [retiredSkill, retiredReference]);
+    assert.deepEqual(result.legacyProjectData, ["src/projects"]);
     assert.deepEqual(calls, ["install", "run bootstrap", "run doctor"]);
 
     assert.notEqual(
       await readFile(join(root, skillPath), "utf8"),
       "old skill\n",
     );
-    await assert.rejects(
-      stat(join(root, ".agents/skills/axmorf-video/references/retired.md")),
-    );
+    await assert.rejects(stat(join(root, retiredReference)));
+    await assert.rejects(stat(join(root, retiredSkill)));
+    // Removing every file of a retired Skill leaves no empty directory behind.
+    await assert.rejects(stat(join(root, ".agents/skills/axmorf-video")));
+    await stat(join(root, ".agents/skills/axmorf-film"));
     assert.equal(
       await readFile(
         join(root, ".agents/skills/my-own-skill/SKILL.md"),
@@ -173,6 +180,8 @@ test("legacy upgrade refreshes managed files and keeps user data", async () => {
     assert.equal(manifest.dependencies["@axmorf/studio"], "9.9.9");
     assert.equal(manifest.dependencies["left-pad"], "1.3.0");
     assert.equal(manifest.scripts["my:script"], "echo mine");
+    assert.equal(manifest.scripts["project:create"], undefined);
+    assert.equal(manifest.scripts["project:check"], "echo my own check");
     assert.ok(manifest.scripts["workspace:upgrade"]);
     assert.equal(manifest.name, "ws");
 
@@ -182,10 +191,7 @@ test("legacy upgrade refreshes managed files and keeps user data", async () => {
       "old skill\n",
     );
     assert.equal(
-      await readFile(
-        join(backup, ".agents/skills/axmorf-video/references/retired.md"),
-        "utf8",
-      ),
+      await readFile(join(backup, retiredReference), "utf8"),
       "retired\n",
     );
     assert.match(
@@ -194,7 +200,7 @@ test("legacy upgrade refreshes managed files and keeps user data", async () => {
     );
     assert.ok(
       JSON.parse(await readFile(join(root, ".axmorf/managed.json"), "utf8"))
-        .files[qualityBar],
+        .files[craftGuide],
     );
     await assert.rejects(stat(join(root, ".project-operation.lock")));
   } finally {
@@ -228,10 +234,52 @@ test("upgrades after the first one identify locally edited managed files", async
     assert.equal(plan.legacyWithoutManifest, false);
     assert.deepEqual(plan.updated, ["AGENTS.md"]);
     assert.deepEqual(plan.localChanges, ["AGENTS.md"]);
+    assert.deepEqual(plan.removed, []);
     assert.equal(
       await readFile(join(root, "AGENTS.md"), "utf8"),
       "edited by me\n",
     );
+  } finally {
+    await rm(parent, { recursive: true, force: true });
+  }
+});
+
+test("managed files a release dropped are removed when the manifest recorded them", async () => {
+  const { parent, root } = await legacyWorkspace();
+  try {
+    await upgradeWorkspace(
+      {
+        cwd: root,
+        install: false,
+        runtimePackage: "9.9.9",
+        creatorVersion: "9.9.9",
+      },
+      { progress: () => {} },
+    );
+    // 0.2.x shipped this facade as a managed file; 0.3.0 no longer does.
+    const facade = "src/runtime/capabilities.ts";
+    const bytes = 'export * from "@axmorf/studio/remotion";\n';
+    await mkdir(join(root, "src/runtime"), { recursive: true });
+    await writeFile(join(root, facade), bytes);
+    const manifestPath = join(root, ".axmorf/managed.json");
+    const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+    manifest.files[facade] =
+      `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
+    await writeFile(manifestPath, JSON.stringify(manifest));
+    const result = await upgradeWorkspace(
+      {
+        cwd: root,
+        install: false,
+        runtimePackage: "9.9.9",
+        creatorVersion: "9.9.9",
+      },
+      { progress: () => {} },
+    );
+    assert.deepEqual(result.removed, [facade]);
+    assert.deepEqual(result.localChanges, []);
+    await assert.rejects(stat(join(root, facade)));
+    await assert.rejects(stat(join(root, "src/runtime")));
+    await stat(join(root, "src"));
   } finally {
     await rm(parent, { recursive: true, force: true });
   }
@@ -261,7 +309,7 @@ test("dry-run writes nothing", async () => {
   }
 });
 
-test("an active Project operation blocks the upgrade", async () => {
+test("an active Workspace operation blocks the upgrade", async () => {
   const { parent, root } = await legacyWorkspace();
   try {
     await writeFile(join(root, ".project-operation.lock"), "{}\n");
@@ -270,7 +318,7 @@ test("an active Project operation blocks the upgrade", async () => {
         { cwd: root, runtimePackage: "9.9.9", creatorVersion: "9.9.9" },
         { runCommand: async () => {}, progress: () => {} },
       ),
-      /Project operation is active/u,
+      /Workspace operation is active/u,
     );
     assert.equal(await readFile(join(root, skillPath), "utf8"), "old skill\n");
   } finally {
@@ -301,13 +349,10 @@ test("a failed bootstrap restores every managed file and reinstalls", async () =
       '{"lock":"old"}\n',
     );
     assert.equal(
-      await readFile(
-        join(root, ".agents/skills/axmorf-video/references/retired.md"),
-        "utf8",
-      ),
+      await readFile(join(root, retiredReference), "utf8"),
       "retired\n",
     );
-    await assert.rejects(stat(join(root, qualityBar)));
+    await assert.rejects(stat(join(root, craftGuide)));
     await assert.rejects(stat(join(root, ".axmorf/managed.json")));
     await assert.rejects(stat(join(root, ".project-operation.lock")));
   } finally {

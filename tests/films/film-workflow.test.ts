@@ -217,6 +217,48 @@ test("the scaffolded film passes check", async (context) => {
   });
 });
 
+test("the Skill's example segments pass film:check inside a film", async (context) => {
+  const guide = await readFile(
+    join(repoRoot, ".agents/skills/axmorf-film/references/examples.md"),
+    "utf8",
+  );
+  const examples = [...guide.matchAll(/```tsx\n([\s\S]*?)```/gu)].map(
+    (match) => match[1]!,
+  );
+  assert.equal(examples.length, 2);
+  const root = await createWorkspace(context);
+  for (const [index, example] of examples.entries()) {
+    const segment = example.match(/export const (\w+Segment)/u)?.[1];
+    assert.ok(segment, `example ${index} exports a segment`);
+    const filmId = `example-film-${index}`;
+    await writeFilm(root, filmId, {
+      film: `${example}
+import { AbsoluteFill, Sequence } from "remotion";
+import { FilmCaptions, FilmSoundtrack, useFilmTiming } from "@axmorf/studio/remotion";
+
+const Film = () => {
+  const { durationInFrames } = useFilmTiming();
+  return (
+    <AbsoluteFill>
+      <Sequence durationInFrames={durationInFrames}>
+        <${segment} durationInFrames={durationInFrames} />
+      </Sequence>
+      <FilmSoundtrack />
+      <FilmCaptions />
+    </AbsoluteFill>
+  );
+};
+
+export default Film;
+`,
+    });
+    await runFilmVoice({ rootDir: root, filmId, createService: fakeVoice });
+    const report = await checkFilm({ rootDir: root, filmId });
+    assert.deepEqual(report.errors, [], `example ${index}`);
+    assert.deepEqual(report.warnings, [], `example ${index}`);
+  }
+});
+
 const fakeMedia = (
   calls: string[],
   failStill = false,

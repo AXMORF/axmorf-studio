@@ -2,22 +2,14 @@
 
 > 文档类型：操作指南
 >
-> 最后复核：2026-08-22
+> 最后复核：2026-10-19
 
-仓库使用一份 Git-ignored 的 `private/producer.config.json` 作为制作默认值与私密 TTS 连接配置。
-它不是 render runtime 输入；`project:create` 把新作品的选择写入 Project contracts，后续
-ProductionRevision 只绑定 private-safe provider/voice/policy identity。因此修改全局配置不会静默改变
-已配置 Project，也不会把 secret 放入 artifact。
+Workspace 用一份 Git-ignored 的 `private/producer.config.json` 保存制作默认值与私密 TTS 连接配置。它不是渲染输入：
+`film:new` 把渲染默认值和片头片尾选择写进新作品的 `film.json`，`film:voice` 读取默认声线与 TTS 连接。修改配置
+不会改变已经创建的作品，也不会把 secret 写进作品、缓存 identity 或交付。
 
-`.env.example` 可以直接复制为 `.env`：
-
-```bash
-cp .env.example .env
-```
-
-示例默认使用 `private/producer.config.json`；相对路径以仓库根目录解析，也可以填写绝对路径把
-配置放到其他位置。配置页、Narration、project-production preflight 和迁移命令都会自动读取仓库根目录
-`.env`。同名 Shell 环境变量优先于 `.env`；两者都未设置时仍使用上述默认路径。
+`RSP_PRODUCER_CONFIG` 可以指向其他位置（Workspace 相对路径或绝对路径）；`.env.example` 可复制为 `.env` 使用。
+同名 Shell 环境变量优先于 `.env`；都未设置时使用 `private/producer.config.json`。
 
 ## 打开配置页
 
@@ -25,181 +17,54 @@ cp .env.example .env
 npm run dev
 ```
 
-- `http://127.0.0.1:3100`：制作配置；
+- `http://127.0.0.1:3100`：Web 控制中心（作品、通用、片头片尾、TTS 与环境诊断）；
 - `http://127.0.0.1:3101`：Remotion Studio 预览。
 
-两者由同一个本地开发命令启动，不是两个需要部署的产品。配置 API 只监听 loopback、拒绝非同源
-写入、使用 `no-store`，不把配置写入 localStorage。TTS token/API key 只在受控表单内完整返回以便修改；
-不得通过截图、日志或 Git 泄露页面内容。
+“作品”页列出 `src/films/` 下的作品、旁白与配乐状态，并预览当前交付的视频和两张封面；删除作品需要输入完整的作品
+ID，效果与 `film:delete` 相同。配置 API 只监听 loopback、拒绝非同源写入、使用 `no-store`，不把配置写入
+localStorage。TTS token/API key 只在受控表单内完整返回以便修改；不得通过截图、日志或 Git 泄露页面内容。
 
-左侧“制作进度”列出 current source Projects；选择后展示 current Revision、task reused/dirty/blocked、
-latest ExecutionAttempt diagnostic 和 four-file delivery，每 3 秒只读刷新。页面不执行 production、不读取
-日志/PID，也不扫描历史执行数据。只有 `publish.json` 与 exact 四个 regular files 的 identity、size、
-checksum 和 media facts 完整一致才显示 current。
+右侧“只读环境诊断”检查配置、默认声线与 Remotion 浏览器渲染。VoxCPM 检查 health/ready/info；SpeechSDK 与 Edge
+只做配置校验，并说明凭证和网络在真实生成时才会验证。诊断不生成测试语音、不 warm-up 服务、不产生费用、不降低
+Chromium sandbox。
 
-Project 详情提供删除入口，必须输入完整 Project ID 二次确认。页面调用与 `project:delete` 完全相同
-的删除器：删除该 Project 的代码、媒体、narration work、task workspaces、artifacts、attempts、revision
-candidates、legacy history、out 与 current delivery，
-随后重建 Catalog/Registry；其他 Project、private config 与 `public/voice_profile/` 不受影响。
-非同源请求、非空 delivery staging、writer lock、不安全路径或不存在的 Project 会在删除前被拒绝。
-prepare/convergence、Project create/import 或交付构建正在改变仓库时，删除也会通过共享 operation lock 拒绝执行；删除在
-持锁后会重读目标集合，并在删除源码前先发布排除目标的 Registry，避免预检与实际清理之间混入新的
-task 或产物，也避免 Remotion Studio 因短暂的旧 import 终止配置 API；后续删除报错时会按磁盘真实
-状态恢复 Registry/Catalog。若浏览器连接仍在请求中断，页面只提示“删除结果需确认”，不会把无法
-确认的网络状态误报为删除未完成。
-
-“Agent 执行”设置独立保存到 Git-ignored 的 `private/execution-preferences.json`，使用 strict contract、
-原子替换和 `0600` 权限。该文件不是 ProducerConfig，也不改变 ProducerConfig、Revision、TaskRevision、
-ArtifactAttestation 或 DeliveryBuild identity；文件不存在时内置使用 `subagents`、最大并发 4；用户可明确保存 `inline`。
-宿主必须提供 bounded runtime-native children，并按 [host probe](../../.agents/skills/axmorf-video/references/execution-capabilities.md)
-为本次 production 验证可用容量与 `shared-workspace` 或 `controller-io` transport。transport 是本次宿主
-capability evidence，不是表单字段，永远不写入 execution preferences 或 content identity。用户提示词中的本次
-override 优先于已保存设置，但不会自动写回；transport 未验证或无法满足明确容量要求时在 prepare 前阻塞，
-不回退或伪造 child execution。
-
-右侧“只读环境诊断”检查配置、默认声线来源与 Remotion browser preflight。VoxCPM 继续检查
-health/ready/info；SpeechSDK 与 Edge 只做 strict config/profile 校验，并明确显示“凭证/网络将在真实生成
-时校验”。它不生成测试语音、不 warm-up 服务、不产生云端费用、不弱化 Chromium sandbox。表单会
-为新增 provider/声线选择未占用 ID；切换或删除默认项时立即选择仍有效的 default，最后一个 provider、
-最后一条声线、重复 ID、空 secret 或跨 provider 默认声线都会 fail closed。
-
-可信局域网内需要其他设备直接访问时运行：
-
-```bash
-npm run dev:lan
-```
-
-该命令让配置页监听 IPv4 所有网卡，并强制 Remotion Studio 使用 IPv4；使用命令输出的本机
-Network IP 分别访问 `http://<LAN-IP>:3100` 和 `http://<LAN-IP>:3101`。配置写入仍要求 Origin 与
-实际 Host 完全一致，页面中的 Studio 链接会沿用当前主机名。由于配置 API 会完整返回 TTS secret，
-LAN 模式只适用于用户已确认可信的局域网，禁止端口转发到公网。
-
-首次从旧版 VoxCPM 私有配置迁移：
-
-```bash
-npm run config:migrate
-```
-
-命令读取旧 `voxcpm/voxcpm.private.json`，原子写入权限 `0600` 的新配置，不删除旧文件、不打印
-token 或私有声线路径。位于仓库内的声线输入会转换成仓库相对路径；仓库外声线必须先由操作员移入
-ignored 的仓库目录，否则迁移 fail closed。目标文件已存在时命令会拒绝覆盖；迁移后应在页面中
-补充准确的合集名称/描述。
-
-已有合法 `producer-config-v1`、`producer-config-v2` 与 `producer-config-v3` 会先校验各自原 fingerprint，
-再只在内存中升级为 v4；v1 同时补入原既定默认 Scene 选择，v3 云声线补为显式 `catalog` 来源。
-GET 和环境诊断不会改写私有文件；操作员在配置页确认并保存后才原子写入 `producer-config-v4`。
-fingerprint 不匹配、未知字段或结构
-无效的旧配置仍然 fail closed。
+可信局域网内需要其他设备访问时运行 `npm run dev:lan`：配置页监听所有 IPv4 网卡，写入仍要求 Origin 与 Host
+一致。由于配置 API 会完整返回 TTS secret，LAN 模式只用于用户确认可信的局域网，禁止端口转发到公网。
 
 ## 配置语义
 
-- `sceneDefaults.introSceneTemplateId` / `outroSceneTemplateId`：配置页中的首尾业务位置选择。两者都
-  接受任意已登记 Scene template 或 `null`，不做位置适配判断；同一 template 可同时选择两次。
-  creator 初始配置分别选择 `axmorf-brand-reveal-v1` 与 `axmorf-source-follow-v1`；bootstrap 已将其默认
-  音频和其他 package shared assets 投影进 Workspace Catalog。显式 `null` 仍表示关闭对应位置。
-  该选择只在新 Project 首次 `project:create` 时使用。create 会生成并冻结 Project-local Renderer adapter；
-  adapter 接收 `viewportWidth`/`viewportHeight`，再把本地尺寸映射给模板组件的 `width`/`height`。共享模板、
-  generator 或 preview 的后续修复不会自动迁移既有 Project copy。
-- `renderDefaults`：新 RenderSpec 的 width/height/fps/locale；页面用一个“画面尺寸”下拉同时设置
-  width/height，提供 9:16、16:9、4:5 与 1:1 四个常用规格；没有目标时长。
-  create input 的可选 `render.width/height/fps/locale` 按字段优先于此默认值；用户未指定的字段省略并继承。
-  单次项目覆盖不改写配置。创建响应返回已冻结 `render`，Agent 在 provider preparation 前复核其符合用户要求。
-- `readability.edgeInsetPx`：以 1080 短边为基准的文字安全留白。字幕底边 = 缩放后边缘留白 × 2；
-  有字幕时文字安全区底边 = 字幕底边 + 字幕盒高度 + gap，再向上取整到 10px；无旁白不留字幕带。
-  新 create 冻结 policyVersion 3，正文 Scene 取得 full-frame viewport 和独立 textSafeArea，留白不裁掉场景美术。
-  fixed template-copy 首尾及旧 policyVersion 1/2 继续使用原 safe-area-local viewport；revision 保留冻结 policy。
-  原始 policy 与挂载由 Composition 拥有，Scene 只消费派生尺寸、min font size 与适用的 textSafeArea，不重复计算 policy。
-- `publishingCollections`：有稳定 ID、名称和适用描述的数组。Agent 必须选一个最合适的已有合集；
-  PublishingIntent v2 封存所选 ID/名称及当时的合集目录 fingerprint。
-- `tts`：稳定的通用边界。`speech.rate` 在 provider 返回后、PCM 实测前处理并进入 provider-attempt
-  fingerprint；`speech.targetLoudnessLufs` 进入两遍 loudnorm mastering policy 和母带 fingerprint。
-- `tts.providers[].kind = "voxcpm"`：当前 VoxCPM 适配器。可控克隆 POST `/clone`；高品质克隆
-  POST `/clone_with_prompt`。`mode` 只在适配器内部选择请求结构，不作为 form 字段发送。
-- `tts.providers[].kind = "speech-sdk"`：`connection.apiKey` 是用户自己的 BYOK key；`baseUrl` 可空，
-  非空时只传给所选 direct factory；MiniMax 另可配置 factory 支持的 `groupId`。仓库不使用
-  Speechbase/托管网关、字符串模型路由、跨 provider fallback 或常驻 TTS 进程。voice profile 的仓库
-  `id`、云端 `voiceId` 与 `source`（厂商预置、远端克隆或远端设计）分开保存，Project 继续只绑定稳定
-  仓库 ID。实际开放 Cartesia、Deepgram、ElevenLabs、Fish Audio、Gradium、Hume、Inworld、MiniMax、
-  Mistral、Murf、OpenAI、Resemble、SmallestAI、Speechify 与 xAI；没有 Key 的厂商只有源码和 mock
-  验证，不声称线上实测。`remote-clone`/`remote-designed` 只声明已在厂商侧存在的 voice ID 来源；
-  narration generation 不创建、覆盖或删除远端声线，避免隐式计费、授权与生命周期副作用。
-- `tts.providers[].kind = "edge-tts"`：无需 Key，固定使用 Microsoft Edge Read Aloud 的 `api.msedgeservices.com` endpoint
-  与远端 voice ID/locale。配置页只允许从当前 adapter 元数据核验过的 14 个中文声线中下拉选择，
-  locale 随声线自动绑定；目录外 ID 和不匹配 locale 会被合同拒绝。它是 MIT
-  `node-edge-tts@1.2.11` 封装的非官方客户端协议，不是 Microsoft 对外承诺 SLA 的公共 TTS API；
-  adapter 向客户端显式传递宿主的 HTTPS/HTTP 代理环境变量（小写优先），并遵守服务域名/端口对应的
-  `no_proxy`/`NO_PROXY` 例外。代理属于当前宿主 transport，不写入 Project/config fingerprint，也不记录代理 URL 或凭证。
-  同一 adapter 实例串行发送真实请求，前一次结束后至少间隔 10 秒；首句和缓存命中不等待，音频中的停顿不承担网络限速。
-  失败立即停止该实例的排队请求，不自动重试。10 秒仅是缓解初值，未证明能避免所有 429，也不能约束其他进程或共享出口的流量。
-  stderr 的 `edge-tts-request` JSON 只包含开始/结束时间、chunk ID、代理/直连标签、耗时和固定 HTTP/超时状态；
-  标签只描述应用层代理选择，HTTP 状态仍不能单独区分代理 CONNECT 与微软 Upgrade 的响应。
-  依赖互联网，协议与声线目录都可能由上游改变。
-- SpeechSDK 当前固定官方开源包
-  [`@speech-sdk/core@0.27.0`](https://www.npmjs.com/package/@speech-sdk/core/v/0.27.0)，许可证为
-  Apache-2.0；direct factory 与 auto-chunking 行为以
-  [Jellypod-Inc/speech-sdk](https://github.com/Jellypod-Inc/speech-sdk) 对应发布源码为准。该版本会在
-  超过 model `maxInputChars` 时自动拆分；
-  因此 adapter 按 registry 中每个 vendor/model 的保守上限和方括号 audio tag 先 fail closed，固定 `maxRetries=0`，
-  不传 timestamps、volume/output/speed/chunking 选项。Fal 因生成后还会请求 CDN 音频、Google 因缺少
-  音频时可能改写输入再请求、Gateway 因托管路由语义而不开放。Edge 对 escaped UTF-8 文本执行 4096
-  bytes 上限并一次发送。每个 authored ttsChunk 恰好调用一次合成请求；
-  SDK 返回音频仍由仓库 `normalizeProviderAudio`、canonical PCM/checksum/seal/mastering 与
-  `pcm-cumulative-ceil-v1` 掌握 authority。
-- 声线的 `referenceAudioPath`、`promptAudioPath` 和 `promptTextPath` 只保存仓库根目录相对路径，
-  例如 `voxcpm/voice_profile/my-voice.wav`；绝对路径、反斜杠、URL 与 `..` 逃逸均被拒绝。Narration
-  和 preflight 在进入 VoxCPM 适配器前统一解析为宿主绝对路径，配置页保存的仍是相对值。
-- 新片 Skill 优先代码合成配乐，在 create input 明确使用 `{mode:"synthesized",sourcePath,timelinePath,volume?}`，
-  不修改长期配置。调用 Workspace-local `synth-score.mjs` 生成原创 48 kHz stereo WAV 与同源 timeline，
-  fps 按已解析的 render 选择。create 冻结音频和网格，一条 composition loop 替换 Scene/模板 BGM，保留独立音效。
-  sealed 口播时序不变；准备后的 Scene-local musicTiming 提供可选节拍落点。修订保留 synthesizedMusic/媒体/播放起点，
-  只调音量和包络。当前没有口播自动 ducking，先以低增益混入并检查整片。
-- 兼容的 `audioDefaults.globalBgm`：新 Workspace 默认 `{mode:"auto",volume:0.15}`，从全局已批准、许可 verified 且带 `loop` tag
-  的音乐中按当前 brief 选一首；可选 `resourceIds` 限定曲库。null 禁用全局预设，旧 `{sourcePath,volume}` 自定义文件仍可用。
-  单次 create 的 `backgroundMusic` 省略继承，`{mode:"auto",volume?}` 自动，`{mode:"selected",resourceId,volume?}` 指定曲目，
-  null 明确关闭全部背景音乐，不影响旁白/音效。缺曲返回 unavailable 和真实空音轨，指定无效曲目或 bytes drift 拒绝创建。
-  `project:create` 复制并 checksum-bound 到 Project-local 资产，写入 `sound.json`；新音轨以 content-window 覆盖正文，
-  跨 Scene 连续循环，不进入首尾模板及 lead/tail。只抑制正文 Scene 的第二首音乐，保留模板配乐、旁白和独立音效。
-  旧 Project 不自动迁移；[正式 sound revision](PROJECT_REVISION.md#边界播放与音乐包络) 可将 composition 收窄为 content-window。
-  gain 为 0–1 线性值，默认 0.15；旁白仍由 `tts.speech.targetLoudnessLufs` 控制，当前没有自动 ducking。
-  选择该本地文件即由 operator 声明其有权用于当前 Project；冻结的 manifest 记录这份 operator-provided
-  授权证据，runtime 不接受 URL、symlink 或未封存字节。
-  本地音乐库与 package-owned shared media 是不同来源；选择循环原音、维护试听版本及整片听审见
-  [SCENE_SOUND_EFFECTS.md](SCENE_SOUND_EFFECTS.md)。任务执行快慢不改变音乐速度、音高或 BPM。
+- `renderDefaults`：新作品的 width/height/fps/locale。用户为单个作品指定的尺寸与 fps 由
+  `film:new --width/--height/--fps` 写进该片，不改这里。
+- `sceneDefaults.introSceneTemplateId` / `outroSceneTemplateId`：新作品的片头片尾。目前可选
+  `axmorf-brand-reveal-v1`（片头）与 `axmorf-source-follow-v1`（片尾），`null` 表示不加。`film:new` 把选择写入
+  `film.json.bookends`；已有作品可直接改自己的 `bookends`。
+- `tts.defaultProviderId` / `defaultVoiceProfileId`：`film:voice` 使用的 provider 与声线。
+- `tts.speech.rate`：provider 返回后、PCM 实测前的语速处理。
+- `tts.speech.targetLoudnessLufs`：旁白两遍 loudnorm 的目标响度。
+- `readability`、`publishingCollections`、`audioDefaults`：旧 Project 链使用的字段，为兼容既有配置继续保留，
+  direct film 不读取。
 
-`RSP_PRODUCER_CONFIG` 支持仓库根目录相对路径和绝对路径。生产脚本、preflight、迁移命令与配置页
-使用同一解析规则。
+## TTS provider
 
-## 创建新 Project
+- `kind: "edge-tts"`：无需 Key，使用 Microsoft Edge Read Aloud 的 `api.msedgeservices.com` endpoint，只允许
+  adapter 已核验的中文声线，locale 随声线绑定。它是 MIT `node-edge-tts@1.2.11` 封装的非官方客户端协议，没有
+  SLA；协议与声线目录可能由上游改变。adapter 向客户端传递宿主的 HTTPS/HTTP 代理环境变量并遵守 `no_proxy`；
+  代理不进入任何 fingerprint，也不记录代理 URL 或凭证。同一 adapter 串行发送真实请求，前一次结束后至少间隔
+  10 秒，首句和缓存命中不等待；失败立即停止排队请求，不自动重试。10 秒是缓解初值，不保证避免所有 429。
+  stderr 的 `edge-tts-request` JSON 只含时间、句子 ID、代理/直连标签、耗时和固定状态，见
+  [诊断记录](../evidence/2026-10-15-edge-tts-pacing.md)。
+- `kind: "speech-sdk"`：用户自己的 BYOK key（`connection.apiKey`），`baseUrl` 可空。固定官方开源包
+  [`@speech-sdk/core@0.27.0`](https://www.npmjs.com/package/@speech-sdk/core/v/0.27.0)（Apache-2.0），开放
+  Cartesia、Deepgram、ElevenLabs、Fish Audio、Gradium、Hume、Inworld、MiniMax、Mistral、Murf、OpenAI、Resemble、
+  SmallestAI、Speechify 与 xAI；没有 Key 的厂商只有源码和 mock 验证。adapter 按每个模型的保守输入上限先拒绝过长
+  文本，固定 `maxRetries=0`，每句恰好一次请求；不创建、覆盖或删除远端声线。
+- `kind: "voxcpm"`：本地 VoxCPM 服务。可控克隆 POST `/clone`，高品质克隆 POST `/clone_with_prompt`。声线的
+  `referenceAudioPath`、`promptAudioPath`、`promptTextPath` 只保存 Workspace 相对路径；绝对路径、反斜杠、URL 与
+  `..` 逃逸均被拒绝。
 
-先运行 `project:create:context`，再 author 一个 strict `ProjectCreateInput`，其中包含 storyId、VideoBrief、同模式
-正文 StoryBeat（narrated 与 exact ordered `ttsChunks`，或 visual 与 authored frames）、VisualStyle authored fields、GlobalVisual brief、Scene creative briefs、resource/render/publishing/
-production choices 和 optional boundary template selections。input 必须位于 repository 内的 regular
-no-symlink JSON；不能包含 derived fingerprint、absolute/private path、provider secret 或 runtime output。
+provider 返回的音频统一转为 48 kHz 单声道 PCM 后实测时长；时序 authority 是实测 samples，不是 provider 的声称值。
 
-```bash
-npm run project:create -- --project <storyId> --input <repository-relative-json>
-```
+## 旧配置
 
-creator 从一次 ProducerConfig 读取派生 `narration.json`、`render.json`、`publishing-intent.json`、sound、
-requirements、Project ResourceCatalog 与 configured template instance。合集必须且只能选择当前数组中的一个
-ID；完整数组 fingerprint 被保存。选定普通 Scene template 的源码/资源会复制到 Project-local roots，并把
-对应 silent StoryBeat 写入时间线首尾；`null` 表示不插入。Project 一旦创建，后续修改全局 defaults/shared
-template 不会静默改变它。template 引用的 shared 音频会同时复制到 Project-local public root，并使用
-Project-owned resource ID；render 不依赖 package 或共享 Workspace path。
-
-transaction 先在受控 staging 生成并严格解析 exact set，再原子提升 source/public/catalog roots；任一步失败
-恢复创建前 filesystem。existing、partial、different identity、cross-project、unknown source、symlink、path
-escape 或 special file 都在覆盖前 fail closed。相同 creation identity 再次运行只读返回 current，不改 bytes/
-mtime。create 不调用 provider、不生成媒体，也不写 `.narration-work`、artifact、workspace、attempt 或 delivery。
-
-create 返回 `configured-authoring`；timing-bound SceneProductionBrief 以 story-owned pending authoring 保持 authored
-values，不填 placeholder fingerprint。narrated Story 通过 verified PCM/timing，visual Story 通过 authored frames，
-再由 fixed prepare 绑定真实 timing。Project-local media 必须在 Project root 成功创建后通过 `project:asset:import` 导入；不跨
-Project 复用旧 manifest 或媒体。
-
-`project:produce:inspect` 只读估算同一配置解析结果的 narration cache/cost；Root 报告后，
-`project:produce:prepare` 才可读取 private-safe narration generation fingerprint 并触发真实 preparation。generation
-在 provider request 前重算并比较；mastering 只读取已绑定的 LUFS policy。provider、connection、voice、
-生成参数、speech rate 或 LUFS 变化创建新的相关 TaskRevision，但不使无关 Scene/GlobalVisual/Cover
-artifact 失效。Revision/task inputs 只含 ID、数值 policy 和 fingerprint，不含 token/API key、URL、
-绝对路径、声线内容或 transcript。
+合法的 `producer-config-v1`、`v2`、`v3` 会先校验原 fingerprint，再在内存中升级为 v4；读取和诊断不改写文件，
+在配置页保存后才原子写入 v4。fingerprint 不匹配、未知字段或结构无效的配置 fail closed。

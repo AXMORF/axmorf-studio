@@ -15,8 +15,8 @@ export const usage = `Usage: npm create axmorf-studio@latest <target> [--yes] [-
 
 Arguments:
   target        New workspace directory inside the current directory
-  upgrade       Update an existing Workspace's Skill, guides, runtime facades and
-                @axmorf/studio to this release; Projects and private config stay unchanged
+  upgrade       Update an existing Workspace's Skill, guides and @axmorf/studio to this
+                release; films, deliveries and private config stay unchanged
 
 Options:
   --yes         Run without interactive confirmation

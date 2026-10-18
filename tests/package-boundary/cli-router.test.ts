@@ -20,11 +20,11 @@ const createRunner =
     calls.push({ name, rootDir, args });
   };
 
-test("public help works outside a Workspace and describes authoring and recovery without invoking runners", async () => {
+test("public help works outside a Workspace and routes Agents to the film Skill", async () => {
   const output: string[] = [];
   await runCli({
     cwd: "/workspace-does-not-exist",
-    args: ["project", "create", "--help"],
+    args: ["film", "new", "--help"],
     output: {
       stdout: (line) => output.push(line),
       stderr: () => assert.fail("help must not fail"),
@@ -32,50 +32,24 @@ test("public help works outside a Workspace and describes authoring and recovery
   });
   const help = JSON.parse(output.join(""));
   assert.equal(help.status, "help");
-  assert.ok(
-    help.commands.some((command: string) =>
-      command.includes("project:create:context"),
-    ),
-  );
-  assert.ok(
-    help.commands.some((command: string) =>
-      command.includes("project:attempt:interrupt-inspect"),
-    ),
-  );
-});
-
-test("execution help exposes host evidence separately from user preferences", async () => {
-  const output: string[] = [];
-  await runCli({
-    cwd: "/workspace-does-not-exist",
-    args: ["project", "execution", "resolve", "--help"],
-    output: {
-      stdout: (line) => output.push(line),
-      stderr: () => assert.fail("help must not fail"),
-    },
-  });
-  const help = JSON.parse(output.join(""));
-  const command = help.commands.find((value: string) =>
-    value.includes("project:execution:resolve"),
-  );
-  for (const flag of [
-    "--mode",
-    "--max-concurrency",
-    "--require-exact-concurrency",
-    "--runtime-max-concurrency",
-    "--worker-transport",
+  for (const command of [
+    "new",
+    "voice",
+    "music",
+    "review",
+    "check",
+    "deliver",
   ]) {
-    assert.ok(command.includes(flag));
+    assert.ok(
+      help.commands.some((value: string) => value.includes(`film:${command}`)),
+      command,
+    );
   }
-  const guidance = help.guidance.join("\n");
-  assert.match(guidance, /private\/execution-preferences\.json.*subagents.*4/u);
-  assert.match(guidance, /execution-capabilities\.md/u);
-  assert.match(guidance, /native child challenge read\/write/u);
-  assert.match(guidance, /verified host capacity, not the saved maximum/u);
-  assert.match(guidance, /without inline fallback/u);
+  assert.doesNotMatch(JSON.stringify(help), /project:|axmorf-video/u);
+  assert.match(help.guidance.join("\n"), /axmorf-film\/SKILL\.md/u);
 });
 
-test("the public CLI maps grouped commands exactly without leaking routing arguments", async () => {
+test("the public CLI maps commands exactly without leaking routing arguments", async () => {
   const calls: Array<{
     name: string;
     rootDir: string;
@@ -88,21 +62,6 @@ test("the public CLI maps grouped commands exactly without leaking routing argum
     web: createRunner(calls, "web"),
     preview: createRunner(calls, "preview"),
     dev: createRunner(calls, "dev"),
-    projectCreate: createRunner(calls, "projectCreate"),
-    projectRevision: createRunner(calls, "projectRevision"),
-    projectOriginality: createRunner(calls, "projectOriginality"),
-    projectDelete: createRunner(calls, "projectDelete"),
-    projectAssetImport: createRunner(calls, "projectAssetImport"),
-    projectCheck: createRunner(calls, "projectCheck"),
-    projectProduction: createRunner(calls, "projectProduction"),
-    projectSceneReview: createRunner(calls, "projectSceneReview"),
-    projectPreview: createRunner(calls, "projectPreview"),
-    referenceAnalysis: createRunner(calls, "referenceAnalysis"),
-    catalog: createRunner(calls, "catalog"),
-    registry: createRunner(calls, "registry"),
-    renderer: createRunner(calls, "renderer"),
-    scene: createRunner(calls, "scene"),
-    narration: createRunner(calls, "narration"),
     film: createRunner(calls, "film"),
   };
   const rootDir = "/canonical/workspace";
@@ -114,196 +73,11 @@ test("the public CLI maps grouped commands exactly without leaking routing argum
     [["preview"], "preview", []],
     [["dev"], "dev", []],
     [
-      ["project", "create", "--project", "story"],
-      "projectCreate",
-      ["--project", "story"],
-    ],
-    [
-      ["project", "originality", "freeze", "--project", "story"],
-      "projectOriginality",
-      ["--project", "story"],
-    ],
-    [
-      ["project", "revise", "context", "--project", "story"],
-      "projectRevision",
-      ["context", "--project", "story"],
-    ],
-    [
-      ["project", "revise", "validate", "--input", "revision.json"],
-      "projectRevision",
-      ["validate", "--input", "revision.json"],
-    ],
-    [
-      [
-        "project",
-        "revise",
-        "create",
-        "--project",
-        "story",
-        "--input",
-        "revision.json",
-      ],
-      "projectRevision",
-      ["create", "--project", "story", "--input", "revision.json"],
-    ],
-    [
-      [
-        "project",
-        "revision",
-        "promote",
-        "--project",
-        "story",
-        "--candidate",
-        "revision-candidate-id",
-        "--revision",
-        "revision-id",
-        "--delivery",
-        "delivery-id",
-      ],
-      "projectRevision",
-      [
-        "promote",
-        "--project",
-        "story",
-        "--candidate",
-        "revision-candidate-id",
-        "--revision",
-        "revision-id",
-        "--delivery",
-        "delivery-id",
-      ],
-    ],
-    [
-      ["project", "delete", "--project", "story", "--confirm-delete"],
-      "projectDelete",
-      ["--project", "story", "--confirm-delete"],
-    ],
-    [
-      ["project", "asset", "import", "--project", "story"],
-      "projectAssetImport",
-      ["--project", "story"],
-    ],
-    [
-      ["project", "check", "--project", "story"],
-      "projectCheck",
-      ["--project", "story"],
-    ],
-    [
-      ["project", "execution", "resolve", "--mode", "inline"],
-      "projectProduction",
-      ["execution-resolve", "--mode", "inline"],
-    ],
-    [
-      ["project", "produce", "inspect", "--project", "story"],
-      "projectProduction",
-      ["inspect", "--project", "story"],
-    ],
-    [
-      ["project", "produce", "prepare", "--project", "story"],
-      "projectProduction",
-      ["prepare", "--project", "story"],
-    ],
-    [
-      ["project", "scene", "review", "--project", "story"],
-      "projectSceneReview",
-      ["--project", "story"],
-    ],
-    [
-      ["project", "preview", "--project", "story", "--candidate", "candidate"],
-      "projectPreview",
-      ["--project", "story", "--candidate", "candidate"],
-    ],
-    [
-      ["reference", "analyze", "--input", "public/reference.mp4"],
-      "referenceAnalysis",
-      ["--input", "public/reference.mp4"],
-    ],
-    [
-      ["project", "produce", "continue", "--attempt", "attempt"],
-      "projectProduction",
-      ["continue", "--attempt", "attempt"],
-    ],
-    [
-      ["project", "task", "bind", "--task", "task"],
-      "projectProduction",
-      ["task-bind", "--task", "task"],
-    ],
-    [
-      ["project", "task", "describe", "--task", "task"],
-      "projectProduction",
-      ["task-describe", "--task", "task"],
-    ],
-    [
-      ["project", "task", "finalize", "--task", "task"],
-      "projectProduction",
-      ["task-finalize", "--task", "task"],
-    ],
-    [
-      ["project", "task", "check", "--task", "task"],
-      "projectProduction",
-      ["task-check", "--task", "task"],
-    ],
-    [
-      ["project", "task", "preview", "--task", "task"],
-      "projectProduction",
-      ["task-preview", "--task", "task"],
-    ],
-    [
-      ["project", "task", "commit", "--task", "task"],
-      "projectProduction",
-      ["task-commit", "--task", "task"],
-    ],
-    [
-      ["project", "task", "fail", "--task", "task"],
-      "projectProduction",
-      ["task-fail", "--task", "task"],
-    ],
-    [
-      ["project", "task", "file-read", "--path", "task.json"],
-      "projectProduction",
-      ["task-file-read", "--path", "task.json"],
-    ],
-    [
-      ["project", "task", "file-write", "--path", "src/Renderer.tsx"],
-      "projectProduction",
-      ["task-file-write", "--path", "src/Renderer.tsx"],
-    ],
-    [
-      ["project", "attempt", "recover-inspect", "--project", "story"],
-      "projectProduction",
-      ["attempt-recover-inspect", "--project", "story"],
-    ],
-    [
-      ["project", "attempt", "reissue", "--project", "story"],
-      "projectProduction",
-      ["attempt-reissue", "--project", "story"],
-    ],
-    [
-      ["catalog", "query", "--kind", "style"],
-      "catalog",
-      ["query", "--kind", "style"],
-    ],
-    [["registry", "check"], "registry", ["check"]],
-    [
-      ["renderer", "check", "--project", "story"],
-      "renderer",
-      ["check", "--project", "story"],
-    ],
-    [
-      ["scene", "coverage", "--project", "story", "--check"],
-      "scene",
-      ["coverage", "--project", "story", "--check"],
-    ],
-    [
-      ["narration", "check", "--project", "story"],
-      "narration",
-      ["check", "--project", "story"],
-    ],
-    [
       ["film", "voice", "--film", "story"],
       "film",
       ["voice", "--film", "story"],
     ],
+    [["film", "list"], "film", ["list"]],
   ];
   for (const [args, name, forwarded] of cases) {
     await routeCliCommand({ rootDir, args, runners });
@@ -311,7 +85,7 @@ test("the public CLI maps grouped commands exactly without leaking routing argum
   }
 });
 
-test("the router rejects aliases partial commands and arguments on fixed commands", async () => {
+test("the router rejects removed, partial and extra-argument commands", async () => {
   const noOp: CliCommandRunner = async () => undefined;
   const runners = {
     bootstrap: noOp,
@@ -320,49 +94,33 @@ test("the router rejects aliases partial commands and arguments on fixed command
     web: noOp,
     preview: noOp,
     dev: noOp,
-    projectCreate: noOp,
-    projectRevision: noOp,
-    projectOriginality: noOp,
-    projectDelete: noOp,
-    projectAssetImport: noOp,
-    projectCheck: noOp,
-    projectProduction: noOp,
-    projectSceneReview: noOp,
-    projectPreview: noOp,
-    referenceAnalysis: noOp,
-    catalog: noOp,
-    registry: noOp,
-    renderer: noOp,
-    scene: noOp,
-    narration: noOp,
     film: noOp,
   };
   for (const args of [
     [],
     ["bootstrap", "extra"],
-    ["project:create"],
+    ["doctor", "extra"],
+    ["browser"],
     ["film"],
-    ["project"],
-    ["project", "produce"],
-    ["project", "revise"],
-    ["project", "revise", "unknown"],
-    ["project", "revision"],
-    ["project", "revision", "unknown"],
-    ["project", "revise-context", "--project", "story"],
-    ["project", "revise-validate", "--input", "revision.json"],
-    ["project", "revision-promote", "--project", "story"],
-    ["project", "produce", "unknown"],
-    ["project", "asset", "unknown"],
-    ["project", "verify"],
+    ["film:new"],
     ["unknown"],
-    ["reference"],
-    ["reference", "unknown"],
+    ["catalog", "query"],
+    ["reference", "analyze"],
+    ["narration", "generate"],
   ]) {
     await assert.rejects(
       routeCliCommand({ rootDir: "/workspace", args, runners }),
       CliUsageError,
     );
   }
+  await assert.rejects(
+    routeCliCommand({
+      rootDir: "/workspace",
+      args: ["project", "task", "bind"],
+      runners,
+    }),
+    /removed in 0\.3\.0[\s\S]*axmorf-film/u,
+  );
 });
 
 test("CLI composition resolves Workspace before invoking any command runner", async (context) => {
@@ -386,21 +144,6 @@ test("CLI composition resolves Workspace before invoking any command runner", as
     web: runner,
     preview: runner,
     dev: runner,
-    projectCreate: runner,
-    projectRevision: runner,
-    projectOriginality: runner,
-    projectDelete: runner,
-    projectAssetImport: runner,
-    projectCheck: runner,
-    projectProduction: runner,
-    projectSceneReview: runner,
-    projectPreview: runner,
-    referenceAnalysis: runner,
-    catalog: runner,
-    registry: runner,
-    renderer: runner,
-    scene: runner,
-    narration: runner,
     film: runner,
   };
   await runCli({ cwd: nested, args: ["doctor"], runners });

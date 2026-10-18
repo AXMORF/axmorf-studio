@@ -1,6 +1,6 @@
 /**
- * Public Remotion surface used by generated Project source and Agent-authored
- * Scene renderers. Consumers must not depend on package-internal paths.
+ * Public Remotion surface for Agent-authored films. Consumers must not depend
+ * on package-internal paths.
  */
 export * from "./remotion/capabilities/camera";
 export * from "./remotion/capabilities/effects";
@@ -14,13 +14,6 @@ export * from "./remotion/capabilities/sound";
 export * from "./remotion/capabilities/styles";
 export * from "./remotion/capabilities/transitions";
 export * from "./remotion/capabilities/visual-components";
-export * from "./remotion/runtime/composition-assembly";
-export * from "./remotion/runtime/global-visual";
-export * from "./remotion/runtime/narrative-core";
-export * from "./remotion/runtime/readability";
-export * from "./remotion/runtime/scene-sound";
 export * from "./remotion/runtime/sound-design";
-export * from "./remotion/runtime/story-visual";
-export * from "./remotion/runtime/story-visual/SceneContinuityVisual";
 export * from "./remotion/film";
 export * from "./remotion/create-remotion-root";

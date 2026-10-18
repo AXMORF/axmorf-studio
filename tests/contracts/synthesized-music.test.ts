@@ -7,10 +7,9 @@ import test from "node:test";
 import {
   SynthesizedMusicTimelineSchema,
   resolveSceneMusicTiming,
-  buildProjectSoundPlan,
 } from "@axmorf/studio/contracts";
 
-const script = resolve(".agents/skills/axmorf-video/scripts/synth-score.mjs");
+const script = resolve("scripts/films/score/synth-score.mjs");
 const loadSynth = () => import(pathToFileURL(script).href);
 
 test("original synthesis is repeatable, frame-aligned PCM with a fingerprinted fractional beat grid", async () => {
@@ -71,7 +70,7 @@ test("one musical grid stays in phase across Scene and loop boundaries without m
   );
 });
 
-test("audio events begin at the shared cue frame and synthesized plans reject contradictory playback", async () => {
+test("audio events begin at the shared cue frame", async () => {
   const { makeTimeline, synthesizeTimeline, generateScore } = await loadSynth();
   const timeline = makeTimeline({ fps: 30, bpm: 120, bars: 1 });
   const audio = synthesizeTimeline({
@@ -86,16 +85,9 @@ test("audio events begin at the shared cue frame and synthesized plans reject co
     true,
   );
   assert.notEqual(pcm.readInt16LE((9 * 1600 + 1) * 4), 0);
-  const score = SynthesizedMusicTimelineSchema.parse(
-    generateScore({ fps: 30, bpm: 120, bars: 1 }).timeline,
-  );
-  assert.throws(
-    () =>
-      buildProjectSoundPlan({
-        storyId: "story-example",
-        synthesizedMusic: score,
-        contributions: [],
-      }),
-    /composition loop/u,
+  assert.doesNotThrow(() =>
+    SynthesizedMusicTimelineSchema.parse(
+      generateScore({ fps: 30, bpm: 120, bars: 1 }).timeline,
+    ),
   );
 });

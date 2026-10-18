@@ -7,14 +7,11 @@ import {
   type ReactElement,
   type ReactNode,
 } from "react";
-import {
-  VISUAL_THEME_PRESETS,
-  VideoSourceReferencesSchema,
-} from "@axmorf/studio/contracts";
+import { VISUAL_THEME_PRESETS } from "@axmorf/studio/contracts";
 
 import { SourceCreditsScene } from "../../packages/studio/src/remotion/capabilities/scene-templates/axmorf/SourceCreditsScene";
 import { AXMORF_SOURCE_FOLLOW_MESSAGE } from "../../packages/studio/src/remotion/capabilities/scene-templates/axmorf/content";
-import { REFERENCE_CASES } from "../../proofs/scene-theme/source/matrix";
+import { REFERENCE_CASES } from "../fixtures/scene-theme-matrix";
 
 type ElementProps = Readonly<{
   children?: ReactNode;
@@ -102,12 +99,10 @@ const requiredHeight = (root: ReactElement<ElementProps>) =>
     return height + ownHeight + Number(style?.marginTop ?? 0);
   }, 0);
 
-const maxReferences = VideoSourceReferencesSchema.parse(
-  Array.from({ length: 8 }, (_, index) => ({
-    title: `资料${String(index + 1).padStart(2, "0")}${"最长标题".repeat(39)}`,
-    url: `https://example.com/${String(index + 1)}${"x".repeat(219)}`,
-  })),
-);
+const maxReferences = Array.from({ length: 8 }, (_, index) => ({
+  title: `资料${String(index + 1).padStart(2, "0")}${"最长标题".repeat(39)}`,
+  url: `https://example.com/${String(index + 1)}${"x".repeat(219)}`,
+}));
 
 test("720p credits fit their 1100x540 viewport without a fake empty-reference card", () => {
   const root = element(
@@ -207,12 +202,10 @@ test("dense reference labels fill one 720p phase or two legacy pages without tin
 });
 
 test("widest ASCII titles and long source domains abbreviate within a legacy row", () => {
-  const reference = VideoSourceReferencesSchema.parse([
-    {
-      title: "W".repeat(160),
-      url: `https://${[63, 63, 63, 40].map((length) => "W".repeat(length)).join(".")}`,
-    },
-  ])[0];
+  const reference = {
+    title: "W".repeat(160),
+    url: `https://${[63, 63, 63, 40].map((length) => "W".repeat(length)).join(".")}`,
+  };
   const root = element(
     SourceCreditsScene({
       width: 1100,

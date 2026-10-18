@@ -1018,7 +1018,7 @@ export const Tts = ({ config, update }: EditorProps) => {
       <Section
         eyebrow="04 / SPEECH"
         title="TTS 默认策略"
-        description="Project 只绑定稳定 provider/profile ID；连接凭证只留在 private ProducerConfig。"
+        description="film:voice 使用默认声线；连接凭证只留在 private ProducerConfig。"
       >
         <FieldRow>
           <Field label="默认服务">

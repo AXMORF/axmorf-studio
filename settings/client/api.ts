@@ -1,13 +1,11 @@
 import {
   ApiErrorSchema,
-  DeleteProjectResponseSchema,
+  DeleteFilmResponseSchema,
   EnvironmentDiagnosticsSchema,
-  ExecutionPreferencesSchema,
-  ProductionProgressResponseSchema,
+  FilmListResponseSchema,
   SETTINGS_API_ROUTES,
   parseEditableConfig,
   type EditableConfig,
-  type ExecutionPreferences,
 } from "../contracts/api";
 
 const readJsonResponse = async (response: Response): Promise<unknown> => {
@@ -37,28 +35,6 @@ export const saveSettings = async (config: EditableConfig) =>
     ),
   );
 
-export const loadExecutionPreferences = async () =>
-  ExecutionPreferencesSchema.parse(
-    await readJsonResponse(
-      await fetch(SETTINGS_API_ROUTES.executionPreferences, {
-        cache: "no-store",
-      }),
-    ),
-  );
-
-export const saveExecutionPreferences = async (
-  preferences: ExecutionPreferences,
-) =>
-  ExecutionPreferencesSchema.parse(
-    await readJsonResponse(
-      await fetch(SETTINGS_API_ROUTES.executionPreferences, {
-        method: "PUT",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(preferences),
-      }),
-    ),
-  );
-
 export const loadEnvironmentDiagnostics = async (signal: AbortSignal) =>
   EnvironmentDiagnosticsSchema.parse(
     await readJsonResponse(
@@ -69,26 +45,23 @@ export const loadEnvironmentDiagnostics = async (signal: AbortSignal) =>
     ),
   );
 
-export const loadProductionProgress = async (signal: AbortSignal) =>
-  ProductionProgressResponseSchema.parse(
+export const loadFilms = async (signal: AbortSignal) =>
+  FilmListResponseSchema.parse(
     await readJsonResponse(
-      await fetch(SETTINGS_API_ROUTES.productionProgress, {
-        cache: "no-store",
-        signal,
-      }),
+      await fetch(SETTINGS_API_ROUTES.films, { cache: "no-store", signal }),
     ),
   );
 
-export const requestProjectDeletion = async (
-  projectId: string,
+export const requestFilmDeletion = async (
+  filmId: string,
   confirmation: string,
 ) =>
-  DeleteProjectResponseSchema.parse(
+  DeleteFilmResponseSchema.parse(
     await readJsonResponse(
-      await fetch(SETTINGS_API_ROUTES.projectDeletion, {
+      await fetch(SETTINGS_API_ROUTES.filmDeletion, {
         method: "DELETE",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ projectId, confirmation }),
+        body: JSON.stringify({ filmId, confirmation }),
       }),
     ),
   );

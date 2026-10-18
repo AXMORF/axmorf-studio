@@ -1,25 +1,12 @@
 import { z } from "zod";
 
-import { ProducerConfigSchema } from "@axmorf/studio/contracts";
-import {
-  ActualProductionCostSchema,
-  EstimatedProductionCostSchema,
-  ProductionInspectionSchema,
-  TaskDecisionExplanationListSchema,
-  validateTaskExplanationStoryBinding,
-} from "@axmorf/studio/contracts";
-import { StoryIdSchema } from "@axmorf/studio/contracts";
-import {
-  ExecutionPreferencesSchema,
-  type ExecutionPreferences,
-} from "./execution-preferences";
+import { FilmIdSchema, ProducerConfigSchema } from "@axmorf/studio/contracts";
 
 export const SETTINGS_API_ROUTES = {
   settings: "/api/settings",
-  executionPreferences: "/api/execution-preferences",
   diagnostics: "/api/diagnostics",
-  productionProgress: "/api/production-progress",
-  projectDeletion: "/api/projects/delete",
+  films: "/api/films",
+  filmDeletion: "/api/films/delete",
 } as const;
 
 export const ApiErrorSchema = z.object({ error: z.string().min(1) }).strict();
@@ -45,146 +32,65 @@ export type EnvironmentDiagnostics = z.infer<
   typeof EnvironmentDiagnosticsSchema
 >;
 
-export const ProjectProductionStatusSchema = z.enum([
-  "not-produced",
-  "needs-agent",
-  "converging",
-  "current",
-  "stale",
-  "failed",
-  "error",
-]);
-
-export type ProjectProductionStatus = z.infer<
-  typeof ProjectProductionStatusSchema
->;
-
-export const ProjectTaskSummarySchema = z
+/** Mirrors `film:list`: one row per `src/films/<filmId>/`. */
+export const FilmSummarySchema = z
   .object({
-    reusedTaskCount: z.number().int().nonnegative(),
-    dirtyAgentTaskCount: z.number().int().nonnegative(),
-    dirtyFixedTaskCount: z.number().int().nonnegative(),
-    blockedTaskCount: z.number().int().nonnegative(),
-  })
-  .strict();
-
-export const ProjectEstimatedCostSchema = EstimatedProductionCostSchema;
-export const ProjectActualCostSchema = ActualProductionCostSchema;
-
-export const ProjectAttemptSummarySchema = z
-  .object({
-    attemptId: z.string().uuid(),
-    revisionId: z.string().regex(/^revision-[0-9a-f]{64}$/u),
-    state: z.enum(["waiting-for-agent", "converging", "succeeded", "failed"]),
-    updatedAt: z.string().datetime({ offset: true }),
-    diagnosticCode: z
-      .string()
-      .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/u)
-      .nullable(),
-    tasks: ProjectTaskSummarySchema,
-    estimatedCost: ProjectEstimatedCostSchema,
-    actualCost: ProjectActualCostSchema,
-    taskExplanations: TaskDecisionExplanationListSchema,
-    taskOutcomes: z
+    filmId: FilmIdSchema,
+    title: z.string().nullable(),
+    render: z
       .object({
-        committedTaskCount: z.number().int().nonnegative(),
-        currentTaskCount: z.number().int().nonnegative(),
-        failedTaskCount: z.number().int().nonnegative(),
+        width: z.number().int().positive(),
+        height: z.number().int().positive(),
+        fps: z.number().int().positive(),
       })
-      .strict(),
-    deliveryResult: z.enum(["not-verified", "verified", "failed"]),
-  })
-  .strict();
-
-export const ProjectDeliverySummarySchema = z
-  .object({
-    deliveryBuildId: z.string().regex(/^delivery-[0-9a-f]{64}$/u),
-    revisionId: z.string().regex(/^revision-[0-9a-f]{64}$/u),
-    frameCount: z.number().int().positive(),
-    current: z.boolean(),
-    files: z
-      .object({
-        video: z.literal(true),
-        cover4x3: z.literal(true),
-        cover3x4: z.literal(true),
-        publish: z.literal(true),
-      })
-      .strict(),
-  })
-  .strict();
-
-export const ProjectProductionProgressSchema = z
-  .object({
-    projectId: StoryIdSchema,
-    status: ProjectProductionStatusSchema,
-    revisionId: z
-      .string()
-      .regex(/^revision-[0-9a-f]{64}$/u)
+      .strict()
       .nullable(),
-    tasks: ProjectTaskSummarySchema,
-    inspection: ProductionInspectionSchema.nullable(),
-    attempt: ProjectAttemptSummarySchema.nullable(),
-    delivery: ProjectDeliverySummarySchema.nullable(),
-    error: z.string().min(1).nullable(),
-  })
-  .strict()
-  .superRefine((project, context) => {
-    if (
-      project.inspection !== null &&
-      project.inspection.storyId !== project.projectId
-    ) {
-      context.addIssue({
-        code: "custom",
-        message: "Production inspection is cross-story.",
-        path: ["inspection", "storyId"],
-      });
-    }
-    if (project.attempt === null) return;
-    validateTaskExplanationStoryBinding({
-      storyId: project.projectId,
-      tasks: project.attempt.taskExplanations,
-      context,
-      path: ["attempt", "taskExplanations"],
-    });
-  });
-
-export type ProjectProductionProgress = z.infer<
-  typeof ProjectProductionProgressSchema
->;
-
-export const ProductionProgressResponseSchema = z
-  .object({
-    schemaVersion: z.literal(5),
-    projects: z.array(ProjectProductionProgressSchema),
+    sentences: z.number().int().nonnegative().nullable(),
+    voice: z.boolean(),
+    music: z.enum(["none", "ready", "missing"]),
+    delivered: z
+      .object({
+        at: z.string().datetime({ offset: true }),
+        seconds: z.number().positive(),
+        video: z.string().min(1),
+      })
+      .strict()
+      .nullable(),
   })
   .strict();
 
-export type ProductionProgressResponse = z.infer<
-  typeof ProductionProgressResponseSchema
->;
+export type FilmSummary = z.infer<typeof FilmSummarySchema>;
 
-export const DeleteProjectRequestSchema = z
+export const FilmListResponseSchema = z
   .object({
-    projectId: StoryIdSchema,
+    status: z.literal("films-listed"),
+    films: z.array(FilmSummarySchema),
+  })
+  .strict();
+
+export type FilmListResponse = z.infer<typeof FilmListResponseSchema>;
+
+export const DeleteFilmRequestSchema = z
+  .object({
+    filmId: FilmIdSchema,
     confirmation: z.string(),
   })
   .strict()
   .superRefine((request, context) => {
-    if (request.confirmation !== request.projectId) {
+    if (request.confirmation !== request.filmId) {
       context.addIssue({
         code: "custom",
-        message: "请输入完整 Project ID 确认删除。",
+        message: "请输入完整的作品 ID 确认删除。",
         path: ["confirmation"],
       });
     }
   });
 
-export const DeleteProjectResponseSchema = z
-  .object({ deletedProjectId: StoryIdSchema })
+export const DeleteFilmResponseSchema = z
+  .object({ deletedFilmId: FilmIdSchema })
   .strict();
 
-export { ExecutionPreferencesSchema, ProducerConfigSchema };
-export type { ExecutionPreferences };
+export { ProducerConfigSchema };
 
 type DeepMutable<T> = T extends
   | string

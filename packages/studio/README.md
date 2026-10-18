@@ -1,15 +1,9 @@
 # @axmorf/studio
 
-New video Skills prefer local code-synthesized music: create validates and freezes original WAV/timeline, with one
-composition loop replacing Scene/template music while retaining effects. Prepared Scene-local beats never retime speech.
-Compatible library/file music remains available at Project creation, or can be explicitly disabled.
-Those tracks loop across content, excluding template bookends and lead/tail. Template music and
-Scene effects remain independent. Existing scopes are preserved; library/file composition music can be narrowed to content.
-Missing music is reported explicitly. The current source bundles five original loop masters under the commissioning user's
-permission for Workspace distribution and video BGM use. Other private user libraries
-remain outside the package.
-
 The runtime, CLI, contracts, Remotion components, and local Web control center behind AXMORF Studio workspaces.
+An agent writes each film directly as Remotion code; this package measures narration timing, synthesizes an original
+score with a beat grid, admits licensed media, renders review frames, checks hard rules, and verifies the four-file
+delivery.
 
 [![npm](https://img.shields.io/npm/v/%40axmorf%2Fstudio)](https://www.npmjs.com/package/@axmorf/studio)
 [![license](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
@@ -34,23 +28,19 @@ npm run dev
 ## Public surface
 
 - `@axmorf/studio` — runtime metadata and workspace helpers
-- `@axmorf/studio/contracts` — supported versioned data contracts
-- `@axmorf/studio/remotion` — supported Remotion components and helpers
-- `axmorf` — the workspace CLI used by generated npm scripts
+- `@axmorf/studio/contracts` — versioned data contracts, including `film.json` and `publish.json`
+- `@axmorf/studio/remotion` — film hooks and components (`useFilm`, `useFilmTiming`, `FilmCaptions`,
+  `FilmSoundtrack`), the system bookends, and optional camera, motion, interface, media and effect components
+- `axmorf` — the workspace CLI used by generated npm scripts (`doctor`, `dev`, `film new|voice|music|asset|review|check|deliver|list|delete`)
 
-Package internals are not public API. A generated workspace owns its Projects, media, private configuration, artifacts, output, and
-Deliveries. Create, revise, recover, and produce through its npm scripts and Workspace-local Skill; do not reconstruct internal CLI
-commands.
+Package internals are not public API. A generated workspace owns its films, media, private configuration, output and
+deliveries. Make videos through its npm scripts and the Workspace-local `axmorf-film` Skill.
 
-The package also carries a policy-covered Workspace seed for shared media. `axmorf bootstrap` projects only its
-manifested bytes into reserved Workspace paths, generates the Resource Catalog, and refuses conflicting files or symlinks. The
-current seed includes a Mixkit cinematic opening impact excerpt, an eight-second Mixkit “Deep Urban” closing excerpt, an AXMORF
-mark SVG, 24 original AXMORF motion sound effects, including mouse clicks, press/release and scrolling cues, and five original
-loop masters: Neon Motion, Easy Day, Next Question, Sunlit Drive and Signal Sprint. The loop WAVs retain their original bytes
-and become automatic Project BGM candidates after bootstrap. Scenes select
-prebuilt effects from the Catalog and schedule them by
-event anchor or local frame; they do not synthesize audio during production. Selected template audio becomes Project-local during
-creation. See `THIRD_PARTY_NOTICES.md` for source and license details.
+The package carries a checksum-covered Workspace seed for shared media. `axmorf bootstrap` projects only its manifested
+bytes into reserved Workspace paths and refuses conflicting files or symlinks. The seed includes a Mixkit cinematic
+opening impact excerpt and an eight-second Mixkit “Deep Urban” closing excerpt used by the default bookends, an AXMORF
+mark SVG, 24 original AXMORF motion sound effects, and five original loop masters. See `THIRD_PARTY_NOTICES.md` for
+source and license details.
 
 ## Requirements
 
@@ -58,47 +48,20 @@ creation. See `THIRD_PARTY_NOTICES.md` for source and license details.
 - npm 10 or newer
 - the exact Remotion and React peer versions declared in `package.json`
 
-This package does not vendor `node_modules` or Remotion. The creator installs the required third-party packages as exact ordinary npm
-dependencies and generates a consumer-owned lockfile. The creator and `axmorf doctor` are the capability gate for the current host.
+This package does not vendor `node_modules` or Remotion. The creator installs the required third-party packages as exact
+ordinary npm dependencies and generates a consumer-owned lockfile. The creator and `axmorf doctor` are the capability
+gate for the current host: doctor checks a real tiny browser render before reporting a ready Workspace.
 
 ## Documentation
 
 - [Project overview and Agent prompt](https://github.com/AXMORF/axmorf-studio#readme)
+- [Architecture](https://github.com/AXMORF/axmorf-studio/blob/HEAD/docs/ARCHITECTURE.md)
 - [Agent compatibility](https://github.com/AXMORF/axmorf-studio/blob/HEAD/docs/guides/AGENT_COMPATIBILITY.md)
-- [Production workflow](https://github.com/AXMORF/axmorf-studio/blob/HEAD/docs/PRODUCTION_WORKFLOW.md)
-- [Local Delivery](https://github.com/AXMORF/axmorf-studio/blob/HEAD/docs/guides/LOCAL_DELIVERY.md)
+- [Current implementation status](https://github.com/AXMORF/axmorf-studio/blob/HEAD/docs/ITERATION_STATUS.md)
 
-For production, prefer the current generated Workspace documents because they match the installed runtime version.
+For production, prefer the generated Workspace documents because they match the installed runtime version.
 
 ## License
 
 AXMORF Studio source in this package is licensed under [Apache-2.0](LICENSE). Third-party dependencies retain their own licenses; see
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and each installed package's metadata. Remotion is not relicensed by AXMORF Studio.
-
-## Authoring and host readiness
-
-The creator prepares the pinned browser and checks a real tiny PNG render before reporting a ready Workspace. Browser
-preparation is serialized and bounded; doctor never silently downloads Chrome. New authoring begins with
-`npm run project:create:context -- --project <storyId>`, which returns a complete example and current public choices.
-Use the generated Workspace-local authoring and host-execution references for exact task execution and interruption recovery.
-
-Current unreleased source also freezes approved runtime capabilities as optional choices, with API recipes and explicit
-allowlist control. New body Scenes use a full-frame canvas with separate text safety; original generated images or static SVG
-can be admitted before first production inspection. The score helper supports topic-specific harmony and section arrangement,
-and Edge TTS is pinned to SDK 1.2.11 for its migrated endpoint. These changes are not included in public 0.1.21; see
-[current implementation status](https://github.com/AXMORF/axmorf-studio/blob/HEAD/docs/ITERATION_STATUS.md).
-
-The runtime provides filmPlan, consecutive multi-Beat Scene ownership, authored-frame visual-only timelines, deterministic
-world/morph/semantic-time utilities and `axmorf project preview`. Drafts project verified artifacts into a frozen private view
-before final rendering; their receipts certify media integrity and leave creative assessment explicit. Existing Projects keep
-their authored grouping and delivered bytes until an explicit revision.
-`axmorf reference analyze --input public/<reference.mp4>` writes bounded cut-refinement brackets, image translation/scale
-estimates, timestamped color frames and a local review page. Agent camera/semantic interpretations remain separate from
-these measurements. Analysis neither admits media into a Project nor certifies every cut or creative quality.
-Formal and draft video export share lossless PCM mixing and one AAC-to-MP4 encoding step, retaining encoder priming metadata
-and the original H.264 frames. Requested mono/stereo is applied during that single encode.
-Published 0.1.17 adds authored-frame visual content, licensed sound discovery, optional shared SVG continuity,
-public action timing and bound pre-commit Scene previews. It also adds narrow revisions for immutable template playback
-windows and existing music gain/envelopes. Inspect the installed
-public schemas and local instructions before use. Technical validation does not certify aesthetics, complete playback
-review or the subjective mix. Other user-local music and private Library attachments remain outside the shared seed.
