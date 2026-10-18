@@ -1,6 +1,22 @@
 # Iteration Status
 
-## 片头片尾与审片自查（2026-10-16，源码完成，未发布）
+## 0.2.1 发布与宿主验收（2026-10-18）
+
+`0.2.1-rc.1`（Edge TTS 请求节奏、`/axmorf-film` 入口）与 `0.2.1-rc.2`（片头片尾、审片自查）先后发布到 `next`，
+维护者的 Workspace 用 `npx create-axmorf-studio@next upgrade` 就地升级，doctor 六项通过。
+
+Codex（gpt-6.1-sol，高推理）在 rc.2 上按 `axmorf-film` 流程完成 `dns-address-journey-v2`：
+- 交付 1400 帧 = 片头 60 + 正片 1100 + 片尾 240，1080×1920、30fps，46.67 秒；片尾列出 3 条参考来源。
+- 抽帧确认片头片尾与音频都在；第一版“顶部标题 + 居中物体 + 底部字幕”的版式改为同一场景内的物体与贴附标签，
+  各级服务器造型不同，镜头在对象之间移动，结尾无长时间静止。剩余倾向：多数段落仍以单个居中物体为主。
+
+发布流程同时修正：新版本在公共 registry 可见可能超过 10 分钟，rc.2 因原 5 分钟等待误判失败（runtime 已发布、creator 未发布，
+人工重跑后完成）。现在发布后最多等待 30 分钟；`npm publish` 报版本已存在时不再直接失败，而是等待并核对 registry integrity
+与本次 tarball 一致。
+
+未验证：人工连续观看与听审。
+
+## 片头片尾与审片自查（2026-10-16，随 0.2.1 发布）
 
 0.2.0 的 direct 流程没有接 Workspace 配置里的 `sceneDefaults.introSceneTemplateId/outroSceneTemplateId`，
 Codex 制作的 `dns-address-journey` 因此没有片头片尾。现在：
@@ -14,7 +30,7 @@ Codex 制作的 `dns-address-journey` 因此没有片头片尾。现在：
 验证：film 测试 19 项通过；本地打包的 runtime 在测试 Workspace 交付 510 帧（60 + 210 + 240），抽帧与分段音量确认片头、
 正片、片尾参考来源与品牌落版及各自音频都在。
 
-## Edge TTS 请求节奏与诊断（2026-10-15，0.2.1-rc.1 预发布）
+## Edge TTS 请求节奏与诊断（2026-10-15，随 0.2.1 发布）
 
 隔离诊断的五次低频请求全部获得 HTTP 101 与可解码音频：当前 API/v1 与 Bing/v2 均通过代理和应用层直连，
 当前 API/v2 也通过代理。未复现 429，不能认定旧 GEC 是当前 API 的失败原因，也未证实出口 IP 持续被封。
