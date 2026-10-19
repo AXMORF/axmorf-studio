@@ -19,16 +19,12 @@ Explicit user dimensions, orientation and fps go into that film (`film:new --wid
 do not change saved defaults for one film. Provider failures (TTS, image generation) are external: report them and retry
 only after the user agrees. Never weaken a check to pass it.
 
-Films made before 0.2.0 live in `src/projects/<storyId>/` and use the Project production chain. Work on them only when the
-user asks, by reading `.agents/skills/axmorf-video/SKILL.md`; new videos always use `axmorf-film`. An Agent given an exact
-attempt-bound `project:task:bind` is a worker of that chain: follow
-[Assigned task worker](.agents/skills/axmorf-video/references/production-workflow.md#assigned-task-worker) only.
-
 When the user asks to upgrade this Workspace, run `npm run workspace:upgrade -- --dry-run`, report the listed changes and
 `localChanges`, then run `npm run workspace:upgrade`. It replaces only product-managed files after backing them up, keeps
-films, Projects and private configuration, and restores everything if install, bootstrap or doctor fails. Never upgrade
-`@axmorf/studio` alone: the Skill and runtime must change together. Do not upgrade while a film command is running.
+films, deliveries and private configuration, and restores everything if install, bootstrap or doctor fails. If it reports
+`legacyProjectData`, those directories belong to the Project chain that 0.3.0 removed; tell the user and delete them only
+when the user asks. Never upgrade `@axmorf/studio` alone: the Skill and runtime must change together. Do not upgrade
+while a film command is running.
 
-Never publish, push, delete a film or Project, or expose private configuration unless the user explicitly requests that
-action. Delete films only with `npm run film:delete -- --film <filmId> --confirm-delete` and legacy Projects only with
-`npm run project:delete -- --project <storyId> --confirm-delete`.
+Never publish, push, delete a film, or expose private configuration unless the user explicitly requests that action.
+Delete films only with `npm run film:delete -- --film <filmId> --confirm-delete`.

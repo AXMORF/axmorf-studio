@@ -10,8 +10,7 @@ Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐�
 
 画面好不好看取决于构思和反复看图修改，不取决于检查通过。开工前读 [画面手艺](references/craft.md)；
 用配乐时读 [配乐与卡点](references/music.md)；需要图片或 SVG 时读 [素材](references/artwork.md)；
-写代码时查 [运行时 API](references/api.md)，并按需读 `.agents/skills/remotion-best-practices/references/exemplar-scenes.md`
-借鉴镜头、光影和层级技法（它的 `SceneRendererProps` 外壳属于旧接口，直接片里改用 `useCurrentFrame()` 与 `useVideoConfig()`）。
+写代码时查 [运行时 API](references/api.md)，并按需读 [示例段落](references/examples.md) 借鉴镜头、光影和层级技法。
 
 ## 流程
 
@@ -82,5 +81,5 @@ Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐�
 
 - TTS、生图等外部服务失败是外部问题：报告原文，不自动重试、不换 provider；用户同意后再重试。
 - `film:deliver` 失败时原交付保持不变。按错误修复源码后重新交付。
-- 命令报告 “Another Project operation is already active” 时，等待正在运行的命令结束；不要手动删除锁文件。
+- 命令报告 “Another Workspace operation is already active” 时，等待正在运行的命令结束；不要手动删除锁文件。
 - 删除一部片只用 `npm run film:delete -- --film <filmId> --confirm-delete`，并且只在用户明确要求时执行。

@@ -1,26 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import {
-  NarrationSpecSchema,
-  RenderSpecSchema,
-  StorySpecSchema,
-  buildProjectSoundPlan,
-  generateSemanticTiming,
-} from "@axmorf/studio/contracts";
-
 import { snapProducerFrameToBeat } from "../../packages/studio/src/remotion/capabilities/motion";
 import {
   mergeSpeechRanges,
   resolveSpeechDuckingGain,
 } from "../../packages/studio/src/remotion/runtime/sound-design/audio-playback";
-import { resolveNarrationSpeechRanges } from "../../packages/studio/src/remotion/runtime/sound-design/SoundDesignTrack";
-import {
-  buildValidSealedNarrationManifest,
-  validNarrationSpec,
-  validRenderSpec,
-  validStorySpec,
-} from "../fixtures/narrative";
 
 test("speech ranges merge across short breaths and become contribution-local", () => {
   assert.deepEqual(
@@ -58,35 +43,6 @@ test("ducking ramps into speech, holds under it and recovers after", () => {
   assert.equal(resolveSpeechDuckingGain(150, 0, ducking), 1);
 });
 
-test("a frozen ducking volume cannot exceed the contribution volume", () => {
-  const contribution = {
-    contributionId: "background-music",
-    resourceId: "asset.story.background-music",
-    descriptorFingerprint: `sha256:${"a".repeat(64)}`,
-    volume: 0.2,
-    loop: true,
-    playbackScope: "content-window" as const,
-  };
-  assert.doesNotThrow(() =>
-    buildProjectSoundPlan({
-      storyId: "story",
-      contributions: [
-        { ...contribution, speechDucking: { volume: 0.08, rampFrames: 8 } },
-      ],
-    }),
-  );
-  assert.throws(
-    () =>
-      buildProjectSoundPlan({
-        storyId: "story",
-        contributions: [
-          { ...contribution, speechDucking: { volume: 0.3, rampFrames: 8 } },
-        ],
-      }),
-    /cannot raise music/u,
-  );
-});
-
 test("beat snapping moves landings only within the shift and permitted window", () => {
   const grid = [0, 15, 30, 45, 60];
   assert.equal(snapProducerFrameToBeat(33, grid), 30);
@@ -98,23 +54,4 @@ test("beat snapping moves landings only within the shift and permitted window", 
     "the nearest beat lies outside the permitted window",
   );
   assert.throws(() => snapProducerFrameToBeat(Number.NaN, grid));
-});
-
-test("measured narration chunks become the ducking ranges", () => {
-  const timing = generateSemanticTiming({
-    story: StorySpecSchema.parse(validStorySpec),
-    narration: NarrationSpecSchema.parse(validNarrationSpec),
-    render: RenderSpecSchema.parse(validRenderSpec),
-    sealedNarration: buildValidSealedNarrationManifest(),
-  });
-  assert.ok("segments" in timing);
-  const chunks = timing.segments.filter(({ kind }) => kind === "chunk");
-  const ranges = resolveNarrationSpeechRanges(timing);
-  assert.equal(ranges.length, chunks.length);
-  assert.ok(ranges.length > 0);
-  assert.deepEqual(ranges[0], [
-    chunks[0]!.frameRange.startFrame,
-    chunks[0]!.frameRange.endFrame,
-  ]);
-  assert.deepEqual(resolveNarrationSpeechRanges(null), []);
 });

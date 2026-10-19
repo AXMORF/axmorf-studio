@@ -4,18 +4,11 @@ import { basename } from "node:path";
 import test from "node:test";
 
 import {
-  MasteredNarrationManifestSchema,
-  buildMasteredNarrationManifest,
-} from "@axmorf/studio/contracts";
-import {
   masterNarrationBytes,
   parseLoudnormAnalysis,
-  shouldReuseMasteredNarration,
 } from "../../scripts/narration/mastering";
 import type { ProcessRunner } from "../../scripts/narration/adapters/ffmpeg-normalizer";
 import { createRawPcmFixture, createWavFixture } from "../fixtures/wav";
-
-const sha = (character: string) => `sha256:${character.repeat(64)}` as const;
 
 const analysis = ({
   integrated,
@@ -155,115 +148,7 @@ test("two-pass mastering biases peak-limited speech toward the requested target"
     runProcess,
   });
 
-  assert.doesNotThrow(() =>
-    buildMasteredNarrationManifest({
-      storyId: "story-example",
-      sealedNarrationFingerprint: sha("a"),
-      sourceAudio: {
-        localPath: `public/projects/story-example/narration/${"a".repeat(64)}/complete.wav`,
-        checksum: sha("b"),
-        pcm: {
-          sampleRate: 48_000,
-          channelLayout: "mono",
-          sampleFormat: "s16le",
-        },
-        sampleFrameCount: 4,
-      },
-      outputAudio: {
-        localPath:
-          "public/projects/story-example/narration-mastered/pending/complete.wav",
-        checksum: sha("c"),
-        pcm: {
-          sampleRate: 48_000,
-          channelLayout: "mono",
-          sampleFormat: "s16le",
-        },
-        sampleFrameCount: 4,
-      },
-      measurements: mastered.measurements,
-      masteringPolicy: mastered.masteringPolicy,
-    }),
-  );
   assert.match(calls[0]?.join(" ") ?? "", /loudnorm=I=-17\.75:/u);
   assert.match(calls[1]?.join(" ") ?? "", /loudnorm=I=-17\.75:/u);
   assert.equal(mastered.masteringPolicy.targetIntegratedLoudnessLufs, -18);
-});
-
-test("mastered narration records out-of-target measurements while binding identity", () => {
-  const manifest = buildMasteredNarrationManifest({
-    storyId: "story-example",
-    sealedNarrationFingerprint: sha("a"),
-    sourceAudio: {
-      localPath: `public/projects/story-example/narration/${"a".repeat(64)}/complete.wav`,
-      checksum: sha("b"),
-      pcm: { sampleRate: 48_000, channelLayout: "mono", sampleFormat: "s16le" },
-      sampleFrameCount: 48_000,
-    },
-    outputAudio: {
-      localPath:
-        "public/projects/story-example/narration/pending/mastered/complete.wav",
-      checksum: sha("c"),
-      pcm: { sampleRate: 48_000, channelLayout: "mono", sampleFormat: "s16le" },
-      sampleFrameCount: 48_000,
-    },
-    measurements: {
-      integratedLoudnessLufs: -18,
-      truePeakDbtp: -0.5,
-      loudnessRangeLu: 3.3,
-      thresholdLufs: -26.87,
-    },
-  });
-
-  assert.match(
-    manifest.outputAudio.localPath,
-    new RegExp(
-      `^public/projects/story-example/narration-mastered/${"a".repeat(64)}/[0-9a-f]{64}/complete\\.wav$`,
-      "u",
-    ),
-  );
-  assert.equal(
-    manifest.outputAudio.localPath.startsWith(
-      `public/projects/story-example/narration/${"a".repeat(64)}/`,
-    ),
-    false,
-  );
-  assert.throws(
-    () =>
-      MasteredNarrationManifestSchema.parse({
-        ...manifest,
-        measurements: {
-          ...manifest.measurements,
-          integratedLoudnessLufs: -20,
-        },
-      }),
-    /fingerprint is stale/iu,
-  );
-  assert.throws(
-    () =>
-      MasteredNarrationManifestSchema.parse({
-        ...manifest,
-        outputAudio: {
-          ...manifest.outputAudio,
-          sampleFrameCount: 47_999,
-        },
-      }),
-    /preserve the sealed sample count|fingerprint is stale/iu,
-  );
-
-  assert.equal(
-    shouldReuseMasteredNarration({
-      existing: manifest,
-      sealedNarrationFingerprint: manifest.sealedNarrationFingerprint,
-      targetLoudnessLufs: -16,
-    }),
-    true,
-  );
-  assert.equal(
-    shouldReuseMasteredNarration({
-      existing: manifest,
-      sealedNarrationFingerprint: manifest.sealedNarrationFingerprint,
-      targetLoudnessLufs: -18,
-    }),
-    false,
-  );
 });

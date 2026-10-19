@@ -16,7 +16,7 @@ import {
 import {
   generateScore,
   master,
-} from "../../.agents/skills/axmorf-video/scripts/synth-score.mjs";
+} from "./score/synth-score.mjs";
 import { writeBinaryFileAtomic } from "../shared/atomic-file";
 import {
   filmPaths,

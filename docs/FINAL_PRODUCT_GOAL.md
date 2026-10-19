@@ -2,9 +2,8 @@
 
 > 文档类型：产品目标 authority
 >
-> 当前实现事实见 [ITERATION_STATUS.md](ITERATION_STATUS.md)；迁移步骤见
-> [Direct Film 生产方案](promotions/2026-10-14-direct-film-production.md)。当前发布版本仍以 Project production
-> 主链生产，下面描述的是迁移完成后的产品。
+> 当前实现事实见 [ITERATION_STATUS.md](ITERATION_STATUS.md)。0.2.0 起新作品使用 direct film，0.3.0 删除了
+> Project production 主链（[迁移方案](promotions/2026-10-14-direct-film-production.md)）。
 
 ## 1. 产品结论
 
@@ -50,8 +49,8 @@ AXMORF Studio 是一个本地视频工作室：Agent 像导演兼动效设计师
 - 用户明确的尺寸、横竖屏、fps、locale 写入该片 `film.json`，未指定字段继承配置，不为单次需求修改默认值。
 - 交付恰好是 `video.mp4`、`cover-4x3.png`、`cover-3x4.png`、`publish.json`，见第 4 节。
 - private config 与 voice profile 不进入 Git、交付或日志。
-- 删除作品只用 `film:delete`，只清理该 film 自有的源码、媒体、缓存引用与交付，不触碰其他作品、共享素材、
-  private config 与 `public/voice_profile/`。
+- 删除作品只用 `film:delete`，只清理该 film 自有的源码、媒体、交付与历史交付，不触碰其他作品、共享素材、
+  TTS 缓存、private config 与 `public/voice_profile/`。
 
 ## 4. 交付目标
 

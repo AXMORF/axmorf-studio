@@ -40,10 +40,6 @@ for (const relativePath of [
   "README.md",
   "LICENSE",
   "THIRD_PARTY_NOTICES.md",
-  "template/.narration-work/.gitkeep",
-  "template/.producer-artifacts/.gitkeep",
-  "template/.producer-attempts/.gitkeep",
-  "template/.producer-work/.gitkeep",
   "template/deliveries/.gitkeep",
   "template/out/.gitkeep",
   "template/src/generated-json.d.ts",
@@ -68,11 +64,11 @@ const templateEntry = await readFile(
 assert.match(
   templateEntry,
   /scene-template-audio\.generated\.json/u,
-  "The generated Workspace root must load its Workspace-local Scene template audio projection.",
+  "The generated Workspace root must load its Workspace-local bookend audio projection.",
 );
 assert.match(
   templateEntry,
-  /createRemotionRoot\(projectRegistry, \{\s*sceneTemplateAudioProjection,\s*films: filmRegistry,\s*\}\)/u,
+  /createRemotionRoot\(\{\s*films: filmRegistry,\s*sceneTemplateAudioProjection,?\s*\}\)/u,
   "The generated Workspace root must pass its audio projection and film registry to the runtime root.",
 );
 

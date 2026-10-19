@@ -5,7 +5,6 @@ import {
   readFile,
   rm,
   stat,
-  symlink,
   writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -23,11 +22,6 @@ import {
   toVoxcpmPrivateConfig,
   writeProducerConfig,
 } from "../../scripts/config/producer-config";
-import {
-  migrateVoxcpmConfigToProducerConfig,
-  runProducerConfigMigration,
-} from "../../scripts/config/migrate";
-import { VoxcpmPrivateConfigSchema } from "../../scripts/narration/adapters/private-config";
 import { validProducerConfigInput } from "../contracts/producer-config.test";
 
 test("private producer config writes atomically with owner-only permissions", async (context) => {
@@ -301,126 +295,4 @@ test("generic config resolves repository-relative voice paths at the VoxCPM adap
       "/repo/voxcpm/voice_profile/my-prompt-voice.txt",
     ],
   );
-});
-
-test("legacy VoxCPM settings migrate into the generic provider without losing modes", () => {
-  const legacy = VoxcpmPrivateConfigSchema.parse({
-    schemaVersion: 2,
-    baseUrl: "http://127.0.0.1:9880",
-    token: "private-token",
-    timeoutMs: 120_000,
-    modelId: "voxcpm-local",
-    endpointPath: "/clone",
-    parameters: {
-      cfgValue: 2,
-      inferenceTimesteps: 10,
-      minLen: 2,
-      maxLen: 4096,
-      normalize: true,
-      denoise: true,
-      retryBadcase: true,
-      retryBadcaseMaxTimes: 3,
-      retryBadcaseRatioThreshold: 6,
-    },
-    voiceProfiles: [
-      {
-        id: "voice-a",
-        mode: "controllable-clone",
-        referenceAudioPath: "/private/voice-a.wav",
-        controlInstruction: "自然。",
-      },
-      {
-        id: "voice-b",
-        mode: "high-fidelity-clone",
-        promptAudioPath: "/private/voice-b.wav",
-        promptTextPath: "/private/voice-b.txt",
-        promptTranscriptConfirmed: true,
-      },
-    ],
-  });
-  const migrated = migrateVoxcpmConfigToProducerConfig({
-    legacy,
-    rootDir: "/private",
-  });
-  const provider = migrated.tts.providers[0];
-  assert.equal(provider?.kind, "voxcpm");
-  if (provider?.kind !== "voxcpm")
-    throw new Error("Expected VoxCPM migration.");
-  assert.equal(provider.connection.token, "private-token");
-  assert.deepEqual(
-    provider.voiceProfiles.map(({ mode }) => mode),
-    ["controllable-clone", "high-fidelity-clone"],
-  );
-  assert.deepEqual(migrated.tts.speech, {
-    rate: 1,
-    targetLoudnessLufs: -16,
-  });
-  assert.equal(
-    provider.voiceProfiles[0]?.mode === "controllable-clone"
-      ? provider.voiceProfiles[0].referenceAudioPath
-      : undefined,
-    "voice-a.wav",
-  );
-  assert.deepEqual(
-    provider.voiceProfiles[1]?.mode === "high-fidelity-clone"
-      ? [
-          provider.voiceProfiles[1].promptAudioPath,
-          provider.voiceProfiles[1].promptTextPath,
-        ]
-      : undefined,
-    ["voice-b.wav", "voice-b.txt"],
-  );
-});
-
-test("migration canonicalizes a root alias and atomically refuses overwrite", async (context) => {
-  const parentDir = await mkdtemp(join(tmpdir(), "rsp-config-migration-"));
-  context.after(() => rm(parentDir, { recursive: true, force: true }));
-  const realRoot = join(parentDir, "workspace");
-  const rootDir = join(parentDir, "workspace-alias");
-  await mkdir(realRoot);
-  await symlink(
-    realRoot,
-    rootDir,
-    process.platform === "win32" ? "junction" : "dir",
-  );
-  await mkdir(join(rootDir, "voxcpm"), { recursive: true });
-  await writeFile(
-    join(rootDir, "voxcpm/voxcpm.private.json"),
-    `${JSON.stringify({
-      schemaVersion: 2,
-      baseUrl: "http://127.0.0.1:9880",
-      timeoutMs: 120_000,
-      modelId: "voxcpm-local",
-      endpointPath: "/clone",
-      parameters: {
-        cfgValue: 2,
-        inferenceTimesteps: 10,
-        minLen: 2,
-        maxLen: 4096,
-        normalize: true,
-        denoise: true,
-        retryBadcase: true,
-        retryBadcaseMaxTimes: 3,
-        retryBadcaseRatioThreshold: 6,
-      },
-      voiceProfiles: [
-        {
-          id: "voice-a",
-          mode: "controllable-clone",
-          referenceAudioPath: join(rootDir, "voxcpm/voice_profile/voice-a.wav"),
-          controlInstruction: "自然。",
-        },
-      ],
-    })}\n`,
-    "utf8",
-  );
-
-  await runProducerConfigMigration({ rootDir });
-  const destination = join(rootDir, "private/producer.config.json");
-  const original = await readFile(destination, "utf8");
-  await assert.rejects(
-    runProducerConfigMigration({ rootDir }),
-    /refused to overwrite/iu,
-  );
-  assert.equal(await readFile(destination, "utf8"), original);
 });

@@ -1,41 +1,44 @@
-import { lstat, open } from "node:fs/promises";
+import { lstat, open, readFile } from "node:fs/promises";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { join } from "node:path";
 
-import {
-  DELIVERY_FILES,
-  type DeliveryArtifactKind,
-} from "../contracts/delivery-layout";
+import { FilmPublishSchema } from "../contracts/film";
 import {
   parseDeliveryMediaPath,
   type DeliveryMediaKind,
 } from "./delivery-route";
 import { sendEmpty, sendJson, singleHeader } from "./http-response";
-import type { CurrentDelivery, StartWebControlCenterInput } from "./types";
 
 const deliveryFiles: Record<
   DeliveryMediaKind,
   Readonly<{
     fileName: string;
     contentType: string;
-    artifact: DeliveryArtifactKind;
+    artifact: "video" | "cover4x3" | "cover3x4";
   }>
 > = {
-  video: {
-    fileName: DELIVERY_FILES.video,
-    contentType: "video/mp4",
-    artifact: "video",
-  },
+  video: { fileName: "video.mp4", contentType: "video/mp4", artifact: "video" },
   "cover-4x3": {
-    fileName: DELIVERY_FILES.cover4x3,
+    fileName: "cover-4x3.png",
     contentType: "image/png",
     artifact: "cover4x3",
   },
   "cover-3x4": {
-    fileName: DELIVERY_FILES.cover3x4,
+    fileName: "cover-3x4.png",
     contentType: "image/png",
     artifact: "cover3x4",
   },
+};
+
+/** The current delivery is whatever deliveries/<filmId>/publish.json describes. */
+const readFilmDelivery = async (rootDir: string, filmId: string) => {
+  const raw = await readFile(
+    join(rootDir, "deliveries", filmId, "publish.json"),
+    "utf8",
+  );
+  const publish = FilmPublishSchema.parse(JSON.parse(raw) as unknown);
+  if (publish.filmId !== filmId) throw new Error("publish.json is cross-film.");
+  return publish;
 };
 
 type ParsedRange =
@@ -89,15 +92,11 @@ export const serveDeliveryMedia = async ({
   response,
   pathname,
   rootDir,
-  inspectCurrentDelivery,
-  readCurrentRevision,
 }: {
   readonly request: IncomingMessage;
   readonly response: ServerResponse;
   readonly pathname: string;
   readonly rootDir: string;
-  readonly inspectCurrentDelivery: StartWebControlCenterInput["inspectCurrentDelivery"];
-  readonly readCurrentRevision: StartWebControlCenterInput["readCurrentRevision"];
 }) => {
   const mediaRequest = parseDeliveryMediaPath(pathname);
   if (mediaRequest === null) {
@@ -112,35 +111,15 @@ export const serveDeliveryMedia = async ({
     return;
   }
 
-  let delivery: CurrentDelivery | null;
-  let currentRevision: Readonly<{ revisionId: string }>;
+  let expectedSize: number;
+  const binding = deliveryFiles[mediaRequest.kind];
   try {
-    [delivery, currentRevision] = await Promise.all([
-      inspectCurrentDelivery({
-        rootDir,
-        storyId: mediaRequest.projectId,
-      }),
-      readCurrentRevision({
-        rootDir,
-        projectId: mediaRequest.projectId,
-      }),
-    ]);
+    const delivery = await readFilmDelivery(rootDir, mediaRequest.filmId);
+    expectedSize = delivery.files[binding.artifact].size;
   } catch {
     sendJson(response, 404, { error: "Current Delivery media not found." });
     return;
   }
-  if (
-    delivery === null ||
-    delivery.storyId !== mediaRequest.projectId ||
-    delivery.deliveryBuildId !== mediaRequest.deliveryBuildId ||
-    delivery.revisionId !== currentRevision.revisionId
-  ) {
-    sendJson(response, 404, { error: "Current Delivery media not found." });
-    return;
-  }
-
-  const binding = deliveryFiles[mediaRequest.kind];
-  const expectedSize = delivery.artifacts[binding.artifact].sizeBytes;
   if (!Number.isSafeInteger(expectedSize) || expectedSize <= 0) {
     sendJson(response, 404, { error: "Current Delivery media not found." });
     return;
@@ -148,7 +127,7 @@ export const serveDeliveryMedia = async ({
   const absolutePath = join(
     rootDir,
     "deliveries",
-    mediaRequest.projectId,
+    mediaRequest.filmId,
     binding.fileName,
   );
   let file: Awaited<ReturnType<typeof open>> | undefined;

@@ -13,18 +13,12 @@ export const General = ({ config, update }: EditorProps) => {
   const isCommonSize = COMMON_RENDER_SIZES.some(
     (size) => renderSizeValue(size) === selectedSize,
   );
-  const bgm =
-    config.audioDefaults === undefined
-      ? { mode: "auto" as const, volume: 0.15 }
-      : config.audioDefaults.globalBgm;
-  const musicMode =
-    bgm === null ? "none" : "sourcePath" in bgm ? "file" : "auto";
   return (
     <>
       <Section
         eyebrow="01 / OUTPUT"
         title="通用输出"
-        description="这些值是新作品的默认渲染参数；作品创建后由 RenderSpec 冻结。"
+        description="film:new 把这些值写入新作品的 film.json；用户为单个作品指定的尺寸与帧率不改这里。"
       >
         <FieldRow>
           <Field label="画面尺寸" hint="宽 × 高，选择常用输出规格">
@@ -85,141 +79,6 @@ export const General = ({ config, update }: EditorProps) => {
           <strong>{config.renderDefaults.locale}</strong>
         </div>
       </Section>
-      <Section
-        eyebrow="AUDIO / DEFAULT"
-        title="全局 BGM"
-        description="新作品默认从已批准的循环音乐中选一首，整片连续播放。没有可用曲目时会明确报告；单个作品可覆盖默认值。"
-      >
-        <FieldRow>
-          <Field label="选曲方式">
-            <select
-              value={musicMode}
-              onChange={(event) =>
-                update((draft) => {
-                  const volume = draft.audioDefaults?.globalBgm?.volume ?? 0.15;
-                  draft.audioDefaults = {
-                    globalBgm:
-                      event.target.value === "none"
-                        ? null
-                        : event.target.value === "auto"
-                          ? { mode: "auto", volume }
-                          : { sourcePath: "", volume },
-                  };
-                })
-              }
-            >
-              <option value="auto">自动从循环音乐库选曲</option>
-              <option value="file">使用指定本地文件</option>
-              <option value="none">不使用全局配乐</option>
-            </select>
-          </Field>
-          {musicMode === "file" ? (
-            <Field
-              label="BGM 文件"
-              hint="例如 public/audio/default-bgm.mp3；使用 Workspace 相对路径"
-            >
-              <input
-                value={
-                  bgm !== null && "sourcePath" in bgm ? bgm.sourcePath : ""
-                }
-                placeholder="public/audio/default-bgm.mp3"
-                onChange={(event) =>
-                  update((draft) => {
-                    const sourcePath = event.target.value;
-                    draft.audioDefaults = {
-                      globalBgm: {
-                        sourcePath,
-                        volume: draft.audioDefaults?.globalBgm?.volume ?? 0.15,
-                      },
-                    };
-                  })
-                }
-              />
-            </Field>
-          ) : null}
-          <Field label="BGM 音量" hint="线性音量，0 为静音，1 为原始音量">
-            <input
-              type="number"
-              min="0"
-              max="1"
-              step="0.05"
-              disabled={bgm === null}
-              value={bgm?.volume ?? 0.15}
-              onChange={(event) =>
-                update((draft) => {
-                  if (
-                    draft.audioDefaults?.globalBgm === null ||
-                    draft.audioDefaults === undefined
-                  ) {
-                    return;
-                  }
-                  draft.audioDefaults.globalBgm.volume = numberValue(
-                    event.target.value,
-                  );
-                })
-              }
-            />
-          </Field>
-        </FieldRow>
-      </Section>
     </>
-  );
-};
-export const SafeArea = ({ config, update }: EditorProps) => {
-  const baseEdge = config.readability.edgeInsetPx;
-  const scale = Math.max(
-    1080,
-    Math.min(config.renderDefaults.width, config.renderDefaults.height),
-  );
-  const scaled = (value: number) => Math.round((value * scale) / 1080);
-  const edge = scaled(baseEdge);
-  const captionBottom = edge * 2;
-  const captionFontSize = scaled(40);
-  const captionPadding = scaled(38);
-  const captionGap = scaled(30);
-  const captionBoxHeight =
-    Math.ceil((2 * captionFontSize * 135) / 100) + captionPadding;
-  const sceneBottom =
-    Math.ceil((captionBottom + captionBoxHeight + captionGap) / 10) * 10;
-  return (
-    <Section
-      eyebrow="02 / READABILITY"
-      title="画面安全区"
-      description="只配置一个基准边缘留白；字幕与 Scene 底边由固定算法自适应推导。"
-    >
-      <FieldRow>
-        <Field
-          label="基准边缘留白"
-          hint="以 1080 短边为基准，其他分辨率按比例缩放"
-        >
-          <input
-            type="number"
-            value={baseEdge}
-            onChange={(event) =>
-              update((draft) => {
-                draft.readability.edgeInsetPx = numberValue(event.target.value);
-              })
-            }
-          />
-        </Field>
-      </FieldRow>
-      <div className="formula-board">
-        <div>
-          <span>字幕底边</span>
-          <strong>{captionBottom}px</strong>
-          <code>{edge}px × 2</code>
-        </div>
-        <div>
-          <span>字幕盒高度</span>
-          <strong>{captionBoxHeight}px</strong>
-          <code>2 行 × {captionFontSize}px + padding</code>
-        </div>
-        <div>
-          <span>Scene 底边</span>
-          <strong>{sceneBottom}px</strong>
-          <code>向上取整到 10px</code>
-        </div>
-      </div>
-    </Section>
   );
 };

@@ -4,10 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import {
-  ProductionProgressResponseSchema,
-  SETTINGS_API_ROUTES,
-} from "../../settings/contracts/api";
+import { SETTINGS_API_ROUTES } from "../../settings/contracts/api";
 import { createSettingsApi } from "../../settings/server/api";
 import { writeProducerConfig } from "../../scripts/config/producer-config";
 import { validProducerConfigInput } from "../contracts/producer-config.test";
@@ -17,7 +14,7 @@ test("settings API GET PUT validation origin and diagnostics stay strict and pri
   context.after(() => rm(rootDir, { recursive: true, force: true }));
   const configPath = join(rootDir, "operator/config.json");
   await writeProducerConfig({ configPath, value: validProducerConfigInput });
-  const deletedProjectIds: string[] = [];
+  const deletedFilmIds: string[] = [];
   const api = createSettingsApi({
     rootDir,
     env: { RSP_PRODUCER_CONFIG: configPath },
@@ -33,12 +30,9 @@ test("settings API GET PUT validation origin and diagnostics stay strict and pri
         },
       ],
     }),
-    inspectProductionProgress: async () => ({
-      schemaVersion: 5,
-      projects: [],
-    }),
-    deleteProject: async ({ projectId }) => {
-      deletedProjectIds.push(projectId);
+    listFilms: async () => ({ status: "films-listed", films: [] }),
+    deleteFilm: async ({ filmId }) => {
+      deletedFilmIds.push(filmId);
     },
   });
 
@@ -55,59 +49,6 @@ test("settings API GET PUT validation origin and diagnostics stay strict and pri
   assert.deepEqual(
     (get.body as typeof validProducerConfigInput).audioDefaults.globalBgm,
     validProducerConfigInput.audioDefaults.globalBgm,
-  );
-
-  const executionDefaults = await api({
-    method: "GET",
-    url: SETTINGS_API_ROUTES.executionPreferences,
-    headers: {},
-  });
-  assert.deepEqual(executionDefaults, {
-    statusCode: 200,
-    body: {
-      schemaVersion: 1,
-      contractVersion: "execution-preferences-v1",
-      creativeTaskExecution: { mode: "subagents", maxConcurrency: 4 },
-    },
-  });
-  const rejectedExecutionOrigin = await api({
-    method: "PUT",
-    url: SETTINGS_API_ROUTES.executionPreferences,
-    headers: {
-      origin: "http://evil.example",
-      host: "127.0.0.1:3100",
-      "content-type": "application/json",
-    },
-    body: JSON.stringify(executionDefaults.body),
-  });
-  assert.equal(rejectedExecutionOrigin.statusCode, 403);
-  const savedExecution = await api({
-    method: "PUT",
-    url: SETTINGS_API_ROUTES.executionPreferences,
-    headers: {
-      origin: "http://127.0.0.1:3100",
-      host: "127.0.0.1:3100",
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({
-      schemaVersion: 1,
-      contractVersion: "execution-preferences-v1",
-      creativeTaskExecution: { mode: "inline" },
-    }),
-  });
-  assert.equal(savedExecution.statusCode, 200);
-  assert.deepEqual(
-    await api({
-      method: "GET",
-      url: SETTINGS_API_ROUTES.executionPreferences,
-      headers: {},
-    }),
-    savedExecution,
-  );
-  assert.equal(
-    (await stat(join(rootDir, "private/execution-preferences.json"))).mode &
-      0o777,
-    0o600,
   );
 
   const rejectedOrigin = await api({
@@ -170,119 +111,62 @@ test("settings API GET PUT validation origin and diagnostics stay strict and pri
     /visible-editable-token|127\.0\.0\.1:9880|\/srv\/private/iu,
   );
 
-  const progress = await api({
+  const films = await api({
     method: "GET",
-    url: SETTINGS_API_ROUTES.productionProgress,
+    url: SETTINGS_API_ROUTES.films,
     headers: {},
   });
-  assert.deepEqual(progress, {
+  assert.deepEqual(films, {
     statusCode: 200,
-    body: { schemaVersion: 5, projects: [] },
+    body: { status: "films-listed", films: [] },
   });
 
   const rejectedDeleteOrigin = await api({
     method: "DELETE",
-    url: SETTINGS_API_ROUTES.projectDeletion,
+    url: SETTINGS_API_ROUTES.filmDeletion,
     headers: {
       origin: "http://evil.example",
       host: "127.0.0.1:3100",
       "content-type": "application/json",
     },
     body: JSON.stringify({
-      projectId: "story-example",
-      confirmation: "story-example",
+      filmId: "film-example",
+      confirmation: "film-example",
     }),
   });
   assert.equal(rejectedDeleteOrigin.statusCode, 403);
 
   const rejectedDeleteConfirmation = await api({
     method: "DELETE",
-    url: SETTINGS_API_ROUTES.projectDeletion,
+    url: SETTINGS_API_ROUTES.filmDeletion,
     headers: {
       origin: "http://127.0.0.1:3100",
       host: "127.0.0.1:3100",
       "content-type": "application/json",
     },
     body: JSON.stringify({
-      projectId: "story-example",
-      confirmation: "wrong-project",
+      filmId: "film-example",
+      confirmation: "wrong-film",
     }),
   });
   assert.equal(rejectedDeleteConfirmation.statusCode, 400);
 
   const deleted = await api({
     method: "DELETE",
-    url: SETTINGS_API_ROUTES.projectDeletion,
+    url: SETTINGS_API_ROUTES.filmDeletion,
     headers: {
       origin: "http://127.0.0.1:3100",
       host: "127.0.0.1:3100",
       "content-type": "application/json",
     },
     body: JSON.stringify({
-      projectId: "story-example",
-      confirmation: "story-example",
+      filmId: "film-example",
+      confirmation: "film-example",
     }),
   });
   assert.deepEqual(deleted, {
     statusCode: 200,
-    body: { deletedProjectId: "story-example" },
+    body: { deletedFilmId: "film-example" },
   });
-  assert.deepEqual(deletedProjectIds, ["story-example"]);
-});
-
-test("production progress API rejects raw diagnostic fingerprints", () => {
-  assert.throws(() =>
-    ProductionProgressResponseSchema.parse({
-      schemaVersion: 5,
-      projects: [
-        {
-          projectId: "story-example",
-          status: "needs-agent",
-          revisionId: `revision-${"a".repeat(64)}`,
-          tasks: {
-            reusedTaskCount: 0,
-            dirtyAgentTaskCount: 1,
-            dirtyFixedTaskCount: 0,
-            blockedTaskCount: 0,
-          },
-          inspection: null,
-          attempt: {
-            attemptId: "00000000-0000-4000-8000-000000000001",
-            revisionId: `revision-${"a".repeat(64)}`,
-            planFingerprint: `sha256:${"b".repeat(64)}`,
-            state: "waiting-for-agent",
-            updatedAt: "2026-08-20T08:00:00.000Z",
-            diagnosticCode: null,
-            tasks: {
-              reusedTaskCount: 0,
-              dirtyAgentTaskCount: 1,
-              dirtyFixedTaskCount: 0,
-              blockedTaskCount: 0,
-            },
-            estimatedCost: {
-              providerRequests: 0,
-              providerCacheHits: 0,
-              agentTasks: 1,
-              deliveryMedia: null,
-            },
-            actualCost: {
-              providerRequests: 0,
-              providerCacheHits: 0,
-              agentTasks: 1,
-              deliveryMedia: [],
-            },
-            taskExplanations: [],
-            taskOutcomes: {
-              committedTaskCount: 0,
-              currentTaskCount: 0,
-              failedTaskCount: 0,
-            },
-            deliveryResult: "not-verified",
-          },
-          delivery: null,
-          error: null,
-        },
-      ],
-    }),
-  );
+  assert.deepEqual(deletedFilmIds, ["film-example"]);
 });

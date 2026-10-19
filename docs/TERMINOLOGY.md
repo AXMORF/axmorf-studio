@@ -4,74 +4,22 @@
 
 <!-- prettier-ignore -->
 | 名词 | 精确定义 |
-| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Project authoring source | `src/projects/<storyId>/` 与显式 Project-local selected media 中的可变创作输入。 |
-| Workspace capability gate | creator install/bootstrap 后由 `npm run doctor` 对当前 Workspace 声明能力执行的 readiness 检查；Agent 可准备宿主环境但不得修改 package internals、精确依赖或 validators。它不是 OS allowlist、production completion 或 Delivery evidence。 |
-| shared Workspace resource | runtime package 中由 policy、asset manifest、checksum 与 license identity 共同覆盖并随 package 分发的媒体；bootstrap 只投影到保留的 `public/assets/axmorf-shared/` 和 Catalog，相同 bytes 幂等、冲突 fail closed。它不是 Project-owned，直到 create/import 将实际使用的 bytes 本地化。 |
-| configured-authoring | `project:create` 已原子写入 Story/config 与 pending timing-bound authoring，尚未准备选定时间源；只有 sealed-narration 需要 TTS。 |
-| StoryBeat | 一个 meaningId 对应的语义单元，保留独立 timing、brief 与章节定位；它不必对应独立 Renderer。 |
-| visual Scene group | `story.visualScenes` 显式声明的连续正文 Beat 所有权；第一 meaningId 拥有一个 task/source graph/ScenePackage，覆盖所有成员。缺省每 Beat 单独拥有 Scene，fixed 首尾不可合组。 |
-| filmPlan | 整片 concept、subject、cameraIntent、rhythmIntent、soundIntent 的 authored 意图，冻结进 owner contexts；不是已实现或质量通过的证据。 |
-| authored-frames | 显式选择的纯视觉时间来源，正文 silent scene-owner preset 的整数帧数累积生成时间轴；没有 provider、旁白 PCM、seal、mastered narration WAV 或字幕。导出仍生成完整声音混音。缺省时间来源是 sealed-narration。 |
-| structured authoring validation | create/revision 共用的 pre-mutation machine validation；顶层 `authoring-validation-failed` 包含 field-level issues。`caption-display-budget-exceeded` 使用 `caption-display-unit-v1`，每个 authored `ttsChunk` 上限 72 display half-units。 |
-| ProjectRevisionInput | 修改现有 Project 的 strict raw input；绑定 storyId、exact base Revision/Delivery tuple 与非空 authored patch。 |
-| revision base tuple | candidate 创建和 promotion 都必须重验的 `baseRevisionId + baseDeliveryBuildId`。 |
-| revision base snapshot | candidate 创建时冻结的 source/public/narration/delivery canonical tree bytes identity；用于检测 create 与 promote 之间的 live drift。 |
-| ProjectRevisionCandidateId | 由 canonical ProjectRevisionInput 内容寻址得到的 candidate routing identity；不进入 production content identities。 |
-| Project revision candidate | `.producer-revisions/<storyId>/<candidateId>/` 中隔离 source/public/narration/work/attempt/out/delivery 的 same-Project 修改；promotion 前不是 current authority。 |
-| Scene originality baseline | Project create 前其他 Project 的完整 Scene TS/TSX source graph 冻结快照；fingerprint/context 只进入 `scene-owner`，template-copy 豁免，缺失时 production fail closed。 |
-| timing-ready | selected timing source 已复验：sealed-narration 要求 PCM/seal/master/timing，authored-frames 要求作者时长生成的 timing；production authoring 仍可能待 fixed projection。 |
-| production-inputs-ready | 所有 current authoring contracts 与 selected timing source 所需输入齐全，可以只读计算 Revision/Task DAG；只有 sealed-narration 分支要求 narration preparation receipt。 |
-| narration preparation receipt | prepare 写入的 redaction-safe source-local binding；把 active seal/mastering 绑定到精确 provider-attempt identity，不含私有配置、路径、prompt 或 voice bytes。 |
-| ProductionInspection | 严格只读的 readiness、baseline、estimated cost、task explanation 与 nextAction 投影；不是 authority。 |
-| TaskDecisionExplanation | 按 task/subject 分离 artifact state、direct changes、dependency changes 与 blockedBy 的诊断事实。 |
-| diagnostic baseline | 从 current delivery 对应 succeeded attempt 或 latest verified attempt 选择的安全 task snapshot；不可用时不猜原因。 |
-| ProductionRevision | 对一次生产所需全部显式输入与相关 policy fingerprint 的 immutable 内容快照。 |
-| RevisionId | ProductionRevision 的内容寻址 identity；不含 attempt、时钟、PID 或绝对路径。 |
-| ProducerTaskSpec | DAG node 的完整输入、依赖、declared read/output set 和 validator version。 |
-| TaskRevision | ProducerTaskSpec 的内容寻址 identity。 |
-| ProducerPlan | 当前 Revision 下每个 task 的 stable action、typed artifact state、direct/dependency changes 与 blockedBy。 |
-| dirty Agent task | 缺少有效 artifact、且 task kind 为 scene-owner/global-visual-owner/cover-owner 的 task。 |
-| `dispatch-agent` action | Task DAG 中“需要 Agent 创作”的稳定分类名；实际由已解析 execution policy 决定 Root inline 或 subagent executor，不强制代表创建 child。 |
-| fixed task | 由确定性脚本生成或检查的 narration/template/convergence/delivery task，不委派 Agent。 |
-| task workspace | `.producer-work/<storyId>/<taskRevision>/`；一个 Agent task 的唯一直接写入范围。 |
-| TaskExecutionContract | `inputs/task-contract.json` 中 attempt-neutral immutable Agent task input；定义 purpose/workflow/constraints、component signatures、exact outputs 与 ownership，不含 transport、binding、failure 或 command。 |
-| TaskWorkerBinding | exact TaskRevision/attempt 绑定的 zero-write capability gate；只有 `task-worker-bound` 才允许读取三个 immutable inputs 和写 declared outputs。 |
-| worker transport | 本次 production 的非持久宿主能力证据：`shared-workspace` 只开放 bind 返回的 relative workspace，`controller-io` 没有 filesystem access 且只使用 bound file-read/file-write；不进入 content identity。 |
-| ArtifactAttestation | fixed validator 成功后对 TaskRevision、dependencies、policy 和 exact output bytes 的证明。 |
-| Artifact Store | `.producer-artifacts/<storyId>/...` 中的 immutable、可跨 attempt 复用的 validated artifacts。 |
-| ExecutionAttempt | `.producer-attempts/<storyId>/...` 中由 prepare 创建的等待/收敛诊断；不拥有 artifact 或 delivery。 |
-| attempt recovery inspection | 对 terminal failed attempt 的严格只读、零 provider eligibility 检查；要求 same current Revision、无 active successor、无 dirty fixed work；下游 dependency-only blocked 须经完整无环图追溯到可恢复 Agent root。不要求 current Delivery。 |
-| attempt reissue | recovery-ready 后创建 fresh same-Revision attempt/bindings 的显式零 provider 操作；旧 attempt immutable，复用 valid artifacts/合法 drafts，不是自动 retry。 |
-| task-terminal event | task executor 对 exact attempt/TaskRevision 写入的首个 committed/current/failed 机械终态；同结果幂等，相反结果不可覆盖。 |
-| TaskOutputFailure | commit 对明确输出缺失或 JSON/TypeScript 语法错误记录的可选结构化诊断；agent-output owner、受限 code 与 task-local outputPaths 必须匹配原 Agent task 声明。没有该证据的通用 commit failure 保持阻断，不从后补文件推断原因。 |
-| Agent execution policy | inspect 前按用户提示词明确字段、独立 settings、内置 `subagents`/4 默认解析的当前 production 编排策略；选择 Root inline 串行或最多四个 subagents，不进入 production identity。 |
-| GlobalVisual layer policy | 由 canonical SemanticTiming 固定派生的双层范围：base 覆盖完整 Composition；decoration 只覆盖首个至末个正文 Beat 的连续窗口（旁白或 authored-frame scene-owner），以该窗口起点作为 local frame zero，排除 fixed 首尾。 |
-| synthesized Project BGM | 创建前代码生成并通过checksum/PCM时长/fps复验的原创WAV与音乐timeline，冻结为Project-owned资产及sound.json.synthesizedMusic；从Composition frame zero全片循环，替换模板/正文配乐并保留旁白与独立音效。 |
-| Scene musicTiming | 将同一合成音乐网格按实测Scene范围投影的局部beatFrames/barFrames；进入Scene任务输入identity，提供可选动作落点，不改变sealed PCM、字幕或语义边界。 |
-| Project BGM content window | 兼容库/文件选曲的content-window连续播放范围，由canonical SemanticTiming正文首尾确定，排除fixed模板与lead/tail；只抑制正文Scene配乐。旧兼容composition范围仅能经正式revision显式收窄，合成音乐保留全片原点与网格。 |
-| fixed continuation | Root 完成 inline execution 或 bounded admission 后启动的 attempt-bound 固定进程；one-shot atomic claim 后等待 immutable task-terminal event log，failure/attempt 创建起一小时 timeout 退出，all-success 内部 converge exactly once。 |
-| convergence | fixed continuation 内部的只读重算 Revision、要求全部 artifact、受控物化 Project、刷新 derived packages/Composition 并交付。 |
-| materialization | 把 attested bytes 从 Artifact Store 通过 staging/replace/rollback 写到 live Project-owned roots。 |
-| artifact set fingerprint | 当前所有 required ArtifactAttestation identity 的稳定聚合，用于 downstream identity。 |
-| frozen draft preview | 在独立私有 view 物化全部有效 fixed/owner artifacts 后，以原布局/fps/帧数/声音和降低像素的独立 profile 渲染的 preview.mp4/preview.json。它不调用 provider、不创建 attempt、不修改 live/current、不 promotion，也不是四文件交付。 |
-| PreviewBuildId | source/public/runtime/artifacts/profile 的独立草稿 identity；receipt 验证媒体 bytes/规格/EOF，motion/continuity/listening 均保持 not-assessed。 |
-| reference diagnostics | 对显式本地化视频做有界粗采样/候选区间细化、图像平移/缩放估计和时间戳彩色预览；机器测量与 Agent 相机/语义推断分开，不认证全部切镜或主观质量，不参与 production identity。 |
-| DeliveryBuildId | revisionId、artifact set、Composition metadata 与 build policy 的内容寻址 identity。 |
-| current delivery | `deliveries/<storyId>/` 下通过 exact-four-file 与 media validation 的唯一 current package。 |
-| project-production-complete | 新 identity 已同步构建、验证并提升为 current delivery。 |
-| project-production-current | 相同 identity 的 current delivery 重新验证完整，未重写媒体。 |
-| project-revision-promoted | candidate expected Revision/Delivery 已通过受控事务成为 live current，Registry/Catalog 已刷新并复验。 |
-| project-revision-current | 同一 candidate expected tuple 已经是完整 current，重复 promotion 未重写 current bytes。 |
-| revision promotion | candidate exact-four Delivery 后，在 lock 内重验 live base 与 expected candidate Revision/Delivery，只受控替换 source/public/narration/delivery 并刷新 Registry/Catalog；失败完整 rollback。 |
-| template-copy Scene | create 时复制到 Project-local 的 immutable template instance，由 fixed task 产出 artifact。 |
-| template playback window | Story preset 中 fingerprint-covered 的 source-frame 播放区间，endFrame 不包含在内；不改变 immutable template bytes，null 恢复完整模板。 |
-| visual-scene | 通过可见对象、动作与短文案表达含义的正文 Beat；有明确 durationInFrames，无 ttsChunks。一 Story 暂不与 narrated 正文混排。 |
-| authored-frames-v1 | visual Story 的累计整数帧时序算法；sampleRate/narrationStartFrame 为 null、segments/captionCues 为空，包含边界与 lead/tail。 |
-| SceneContinuityVisual | 公开 runtime 组件，消费两侧任务共同冻结的可选自由 SVG handoff；共享主体绘制，不生成整场景或证明审美质量。 |
-| bound Scene preview | shared-workspace scene-owner 在 commit 前通过 exact binding 渲染 owning Scene 的诊断短片；不含相邻 Scene、GlobalVisual 或 Project BGM，不进入 Artifact/Delivery identity。 |
-| sound envelope | contribution-local 的可选首尾线性增益；循环音频沿完整 contribution 时间应用，不每圈重启，不修改 source bytes 或 narration。 |
-| scene-owner Scene | 需要一个 dirty Scene task executor 在独占 workspace 内创作的 Scene。 |
-| SceneViewport | Composition 拥有的 Scene 容器。新 policyVersion 3 正文使用 schemaVersion 2 的 full-frame 画布与 textSafeArea；旧 policyVersion 1/2 和 fixed template-copy 保持 safe-area-local。Renderer 只使用派生 viewport，不读取 raw policy。 |
-| SceneTextSafeArea | 在冻结文字矩形内定位、裁切内容的公开组件；置于相机/美术变换之外，使正文美术可铺满画面而文字保留安全边界。 |
-| historical `.producer-runs` | 旧架构只读历史数据；current pipeline 不读取，只允许 Project 删除器按严格 ownership 清理。 |
+| --- | --- |
+| Workspace | `create-axmorf-studio` 生成的普通 npm 项目，`package.json` 带 `axmorf.workspaceVersion: 1`，依赖精确版本的 `@axmorf/studio`。 |
+| film | `src/films/<filmId>/` 下的一部作品：`film.json`、`Film.tsx`、`Cover.tsx`、`assets.json` 与 `generated/`。 |
+| filmId | 小写 kebab-case 的作品 ID，同时决定源码、`public/films/<filmId>/` 与 `deliveries/<filmId>/` 路径。 |
+| `film.json`（FilmSpec） | 一部片的剧本与配方：渲染规格、时间轴、旁白分句、配乐配方、发布文案与片头片尾。由 Agent 编写，CLI 校验。 |
+| 正片（body） | Agent 编写的 `Film.tsx` 画面；`useFilmTiming()`、审片与配乐只计正片帧。 |
+| 片头片尾（bookends） | `film.json.bookends` 选择的系统模板（`axmorf-brand-reveal-v1` 2 秒、`axmorf-source-follow-v1` 8 秒），交付时接在正片前后，各带模板音频。 |
+| 旁白时序（FilmTiming） | `film:voice` 写入的 `generated/timing.json`；每句帧范围由实测 PCM samples 按 `ceilDiv(samples × fps, sampleRate)` 换算。 |
+| caption 预算 | 每句旁白最多 72 caption display half-units；超限由 Agent 改写或拆句，不放宽检查。 |
+| 配乐（FilmMusic） | `film:music` 按 `music.score` 确定性合成的 `music.wav` 与 `generated/music.json`（bpm、拍、小节、段落与重音帧）。 |
+| 素材登记（FilmAssets） | `assets.json` 中每个媒体文件的来源、作者、许可与 checksum，由 `film:asset` 写入；`film:check` 拒绝未登记或被改动的媒体。 |
+| 审片（review） | `film:review` 用 `<filmId>--review` 组合渲染所选帧，生成联系表与 `stillWarnings`（相隔 2 秒以上且几乎不变的帧对）。 |
+| 交付（delivery） | `deliveries/<filmId>/` 下恰好四个文件：`video.mp4`、`cover-4x3.png`、`cover-3x4.png`、`publish.json`，全部复验后才替换上一版。 |
+| 历史交付 | 被新交付替换的旧交付，按其 `deliveredAt` 存于 `.axmorf/history/<filmId>/`。 |
+| Workspace 操作锁 | `.project-operation.lock`；film 写命令与 Workspace 升级互斥，被占用时直接失败。 |
+| managed file | creator 拥有、升级时按 `.axmorf/managed.json` 更新的 Workspace 文件；用户改动会先备份并报告为 `localChanges`。 |
+| doctor | `npm run doctor`：检查 Workspace 布局、运行时资源、Remotion CLI、真实浏览器渲染与 producer config，是 Workspace 是否 ready 的唯一判定。 |
+| external blocker | provider、宿主工具、沙箱、权限或认证失败；报告后停止，不加 fallback 或自动重试，用户同意后才可重试。 |
+| legacyProjectData | 升级时报告的旧 Project 链目录（`src/projects/`、`.producer-*` 等）；0.3.0 不再使用，也不自动删除。 |

@@ -25,7 +25,7 @@ files remain outside Git.
 
 This did not reproduce HTTP 429. In particular, it does not prove that v2 fixes
 the historical failures or establish a safe request rate. The earlier production
-[incident](2026-10-13-edge-tts-endpoint-incident.md) recorded ten successes in about
+[incident](../archive/project-production/evidence/2026-10-13-edge-tts-endpoint-incident.md) recorded ten successes in about
 26 seconds followed by 429 and later recovery. Short-term throttling remains the
 leading hypothesis, including possible limits on a shared exit IP.
 

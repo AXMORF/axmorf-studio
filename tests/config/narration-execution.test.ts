@@ -7,7 +7,7 @@ import test from "node:test";
 import { resolveProducerNarrationInspection } from "../../scripts/config/narration-execution";
 import { writeProducerConfig } from "../../scripts/config/producer-config";
 import { NarrationSpecSchema } from "@axmorf/studio/contracts";
-import { validProjectCreateProducerConfig } from "../fixtures/project-create";
+import { validProducerConfig } from "../fixtures/producer-config";
 
 const narration = NarrationSpecSchema.parse({
   schemaVersion: 2,
@@ -21,7 +21,7 @@ test("inspection metadata does not open the selected VoxCPM voice material", asy
   const configPath = join(rootDir, "private/producer.config.json");
   await writeProducerConfig({
     configPath,
-    value: validProjectCreateProducerConfig,
+    value: validProducerConfig,
   });
 
   const inspection = await resolveProducerNarrationInspection({
@@ -52,13 +52,13 @@ test("high-fidelity VoxCPM inspection does not read normalize or measure protect
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-prompt-inspection-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));
   const configPath = join(rootDir, "private/producer.config.json");
-  const provider = validProjectCreateProducerConfig.tts.providers[0];
+  const provider = validProducerConfig.tts.providers[0];
   await writeProducerConfig({
     configPath,
     value: {
-      ...validProjectCreateProducerConfig,
+      ...validProducerConfig,
       tts: {
-        ...validProjectCreateProducerConfig.tts,
+        ...validProducerConfig.tts,
         defaultVoiceProfileId: "prompt-voice",
         providers: [
           {
@@ -105,9 +105,9 @@ test("SpeechSDK inspection exposes an exact safe fingerprint without exposing it
   await writeProducerConfig({
     configPath,
     value: {
-      ...validProjectCreateProducerConfig,
+      ...validProducerConfig,
       tts: {
-        ...validProjectCreateProducerConfig.tts,
+        ...validProducerConfig.tts,
         defaultProviderId: "openai-direct",
         defaultVoiceProfileId: "cloud-voice",
         providers: [

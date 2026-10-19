@@ -6,7 +6,7 @@ import {
   isRepositoryRelativeFilePath,
   nextUniqueId,
   parseRenderSize,
-  projectDeletionErrorMessage,
+  filmDeletionErrorMessage,
   selectProviderAndVoice,
   removeProvider,
   removeVoiceProfile,
@@ -15,11 +15,11 @@ import {
 
 test("an interrupted deletion request is reported as ambiguous rather than failed", () => {
   assert.match(
-    projectDeletionErrorMessage(new TypeError("Failed to fetch")),
+    filmDeletionErrorMessage(new TypeError("Failed to fetch")),
     /可能已经删除/u,
   );
   assert.doesNotMatch(
-    projectDeletionErrorMessage(new TypeError("Failed to fetch")),
+    filmDeletionErrorMessage(new TypeError("Failed to fetch")),
     /删除未完成/u,
   );
 });

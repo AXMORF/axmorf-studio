@@ -8,7 +8,7 @@ import { SynthesizedMusicTimelineSchema } from "@axmorf/studio/contracts";
 const loadSynth = () =>
   import(
     pathToFileURL(
-      resolve(".agents/skills/axmorf-video/scripts/synth-score.mjs"),
+      resolve("scripts/films/score/synth-score.mjs"),
     ).href
   );
 

@@ -2,7 +2,7 @@ import { verifyWorkspaceBrowser } from "./workspace-browser";
 import { lstat, readFile } from "node:fs/promises";
 import { join } from "node:path";
 
-import { ProducerConfigSchema, ResourceCatalogSchema } from "../contracts";
+import { ProducerConfigSchema } from "../contracts";
 import { resolvePackageBinCommand } from "../process/resolve-package-bin";
 import {
   loadRuntimePolicyManifest,
@@ -11,12 +11,7 @@ import {
 
 const REQUIRED_DIRECTORIES = [
   "private",
-  "src/projects",
-  "public/projects",
-  ".narration-work",
-  ".producer-work",
-  ".producer-artifacts",
-  ".producer-attempts",
+  "src/films",
   "out",
   "deliveries",
 ] as const;
@@ -27,9 +22,8 @@ const REQUIRED_FILES = [
   "public/assets/axmorf-shared/audio/music/mixkit-deep-urban-623-outro-8s.mp3",
   "public/assets/axmorf-shared/audio/sound-effects/mixkit-movie-trailer-epic-impact-2908-intro-2s.wav",
   "src/index.ts",
-  "src/projects/project-registry.generated.ts",
+  "src/films/index.ts",
   "src/remotion/catalog/assets.manifest.json",
-  "src/remotion/catalog/resource-catalog.generated.json",
   "src/remotion/catalog/scene-template-audio.defaults.json",
   "src/remotion/catalog/scene-template-audio.generated.json",
 ] as const;
@@ -57,13 +51,10 @@ export const inspectWorkspaceReadiness = async (rootDir: string) => {
     ...REQUIRED_FILES.map((path) => assertEntry(rootDir, path, "file")),
   ]);
   const runtimeResources = await resolveRuntimeResources();
-  const [config, catalog] = await Promise.all([
-    readFile(join(rootDir, "private/producer.config.json"), "utf8"),
-    readFile(
-      join(rootDir, "src/remotion/catalog/resource-catalog.generated.json"),
-      "utf8",
-    ),
-  ]);
+  const config = await readFile(
+    join(rootDir, "private/producer.config.json"),
+    "utf8",
+  );
   await Promise.all([
     loadRuntimePolicyManifest(runtimeResources),
     resolvePackageBinCommand({
@@ -73,7 +64,6 @@ export const inspectWorkspaceReadiness = async (rootDir: string) => {
     }),
   ]);
   ProducerConfigSchema.parse(JSON.parse(config) as unknown);
-  ResourceCatalogSchema.parse(JSON.parse(catalog) as unknown);
   await verifyWorkspaceBrowser(rootDir, runtimeResources);
   return {
     status: "workspace-ready" as const,
@@ -84,7 +74,6 @@ export const inspectWorkspaceReadiness = async (rootDir: string) => {
       remotionCli: "pass" as const,
       browserRender: "pass" as const,
       producerConfig: "pass" as const,
-      resourceCatalog: "pass" as const,
     },
   };
 };

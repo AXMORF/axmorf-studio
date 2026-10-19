@@ -27,44 +27,21 @@ test("settings client depends only on browser-safe contracts and feature modules
   }
 });
 
-test("settings progress server consumes application queries, not storage adapters", async () => {
-  const source = await readFile(
-    join(process.cwd(), "settings/server/production-progress.ts"),
-    "utf8",
-  );
-  assert.doesNotMatch(source, /\/adapters\//u);
-  assert.match(source, /application\/progress-query/u);
-});
-
-test("proof and capability taxonomies keep production runtime boundaries explicit", async () => {
-  const absentDirectories = [
-    "packages/studio/src/remotion/proofs",
-    "packages/studio/src/remotion/capabilities/primitives",
-    "packages/studio/src/remotion/capabilities/scenes",
-  ];
-  for (const path of absentDirectories) {
+test("the Project production chain stays deleted", async () => {
+  for (const path of [
+    "scripts/project-production",
+    "scripts/projects",
+    "proofs",
+    ".agents/skills/axmorf-video",
+    "packages/create-axmorf-studio/template/.agents/skills/axmorf-video",
+    "packages/studio/src/remotion/runtime/story-visual",
+  ]) {
     await assert.rejects(access(join(process.cwd(), path)), { code: "ENOENT" });
   }
-  await Promise.all([
-    access(join(process.cwd(), "proofs/scene-runtime/source")),
-    access(join(process.cwd(), "proofs/scene-runtime/fixtures")),
-    access(join(process.cwd(), "proofs/scene-runtime/evidence")),
-    access(
-      join(
-        process.cwd(),
-        "packages/studio/src/remotion/capabilities/visual-components",
-      ),
-    ),
-    access(
-      join(
-        process.cwd(),
-        "packages/studio/src/remotion/capabilities/scene-templates",
-      ),
-    ),
-  ]);
   const rootSource = await readFile(
     join(process.cwd(), "src/Root.tsx"),
     "utf8",
   );
-  assert.doesNotMatch(rootSource, /proofs\//u);
+  assert.doesNotMatch(rootSource, /projects|proofs\//u);
+  assert.match(rootSource, /films: filmRegistry/u);
 });

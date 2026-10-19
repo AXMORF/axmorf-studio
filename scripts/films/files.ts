@@ -132,7 +132,7 @@ export const listFilmIds = async (rootDir: string) => {
   return ids.sort();
 };
 
-/** Serializes writers with each other, Project operations, and upgrades. */
+/** Serializes film writers with each other and with upgrades. */
 export const withWorkspaceLock = async <T>(
   rootDir: string,
   operation: string,

@@ -7,7 +7,7 @@ import {
   filmFrameFromSamples,
 } from "@axmorf/studio/contracts";
 
-import { generateScore } from "../../.agents/skills/axmorf-video/scripts/synth-score.mjs";
+import { generateScore } from "../../scripts/films/score/synth-score.mjs";
 import { resolveFilmRuntime } from "../../packages/studio/src/remotion/film/context";
 import { resolveFilmSoundtrack } from "../../packages/studio/src/remotion/film/FilmSoundtrack";
 import { projectFilmMusicGrid } from "../../scripts/films/music";

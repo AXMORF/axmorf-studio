@@ -10,10 +10,7 @@ import {
   resolveFilmBookendFrames,
 } from "@axmorf/studio/contracts";
 
-import {
-  inspectProjectCover,
-  inspectProjectVideo,
-} from "../project-production/adapters/media";
+import { inspectFilmCover, inspectFilmVideo } from "./inspect-media";
 import { checkFilm } from "./check";
 import {
   exists,
@@ -32,15 +29,15 @@ import { generateFilmRegistry } from "./registry";
 export type FilmDeliveryMedia = Readonly<{
   renderVideo: typeof renderFilmVideo;
   renderStill: typeof renderFilmStill;
-  inspectVideo: typeof inspectProjectVideo;
-  inspectCover: typeof inspectProjectCover;
+  inspectVideo: typeof inspectFilmVideo;
+  inspectCover: typeof inspectFilmCover;
 }>;
 
 const defaultMedia: FilmDeliveryMedia = {
   renderVideo: renderFilmVideo,
   renderStill: renderFilmStill,
-  inspectVideo: inspectProjectVideo,
-  inspectCover: inspectProjectCover,
+  inspectVideo: inspectFilmVideo,
+  inspectCover: inspectFilmCover,
 };
 
 const describeFile = async (

@@ -15,7 +15,6 @@ import process from "node:process";
 import { clearInterval, setInterval } from "node:timers";
 
 import {
-  createEmptyResourceCatalog,
   createPackageJson,
   createSafeProducerConfig,
   normalizeRuntimePackage,
@@ -138,14 +137,12 @@ const validateGeneratedWorkspace = async ({ rootDir, filesystem }) => {
     "AGENTS.md",
     "CLAUDE.md",
     "GEMINI.md",
-    ".agents/skills/axmorf-video/SKILL.md",
+    ".agents/skills/axmorf-film/SKILL.md",
+    ".claude/skills/axmorf-film/SKILL.md",
     "remotion.config.ts",
     "src/index.ts",
     "src/index.css",
-    "src/projects/project-registry.generated.ts",
-    "src/remotion/catalog/resource-catalog.generated.json",
-    "src/runtime/capabilities.ts",
-    "src/runtime/styles.ts",
+    "src/films/index.ts",
   ];
   for (const relativePath of requiredFiles) {
     const status = await filesystem.lstat(join(rootDir, relativePath));
@@ -226,14 +223,6 @@ export const createWorkspace = async (
       join(stagingPath, "private/producer.config.json"),
       producerConfig,
       { mode: 0o600 },
-    );
-    await filesystem.mkdir(join(stagingPath, "src/remotion/catalog"), {
-      recursive: true,
-    });
-    await writeJson(
-      filesystem,
-      join(stagingPath, "src/remotion/catalog/resource-catalog.generated.json"),
-      createEmptyResourceCatalog(),
     );
     // Record product-managed file checksums so later upgrades can detect local edits.
     const { managed } = await desiredManagedFiles({ templateRoot, filesystem });

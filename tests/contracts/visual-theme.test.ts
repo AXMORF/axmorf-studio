@@ -6,10 +6,7 @@ import {
   VisualThemeSelectionSchema,
   computeVisualThemeContrast,
   computeDecoratedThemeContrast,
-  ProjectCreateInputSchema,
-  ProjectRevisionInputSchema,
 } from "@axmorf/studio/contracts";
-import { validProjectCreateInput } from "../fixtures/project-create";
 
 test("theme presets resolve to the same canonical colors as explicit input", () => {
   for (const name of ["dark", "light"] as const) {
@@ -71,44 +68,5 @@ test("theme validation rejects unreadable, translucent and executable colors", (
       ...VISUAL_THEME_PRESETS.dark,
       logoShape: "custom",
     }),
-  );
-});
-
-test("create and revision reject incompatible palettes at the authoring boundary", () => {
-  const visualStyle = {
-    ...validProjectCreateInput.visualStyle,
-    theme: {
-      ...VISUAL_THEME_PRESETS.dark,
-      accent: VISUAL_THEME_PRESETS.dark.background,
-    },
-  };
-  assert.equal(
-    ProjectCreateInputSchema.safeParse({
-      ...validProjectCreateInput,
-      visualStyle,
-    }).success,
-    false,
-  );
-  assert.equal(
-    ProjectRevisionInputSchema.safeParse({
-      schemaVersion: 1,
-      contractVersion: "project-revision-input-v1",
-      storyId: "story-example",
-      baseRevisionId: `revision-${"a".repeat(64)}`,
-      baseDeliveryBuildId: `delivery-${"b".repeat(64)}`,
-      patch: { visualStyle },
-    }).success,
-    false,
-  );
-  assert.equal(
-    ProjectRevisionInputSchema.safeParse({
-      schemaVersion: 1,
-      contractVersion: "project-revision-input-v1",
-      storyId: "story-example",
-      baseRevisionId: `revision-${"a".repeat(64)}`,
-      baseDeliveryBuildId: `delivery-${"b".repeat(64)}`,
-      patch: { visualStyle: { ...visualStyle, theme: "light" } },
-    }).success,
-    true,
   );
 });

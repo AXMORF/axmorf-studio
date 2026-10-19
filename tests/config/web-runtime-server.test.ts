@@ -3,6 +3,7 @@ import {
   mkdir,
   mkdtemp,
   readdir,
+  readFile,
   readlink,
   rm,
   truncate,
@@ -16,13 +17,45 @@ import { setTimeout as delay } from "node:timers/promises";
 
 import { startWebControlCenter } from "../../packages/studio/src/web/server";
 
-const revisionId = `revision-${"a".repeat(64)}`;
-const deliveryBuildId = `delivery-${"b".repeat(64)}`;
+const FILM_ID = "film-example";
+
+/** publish.json is the delivery authority: the server only serves files of the recorded size. */
+const writePublish = async (
+  rootDir: string,
+  sizes: Readonly<{ video: number; cover4x3: number; cover3x4: number }>,
+) => {
+  const file = (name: string, size: number) => ({
+    path: `deliveries/${FILM_ID}/${name}`,
+    checksum: `sha256:${"a".repeat(64)}`,
+    size,
+  });
+  await writeFile(
+    join(rootDir, "deliveries", FILM_ID, "publish.json"),
+    JSON.stringify({
+      schemaVersion: 1,
+      filmId: FILM_ID,
+      title: "Example",
+      description: "",
+      tags: [],
+      durationInFrames: 30,
+      fps: 30,
+      width: 1080,
+      height: 1920,
+      deliveredAt: "2026-10-18T00:00:00.000Z",
+      files: {
+        video: file("video.mp4", sizes.video),
+        cover4x3: file("cover-4x3.png", sizes.cover4x3),
+        cover3x4: file("cover-3x4.png", sizes.cover3x4),
+      },
+      attributions: [],
+    }),
+  );
+};
 
 const createFixture = async (context: TestContext) => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-web-runtime-"));
   const assetsDir = join(rootDir, "package-web");
-  const deliveryDir = join(rootDir, "deliveries/story-example");
+  const deliveryDir = join(rootDir, "deliveries", FILM_ID);
   await Promise.all([
     mkdir(join(assetsDir, "assets"), { recursive: true }),
     mkdir(deliveryDir, { recursive: true }),
@@ -106,8 +139,6 @@ test("runtime Web server is loopback-only and serves prebuilt assets with strict
       apiRequests.push(`${method}:${url}:${body ?? ""}`);
       return { statusCode: 200, body: { ok: true } };
     },
-    inspectCurrentDelivery: async () => null,
-    readCurrentRevision: async () => ({ revisionId }),
   });
   context.after(() => server.close());
 
@@ -165,39 +196,22 @@ test("runtime Web server is loopback-only and serves prebuilt assets with strict
   assert.equal(escaped.status, 404);
 });
 
-test("Delivery media endpoint requires current build identity and supports GET HEAD and one byte range", async (context) => {
+test("Delivery media endpoint serves the files publish.json records, with GET HEAD and one byte range", async (context) => {
   const { assetsDir, rootDir } = await createFixture(context);
-  let inspections = 0;
+  await writePublish(rootDir, {
+    video: Buffer.byteLength("verified-video-bytes"),
+    cover4x3: Buffer.byteLength("cover-four-three"),
+    cover3x4: Buffer.byteLength("cover-three-four"),
+  });
   const server = await startWebControlCenter({
     rootDir,
     assetsDir,
     port: 0,
     api: async () => ({ statusCode: 404, body: { error: "missing" } }),
-    inspectCurrentDelivery: async ({ storyId }) => {
-      inspections += 1;
-      assert.equal(storyId, "story-example");
-      return {
-        storyId,
-        revisionId,
-        deliveryBuildId,
-        artifacts: {
-          video: { sizeBytes: Buffer.byteLength("verified-video-bytes") },
-          cover4x3: { sizeBytes: Buffer.byteLength("cover-four-three") },
-          cover3x4: { sizeBytes: Buffer.byteLength("cover-three-four") },
-        },
-      };
-    },
-    readCurrentRevision: async ({ projectId }) => {
-      assert.equal(projectId, "story-example");
-      return { revisionId };
-    },
   });
   context.after(() => server.close());
 
-  const videoUrl = new URL(
-    `api/delivery/story-example/${deliveryBuildId}/video`,
-    server.url,
-  );
+  const videoUrl = new URL(`api/films/${FILM_ID}/video`, server.url);
   const video = await fetch(videoUrl);
   assert.equal(video.status, 200);
   assert.equal(video.headers.get("accept-ranges"), "bytes");
@@ -225,103 +239,78 @@ test("Delivery media endpoint requires current build identity and supports GET H
   assert.equal(invalidRange.headers.get("content-range"), "bytes */20");
 
   const cover = await fetch(
-    new URL(
-      `api/delivery/story-example/${deliveryBuildId}/cover-4x3`,
-      server.url,
-    ),
+    new URL(`api/films/${FILM_ID}/cover-4x3`, server.url),
   );
   assert.equal(cover.status, 200);
   assert.equal(cover.headers.get("content-type"), "image/png");
   assert.equal(await cover.text(), "cover-four-three");
 
-  const wrongBuild = await fetch(
-    new URL(
-      `api/delivery/story-example/delivery-${"c".repeat(64)}/video`,
-      server.url,
-    ),
+  const cacheBusted = await fetch(
+    new URL(`api/films/${FILM_ID}/cover-3x4?at=2026`, server.url),
   );
-  assert.equal(wrongBuild.status, 404);
+  assert.equal(await cacheBusted.text(), "cover-three-four");
 
   const arbitraryPath = await fetch(
-    new URL(
-      `api/delivery/story-example/${deliveryBuildId}/publish.json`,
-      server.url,
-    ),
+    new URL(`api/films/${FILM_ID}/publish.json`, server.url),
   );
   assert.equal(arbitraryPath.status, 404);
-  const invalidProject = await fetch(
-    new URL(
-      `api/delivery/${"a".repeat(97)}/${deliveryBuildId}/video`,
-      server.url,
-    ),
+  const invalidFilm = await fetch(
+    new URL(`api/films/${"a".repeat(97)}/video`, server.url),
   );
-  assert.equal(invalidProject.status, 404);
+  assert.equal(invalidFilm.status, 404);
+  const undelivered = await fetch(
+    new URL("api/films/other-film/video", server.url),
+  );
+  assert.equal(undelivered.status, 404);
 
   await writeFile(
-    join(rootDir, "deliveries/story-example/video.mp4"),
+    join(rootDir, "deliveries", FILM_ID, "video.mp4"),
     "drifted-video",
   );
   const driftedMedia = await fetch(videoUrl);
   assert.equal(driftedMedia.status, 404);
-  assert.equal(inspections, 7);
 });
 
-test("Delivery media endpoint rejects a verified but stale Revision", async (context) => {
+test("Delivery media rejects a publish.json that names another film", async (context) => {
   const { assetsDir, rootDir } = await createFixture(context);
+  await writePublish(rootDir, { video: 20, cover4x3: 16, cover3x4: 16 });
+  const publishPath = join(rootDir, "deliveries", FILM_ID, "publish.json");
+  const publish = JSON.parse(await readFile(publishPath, "utf8"));
+  await writeFile(
+    publishPath,
+    JSON.stringify({ ...publish, filmId: "another-film" }),
+  );
   const server = await startWebControlCenter({
     rootDir,
     assetsDir,
     port: 0,
     api: async () => ({ statusCode: 404, body: { error: "missing" } }),
-    inspectCurrentDelivery: async () => ({
-      storyId: "story-example",
-      revisionId,
-      deliveryBuildId,
-      artifacts: {
-        video: { sizeBytes: 20 },
-        cover4x3: { sizeBytes: 16 },
-        cover3x4: { sizeBytes: 16 },
-      },
-    }),
-    readCurrentRevision: async () => ({
-      revisionId: `revision-${"c".repeat(64)}`,
-    }),
   });
   context.after(() => server.close());
 
   const response = await fetch(
-    new URL(`api/delivery/story-example/${deliveryBuildId}/video`, server.url),
+    new URL(`api/films/${FILM_ID}/video`, server.url),
   );
   assert.equal(response.status, 404);
 });
 
 test("Delivery media closes its file when the client aborts a response", async (context) => {
   const { assetsDir, rootDir } = await createFixture(context);
-  const videoPath = join(rootDir, "deliveries/story-example/video.mp4");
+  const videoPath = join(rootDir, "deliveries", FILM_ID, "video.mp4");
   const videoSize = 64 * 1024 * 1024;
   await truncate(videoPath, videoSize);
+  await writePublish(rootDir, { video: videoSize, cover4x3: 16, cover3x4: 16 });
   const server = await startWebControlCenter({
     rootDir,
     assetsDir,
     port: 0,
     api: async () => ({ statusCode: 404, body: { error: "missing" } }),
-    inspectCurrentDelivery: async () => ({
-      storyId: "story-example",
-      revisionId,
-      deliveryBuildId,
-      artifacts: {
-        video: { sizeBytes: videoSize },
-        cover4x3: { sizeBytes: 16 },
-        cover3x4: { sizeBytes: 16 },
-      },
-    }),
-    readCurrentRevision: async () => ({ revisionId }),
   });
   context.after(() => server.close());
 
   await new Promise<void>((resolve, reject) => {
     const outgoing = request(
-      new URL(`api/delivery/story-example/${deliveryBuildId}/video`, server.url),
+      new URL(`api/films/${FILM_ID}/video`, server.url),
       (response) => {
         response.once("data", () => response.destroy());
         response.once("close", resolve);
@@ -332,7 +321,11 @@ test("Delivery media closes its file when the client aborts a response", async (
   });
 
   let openDescriptors = await countOpenDescriptors(videoPath);
-  for (let attempt = 0; openDescriptors !== null && attempt < 20; attempt += 1) {
+  for (
+    let attempt = 0;
+    openDescriptors !== null && attempt < 20;
+    attempt += 1
+  ) {
     if (openDescriptors === 0) break;
     await delay(10);
     openDescriptors = await countOpenDescriptors(videoPath);

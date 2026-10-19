@@ -2,11 +2,10 @@
 
 > 文档类型：实施计划
 >
-> 状态：已批准（2026-10-14），实施中：第 1 步已随 0.2.0 发布，第 2 步（0.3.0 删除旧主链）未开始（实现事实与偏差见
-> [ITERATION_STATUS.md](../ITERATION_STATUS.md)）
+> 状态：已批准（2026-10-14），实施中：第 1 步已随 0.2.0 发布；第 2 步（0.3.0 删除旧主链）源码完成，待发布验收
+> （实现事实与偏差见 [ITERATION_STATUS.md](../ITERATION_STATUS.md)）。0.3.0 发布后本文归档。
 >
 > 目标 authority 见 [FINAL_PRODUCT_GOAL.md](../FINAL_PRODUCT_GOAL.md)；阶段门槛见 [ROADMAP.md](../ROADMAP.md)。
-> 当前实现仍是 Project production 主链，事实以 [ITERATION_STATUS.md](../ITERATION_STATUS.md) 为准。
 
 ## 1. 为什么改
 

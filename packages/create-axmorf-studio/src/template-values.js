@@ -65,6 +65,15 @@ const SCRIPTS = Object.freeze({
   "film:deliver": "axmorf film deliver",
   "film:list": "axmorf film list",
   "film:delete": "axmorf film delete",
+  "workspace:upgrade":
+    "npm exec --yes --package=create-axmorf-studio@latest -- create-axmorf-studio upgrade",
+});
+
+/**
+ * Script values that earlier releases installed and 0.3.0 retired. An upgrade removes a
+ * script only while it still holds exactly this product value, so user edits survive.
+ */
+const RETIRED_SCRIPT_VALUES = Object.freeze({
   "project:create": "axmorf project create",
   "project:create:context": "axmorf project create context",
   "catalog:query": "axmorf catalog query",
@@ -97,8 +106,6 @@ const SCRIPTS = Object.freeze({
   "project:delete": "axmorf project delete",
   "project:asset:import": "axmorf project asset import",
   "project:check": "axmorf project check",
-  "workspace:upgrade":
-    "npm exec --yes --package=create-axmorf-studio@latest -- create-axmorf-studio upgrade",
 });
 
 const canonicalJson = (value) => {
@@ -171,10 +178,15 @@ export const createPackageJson = ({ name, runtimePackage }) => ({
  */
 export const mergeWorkspacePackageJson = (current, runtimePackage) => {
   const desired = createPackageJson({ name: current.name, runtimePackage });
+  const kept = Object.fromEntries(
+    Object.entries(current.scripts ?? {}).filter(
+      ([name, value]) => RETIRED_SCRIPT_VALUES[name] !== value,
+    ),
+  );
   return {
     ...current,
     type: desired.type,
-    scripts: { ...current.scripts, ...desired.scripts },
+    scripts: { ...kept, ...desired.scripts },
     dependencies: { ...current.dependencies, ...desired.dependencies },
     devDependencies: { ...current.devDependencies, ...desired.devDependencies },
     overrides: { ...current.overrides, ...desired.overrides },
@@ -232,20 +244,5 @@ export const createSafeProducerConfig = () => {
   return {
     ...input,
     configFingerprint: fingerprint("producer-config", 4, input),
-  };
-};
-
-export const createEmptyResourceCatalog = () => {
-  const input = {
-    schemaVersion: 1,
-    generatorId: "resource-catalog-generator-v1",
-    entries: [],
-  };
-  return {
-    ...input,
-    catalogFingerprint: fingerprint("resource-catalog", 1, {
-      generatorId: input.generatorId,
-      orderedDescriptorFingerprints: [],
-    }),
   };
 };

@@ -38,19 +38,19 @@ rendering, and keep it set while rendering.
 
 ## Useful commands
 
-| Goal                                       | Command                                                          |
-| ------------------------------------------ | ---------------------------------------------------------------- |
-| Check host readiness                       | `npm run doctor`                                                 |
-| Start a film                               | `npm run film:new -- --film <film-id> --title "<title>"`         |
-| Generate narration and its timing          | `npm run film:voice -- --film <film-id>`                         |
-| Generate the score and its beat grid       | `npm run film:music -- --film <film-id>`                         |
-| Register a generated image or original SVG | `npm run film:asset -- --film <film-id> --file <path> ...`       |
-| Render review frames and a contact sheet   | `npm run film:review -- --film <film-id>`                        |
-| Check a film before delivery               | `npm run film:check -- --film <film-id>`                         |
-| Render and verify the four delivery files  | `npm run film:deliver -- --film <film-id>`                       |
-| List films and their deliveries            | `npm run film:list`                                              |
-| Open Web and Remotion Studio               | `npm run dev`                                                    |
-| Upgrade Skill, guides and runtime together | `npm run workspace:upgrade` (add `-- --dry-run` to preview)      |
+| Goal                                       | Command                                                     |
+| ------------------------------------------ | ----------------------------------------------------------- |
+| Check host readiness                       | `npm run doctor`                                            |
+| Start a film                               | `npm run film:new -- --film <film-id> --title "<title>"`    |
+| Generate narration and its timing          | `npm run film:voice -- --film <film-id>`                    |
+| Generate the score and its beat grid       | `npm run film:music -- --film <film-id>`                    |
+| Register a generated image or original SVG | `npm run film:asset -- --film <film-id> --file <path> ...`  |
+| Render review frames and a contact sheet   | `npm run film:review -- --film <film-id>`                   |
+| Check a film before delivery               | `npm run film:check -- --film <film-id>`                    |
+| Render and verify the four delivery files  | `npm run film:deliver -- --film <film-id>`                  |
+| List films and their deliveries            | `npm run film:list`                                         |
+| Open Web and Remotion Studio               | `npm run dev`                                               |
+| Upgrade Skill, guides and runtime together | `npm run workspace:upgrade` (add `-- --dry-run` to preview) |
 
 ## Completion means four verified files
 
@@ -65,11 +65,10 @@ deliveries/<film-id>/publish.json
 decoding, and only then replaces the current delivery. The previous delivery moves to `.axmorf/history/<film-id>/`.
 A chat response, Agent self-assessment or unverified file is not completion evidence.
 
-## Films made before 0.2.0
+## Projects made before 0.2.0
 
-Projects in `src/projects/` were made with the earlier Project production chain. They stay playable and their deliveries
-are untouched; the `axmorf-video` Skill still handles them until 0.3.0, which removes that chain. Delete one with
-`npm run project:delete -- --project <story-id> --confirm-delete` when you no longer need it.
+0.3.0 removed the earlier Project production chain. If an upgrade lists `legacyProjectData` (for example `src/projects/`
+or `.producer-work/`), nothing uses those directories any more; remove them yourself once you no longer need them.
 
 ## What to commit
 

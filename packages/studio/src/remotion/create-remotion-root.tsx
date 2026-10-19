@@ -1,7 +1,6 @@
-import type { ComponentType, ReactNode } from "react";
+import type { ReactNode } from "react";
 import { Composition, Folder } from "remotion";
 
-import type { StoryCompositionProps } from "../contracts";
 import { DEFAULT_SCENE_TEMPLATE_AUDIO_PROJECTION } from "./capabilities/scene-templates/registry";
 import { SceneTemplateAudioProjectionSchema } from "./capabilities/scene-templates/template-audio";
 import { CapabilityGallery } from "./compositions/capability-gallery/CapabilityGallery";
@@ -12,18 +11,6 @@ import {
 } from "./compositions/scene-template-previews/SceneTemplatePreviews";
 import { FilmCompositions, type FilmRegistryEntry } from "./film/compositions";
 
-export type RemotionProjectRegistryEntry = Readonly<{
-  id: string;
-  fps: number;
-  width: number;
-  height: number;
-  durationInFrames: number;
-  defaultProps: StoryCompositionProps;
-  load: () => Promise<{
-    default: ComponentType<StoryCompositionProps>;
-  }>;
-}>;
-
 export type RemotionRootOptions = Readonly<{
   sceneTemplateAudioProjection?: unknown;
   /** Entries of the Workspace-generated `src/films/index.ts`. */
@@ -31,12 +18,10 @@ export type RemotionRootOptions = Readonly<{
 }>;
 
 /**
- * Builds a Remotion root from a Workspace-generated static registry. The npm
- * package owns the common compositions; the Workspace remains the only owner
- * of user Project registrations.
+ * Builds a Remotion root from the Workspace-generated static film registry.
+ * The npm package owns the system compositions; the Workspace owns its films.
  */
 export const createRemotionRoot = (
-  entries: readonly RemotionProjectRegistryEntry[],
   options: RemotionRootOptions = {},
 ): ReactNode => {
   const sceneTemplateAudioProjection = SceneTemplateAudioProjectionSchema.parse(
@@ -82,20 +67,6 @@ export const createRemotionRoot = (
         films={options.films ?? []}
         audioProjection={sceneTemplateAudioProjection}
       />
-      <Folder name="Stories">
-        {entries.map((entry) => (
-          <Composition
-            key={entry.id}
-            id={entry.id}
-            lazyComponent={entry.load}
-            durationInFrames={entry.durationInFrames}
-            fps={entry.fps}
-            width={entry.width}
-            height={entry.height}
-            defaultProps={entry.defaultProps}
-          />
-        ))}
-      </Folder>
     </>
   );
 };

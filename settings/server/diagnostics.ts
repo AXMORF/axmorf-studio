@@ -13,11 +13,11 @@ import {
   toVoxcpmPrivateConfig,
 } from "../../scripts/config/producer-config";
 import { resolveVoxcpmProfileMetadata } from "../../scripts/narration/adapters/private-config";
-import { preflightRemotionBrowser } from "../../scripts/project-production/adapters/remotion-preflight";
+import { preflightRemotionBrowser } from "./remotion-preflight";
 import {
   preflightVoxcpm,
   type VoxcpmProbe,
-} from "../../scripts/project-production/adapters/voxcpm-preflight";
+} from "./voxcpm-preflight";
 import type { EnvironmentDiagnostics } from "../contracts/api";
 
 const probe: VoxcpmProbe = async ({ baseUrl, route, token, timeoutMs }) => {

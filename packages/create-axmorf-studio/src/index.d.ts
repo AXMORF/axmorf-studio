@@ -119,6 +119,8 @@ export type WorkspaceUpgradeResult = Readonly<{
   localChanges: readonly string[];
   /** Workspaces created before 0.1.23 have no manifest, so local edits cannot be identified. */
   legacyWithoutManifest: boolean;
+  /** Directories the retired Project chain used; reported so the user can remove them. */
+  legacyProjectData: readonly string[];
   ready?: boolean;
   backup?: string | null;
 }>;
@@ -180,6 +182,3 @@ export const mergeWorkspacePackageJson: (
   current: Readonly<Record<string, unknown>>,
   runtimePackage: string,
 ) => Readonly<Record<string, unknown>>;
-export const createEmptyResourceCatalog: () => Readonly<
-  Record<string, unknown>
->;

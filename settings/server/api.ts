@@ -4,19 +4,13 @@ import {
   writeProducerConfig,
 } from "../../scripts/config/producer-config";
 import {
-  loadExecutionPreferences,
-  resolveExecutionPreferencesPath,
-  writeExecutionPreferences,
-} from "../../scripts/config/execution-preferences";
-import {
-  DeleteProjectResponseSchema,
-  DeleteProjectRequestSchema,
+  DeleteFilmRequestSchema,
+  DeleteFilmResponseSchema,
   EnvironmentDiagnosticsSchema,
-  ExecutionPreferencesSchema,
-  ProductionProgressResponseSchema,
+  FilmListResponseSchema,
   SETTINGS_API_ROUTES,
   type EnvironmentDiagnostics,
-  type ProductionProgressResponse,
+  type FilmListResponse,
 } from "../contracts/api";
 import { isSameOriginSettingsWrite } from "./dev-network";
 
@@ -35,86 +29,30 @@ export const createSettingsApi = ({
   rootDir,
   env,
   diagnose,
-  inspectProductionProgress,
-  deleteProject,
+  listFilms,
+  deleteFilm,
 }: {
   readonly rootDir: string;
   readonly env: Readonly<Record<string, string | undefined>>;
   readonly diagnose: () => Promise<EnvironmentDiagnostics>;
-  readonly inspectProductionProgress: () => Promise<ProductionProgressResponse>;
-  readonly deleteProject: (input: {
-    readonly projectId: string;
-  }) => Promise<unknown>;
+  readonly listFilms: () => Promise<FilmListResponse>;
+  readonly deleteFilm: (input: { readonly filmId: string }) => Promise<unknown>;
 }) => {
   let deletionInProgress = false;
   return async (request: ApiRequest): Promise<ApiResponse> => {
-    if (request.url === SETTINGS_API_ROUTES.executionPreferences) {
-      const preferencesPath = resolveExecutionPreferencesPath({ rootDir });
-      if (request.method === "GET") {
-        try {
-          const loaded = await loadExecutionPreferences({ preferencesPath });
-          return { statusCode: 200, body: loaded.preferences };
-        } catch {
-          return { statusCode: 400, body: { error: "Agent 执行配置不可用。" } };
-        }
-      }
-      if (request.method !== "PUT") {
-        return { statusCode: 405, body: { error: "只允许 GET 或 PUT" } };
-      }
-      if (
-        !isSameOriginSettingsWrite({
-          origin: request.headers.origin,
-          host: request.headers.host,
-        })
-      ) {
-        return { statusCode: 403, body: { error: "拒绝非同源执行配置写入" } };
-      }
-      if (!request.headers["content-type"]?.startsWith("application/json")) {
-        return { statusCode: 415, body: { error: "执行配置写入必须使用 JSON" } };
-      }
-      if (
-        request.body === undefined ||
-        Buffer.byteLength(request.body) > SETTINGS_API_MAX_BODY_BYTES
-      ) {
-        return { statusCode: 400, body: { error: "执行配置请求正文无效。" } };
-      }
-      let value: unknown;
-      try {
-        value = JSON.parse(request.body);
-      } catch {
-        return { statusCode: 400, body: { error: "执行配置请求正文无效。" } };
-      }
-      const parsed = ExecutionPreferencesSchema.safeParse(value);
-      if (!parsed.success) {
-        return { statusCode: 400, body: { error: "执行配置严格校验失败。" } };
-      }
-      try {
-        return {
-          statusCode: 200,
-          body: await writeExecutionPreferences({
-            preferencesPath,
-            value: parsed.data,
-          }),
-        };
-      } catch {
-        return { statusCode: 400, body: { error: "执行配置保存失败。" } };
-      }
-    }
-    if (request.url === SETTINGS_API_ROUTES.productionProgress) {
+    if (request.url === SETTINGS_API_ROUTES.films) {
       if (request.method !== "GET") {
-        return { statusCode: 405, body: { error: "Project 状态只允许 GET" } };
+        return { statusCode: 405, body: { error: "作品列表只允许 GET" } };
       }
       try {
         return {
           statusCode: 200,
-          body: ProductionProgressResponseSchema.parse(
-            await inspectProductionProgress(),
-          ),
+          body: FilmListResponseSchema.parse(await listFilms()),
         };
       } catch {
         return {
           statusCode: 500,
-          body: { error: "Project 生产与交付状态不可用；请检查本地数据。" },
+          body: { error: "作品列表不可用；请检查 src/films 与 deliveries。" },
         };
       }
     }
@@ -134,12 +72,9 @@ export const createSettingsApi = ({
         };
       }
     }
-    if (request.url === SETTINGS_API_ROUTES.projectDeletion) {
+    if (request.url === SETTINGS_API_ROUTES.filmDeletion) {
       if (request.method !== "DELETE") {
-        return {
-          statusCode: 405,
-          body: { error: "Project 删除只允许 DELETE" },
-        };
+        return { statusCode: 405, body: { error: "作品删除只允许 DELETE" } };
       }
       if (
         !isSameOriginSettingsWrite({
@@ -147,88 +82,58 @@ export const createSettingsApi = ({
           host: request.headers.host,
         })
       ) {
-        return { statusCode: 403, body: { error: "拒绝非同源 Project 删除" } };
+        return { statusCode: 403, body: { error: "拒绝非同源作品删除" } };
       }
       if (!request.headers["content-type"]?.startsWith("application/json")) {
-        return {
-          statusCode: 415,
-          body: { error: "Project 删除必须使用 JSON" },
-        };
+        return { statusCode: 415, body: { error: "作品删除必须使用 JSON" } };
       }
       if (
         request.body === undefined ||
         Buffer.byteLength(request.body) > SETTINGS_API_MAX_BODY_BYTES
       ) {
-        return {
-          statusCode: 400,
-          body: { error: "Project 删除请求正文无效。" },
-        };
+        return { statusCode: 400, body: { error: "作品删除请求正文无效。" } };
       }
       let raw: unknown;
       try {
         raw = JSON.parse(request.body);
       } catch {
-        return {
-          statusCode: 400,
-          body: { error: "Project 删除请求正文无效。" },
-        };
+        return { statusCode: 400, body: { error: "作品删除请求正文无效。" } };
       }
-      const parsedRequest = DeleteProjectRequestSchema.safeParse(raw);
+      const parsedRequest = DeleteFilmRequestSchema.safeParse(raw);
       if (!parsedRequest.success) {
         return {
           statusCode: 400,
           body: {
             error:
-              parsedRequest.error.issues[0]?.message ??
-              "Project 删除请求正文无效。",
+              parsedRequest.error.issues[0]?.message ?? "作品删除请求正文无效。",
           },
         };
       }
-      const { projectId } = parsedRequest.data;
+      const { filmId } = parsedRequest.data;
       if (deletionInProgress) {
-        return { statusCode: 409, body: { error: "已有 Project 正在删除。" } };
+        return { statusCode: 409, body: { error: "已有作品正在删除。" } };
       }
       deletionInProgress = true;
       try {
-        await deleteProject({ projectId });
+        await deleteFilm({ filmId });
         return {
           statusCode: 200,
-          body: DeleteProjectResponseSchema.parse({
-            deletedProjectId: projectId,
-          }),
+          body: DeleteFilmResponseSchema.parse({ deletedFilmId: filmId }),
         };
       } catch (error) {
         const message = error instanceof Error ? error.message : "";
-        if (message.includes("No Project-owned data found")) {
-          return {
-            statusCode: 404,
-            body: { error: "Project 已不存在或没有可删除数据。" },
-          };
+        if (message.includes("is not a film")) {
+          return { statusCode: 404, body: { error: "作品已不存在。" } };
         }
-        if (message.includes("writer lock")) {
+        if (message.includes("operation is already active")) {
           return {
             statusCode: 409,
-            body: { error: "Project 仍有活动 writer lock，暂不能删除。" },
-          };
-        }
-        if (message.includes("Delivery staging")) {
-          return {
-            statusCode: 409,
-            body: { error: "交付 staging 尚未清空，暂不能删除 Project。" },
-          };
-        }
-        if (
-          message.includes("Another Project operation") ||
-          message.includes("Project-owned data changed")
-        ) {
-          return {
-            statusCode: 409,
-            body: { error: "Project 数据正在变化，未执行删除；请稍后重试。" },
+            body: { error: "Workspace 正在执行其他操作，请稍后重试。" },
           };
         }
         return {
           statusCode: 500,
-          body: { error: "Project 删除失败或未完整结束，请检查本地状态。" },
+          body: { error: "作品删除失败，请检查本地状态。" },
         };
       } finally {
         deletionInProgress = false;

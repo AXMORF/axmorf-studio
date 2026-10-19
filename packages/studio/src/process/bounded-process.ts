@@ -1,12 +1,10 @@
 import { execFileSync, spawn } from "node:child_process";
 import { closeSync, openSync, writeSync } from "node:fs";
-import { registerOwnedProcess } from "./process-ownership";
 
 export type BoundedProcessOptions = Readonly<{
   cwd?: string;
   timeoutMs?: number;
   logPath?: string;
-  trackOwnership?: boolean;
 }>;
 
 export class BoundedProcessError extends Error {
@@ -92,7 +90,6 @@ export const runBoundedProcess = async (
   args: readonly string[],
   options: BoundedProcessOptions = {},
   dependencies: Readonly<{
-    registerOwnedProcess?: typeof registerOwnedProcess;
     signalProcess?: SignalProcess;
     exitedGroupHasNoWriters?: typeof exitedProcessGroupHasNoWriters;
   }> = {},
@@ -108,12 +105,6 @@ export const runBoundedProcess = async (
       ? undefined
       : openSync(options.logPath, "a", 0o600);
   try {
-    const tracking =
-      options.trackOwnership === true
-        ? await (dependencies.registerOwnedProcess ?? registerOwnedProcess)({
-            rootDir: options.cwd ?? process.cwd(),
-          })
-        : undefined;
     return await new Promise((resolve, reject) => {
       const child = spawn(command, [...args], {
         cwd: options.cwd,
@@ -245,19 +236,6 @@ export const runBoundedProcess = async (
       process.once("exit", onExit);
       process.once("SIGTERM", onTerm);
       process.once("SIGINT", onInterrupt);
-      const registered = Promise.resolve().then(() =>
-        child.pid === undefined
-          ? tracking?.spawnFailed()
-          : tracking?.started({
-              pid: child.pid,
-              processGroup: process.platform !== "win32",
-            }),
-      );
-      void registered.catch((error: unknown) => {
-        if (settled) return;
-        lifecycleError ??= error;
-        if (!terminate("SIGKILL")) finish(child.exitCode, true);
-      });
       const timer = setTimeout(() => {
         timedOut = true;
         if (closeStatus !== undefined) {
@@ -299,21 +277,7 @@ export const runBoundedProcess = async (
         closeStatus = status;
         if (settled) return;
         terminate("SIGKILL");
-        if (
-          timedOut ||
-          interrupted !== undefined ||
-          cleanupError !== undefined
-        ) {
-          finish(status);
-          return;
-        }
-        void registered.then(
-          () => finish(status),
-          (error: unknown) => {
-            lifecycleError ??= error;
-            finish(status);
-          },
-        );
+        finish(status);
       });
     });
   } finally {
