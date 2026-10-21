@@ -24,6 +24,7 @@ const remotion = async (
   args: readonly string[],
   label: string,
   runProcess: ProcessRunner,
+  logLevel: "error" | "warn" = "error",
 ) => {
   const invocation = await resolveRemotionCliInvocation(rootDir);
   const result = await runProcess(
@@ -31,12 +32,13 @@ const remotion = async (
     [
       ...invocation.argsPrefix,
       ...args,
-      "--log=error",
+      `--log=${logLevel}`,
       `--public-dir=${join(rootDir, "public")}`,
     ],
     { cwd: rootDir },
   );
   if (result.status !== 0) throw failure(label, result);
+  return result;
 };
 
 const entryPoint = (rootDir: string) => join(rootDir, "src/index.ts");
@@ -57,8 +59,8 @@ export const renderFilmVideo = async ({
     outputPath,
     audioChannels: 2,
     runProcess,
-    render: ({ videoPath, pcmPath, options }) =>
-      remotion(
+    render: async ({ videoPath, pcmPath, options }) => {
+      await remotion(
         rootDir,
         [
           "render",
@@ -75,10 +77,11 @@ export const renderFilmVideo = async ({
         ],
         "Rendering the film",
         runProcess,
-      ),
+      );
+    },
   });
 
-export const renderFilmStill = ({
+export const renderFilmStill = async ({
   rootDir,
   compositionId,
   outputPath,
@@ -88,8 +91,8 @@ export const renderFilmStill = ({
   readonly compositionId: string;
   readonly outputPath: string;
   readonly runProcess?: ProcessRunner;
-}) =>
-  remotion(
+}) => {
+  await remotion(
     rootDir,
     [
       "still",
@@ -101,6 +104,7 @@ export const renderFilmStill = ({
     `Rendering ${compositionId}`,
     runProcess,
   );
+};
 
 /** Renders the review composition (one output image per requested film frame). */
 export const renderFilmReviewFrames = ({
@@ -138,6 +142,10 @@ export const renderFilmReviewFrames = ({
     ],
     "Rendering review frames",
     runProcess,
+    // Verified with pinned Remotion 4.0.489 in a non-TTY child: bundle
+    // console.warn emits complete lines on stderr at warn. Avoid verbose noise:
+    // bounded-process retains only the last 1 MiB of each output stream.
+    "warn",
   );
 
 /** Renders the shared contact-sheet Still from review frames under public/. */

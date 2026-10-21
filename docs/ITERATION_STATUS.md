@@ -1,6 +1,58 @@
 # Iteration Status
 
-## 0.3.0：删除 Project production 主链（2026-10-19，源码完成，未发布）
+## 清理 contracts 旧主链残留（2026-10-21，未发布）
+
+按[实施计划](promotions/2026-10-21-contracts-old-chain-cleanup.md)，从公开的 `@axmorf/studio/contracts` 删除
+`story`、`semantic-timing`、`scene-readability`、`generation-input`、`generated-artwork`、`render` 整模块，
+以及资源目录、Scene 模板实例、旧运动验证和仅服务这些模块的导出。媒体授权描述、模板 ID、可选运动组件所需的合同及
+传递依赖保留，现行合同未做全量未用导出清扫；旧素材描述的 `generatedSource` 字段随 generated-artwork 删除。
+这是 0.3.0 范围内的公开导出破坏性变更，外部调用方需移除对退役合同的引用。
+
+`CAPTION_MAX_DISPLAY_HALF_UNITS` 与 `countCaptionDisplayHalfUnits` 移入 `film.ts`，仍从 contracts 导出；
+`pauseMsToSampleFrames` 移入旁白脚本的 PCM 内部模块，不再从 contracts 导出。名称和计算保持不变，仍执行 72 half-units
+上限和 round-half-up 停顿 samples 换算。`@axmorf/studio/remotion` 的导出（含 `ProducerMotionObject`）、依赖与版本不变。
+
+验证：完整 `npm run check` 通过（328 项测试，含 typecheck、lint、文档链接、素材、Web / Remotion 构建、creator 包检查与
+宿主 Chromium compositions 门禁），runtime 完整构建及 `build:types` 通过，定向 43 项测试通过。原有字幕预算与 PCM
+换算测试保持通过，迁移实现与原代码逐字一致；另用构建产物确认 ASCII / 中文 / emoji 的 72 half-units 边界。
+首轮完整检查的进程超时测试未在 300ms 内捕获子进程启动输出，单独运行 14 项和第二轮完整检查均通过，未修改该测试。
+
+测试由 330 项降至 328 项，仅删除：
+
+- generation fingerprint 用例：验证已删除的 Story / generation-input 指纹；其中现行旁白 schema 的两条严格校验断言移入旁白测试。
+- composition ID 用例：只验证已删除 render 合同使用的 ID schema。
+
+已删的 122 个导出名在 `packages/`、`scripts/`、`settings/`、`src/`、`tests/` 中检索无匹配；另有上述停顿函数迁入内部。
+清空后重建的 contracts 声明树也无退役名称（含 `StorySpec`、`SemanticTiming` 和资源目录专用名称）：
+声明树由 5328 行 / 232059 字节降到 2692 行 / 113951 字节，`dist/contracts.js` 由 4505 行 / 167160 字节降到
+2202 行 / 81310 字节；入口 `dist/contracts.d.ts` 仍为 5 行 / 199 字节，实际声明位于 `dist/contracts/`。
+
+未验证：真实 TTS、成片渲染或交付、生成 Workspace 的全新安装 / 升级验收、仓库外调用方迁移；本次未提交、推送或发布。
+
+## 审片渲染实测可读性提示（2026-10-20，未发布）
+
+按[实施计划](promotions/2026-10-20-review-readability-measurement.md)，`film:review` 新增 `readabilityWarnings`：
+在审片组合内等待字体与布局稳定后测量文字，提示非字幕文字的实际字号过小、部分越界与字幕框遮挡；相同规则和文字摘要
+合并列出正片帧号与实测值。`readability` 列出测量帧数、缺失帧、坏日志、截断帧与测量错误。提示不拦截 `film:check`
+或交付，静态小字号警告复用同一阈值，`stillWarnings` 保持原行为。Skill 与 creator 模板镜像同步。
+
+验证：完整 `npm run check` 通过（330 项测试，含 typecheck、lint、文档链接、素材、Web / Remotion 构建、
+creator 包检查与宿主 Chromium compositions 门禁）；focused tests 18 项通过，React Doctor 改动扫描无新增诊断。
+仓库根目录用无旁白临时片实测 1080×1920、`--scale=0.5` 的 f10、f150、f294：缩放文字 16px、SVG 文字 12px
+均低于 26px 阈值，右侧文字越界约 329.84px，正常 64px 文字无警告；3 帧测量齐全，无坏日志或截断。
+联系表与单帧正常生成并看图，`stillWarnings` 与改动前渲染一致，`film:check` 与 HEAD 版本的同片输出完全相同；
+同质量、同缩放的 f10 正片 still 与审片 JPEG 字节一致，测量容器未改变该帧像素。
+Remotion 4.0.489 非 TTY 子进程确认 `console.warn` + `--log=warn` 在 stderr 输出完整测量行，其他渲染保持 error 级别。
+临时片已通过 `film:delete --film readability-probe --confirm-delete` 清理。
+
+未验证：字幕遮挡只做单元测试（含 10% 边界），未进行带旁白真实渲染，未调用 TTS；对比度和文字停留时长仍未实现。
+本仓库根目录没有生成 Workspace 的 marker / producer config，验收直接调用仓库 film CLI 服务与本地 Remotion，
+未做生成 Workspace 的 doctor / 新安装验收；本次未交付或发布成片。
+
+## 0.3.0：删除 Project production 主链（2026-10-19，0.3.0-rc.1 已发布至 next）
+
+2026-10-20 核实：`@axmorf/studio` 与 `create-axmorf-studio` 的 npm `next` 均为 `0.3.0-rc.1`，
+`latest` 仍为 `0.2.1`；0.3.0 正式版尚未发布。
 
 按[迁移方案](promotions/2026-10-14-direct-film-production.md)第 2 步删除旧主链，只保留 direct film：
 

@@ -33,7 +33,7 @@
 - `evidence/` 记录发生时的验收证据，不定义 current runtime；例如
   [Edge TTS 请求节奏诊断](evidence/2026-10-15-edge-tts-pacing.md)。
 - `promotions/` 保存实施中的方案：[Direct Film 生产方案](promotions/2026-10-14-direct-film-production.md)
-  （0.3.0 发布后归档）。
+  （0.3.0 发布后归档）、[审片渲染实测可读性提示](promotions/2026-10-20-review-readability-measurement.md)。
 - [archive/](archive/README.md) 保存已完成或被取代的计划、0.2.0 之前的状态历史，以及 0.3.0 删除的
   Project production 主链文档与证据，仅供追溯。
 

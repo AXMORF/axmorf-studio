@@ -11,14 +11,12 @@ import {
   resolveVoxcpmProfile,
 } from "../../scripts/narration/adapters/private-config";
 import { NarrationSpecSchema } from "@axmorf/studio/contracts";
-import { computeGenerationInputFingerprint } from "@axmorf/studio/contracts";
-import { StorySpecSchema } from "@axmorf/studio/contracts";
-import { validNarrationSpec, validStorySpec } from "../fixtures/narrative";
 
 const referencePath = "/srv/private/science.wav";
 const referenceBytes = Buffer.from("fixture reference wav");
 const narration = NarrationSpecSchema.parse({
-  ...validNarrationSpec,
+  schemaVersion: 2,
+  mode: "voice-clone",
   voiceProfileId: "science-explainer-young-male",
 });
 
@@ -58,7 +56,6 @@ test("metadata-only profile resolution never opens protected voice content", asy
   assert.equal(metadata.baseUrl, "http://127.0.0.1:9880");
   assert.equal(accessCount, 1);
 });
-const story = StorySpecSchema.parse(validStorySpec);
 const fixturePrivateConfig = {
   schemaVersion: 2,
   baseUrl: "http://127.0.0.1:9880",
@@ -93,6 +90,10 @@ const fixtureReadFile = async (path: string): Promise<Buffer> => {
 };
 
 test("private config resolves one controllable-clone profile", async () => {
+  assert.throws(() => NarrationSpecSchema.parse({ ...narration, seed: 43 }));
+  assert.throws(() =>
+    NarrationSpecSchema.parse({ ...narration, schemaVersion: 1 }),
+  );
   const resolved = await resolveVoxcpmProfile({
     config: fixturePrivateConfig,
     narration,
@@ -143,17 +144,12 @@ test("safe fingerprints exclude endpoints tokens and absolute paths", async () =
   ]);
 });
 
-test("provider configuration changes fork the attempt but not narration generation input", async () => {
+test("provider configuration changes fork the attempt", async () => {
   const resolved = await resolveVoxcpmProfile({
     config: fixturePrivateConfig,
     narration,
     readFile: fixtureReadFile,
   });
-  const currentGenerationInputFingerprint = computeGenerationInputFingerprint(
-    story,
-    narration,
-  );
-
   assert.notEqual(
     computeProviderAttemptFingerprint({
       ...resolved.safeDescriptor,
@@ -195,10 +191,6 @@ test("provider configuration changes fork the attempt but not narration generati
       `${key} must fork the provider attempt`,
     );
   }
-  assert.equal(
-    currentGenerationInputFingerprint,
-    computeGenerationInputFingerprint(story, narration),
-  );
 });
 
 test("chunk request fingerprint binds exact authored text and safe attempt", async () => {
@@ -207,10 +199,7 @@ test("chunk request fingerprint binds exact authored text and safe attempt", asy
     narration,
     readFile: fixtureReadFile,
   });
-  const generationInputFingerprint = computeGenerationInputFingerprint(
-    story,
-    narration,
-  );
+  const generationInputFingerprint = `sha256:${"b".repeat(64)}` as const;
   const providerAttemptFingerprint = computeProviderAttemptFingerprint(
     resolved.safeDescriptor,
   );

@@ -11,7 +11,11 @@ import {
 import { join } from "node:path";
 import test, { type TestContext } from "node:test";
 
-import { FilmPublishSchema, FilmTimingSchema } from "@axmorf/studio/contracts";
+import {
+  FilmPublishSchema,
+  FilmTimingSchema,
+  minimumReadableFontSize,
+} from "@axmorf/studio/contracts";
 
 import { encodeCanonicalPcmWav } from "../../scripts/narration/domain/pcm-wav";
 import { checkFilm } from "../../scripts/films/check";
@@ -215,6 +219,34 @@ test("the scaffolded film passes check", async (context) => {
     errors: [],
     warnings: [],
   });
+});
+
+test("static small-text uses the shared review threshold and preserves its message", async (context) => {
+  const root = await createWorkspace(context);
+  const minimum = minimumReadableFontSize(1080, 1920);
+  await writeFilm(root, "threshold-film", {
+    film: FILM_SOURCE.replace("fontSize: 72", `fontSize: ${minimum - 1}`),
+  });
+  await runFilmVoice({
+    rootDir: root,
+    filmId: "threshold-film",
+    createService: fakeVoice,
+  });
+  const report = await checkFilm({ rootDir: root, filmId: "threshold-film" });
+  assert.deepEqual(report.errors, []);
+  assert.equal(report.warnings.length, 1);
+  assert.equal(
+    report.warnings[0]!.message,
+    `fontSize ${minimum - 1} is under ${minimum}px for a 1080×1920 frame; make sure it is decorative or readable on a phone.`,
+  );
+  await writeFile(
+    filmPaths(root, "threshold-film").film,
+    FILM_SOURCE.replace("fontSize: 72", `fontSize: ${minimum}`),
+  );
+  assert.deepEqual(
+    (await checkFilm({ rootDir: root, filmId: "threshold-film" })).warnings,
+    [],
+  );
 });
 
 test("the Skill's example segments pass film:check inside a film", async (context) => {

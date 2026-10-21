@@ -23,6 +23,7 @@ import {
 import type { SceneTemplateAudioProjection } from "../capabilities/scene-templates/template-audio";
 import { FilmWithBookends } from "./FilmBookends";
 import { FilmProvider, resolveFilmRuntime, type FilmRuntime } from "./context";
+import { ReviewMeasure } from "./review-measure";
 
 type FilmModule = Promise<{ default: ComponentType }>;
 
@@ -81,9 +82,11 @@ const reviewLoader =
       const frame = frames[Math.min(index, frames.length - 1)] ?? 0;
       return (
         <FilmProvider runtime={runtime}>
-          <Freeze frame={frame}>
-            <Authored />
-          </Freeze>
+          <ReviewMeasure key={index} index={index} frame={frame}>
+            <Freeze frame={frame}>
+              <Authored />
+            </Freeze>
+          </ReviewMeasure>
         </FilmProvider>
       );
     };

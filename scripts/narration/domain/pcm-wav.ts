@@ -1,7 +1,27 @@
 import { createHash } from "node:crypto";
 
 import { Sha256DigestSchema } from "@axmorf/studio/contracts";
-import { pauseMsToSampleFrames } from "@axmorf/studio/contracts";
+
+const toSafeNumber = (value: bigint, label: string): number => {
+  if (value < 0n || value > BigInt(Number.MAX_SAFE_INTEGER)) {
+    throw new Error(`${label} is outside the non-negative safe integer range.`);
+  }
+  return Number(value);
+};
+
+export const pauseMsToSampleFrames = (
+  pauseMs: number,
+  sampleRate: number,
+): number => {
+  if (!Number.isSafeInteger(pauseMs) || pauseMs < 0)
+    throw new Error("pauseMs must be non-negative.");
+  if (!Number.isSafeInteger(sampleRate) || sampleRate <= 0)
+    throw new Error("sampleRate must be positive.");
+  const samples = (BigInt(pauseMs) * BigInt(sampleRate) + 500n) / 1000n;
+  if (pauseMs > 0 && samples === 0n)
+    throw new Error("Positive pause must produce at least one sample frame.");
+  return toSafeNumber(samples, "pause sampleFrameCount");
+};
 
 export const CANONICAL_NARRATION_PCM = {
   sampleRate: 48_000,

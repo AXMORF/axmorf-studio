@@ -1,12 +1,7 @@
 import { z } from "zod";
 
-import { createFingerprint } from "./fingerprint";
-import { GeneratedArtworkSourceSchema } from "./generated-artwork";
-import { Sha256DigestSchema, type Sha256Digest } from "./primitives";
+import { Sha256DigestSchema } from "./primitives";
 import { StyleProfileIdSchema } from "./scene-primitives";
-
-export const RESOURCE_DESCRIPTOR_FINGERPRINT_VERSION =
-  "resource-descriptor-fingerprint-v1" as const;
 
 export const ResourceIdSchema = z
   .string()
@@ -211,27 +206,10 @@ const ResourceAssetDescriptorObject = z
     checksum: Sha256DigestSchema,
     license: LicenseRecordSchema,
     externalSource: ExternalAssetSourceSchema.optional(),
-    generatedSource: GeneratedArtworkSourceSchema.optional(),
     media: ResourceMediaMetadataSchema.optional(),
   })
   .strict()
   .superRefine((descriptor, context) => {
-    if (
-      descriptor.generatedSource !== undefined &&
-      (descriptor.externalSource !== undefined ||
-        descriptor.mediaRole !== "scene-visual" ||
-        !["image", "svg"].includes(descriptor.assetKind) ||
-        (descriptor.generatedSource.kind === "authored-svg") !==
-          (descriptor.assetKind === "svg") ||
-        descriptor.license.sourceEvidenceFingerprint !==
-          descriptor.generatedSource.provenanceFingerprint)
-    )
-      context.addIssue({
-        code: "custom",
-        message:
-          "Generated artwork provenance conflicts with its asset descriptor.",
-        path: ["generatedSource"],
-      });
     const isAudio = descriptor.assetKind === "audio";
     const isAudioRole = !["scene-visual", "global-visual"].includes(
       descriptor.mediaRole,
@@ -440,204 +418,6 @@ export type ResourceAssetDescriptor = z.infer<
 >;
 export type ResourceDescriptor = z.infer<typeof ResourceDescriptorSchema>;
 
-export const RESOURCE_CATALOG_GENERATOR_ID =
-  "resource-catalog-generator-v1" as const;
-
-export const ResourceCatalogEntrySchema = z
-  .object({
-    descriptor: ResourceDescriptorSchema,
-    descriptorFingerprint: Sha256DigestSchema,
-  })
-  .strict()
-  .superRefine((entry, context) => {
-    if (
-      entry.descriptorFingerprint !==
-      computeResourceDescriptorFingerprint(entry.descriptor)
-    ) {
-      context.addIssue({
-        code: "custom",
-        message: "Resource descriptor fingerprint is stale.",
-        path: ["descriptorFingerprint"],
-      });
-    }
-  })
-  .readonly();
-
-const ResourceCatalogInputShape = {
-  schemaVersion: z.literal(1),
-  generatorId: z.literal(RESOURCE_CATALOG_GENERATOR_ID),
-  entries: z.array(ResourceCatalogEntrySchema).readonly(),
-} as const;
-
-const addCatalogEntryIssues = (
-  catalog: { readonly entries: readonly ResourceCatalogEntry[] },
-  context: z.RefinementCtx,
-) => {
-  const seen = new Set<string>();
-  catalog.entries.forEach((entry, index) => {
-    if (seen.has(entry.descriptor.id)) {
-      context.addIssue({
-        code: "custom",
-        message: "Resource Catalog IDs must be unique.",
-        path: ["entries", index, "descriptor", "id"],
-      });
-    }
-    if (
-      index > 0 &&
-      catalog.entries[index - 1].descriptor.id.localeCompare(
-        entry.descriptor.id,
-      ) >= 0
-    ) {
-      context.addIssue({
-        code: "custom",
-        message: "Resource Catalog entries must be canonically sorted.",
-        path: ["entries", index, "descriptor", "id"],
-      });
-    }
-    seen.add(entry.descriptor.id);
-  });
-};
-
-const ResourceCatalogInputObject = z
-  .object(ResourceCatalogInputShape)
-  .strict()
-  .superRefine(addCatalogEntryIssues)
-  .readonly();
-
-export const ResourceCatalogInputSchema = ResourceCatalogInputObject;
-
-export const ResourceCatalogSchema = z
-  .object({
-    ...ResourceCatalogInputShape,
-    catalogFingerprint: Sha256DigestSchema,
-  })
-  .strict()
-  .superRefine((catalog, context) => {
-    addCatalogEntryIssues(catalog, context);
-    const input = ResourceCatalogInputSchema.parse({
-      schemaVersion: catalog.schemaVersion,
-      generatorId: catalog.generatorId,
-      entries: catalog.entries,
-    });
-    if (
-      catalog.catalogFingerprint !== computeResourceCatalogFingerprint(input)
-    ) {
-      context.addIssue({
-        code: "custom",
-        message: "Resource Catalog fingerprint is stale.",
-        path: ["catalogFingerprint"],
-      });
-    }
-  })
-  .readonly();
-
-export type ResourceCatalogEntry = z.infer<typeof ResourceCatalogEntrySchema>;
-export type ResourceCatalogInput = z.infer<typeof ResourceCatalogInputSchema>;
-export type ResourceCatalog = z.infer<typeof ResourceCatalogSchema>;
-
-export const SelectedResourceRefSchema = z
-  .object({
-    schemaVersion: z.literal(1),
-    resourceId: ResourceIdSchema,
-    kind: z.enum(["asset", "style-profile", "capability"]),
-    role: z.enum([
-      "scene-visual",
-      "sound-effect",
-      "background-music",
-      "global-visual",
-      "style-profile",
-      "capability",
-    ]),
-    descriptorFingerprint: Sha256DigestSchema,
-    catalogFingerprint: Sha256DigestSchema,
-  })
-  .strict()
-  .readonly();
-
-export type SelectedResourceRef = z.infer<typeof SelectedResourceRefSchema>;
-
-export const SceneSelectedResourceSchema = z
-  .object({
-    selected: SelectedResourceRefSchema,
-    descriptor: ResourceDescriptorSchema,
-  })
-  .strict()
-  .readonly();
-
-export const SceneSelectedResourcesFileSchema = z
-  .object({
-    schemaVersion: z.literal(1),
-    selectedResources: z.array(SceneSelectedResourceSchema).max(128).readonly(),
-  })
-  .strict()
-  .readonly();
-
-export type SceneSelectedResource = z.infer<typeof SceneSelectedResourceSchema>;
-
-export const resolveSceneAvailableResources = (
-  rawCatalog: unknown,
-  allowedResourceIds: readonly string[],
-): readonly SceneSelectedResource[] => {
-  const catalog = ResourceCatalogSchema.parse(rawCatalog);
-  return [...allowedResourceIds].sort().map((id) => {
-    const entry = catalog.entries.find(
-      ({ descriptor }) => descriptor.id === id,
-    );
-    if (entry === undefined || entry.descriptor.kind === "authoring-reference")
-      throw new Error(`Scene resource is unavailable: ${id}.`);
-    const descriptor = entry.descriptor;
-    const role =
-      descriptor.kind === "asset"
-        ? descriptor.mediaRole
-        : descriptor.kind === "capability"
-          ? "capability"
-          : "style-profile";
-    const selected = validateSelectedResourceRef({
-      selected: {
-        schemaVersion: 1,
-        resourceId: descriptor.id,
-        kind: descriptor.kind,
-        role,
-        descriptorFingerprint: entry.descriptorFingerprint,
-        catalogFingerprint: catalog.catalogFingerprint,
-      },
-      descriptor,
-      currentCatalogFingerprint: catalog.catalogFingerprint,
-    });
-    return SceneSelectedResourceSchema.parse({ selected, descriptor });
-  });
-};
-
-export const computeResourceDescriptorFingerprint = (
-  rawDescriptor: unknown,
-): Sha256Digest => {
-  const descriptor = ResourceDescriptorSchema.parse(rawDescriptor);
-  return createFingerprint({
-    namespace: "resource-descriptor",
-    version: 1,
-    value: {
-      fingerprintVersion: RESOURCE_DESCRIPTOR_FINGERPRINT_VERSION,
-      descriptor,
-    },
-  });
-};
-
-export const computeResourceCatalogFingerprint = (
-  rawCatalogInput: unknown,
-): Sha256Digest => {
-  const catalog = ResourceCatalogInputSchema.parse(rawCatalogInput);
-  return createFingerprint({
-    namespace: "resource-catalog",
-    version: 1,
-    value: {
-      generatorId: catalog.generatorId,
-      orderedDescriptorFingerprints: catalog.entries.map(
-        (entry) => entry.descriptorFingerprint,
-      ),
-    },
-  });
-};
-
 export type ResourceUseContext =
   | "scene-visual"
   | "sound-effect"
@@ -705,33 +485,4 @@ export const assertResourceAllowedForUse = (
     return descriptor;
   }
   throw new Error("Descriptor is not allowed for the requested use context.");
-};
-
-export const validateSelectedResourceRef = ({
-  selected: rawSelected,
-  descriptor: rawDescriptor,
-  currentCatalogFingerprint: rawCatalogFingerprint,
-}: {
-  readonly selected: unknown;
-  readonly descriptor: unknown;
-  readonly currentCatalogFingerprint: unknown;
-}): SelectedResourceRef => {
-  const selected = SelectedResourceRefSchema.parse(rawSelected);
-  const descriptor = ResourceDescriptorSchema.parse(rawDescriptor);
-  const currentCatalogFingerprint = Sha256DigestSchema.parse(
-    rawCatalogFingerprint,
-  );
-  if (selected.catalogFingerprint !== currentCatalogFingerprint) {
-    throw new Error("Selected resource Catalog fingerprint is stale.");
-  }
-  if (
-    selected.resourceId !== descriptor.id ||
-    selected.kind !== descriptor.kind ||
-    selected.descriptorFingerprint !==
-      computeResourceDescriptorFingerprint(descriptor)
-  ) {
-    throw new Error("Selected resource descriptor identity is stale.");
-  }
-  assertResourceAllowedForUse(descriptor, selected.role);
-  return selected;
 };

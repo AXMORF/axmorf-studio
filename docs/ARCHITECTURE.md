@@ -23,7 +23,7 @@ AXMORF Studio 由两个 npm 包和一个用户 Workspace 组成。Agent 直接�
 ```text
 packages/studio/src/
   contracts/          zod 合同：film（FilmSpec/Timing/Music/Assets/Publish）、producer-config、旁白与音色、
-                      片头片尾主题与模板音频、合成配乐时间线
+                      片头片尾主题与模板音频、合成配乐时间线、媒体授权描述与可选运动组件所需的状态和计划
   remotion/film/      FilmProvider、useFilm/useFilmTiming、FilmCaptions、FilmSoundtrack、FilmBookends、
                       FilmCompositions（正片、--review、两张封面）与联系表 Still
   remotion/capabilities/  可选的镜头、运动、界面组件、媒体、特效与片头片尾模板
@@ -51,7 +51,7 @@ film:new     → src/films/<filmId>/film.json、Film.tsx、Cover.tsx、assets.js
 film:voice   → TTS（按 provider、音色与文本缓存在 .axmorf/cache/voice）→ public/films/<id>/narration.wav
                → generated/timing.json（实测 PCM samples 换算帧）
 film:music   → film.json 的 music.score → public/films/<id>/music.wav → generated/music.json（拍、段落、重音帧）
-film:review  → <id>--review 组合按帧渲染 → 联系表与 stillWarnings
+film:review  → <id>--review 组合按帧渲染并测量文字 → 联系表、stillWarnings、readabilityWarnings 与测量摘要 readability（仅提示）
 film:check   → TypeScript、网络调用、CSS 动画、随机数与时间、未登记媒体、跨片 import、必须挂载的组件、过期时序
 film:deliver → .axmorf/staging 中渲染正片（片头 + 正片 + 片尾）与两张封面 → 复验 → publish.json
                → 替换 deliveries/<id>/，旧交付移到 .axmorf/history/<id>/<deliveredAt>

@@ -11,13 +11,6 @@ export const MeaningIdSchema = stableSlugSchema.brand<"MeaningId">();
 export const TtsChunkIdSchema = stableSlugSchema.brand<"TtsChunkId">();
 export const VoiceProfileIdSchema = stableSlugSchema.brand<"VoiceProfileId">();
 
-export const CompositionIdSchema = z
-  .string()
-  .min(1)
-  .max(128)
-  .regex(/^[A-Za-z0-9][A-Za-z0-9_-]*$/)
-  .brand<"CompositionId">();
-
 export const PositiveIntegerSchema = z.number().int().positive().safe();
 export const NonNegativeIntegerSchema = z.number().int().nonnegative().safe();
 
@@ -43,6 +36,5 @@ export type StoryId = z.infer<typeof StoryIdSchema>;
 export type MeaningId = z.infer<typeof MeaningIdSchema>;
 export type TtsChunkId = z.infer<typeof TtsChunkIdSchema>;
 export type VoiceProfileId = z.infer<typeof VoiceProfileIdSchema>;
-export type CompositionId = z.infer<typeof CompositionIdSchema>;
 export type Sha256Digest = z.infer<typeof Sha256DigestSchema>;
 export type PublicProjectPath = z.infer<typeof PublicProjectPathSchema>;
