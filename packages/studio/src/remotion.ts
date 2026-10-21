@@ -4,6 +4,7 @@
  */
 export * from "./remotion/capabilities/camera";
 export * from "./remotion/capabilities/effects";
+export * from "./remotion/capabilities/graphic-fx";
 export * from "./remotion/capabilities/media";
 export * from "./remotion/capabilities/motion";
 export * from "./remotion/capabilities/scene-templates/axmorf";
