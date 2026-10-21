@@ -98,20 +98,22 @@ const { width, height } = useVideoConfig();
 
 ## 图形处理与节拍剪辑
 
-用于 MV、动漫 OP 一类高能段落（配方见 [动漫 OP](styles/anime-op.md)）。全部是 SVG filter 与帧驱动计算，
-任何 DOM 子树都能套用，不依赖 WebGL。
+用于 MV、动漫 OP 一类段落（配方见 [动漫 OP](styles/anime-op.md)）。全部是 SVG filter 与帧驱动计算，
+任何 DOM 子树都能套用，不依赖 WebGL。它们只处理画面，不提供画面：主体仍然来自插画、照片或原创 SVG。
 
 ```tsx
 const { music } = useFilmTiming();
-const cuts = selectProducerCutFrames({ grid: music!.beatFrames, fromFrame: 0, toFrame: 240, every: 2 });
+// Cut on phrases (bars) rather than every beat; effects land only on accents.
+const cuts = selectProducerCutFrames({ grid: music!.barFrames, fromFrame: 0, toFrame: 240 });
 
-<ProducerGlitchSlices seed="hook" bursts={cuts.slice(1)} burstFrames={5}>
+<ProducerGlitchSlices seed="hook" bursts={music!.accentFrames} burstFrames={3}>
   <ProducerBeatCutSeries cutFrames={cuts} endFrame={240} shots={[<CloseUp key="a" />, <Wide key="b" />]} />
 </ProducerGlitchSlices>
-<ProducerFlashCut frames={[cuts[4]!]} decayFrames={5} />
+<ProducerFlashCut frames={music!.accentFrames} decayFrames={5} />
 ```
 
-- `selectProducerCutFrames({ grid, fromFrame, toFrame, every })`：从 `beatFrames`/`barFrames` 里每隔 `every` 个取切点。
+- `selectProducerCutFrames({ grid, fromFrame, toFrame, every })`：从 `barFrames`/`beatFrames` 里每隔 `every` 个取切点。
+  普通切点优先用小节（乐句），逐拍硬切会显得机械。
 - `ProducerBeatCutSeries`：`cutFrames`（父时间线帧，在 Sequence 里要减去 `from`）、`endFrame`、`shots`（按顺序循环）；
   每个镜头在自己的 Sequence 里，`useCurrentFrame()` 从切点开始为 0；短于 `minShotFrames`（默认 3）的镜头直接报错。
 - `ProducerGradientMap`：`stops` 从暗到亮 2–8 个十六进制颜色，`amount` 0–1；两色是双色调，多色是伪彩。
@@ -122,7 +124,8 @@ const cuts = selectProducerCutFrames({ grid: music!.beatFrames, fromFrame: 0, to
 - `ProducerHalftoneOverlay`：铺满父容器的网点叠层，`spacingPx`、`radiusPx`、`color`、`opacity`、`angle`、`blendMode`、
   `fade: "none" | "edges" | "center"`、`driftPxPerFrame`。
 - `ProducerFlashCut`：`frames` 处闪白（`color` 可改黑），`decayFrames` 内衰减。全屏闪烁每秒不超过 3 次。
-- `ProducerCreditTitle`：职员表式大字，`role`、`names`、`sizePx`、`fill`（`"gold"` 或颜色）、`orientation`、`align`、
+- `ProducerCreditTitle`：职员表式文字，`role`、`names`、`sizePx`、`fill`（`"gold"` 或颜色）、`orientation`、`align`、
+  `entrance`（`"slam"` 缩放砸入，用于片名；`"fade"` 带短暂模糊淡入，用于克制的职员名）、`weight`（默认 900）、
   `startFrame`、`staggerFrames`、`echo`（镜像倒影）、`style`（定位）。默认字体 `producerDisplaySerifFamily`。
 
 ## 其他

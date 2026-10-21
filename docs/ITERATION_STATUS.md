@@ -6,9 +6,14 @@
 WebGL 或实验性的 HTML-in-Canvas（`@remotion/effects` 只能挂在 `<Img>` 与 `HtmlInCanvas` 上，后者需要 Chrome 148 及 flag）：
 `ProducerBeatCutSeries` 与 `selectProducerCutFrames`（按音乐网格硬切）、`ProducerGradientMap`（双色调 / 伪彩）、
 `ProducerChromaticSplit`（RGB 错位）、`ProducerGlitchSlices`（切点撕裂，装饰副本 aria-hidden 且只在 burst 内存在）、
-`ProducerHalftoneOverlay`、`ProducerFlashCut` 与 `ProducerCreditTitle`（职员表式粗宋体大字），以及对应的纯函数 resolver。
-Skill 新增 `references/styles/anime-op.md` 风格配方（节拍段 / 讲述段划分、色板、文字、素材、配乐参数、闪烁安全与审片追加项），
-`SKILL.md` 指向 `references/styles/`，`api.md` 增加组件说明；creator 模板镜像同步。原有 `producerStyleProfiles` 未改动。
+`ProducerHalftoneOverlay`、`ProducerFlashCut` 与 `ProducerCreditTitle`（职员表式宋体文字，`entrance` 可选砸入或淡入），
+以及对应的纯函数 resolver。Skill 新增 `references/styles/anime-op.md` 风格配方，`SKILL.md` 指向 `references/styles/`，
+`api.md` 增加组件说明；creator 模板镜像同步。原有 `producerStyleProfiles` 未改动。
+
+配方初稿只依据每 3 秒一帧的抽样，误把高潮段的霓虹故障当成整体风格，样片观感很差。随后对两部参考 OP 逐镜头抽帧
+（150 / 196 段）并实测色彩与切点：基调是高调白灰金或靛蓝夜色，高饱和像素约 13–14%；切点与节拍网格的对齐只比随机略好，
+停留镜头多为 0.6–1.75 秒并夹有长镜头，快感主要来自镜头内作画。配方据此重写为作画优先、实测色板、意象体系、
+五段结构与特效上限，并要求缺少插画时说明只能做纯图形版；示例段落改为只演示组件用法的占位实现。
 
 验证：完整 `npm run check` 通过（338 项测试，含新增 10 项组件测试；风格配方的示例段落纳入 `film:check` 用例）。
 用本地打包的 runtime 新建临时 Workspace（doctor 通过），制作 1920×1080 / 30fps 纯视觉样片：`film:check`、`film:review`
