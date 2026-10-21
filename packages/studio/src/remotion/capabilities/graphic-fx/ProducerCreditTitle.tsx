@@ -24,6 +24,12 @@ export type ProducerCreditTitleProps = {
   readonly fill?: "gold" | string;
   readonly roleColor?: string;
   readonly align?: "start" | "center" | "end";
+  /**
+   * "slam" scales each name down onto its place (poster titles); "fade"
+   * lifts it in softly with a short blur (restrained staff credits).
+   */
+  readonly entrance?: "slam" | "fade";
+  readonly weight?: number;
   /** First name lands here; later names follow every staggerFrames. */
   readonly startFrame?: number;
   readonly staggerFrames?: number;
@@ -41,8 +47,8 @@ export type ProducerCreditTitleProps = {
 };
 
 /**
- * Staff-credit typography: a quiet role label and oversized serif names that
- * slam in one after another. Text is the subject of the shot, not a caption.
+ * Staff-credit typography: a quiet role label and serif names that land one
+ * after another, either slammed in as a poster title or faded in as a credit.
  */
 export const ProducerCreditTitle: FC<ProducerCreditTitleProps> = ({
   role,
@@ -52,6 +58,8 @@ export const ProducerCreditTitle: FC<ProducerCreditTitleProps> = ({
   fill = "#f7f2e8",
   roleColor = "rgba(247, 242, 232, 0.86)",
   align = "start",
+  entrance = "slam",
+  weight = 900,
   startFrame = 0,
   staggerFrames = 3,
   echo = null,
@@ -84,12 +92,22 @@ export const ProducerCreditTitle: FC<ProducerCreditTitleProps> = ({
   } as const;
   const landing = (index: number) => {
     const local = frame - startFrame - index * staggerFrames;
+    const easeOut = { ...clamp, easing: Easing.out(Easing.cubic) };
+    if (entrance === "fade") {
+      const lift = interpolate(local, [0, 12], [sizePx * 0.08, 0], easeOut);
+      const blur = interpolate(local, [0, 10], [6, 0], clamp);
+      return {
+        opacity: interpolate(local, [0, 10], [0, 1], clamp),
+        transform: vertical
+          ? `translateX(${(-lift).toFixed(2)}px)`
+          : `translateY(${lift.toFixed(2)}px)`,
+        filter: blur > 0 ? `blur(${blur.toFixed(2)}px)` : "none",
+      };
+    }
     return {
       opacity: interpolate(local, [0, 3], [0, 1], clamp),
-      scale: interpolate(local, [0, 6], [1.32, 1], {
-        ...clamp,
-        easing: Easing.out(Easing.cubic),
-      }),
+      transform: `scale(${interpolate(local, [0, 6], [1.32, 1], easeOut).toFixed(4)})`,
+      filter: "none",
     };
   };
   const roleIn = interpolate(frame - startFrame, [-4, 2], [0, 1], clamp);
@@ -119,19 +137,20 @@ export const ProducerCreditTitle: FC<ProducerCreditTitleProps> = ({
       }}
     >
       {names.map((name, index) => {
-        const { opacity, scale } = landing(index);
+        const { opacity, transform, filter } = landing(index);
         return (
           <span
             key={`${index}-${name}`}
             style={{
               display: "inline-block",
               fontSize: sizePx,
-              fontWeight: 900,
+              fontWeight: weight,
               lineHeight: 1.04,
               letterSpacing: vertical ? "0.04em" : "0.02em",
               whiteSpace: "nowrap",
               opacity,
-              transform: `scale(${scale.toFixed(4)})`,
+              transform,
+              filter,
               transformOrigin: vertical
                 ? "50% 0%"
                 : align === "end"

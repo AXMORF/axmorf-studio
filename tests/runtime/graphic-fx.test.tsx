@@ -303,6 +303,27 @@ test("credit title staggers name landings and keeps type above the readable mini
     firstLanded,
     /opacity:0;transform:scale\(1\.3200\)[^"]*"[^>]*>ASKASK/u,
   );
+  const fade = (frame: number) =>
+    render(
+      <ProducerCreditTitle
+        role="导演"
+        names={["名字"]}
+        sizePx={100}
+        entrance="fade"
+        weight={600}
+      />,
+      frame,
+    );
+  // A restrained credit lifts in with a short blur instead of scaling.
+  assert.match(
+    fade(0),
+    /font-weight:600;[^"]*opacity:0;transform:translateY\(8\.00px\);filter:blur\(6\.00px\)/u,
+  );
+  assert.match(
+    fade(12),
+    /opacity:1;transform:translateY\(0\.00px\);filter:none/u,
+  );
+  assert.doesNotMatch(fade(12), /scale\(/u);
   assert.match(
     render(
       <ProducerCreditTitle names={["名"]} sizePx={80} orientation="vertical" />,
