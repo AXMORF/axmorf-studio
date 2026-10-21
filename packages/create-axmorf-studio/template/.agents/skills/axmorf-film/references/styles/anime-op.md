@@ -70,6 +70,8 @@
 - 快感主要来自**镜头内的作画**：1–3 帧的频闪、形变、抖动、一拍二或一拍三的动作，而不是把镜头剪碎。
 - 段落切换和最大的揭示对齐 `sectionFrames` 或 `accentFrames`；节拍段的普通切点从 `barFrames` 里挑，或按语义手选后
   用 `snapProducerFrameToBeat` 吸附。
+- **镜头跟着鼓**：主歌在小节头做 2% 左右的镜头冲击，前奏和副歌每拍冲击、军鼓上轻震；冲击在 5–6 帧内衰减。
+  用 `beatFrames` 和 `barFrames` 计算，不要另写一套节拍。
 - 硬切为主；闪白、闪黑只在段落切换与重音。转场优先用有动机的方式：前景物体遮挡划过、匹配形状（瞳孔 → 太阳 → 圆环）、
   从物体内部拉出（嘴里、眼里是下一个场景）。
 
@@ -102,6 +104,10 @@
 - **角色与场景（生图）**：提示词写“原创角色，日系 TV 动画成片质量，精细线稿，赛璐珞上色，轮廓光或逆光，焦外光斑”，
   再写清取景、光源方向和选定基调的色值；不写具体作品、角色或画师名。按层生成：全幅背景板、透明主体、前景遮挡物，
   在代码里分层运动。
+- **作画序列（让画面动起来的关键）**：让生图工具画 2×2 的连续动作表（同一机位、同一构图，四格依次是一个动作的
+  四张原画，背景为纯绿），用 ffmpeg `colorkey` 与 `despill` 离线抠成带透明通道的 PNG 后登记，再在代码里按拍或每 3–5 帧
+  换一张，叠在背景板上。适合回头、起跳、握拳、围巾或头发被风吹。纸鹤、花瓣一类粒子也用同样的精灵图。
+  Workspace 的样式会把图片宽度限制在容器内，按格裁切精灵图时给 `Img` 设 `maxWidth: "none"`。
 - **拼贴段的小画风**：在提示词里明确画风（平涂漫画、铅笔草稿、浮世绘浪纹、黑白网点），其余条件不变。
 - **纹样与意象物件（原创 SVG）**：Art Deco 同心圆和条纹、曼陀罗、放射线、版式网格可以直接写在 TSX 里；
   物件要有体积、光影和细节层级（见 [SVG 精作配方](../craft.md#svg-精作配方)）。
@@ -109,34 +115,35 @@
 
 ## 配乐
 
-当前配乐引擎只有 `electronic` 与 `organic` 两种音色，合成不出乐队摇滚；用段落配器模拟起伏，并在报告里说明这一点。
-段落与上面的分段结构一一对应：
+用 `drive` 风格（见 [配乐与卡点](../music.md)）：军鼓反拍、八分音符贝斯、强力和弦吉他与过门撑起律动，画面才有东西可跟。
+它仍是合成音色，不是真实乐队；报告里说明这一点。段落与上面的分段结构一一对应：
 
 ```json
 "score": {
   "engine": "studio-v2",
-  "bpm": 104,
+  "bpm": 172,
   "beatsPerBar": 4,
-  "bars": 24,
-  "style": "electronic",
+  "bars": 28,
+  "style": "drive",
   "seed": 20261022,
   "arrangement": {
     "tonic": "E",
     "mode": "minor",
-    "progression": [1, 6, 3, 7],
+    "progression": [6, 4, 1, 5],
     "swing": 0,
     "sections": [
-      { "bars": 2, "instruments": ["pad", "pluck"], "density": 0.35, "energy": 0.35 },
-      { "bars": 6, "instruments": ["kick", "hat", "bass", "pluck", "pad"], "density": 0.55, "energy": 0.55 },
-      { "bars": 5, "instruments": ["kick", "snare", "hat", "bass", "pluck", "pad"], "density": 0.65, "energy": 0.7 },
-      { "bars": 7, "instruments": ["kick", "clap", "snare", "hat", "bass", "pluck", "pad", "lead"], "density": 0.85, "energy": 0.95 },
-      { "bars": 4, "instruments": ["pad", "pluck"], "density": 0.4, "energy": 0.4 }
+      { "bars": 4, "instruments": ["guitar", "pluck", "pad"], "density": 0.4, "energy": 0.4 },
+      { "bars": 8, "instruments": ["kick", "snare", "hat", "bass", "guitar", "pad"], "density": 0.5, "energy": 0.45 },
+      { "bars": 4, "instruments": ["kick", "snare", "hat", "bass", "guitar", "pluck"], "density": 0.7, "energy": 0.7 },
+      { "bars": 8, "instruments": ["kick", "snare", "clap", "hat", "bass", "guitar", "lead", "pad"], "density": 0.9, "energy": 0.95 },
+      { "bars": 4, "instruments": ["guitar", "pluck", "pad"], "density": 0.4, "energy": 0.4 }
     ]
   }
 }
 ```
 
-`bars` 按实测时长重算（104 BPM 每小节约 2.3 秒），各段小节数按分段比例分配。`lead` 和最满的段落留给没有旁白的爆发段。
+- `bars` 按实测时长重算（172 BPM 每小节约 1.4 秒）。`lead` 和最满的段落留给没有旁白的爆发段。
+- 无旁白的 MV 把 `volume` 与 `underSpeechVolume` 都设到 0.8–0.9（成片约 -15 LUFS）；有旁白时保留默认。
 
 ## 安全
 

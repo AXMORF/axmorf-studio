@@ -15,6 +15,13 @@ WebGL 或实验性的 HTML-in-Canvas（`@remotion/effects` 只能挂在 `<Img>` 
 停留镜头多为 0.6–1.75 秒并夹有长镜头，快感主要来自镜头内作画。配方据此重写为作画优先、实测色板、意象体系、
 五段结构与特效上限，并要求缺少插画时说明只能做纯图形版；示例段落改为只演示组件用法的占位实现。
 
+配乐引擎新增 studio-v2 专用的 `drive` 风格：失真强力和弦 `guitar` 与 `tom` 声部、按 `energy` 分三档的军鼓反拍鼓型、
+八分音符贝斯、每 4 小节过门与段落前通鼓滚奏、可重复的两小节旋律钩子。合同的 `style` 增加 `drive`，事件增加可选 `beat`；
+所有 studio-v2 事件按精确拍位置合成，不再四舍五入到视频帧（原先 30fps 下鼓点最多偏差约 16ms）。
+`electronic` / `organic` 的编曲不变，但重新生成后起音时间更准确；原始引擎与其金样校验不受影响。
+用 `drive`（172 BPM）与 Codex 生成的插画、绿幕作画序列重做的原创样片在临时 Workspace 中交付复验通过，成片约 -14.8 LUFS；
+节奏感只做了起音自相关等粗略测量，未经人工听审。
+
 验证：完整 `npm run check` 通过（338 项测试，含新增 10 项组件测试；风格配方的示例段落纳入 `film:check` 用例）。
 用本地打包的 runtime 新建临时 Workspace（doctor 通过），制作 1920×1080 / 30fps 纯视觉样片：`film:check`、`film:review`
 （`stillWarnings` 与 `readabilityWarnings` 为空）、`film:deliver` 通过，交付 22 秒（含片头片尾）四文件复验通过；
