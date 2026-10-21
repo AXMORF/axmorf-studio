@@ -1,6 +1,6 @@
 {
   "name": "axmorf-studio",
-  "version": "0.3.0-rc.2",
+  "version": "0.3.0-rc.3",
   "description": "Agent-first video production workspace and npm distribution for AXMORF Studio.",
   "repository": {
     "type": "git",
@@ -65,7 +65,7 @@
     "tailwindcss": "4.2.0",
     "tsx": "4.23.1",
     "typescript": "5.9.3",
-    "vite": "8.2.2"
+    "vite": "8.2.4"
   },
   "scripts": {
     "packages:build": "npm run build --workspaces --if-present",
