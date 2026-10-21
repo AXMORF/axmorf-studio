@@ -46,6 +46,8 @@ Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐�
    ```
    打开输出的 `contact-sheet.jpeg` 和单帧图片，按 [画面手艺](references/craft.md#审片) 逐条回答并写下帧号证据，
    修改后再次审片。输出里的 `stillWarnings` 列出相隔 2 秒以上却几乎没变的帧，必须改或说明理由。
+   `readabilityWarnings` 提示实测字号过小、文字越界或被字幕遮挡；必须为空，或逐条给出理由。`readability`
+   中的 `missingFrames`、`truncatedFrames` 不为空时，补看对应单帧，不把测量缺失当作通过。这些提示不拦截交付。
    至少完成一轮“审片 → 修改 → 再审片”。需要看某些帧时用 `--frames 120,240,360`。
    用户想实时预览时，可运行 `npm run dev` 打开 Remotion Studio。
 10. **检查**：`npm run film:check -- --film <filmId>`。错误必须修复；警告逐条判断。

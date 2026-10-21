@@ -15,7 +15,7 @@
 | caption 预算 | 每句旁白最多 72 caption display half-units；超限由 Agent 改写或拆句，不放宽检查。 |
 | 配乐（FilmMusic） | `film:music` 按 `music.score` 确定性合成的 `music.wav` 与 `generated/music.json`（bpm、拍、小节、段落与重音帧）。 |
 | 素材登记（FilmAssets） | `assets.json` 中每个媒体文件的来源、作者、许可与 checksum，由 `film:asset` 写入；`film:check` 拒绝未登记或被改动的媒体。 |
-| 审片（review） | `film:review` 用 `<filmId>--review` 组合渲染所选帧，生成联系表与 `stillWarnings`（相隔 2 秒以上且几乎不变的帧对）。 |
+| 审片（review） | `film:review` 用 `<filmId>--review` 组合渲染所选帧，生成联系表、`stillWarnings`（相隔 2 秒以上且几乎不变的帧对）与 `readabilityWarnings`（实测字号、文字越界、字幕遮挡）；`readability` 列出测量帧数与缺失帧。可读性仅作提示，不拦截检查或交付。 |
 | 交付（delivery） | `deliveries/<filmId>/` 下恰好四个文件：`video.mp4`、`cover-4x3.png`、`cover-3x4.png`、`publish.json`，全部复验后才替换上一版。 |
 | 历史交付 | 被新交付替换的旧交付，按其 `deliveredAt` 存于 `.axmorf/history/<filmId>/`。 |
 | Workspace 操作锁 | `.project-operation.lock`；film 写命令与 Workspace 升级互斥，被占用时直接失败。 |

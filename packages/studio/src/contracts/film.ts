@@ -22,6 +22,43 @@ export const FILM_COVER_VARIANTS = [
 /** Shared Still that tiles review frames into one contact sheet. */
 export const FILM_CONTACT_SHEET_ID = "axmorf-contact-sheet";
 
+/** Shared phone-readability threshold, in delivered composition pixels. */
+export const minimumReadableFontSize = (width: number, height: number) =>
+  Math.round(Math.min(width, height) * 0.024);
+
+export const FILM_REVIEW_MEASUREMENT_MARKER = "AXMORF_REVIEW_MEASUREMENT";
+export const FILM_REVIEW_MAX_TEXTS = 120;
+
+export const FilmReviewRectSchema = z.strictObject({
+  x: z.number(),
+  y: z.number(),
+  width: z.number().positive(),
+  height: z.number().positive(),
+});
+export type FilmReviewRect = z.infer<typeof FilmReviewRectSchema>;
+
+/** Internal review telemetry; no DOM or Node dependencies. */
+export const FilmReviewMeasurementSchema = z.strictObject({
+  index: z.number().int().nonnegative(),
+  frame: z.number().int().nonnegative(),
+  width: z.number().int().positive(),
+  height: z.number().int().positive(),
+  texts: z
+    .array(
+      z.strictObject({
+        snippet: z.string().min(1).max(24),
+        caption: z.boolean(),
+        fontSize: z.number().nonnegative(),
+        rect: FilmReviewRectSchema,
+        captionRect: FilmReviewRectSchema.optional(),
+      }),
+    )
+    .max(FILM_REVIEW_MAX_TEXTS),
+  truncated: z.boolean(),
+  error: z.string().min(1).max(1_000).optional(),
+});
+export type FilmReviewMeasurement = z.infer<typeof FilmReviewMeasurementSchema>;
+
 /** Remotion composition ids registered for each film. */
 export const filmCompositionIds = (filmId: string) =>
   ({

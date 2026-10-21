@@ -24,6 +24,7 @@ import {
 import { meanAbsoluteDifference, readFrameSignature } from "./frame-compare";
 import { renderContactSheet, renderFilmReviewFrames } from "./media";
 import { loadCurrentFilmTiming } from "./music";
+import { analyzeReviewReadability } from "./readability";
 
 export type ReviewFrame = Readonly<{ frame: number; reason: string }>;
 
@@ -167,13 +168,19 @@ export const runFilmReview = async ({
       propsPath,
       JSON.stringify({ frames: selected.map(({ frame }) => frame) }),
     );
-    await renderFilmReviewFrames({
+    const renderOutput = await renderFilmReviewFrames({
       rootDir,
       compositionId: filmCompositionIds(paths.id).review,
       propsPath,
       outputDirectory: relative(rootDir, join(scratch, "frames")),
       count: selected.length,
       scale,
+    });
+    const readability = analyzeReviewReadability({
+      output: `${renderOutput.stdout}\n${renderOutput.stderr}`,
+      frames: selected.map(({ frame }) => frame),
+      width: spec.render.width,
+      height: spec.render.height,
     });
     const rendered = (await readdir(join(scratch, "frames")))
       .filter((name) => name.startsWith("review-"))
@@ -250,7 +257,8 @@ export const runFilmReview = async ({
       contactSheet: workspacePath(rootDir, sheet),
       frames: images,
       stillWarnings,
-      next: "Open the contact sheet and the frames; check subject, framing, readable text, and that changes land on the listed sentences and accents.",
+      ...readability,
+      next: "Open the contact sheet and the frames; resolve or justify each readabilityWarning and inspect missingFrames. Check subject, framing, and changes on the listed sentences and accents.",
     } as const;
   } finally {
     await rm(scratch, { recursive: true, force: true });

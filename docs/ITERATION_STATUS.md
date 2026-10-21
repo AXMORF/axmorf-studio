@@ -1,6 +1,29 @@
 # Iteration Status
 
-## 0.3.0：删除 Project production 主链（2026-10-19，源码完成，未发布）
+## 审片渲染实测可读性提示（2026-10-20，未发布）
+
+按[实施计划](promotions/2026-10-20-review-readability-measurement.md)，`film:review` 新增 `readabilityWarnings`：
+在审片组合内等待字体与布局稳定后测量文字，提示非字幕文字的实际字号过小、部分越界与字幕框遮挡；相同规则和文字摘要
+合并列出正片帧号与实测值。`readability` 列出测量帧数、缺失帧、坏日志、截断帧与测量错误。提示不拦截 `film:check`
+或交付，静态小字号警告复用同一阈值，`stillWarnings` 保持原行为。Skill 与 creator 模板镜像同步。
+
+验证：完整 `npm run check` 通过（330 项测试，含 typecheck、lint、文档链接、素材、Web / Remotion 构建、
+creator 包检查与宿主 Chromium compositions 门禁）；focused tests 18 项通过，React Doctor 改动扫描无新增诊断。
+仓库根目录用无旁白临时片实测 1080×1920、`--scale=0.5` 的 f10、f150、f294：缩放文字 16px、SVG 文字 12px
+均低于 26px 阈值，右侧文字越界约 329.84px，正常 64px 文字无警告；3 帧测量齐全，无坏日志或截断。
+联系表与单帧正常生成并看图，`stillWarnings` 与改动前渲染一致，`film:check` 与 HEAD 版本的同片输出完全相同；
+同质量、同缩放的 f10 正片 still 与审片 JPEG 字节一致，测量容器未改变该帧像素。
+Remotion 4.0.489 非 TTY 子进程确认 `console.warn` + `--log=warn` 在 stderr 输出完整测量行，其他渲染保持 error 级别。
+临时片已通过 `film:delete --film readability-probe --confirm-delete` 清理。
+
+未验证：字幕遮挡只做单元测试（含 10% 边界），未进行带旁白真实渲染，未调用 TTS；对比度和文字停留时长仍未实现。
+本仓库根目录没有生成 Workspace 的 marker / producer config，验收直接调用仓库 film CLI 服务与本地 Remotion，
+未做生成 Workspace 的 doctor / 新安装验收；本次未交付或发布成片。
+
+## 0.3.0：删除 Project production 主链（2026-10-19，0.3.0-rc.1 已发布至 next）
+
+2026-10-20 核实：`@axmorf/studio` 与 `create-axmorf-studio` 的 npm `next` 均为 `0.3.0-rc.1`，
+`latest` 仍为 `0.2.1`；0.3.0 正式版尚未发布。
 
 按[迁移方案](promotions/2026-10-14-direct-film-production.md)第 2 步删除旧主链，只保留 direct film：
 

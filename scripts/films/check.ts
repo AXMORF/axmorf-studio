@@ -5,6 +5,7 @@ import {
   computeFilmMusicInputFingerprint,
   FilmAssetsSchema,
   FilmMusicSchema,
+  minimumReadableFontSize,
   type FilmSpec,
 } from "@axmorf/studio/contracts";
 import ts from "typescript";
@@ -240,8 +241,9 @@ export const checkFilm = async ({
     });
   }
 
-  const minimumFontSize = Math.round(
-    Math.min(spec.render.width, spec.render.height) * 0.024,
+  const minimumFontSize = minimumReadableFontSize(
+    spec.render.width,
+    spec.render.height,
   );
   const mounted = new Set<string>();
   const pendingStaticFiles: { node: ts.Node; path: string }[] = [];
