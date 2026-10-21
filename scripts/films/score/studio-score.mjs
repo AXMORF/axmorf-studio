@@ -12,6 +12,7 @@ export const STUDIO_INSTRUMENTS = Object.freeze([
   "pad",
   "pluck",
   "lead",
+  "guitar",
 ]);
 
 const TWO_PI = 2 * Math.PI;
@@ -45,6 +46,10 @@ const MOTIF_RHYTHMS = [
 ];
 
 export const arrangeStudioScore = (settings, arrangement, fpb, add, marks) => {
+  if (settings.style === "drive") {
+    arrangeDriveScore(settings, arrangement, fpb, add, marks);
+    return;
+  }
   const random = rng(settings.seed ^ 0x5f3759df);
   const scale = scaleFor(arrangement.mode);
   const tonicPc = arrangement.tonicPitchClass;
@@ -188,6 +193,173 @@ export const arrangeStudioScore = (settings, arrangement, fpb, add, marks) => {
 };
 
 // ---------------------------------------------------------------------------
+// Drive: a band arrangement for openings and high-energy films. Energy picks
+// the tier (verse < 0.5 ≤ build < 0.8 ≤ chorus); instruments still gate voices.
+// ---------------------------------------------------------------------------
+
+/** Hook rhythms in eighth-note steps over two bars; syncopated and repeatable. */
+const DRIVE_HOOKS = [
+  [0, 2, 3, 5, 8, 10, 11, 14],
+  [0, 3, 6, 8, 9, 11, 14],
+  [0, 2, 4, 5, 7, 8, 11, 12],
+];
+
+const arrangeDriveScore = (settings, arrangement, fpb, add, marks) => {
+  const random = rng(settings.seed ^ 0x2545f491);
+  const scale = scaleFor(arrangement.mode);
+  const note = (degree, octave) =>
+    12 * (octave + 1) +
+    arrangement.tonicPitchClass +
+    scale[((degree % 7) + 7) % 7] +
+    12 * Math.floor(degree / 7);
+  const beatsPerBar = settings.beatsPerBar;
+  const steps = beatsPerBar * 2;
+  const hook = DRIVE_HOOKS[Math.floor(random() * DRIVE_HOOKS.length)];
+  // Chord-tone indices (0 root, 1 third, 2 fifth, 3 octave) give a singable contour.
+  const hookTones = hook.map(() => Math.floor(random() * 4));
+  hookTones[0] = 2;
+  const drums = ["kick", "snare", "clap", "hat"];
+
+  let firstBar = 0;
+  arrangement.sections.forEach((section, sectionIndex) => {
+    const voices = new Set(section.instruments);
+    const next = arrangement.sections[sectionIndex + 1];
+    const previous = arrangement.sections[sectionIndex - 1];
+    const endBar = firstBar + section.bars;
+    const endFrame = Math.round(endBar * beatsPerBar * fpb);
+    const tier = section.energy < 0.5 ? 0 : section.energy < 0.8 ? 1 : 2;
+    const hasDrums = drums.some((type) => voices.has(type));
+    const nextHasDrums = next !== undefined && drums.some((type) => next.instruments.includes(type));
+    const lift = next !== undefined && next.energy > section.energy + 0.05 && nextHasDrums;
+    const arrives = previous === undefined || section.energy > previous.energy + 0.05;
+    const play = (type, at, pitch, gain, beats) => {
+      if (Math.round(at * fpb) >= endFrame) return;
+      add(type, at, pitch, Math.min(1, gain * (0.45 + 0.55 * section.energy)), beats, endFrame);
+    };
+    marks.sections.push({
+      startFrame: Math.round(firstBar * beatsPerBar * fpb),
+      bars: section.bars,
+      energy: section.energy,
+    });
+    if (arrives && hasDrums && firstBar > 0) {
+      add("crash", firstBar * beatsPerBar, 49, 0.4 * section.energy, beatsPerBar * 2);
+      marks.accents.push(Math.round(firstBar * beatsPerBar * fpb));
+    }
+
+    for (let bar = firstBar; bar < endBar; bar++) {
+      const start = bar * beatsPerBar;
+      const degree = arrangement.progression[bar % arrangement.progression.length] - 1;
+      const chord = [degree, degree + 2, degree + 4, degree + 7];
+      const phraseBar = (bar - firstBar) % 4;
+      const lastBar = bar === endBar - 1;
+      // Section changes get a two-beat tom run; other phrase ends a one-beat fill.
+      const fillBeats = lastBar && lift ? 2 : phraseBar === 3 && tier > 0 && hasDrums ? 1 : 0;
+      const fillFrom = start + beatsPerBar - fillBeats;
+
+      if (voices.has("pad")) {
+        for (const [index, chordDegree] of chord.slice(0, 3).entries()) {
+          play("pad", start, note(chordDegree, 3), tier === 2 ? 0.05 : 0.08 - index * 0.01, beatsPerBar);
+        }
+      }
+      if (tier === 2 && hasDrums && phraseBar % 2 === 0 && bar !== firstBar) {
+        add("crash", start, 49, 0.22 * section.energy, beatsPerBar);
+      }
+
+      for (let step = 0; step < steps; step++) {
+        const at = start + step * 0.5;
+        const beat = step / 2;
+        const onBeat = step % 2 === 0;
+        const inFill = fillBeats > 0 && at >= fillFrom;
+        const backbeat = onBeat && (beat % 2 === 1);
+
+        if (voices.has("kick") && !inFill) {
+          const pattern = [
+            [0, 4, ...(section.density > 0.5 ? [5] : [])],
+            [0, 3, 4, 7],
+            [0, 2, 3, 4, 6, 7],
+          ][tier];
+          if (pattern.includes(step % 8)) play("kick", at, 36, step === 0 ? 1 : 0.85, 0.4);
+        }
+        if (backbeat && !inFill) {
+          if (voices.has("snare")) play("snare", at, 38, 0.95, 0.5);
+          if (voices.has("clap")) play("clap", at, 39, 0.5, 0.5);
+        }
+        if (voices.has("hat") && !inFill) {
+          // Verse: closed eighths. Build: sixteenths on the last beat. Chorus: open offbeats.
+          const open = tier === 2 && !onBeat;
+          play("hat", at, open ? 46 : 42, open ? 0.14 : onBeat ? 0.15 : 0.11, open ? 0.3 : 0.12);
+          if (tier >= 1 && (beat >= beatsPerBar - 1 || section.density > 0.8)) {
+            play("hat", at + 0.25, 42, 0.1, 0.1);
+          }
+        }
+        if (voices.has("bass")) {
+          const root = note(chord[0], 2);
+          if (tier === 0) {
+            if (onBeat) play("bass", at, root, 0.8, 0.9);
+          } else {
+            const pickup = step === steps - 1 ? note(arrangement.progression[(bar + 1) % arrangement.progression.length] - 1 + 7, 1) : null;
+            play("bass", at, pickup ?? (step === 3 ? root + 12 : root), onBeat ? 0.85 : 0.7, 0.45);
+          }
+        }
+        if (voices.has("guitar")) {
+          const root = note(chord[0], 2);
+          if (tier === 0) {
+            // Palm-muted chugs: short events render darker and tighter.
+            play("guitar", at, root, step === 0 ? 0.7 : 0.5, step === 0 ? 0.45 : 0.2);
+          } else if (tier === 1) {
+            play("guitar", at, root, onBeat ? 0.7 : 0.55, onBeat ? 0.45 : 0.2);
+          } else if (step === 0 || step === 3 || step === 6) {
+            play("guitar", at, root, 0.68, step === 0 ? 1.4 : 1.2);
+          } else if (!onBeat) {
+            play("guitar", at, root, 0.5, 0.2);
+          }
+        }
+        if (voices.has("pluck")) {
+          // Sixteenth arpeggios push the build; eighths keep the chorus open for the hook.
+          const subdivisions = tier === 1 ? 2 : 1;
+          for (let sub = 0; sub < subdivisions; sub++) {
+            const index = (step * subdivisions + sub) % 4;
+            const pitch = note(chord[[0, 1, 2, 3][index]], tier === 0 ? 4 : 5);
+            if (tier === 0 && !onBeat && random() > section.density) continue;
+            play("pluck", at + sub * 0.25, pitch, sub === 0 ? 0.42 : 0.32, 0.22);
+          }
+        }
+        if (inFill && hasDrums) {
+          for (let sub = 0; sub < 2; sub++) {
+            const fillAt = at + sub * 0.25;
+            const progress = (fillAt - fillFrom) / fillBeats;
+            // Snare on the way in, then toms falling from high to low.
+            const tom = progress < 0.25 ? null : progress < 0.5 ? 50 : progress < 0.75 ? 47 : 43;
+            if (tom === null) play("snare", fillAt, 38, 0.6 + 0.3 * progress, 0.25);
+            else play("tom", fillAt, tom, 0.75 + 0.2 * progress, 0.3);
+          }
+        }
+      }
+
+      if (voices.has("lead")) {
+        // The same two-bar hook twice, then an answer that lands on the root: easy to remember.
+        const half = phraseBar % 2;
+        const answer = phraseBar === 3;
+        for (const [index, hookStep] of hook.entries()) {
+          if (Math.floor(hookStep / 8) !== half) continue;
+          if (section.density < 0.5 && index % 2 === 1) continue;
+          const nextStep = hook[index + 1] ?? 16;
+          const tone = answer && index === hook.length - 1 ? 0 : hookTones[index];
+          const length = Math.min(2, Math.max(0.5, (nextStep - hookStep) * 0.5));
+          play("lead", start + (hookStep % 8) * 0.5, note(chord[tone], 5), 0.55, length * 0.92);
+        }
+      }
+    }
+
+    if (lift) {
+      const riserBeats = Math.min(beatsPerBar * 2, section.bars * beatsPerBar);
+      add("riser", endBar * beatsPerBar - riserBeats, 60, 0.3 * next.energy, riserBeats, endFrame);
+    }
+    firstBar = endBar;
+  });
+};
+
+// ---------------------------------------------------------------------------
 // DSP voices.
 // ---------------------------------------------------------------------------
 
@@ -243,6 +415,8 @@ const VOICES = {
   pad: { bus: "music", pan: 0, reverb: 0.4, tail: 1.4, pumped: true, wide: true },
   pluck: { bus: "music", pan: 0, reverb: 0.25, delay: 0.22, tail: 1.2, pumped: true },
   lead: { bus: "music", pan: 0.08, reverb: 0.28, delay: 0.3, tail: 0.6, pumped: true },
+  guitar: { bus: "music", pan: 0, reverb: 0.06, tail: 0.12 },
+  tom: { bus: "drums", pan: 0, reverb: 0.15, tail: 0.5, wide: true },
 };
 
 /** Renders one event into its own stereo buffer at sample offset zero. */
@@ -255,6 +429,7 @@ const renderVoice = (event, fps, style, noise) => {
   const frequency = midiHz(event.note);
   const filters = [createSvf(), createSvf(), createSvf(), createSvf()];
   const organic = style === "organic";
+  const drive = style === "drive";
   const phases = [0, 0, 0, 0, 0, 0];
   // Karplus–Strong delay line for organic plucks.
   const ksLength = Math.max(2, Math.round(SR / frequency));
@@ -271,16 +446,17 @@ const renderVoice = (event, fps, style, noise) => {
       case "kick": {
         const pitch = 46 + 110 * Math.exp(-t / 0.035);
         phases[0] += pitch / SR;
-        const body = Math.sin(TWO_PI * phases[0]) * Math.exp(-t / (organic ? 0.22 : 0.3));
-        const click = (noise() * 2 - 1) * Math.exp(-t / 0.0025) * 0.35;
+        const body = Math.sin(TWO_PI * phases[0]) * Math.exp(-t / (organic ? 0.22 : drive ? 0.18 : 0.3));
+        const click = (noise() * 2 - 1) * Math.exp(-t / 0.0025) * (drive ? 0.6 : 0.35);
         l = r = Math.tanh(1.6 * body + click);
         break;
       }
       case "snare": {
         phases[0] += 185 / SR;
         const tone = Math.sin(TWO_PI * phases[0]) * Math.exp(-t / 0.06) * 0.55;
-        const wire = filters[0]((noise() * 2 - 1), 4200, 0.35).band * Math.exp(-t / (organic ? 0.13 : 0.17));
-        l = r = tone + 1.4 * wire;
+        const wire = filters[0]((noise() * 2 - 1), 4200, 0.35).band * Math.exp(-t / (organic ? 0.13 : drive ? 0.2 : 0.17));
+        // Drive snares carry more body so the backbeat cuts through the guitars.
+        l = r = drive ? Math.tanh(1.3 * (tone * 1.4 + 1.6 * wire)) : tone + 1.4 * wire;
         break;
       }
       case "clap": {
@@ -380,6 +556,37 @@ const renderVoice = (event, fps, style, noise) => {
         l = r = filters[0](saw * 0.6 + square * 0.4, cutoff, 0.3).low * env * 0.7;
         break;
       }
+      case "guitar": {
+        // Power chord (root, fifth, octave), double-tracked left/right, driven into a cabinet filter.
+        const muted = length < 0.16;
+        let sumL = 0;
+        let sumR = 0;
+        [1, 1.4983, 2].forEach((ratio, index) => {
+          for (const [side, cents] of [[0, -0.07], [1, 0.07]]) {
+            const slot = index * 2 + side;
+            const f = frequency * ratio * 2 ** (cents / 12);
+            const dt = f / SR;
+            phases[slot] = (phases[slot] + dt) % 1;
+            const saw = 2 * phases[slot] - 1 - polyBlep(phases[slot], dt);
+            if (side === 0) sumL += saw;
+            else sumR += saw;
+          }
+        });
+        const gainIn = muted ? 2.6 : 4.5;
+        const cutoff = muted ? 700 + 1600 * Math.exp(-t / 0.025) : 2900 + 600 * Math.exp(-t / 0.05);
+        const env = adsr(t, length, 0.002, muted ? 0.05 : 0.25, muted ? 0.35 : 0.8, 0.05);
+        l = filters[1](filters[0](Math.tanh(gainIn * sumL / 3), cutoff, 0.2).low, 5200, 0.1).low * env * 0.55;
+        r = filters[3](filters[2](Math.tanh(gainIn * sumR / 3), cutoff, 0.2).low, 5200, 0.1).low * env * 0.55;
+        break;
+      }
+      case "tom": {
+        const pitch = frequency * (1 + 0.6 * Math.exp(-t / 0.03));
+        phases[0] += pitch / SR;
+        const body = Math.sin(TWO_PI * phases[0]) * Math.exp(-t / 0.26);
+        const stick = filters[0](noise() * 2 - 1, 3000, 0.3).band * Math.exp(-t / 0.012);
+        l = r = Math.tanh(1.5 * body + 0.8 * stick);
+        break;
+      }
       default:
         throw new Error(`Unsupported studio voice: ${event.type}`);
     }
@@ -462,7 +669,11 @@ export const synthesizeStudioTimeline = (timeline) => {
   };
   const kickStarts = [];
   for (const event of timeline.music) {
-    const start = Math.round((event.frame / timeline.fps) * SR);
+    // Exact beat onsets keep fast drum patterns tight; older timelines fall back to frames.
+    const start =
+      event.beat !== undefined
+        ? Math.round(((event.beat * 60) / timeline.bpm) * SR)
+        : Math.round((event.frame / timeline.fps) * SR);
     if (event.type === "kick") kickStarts.push(start);
     const { left, right, voice } = renderVoice(event, timeline.fps, timeline.style, random);
     // Wide voices alternate pitch-dependent panning; other voices use their fixed seat.
@@ -486,7 +697,7 @@ export const synthesizeStudioTimeline = (timeline) => {
   }
 
   // Sidechain: tonal voices duck under each kick, giving electronic scores their pulse.
-  const depth = timeline.style === "electronic" ? 0.55 : 0.2;
+  const depth = timeline.style === "electronic" ? 0.55 : timeline.style === "drive" ? 0.12 : 0.2;
   const pump = new Float32Array(count).fill(1);
   for (const start of kickStarts) {
     for (let i = 0; i < SR * 0.3; i++) {
