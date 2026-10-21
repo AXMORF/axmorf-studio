@@ -96,6 +96,35 @@ const { width, height } = useVideoConfig();
 - `RepositoryCard`：仓库卡片（`owner`、`name`、`description`、`language`、`stars`、`topics`、`width`、`minFontSizePx`）。
 - `interfaceThemes.dark` / `interfaceThemes.light` 作为 `theme`。
 
+## 图形处理与节拍剪辑
+
+用于 MV、动漫 OP 一类高能段落（配方见 [动漫 OP](styles/anime-op.md)）。全部是 SVG filter 与帧驱动计算，
+任何 DOM 子树都能套用，不依赖 WebGL。
+
+```tsx
+const { music } = useFilmTiming();
+const cuts = selectProducerCutFrames({ grid: music!.beatFrames, fromFrame: 0, toFrame: 240, every: 2 });
+
+<ProducerGlitchSlices seed="hook" bursts={cuts.slice(1)} burstFrames={5}>
+  <ProducerBeatCutSeries cutFrames={cuts} endFrame={240} shots={[<CloseUp key="a" />, <Wide key="b" />]} />
+</ProducerGlitchSlices>
+<ProducerFlashCut frames={[cuts[4]!]} decayFrames={5} />
+```
+
+- `selectProducerCutFrames({ grid, fromFrame, toFrame, every })`：从 `beatFrames`/`barFrames` 里每隔 `every` 个取切点。
+- `ProducerBeatCutSeries`：`cutFrames`（父时间线帧，在 Sequence 里要减去 `from`）、`endFrame`、`shots`（按顺序循环）；
+  每个镜头在自己的 Sequence 里，`useCurrentFrame()` 从切点开始为 0；短于 `minShotFrames`（默认 3）的镜头直接报错。
+- `ProducerGradientMap`：`stops` 从暗到亮 2–8 个十六进制颜色，`amount` 0–1；两色是双色调，多色是伪彩。
+- `ProducerChromaticSplit`：`amountPx` 0–120 的 RGB 通道错位，`angle` 为方向。
+- `ProducerGlitchSlices`：横向撕裂，`seed`、`intensity` 0–1、`bursts`（从这些帧开始撕裂并在 `burstFrames` 内衰减；
+  不传则持续）、`slices`、`maxOffsetPx`、`holdFrames`。撕裂条是子树的装饰副本，只在 burst 内存在；
+  子树里有视频时副本会多次解码，尽量包在图片和 SVG 上。
+- `ProducerHalftoneOverlay`：铺满父容器的网点叠层，`spacingPx`、`radiusPx`、`color`、`opacity`、`angle`、`blendMode`、
+  `fade: "none" | "edges" | "center"`、`driftPxPerFrame`。
+- `ProducerFlashCut`：`frames` 处闪白（`color` 可改黑），`decayFrames` 内衰减。全屏闪烁每秒不超过 3 次。
+- `ProducerCreditTitle`：职员表式大字，`role`、`names`、`sizePx`、`fill`（`"gold"` 或颜色）、`orientation`、`align`、
+  `startFrame`、`staggerFrames`、`echo`（镜像倒影）、`style`（定位）。默认字体 `producerDisplaySerifFamily`。
+
 ## 其他
 
 - 媒体：`ProducerLocalVideo`、`ProducerAnimatedImage`、`ProducerLottie`。

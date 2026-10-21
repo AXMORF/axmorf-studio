@@ -1,5 +1,23 @@
 # Iteration Status
 
+## 动漫 OP 风格配方与图形处理组件（2026-10-22，未发布）
+
+`@axmorf/studio/remotion` 新增 `graphic-fx` 组件，全部用 SVG filter、clip-path 与帧驱动计算实现，不依赖
+WebGL 或实验性的 HTML-in-Canvas（`@remotion/effects` 只能挂在 `<Img>` 与 `HtmlInCanvas` 上，后者需要 Chrome 148 及 flag）：
+`ProducerBeatCutSeries` 与 `selectProducerCutFrames`（按音乐网格硬切）、`ProducerGradientMap`（双色调 / 伪彩）、
+`ProducerChromaticSplit`（RGB 错位）、`ProducerGlitchSlices`（切点撕裂，装饰副本 aria-hidden 且只在 burst 内存在）、
+`ProducerHalftoneOverlay`、`ProducerFlashCut` 与 `ProducerCreditTitle`（职员表式粗宋体大字），以及对应的纯函数 resolver。
+Skill 新增 `references/styles/anime-op.md` 风格配方（节拍段 / 讲述段划分、色板、文字、素材、配乐参数、闪烁安全与审片追加项），
+`SKILL.md` 指向 `references/styles/`，`api.md` 增加组件说明；creator 模板镜像同步。原有 `producerStyleProfiles` 未改动。
+
+验证：完整 `npm run check` 通过（338 项测试，含新增 10 项组件测试；风格配方的示例段落纳入 `film:check` 用例）。
+用本地打包的 runtime 新建临时 Workspace（doctor 通过），制作 1920×1080 / 30fps 纯视觉样片：`film:check`、`film:review`
+（`stillWarnings` 与 `readabilityWarnings` 为空）、`film:deliver` 通过，交付 22 秒（含片头片尾）四文件复验通过；
+审片确认伪彩、网点、撕裂、闪白与金色大字在宿主 Chromium 中生效，并据此调低撕裂染色、把镜像倒影改到文字下方。
+
+未验证：人工连续观看与听审、竖屏样片、生图角色素材上的效果、非 macOS 宿主的宋体回退；配乐引擎仍只有
+`electronic` / `organic` 音色，未新增摇滚音色。本次未发布。
+
 ## 清理 contracts 旧主链残留（2026-10-21，未发布）
 
 按[实施计划](promotions/2026-10-21-contracts-old-chain-cleanup.md)，从公开的 `@axmorf/studio/contracts` 删除

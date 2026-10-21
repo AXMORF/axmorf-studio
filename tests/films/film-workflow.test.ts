@@ -250,14 +250,22 @@ test("static small-text uses the shared review threshold and preserves its messa
 });
 
 test("the Skill's example segments pass film:check inside a film", async (context) => {
-  const guide = await readFile(
-    join(repoRoot, ".agents/skills/axmorf-film/references/examples.md"),
-    "utf8",
-  );
-  const examples = [...guide.matchAll(/```tsx\n([\s\S]*?)```/gu)].map(
-    (match) => match[1]!,
-  );
-  assert.equal(examples.length, 2);
+  const guides = [
+    { path: "references/examples.md", segments: 2 },
+    { path: "references/styles/anime-op.md", segments: 1 },
+  ];
+  const examples: string[] = [];
+  for (const guide of guides) {
+    const source = await readFile(
+      join(repoRoot, ".agents/skills/axmorf-film", guide.path),
+      "utf8",
+    );
+    const found = [...source.matchAll(/```tsx\n([\s\S]*?)```/gu)].map(
+      (match) => match[1]!,
+    );
+    assert.equal(found.length, guide.segments, guide.path);
+    examples.push(...found);
+  }
   const root = await createWorkspace(context);
   for (const [index, example] of examples.entries()) {
     const segment = example.match(/export const (\w+Segment)/u)?.[1];
@@ -265,19 +273,24 @@ test("the Skill's example segments pass film:check inside a film", async (contex
     const filmId = `example-film-${index}`;
     await writeFilm(root, filmId, {
       film: `${example}
-import { AbsoluteFill, Sequence } from "remotion";
-import { FilmCaptions, FilmSoundtrack, useFilmTiming } from "@axmorf/studio/remotion";
+// Aliased so examples may import the same names themselves.
+import { AbsoluteFill as ExampleFill, Sequence as ExampleSequence } from "remotion";
+import {
+  FilmCaptions as ExampleCaptions,
+  FilmSoundtrack as ExampleSoundtrack,
+  useFilmTiming as useExampleTiming,
+} from "@axmorf/studio/remotion";
 
 const Film = () => {
-  const { durationInFrames } = useFilmTiming();
+  const { durationInFrames } = useExampleTiming();
   return (
-    <AbsoluteFill>
-      <Sequence durationInFrames={durationInFrames}>
+    <ExampleFill>
+      <ExampleSequence durationInFrames={durationInFrames}>
         <${segment} durationInFrames={durationInFrames} />
-      </Sequence>
-      <FilmSoundtrack />
-      <FilmCaptions />
-    </AbsoluteFill>
+      </ExampleSequence>
+      <ExampleSoundtrack />
+      <ExampleCaptions />
+    </ExampleFill>
   );
 };
 
