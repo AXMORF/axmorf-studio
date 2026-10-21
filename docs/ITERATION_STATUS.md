@@ -1,5 +1,34 @@
 # Iteration Status
 
+## 清理 contracts 旧主链残留（2026-10-21，未发布）
+
+按[实施计划](promotions/2026-10-21-contracts-old-chain-cleanup.md)，从公开的 `@axmorf/studio/contracts` 删除
+`story`、`semantic-timing`、`scene-readability`、`generation-input`、`generated-artwork`、`render` 整模块，
+以及资源目录、Scene 模板实例、旧运动验证和仅服务这些模块的导出。媒体授权描述、模板 ID、可选运动组件所需的合同及
+传递依赖保留，现行合同未做全量未用导出清扫；旧素材描述的 `generatedSource` 字段随 generated-artwork 删除。
+这是 0.3.0 范围内的公开导出破坏性变更，外部调用方需移除对退役合同的引用。
+
+`CAPTION_MAX_DISPLAY_HALF_UNITS` 与 `countCaptionDisplayHalfUnits` 移入 `film.ts`，仍从 contracts 导出；
+`pauseMsToSampleFrames` 移入旁白脚本的 PCM 内部模块，不再从 contracts 导出。名称和计算保持不变，仍执行 72 half-units
+上限和 round-half-up 停顿 samples 换算。`@axmorf/studio/remotion` 的导出（含 `ProducerMotionObject`）、依赖与版本不变。
+
+验证：完整 `npm run check` 通过（328 项测试，含 typecheck、lint、文档链接、素材、Web / Remotion 构建、creator 包检查与
+宿主 Chromium compositions 门禁），runtime 完整构建及 `build:types` 通过，定向 43 项测试通过。原有字幕预算与 PCM
+换算测试保持通过，迁移实现与原代码逐字一致；另用构建产物确认 ASCII / 中文 / emoji 的 72 half-units 边界。
+首轮完整检查的进程超时测试未在 300ms 内捕获子进程启动输出，单独运行 14 项和第二轮完整检查均通过，未修改该测试。
+
+测试由 330 项降至 328 项，仅删除：
+
+- generation fingerprint 用例：验证已删除的 Story / generation-input 指纹；其中现行旁白 schema 的两条严格校验断言移入旁白测试。
+- composition ID 用例：只验证已删除 render 合同使用的 ID schema。
+
+已删的 122 个导出名在 `packages/`、`scripts/`、`settings/`、`src/`、`tests/` 中检索无匹配；另有上述停顿函数迁入内部。
+清空后重建的 contracts 声明树也无退役名称（含 `StorySpec`、`SemanticTiming` 和资源目录专用名称）：
+声明树由 5328 行 / 232059 字节降到 2692 行 / 113951 字节，`dist/contracts.js` 由 4505 行 / 167160 字节降到
+2202 行 / 81310 字节；入口 `dist/contracts.d.ts` 仍为 5 行 / 199 字节，实际声明位于 `dist/contracts/`。
+
+未验证：真实 TTS、成片渲染或交付、生成 Workspace 的全新安装 / 升级验收、仓库外调用方迁移；本次未提交、推送或发布。
+
 ## 审片渲染实测可读性提示（2026-10-20，未发布）
 
 按[实施计划](promotions/2026-10-20-review-readability-measurement.md)，`film:review` 新增 `readabilityWarnings`：

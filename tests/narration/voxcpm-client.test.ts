@@ -79,7 +79,7 @@ const createFetch = (
   return { calls, fetchImpl };
 };
 
-test("one authored TTSChunk causes exactly one VoxCPM request", async () => {
+test("one authored chunk causes exactly one VoxCPM request", async () => {
   const { calls, fetchImpl } = createFetch();
   const generate = createVoxcpmChunkGenerator({ resolved, fetchImpl });
   const bytes = await generate(request);

@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
-  CompositionIdSchema,
   MeaningIdSchema,
   PublicProjectPathSchema,
   Sha256DigestSchema,
@@ -16,12 +15,6 @@ test("stable ids accept lowercase slugs and reject paths or whitespace", () => {
   assert.equal(TtsChunkIdSchema.parse("opening-01"), "opening-01");
   assert.throws(() => StoryIdSchema.parse("Story Example"));
   assert.throws(() => MeaningIdSchema.parse("../opening"));
-});
-
-test("composition ids use the Remotion-safe local subset", () => {
-  assert.equal(CompositionIdSchema.parse("StoryExample_01"), "StoryExample_01");
-  assert.throws(() => CompositionIdSchema.parse("Story Example"));
-  assert.throws(() => CompositionIdSchema.parse(".hidden"));
 });
 
 test("repository artifact paths stay under public/projects", () => {

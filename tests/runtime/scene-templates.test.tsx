@@ -46,7 +46,7 @@ test("reusable Scene template renderers remain visual-only", async () => {
   }
 });
 
-test("copied Scene template renderers adapt the local SceneViewport to template dimensions", () => {
+test("copied Scene template renderers adapt the local viewport to template dimensions", () => {
   for (const definition of SCENE_TEMPLATE_DEFINITIONS) {
     const source = renderCopiedSceneRenderer(definition);
     assert.match(source, /viewportWidth: number;/u);

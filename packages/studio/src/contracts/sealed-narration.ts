@@ -229,6 +229,3 @@ export const SealedNarrationManifestSchema =
   }).readonly();
 
 export type PcmFormat = z.infer<typeof PcmFormatSchema>;
-export type SealedNarrationManifest = z.infer<
-  typeof SealedNarrationManifestSchema
->;

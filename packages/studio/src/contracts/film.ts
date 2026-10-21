@@ -1,16 +1,64 @@
 import { z } from "zod";
 
 import { createFingerprint } from "./fingerprint";
-import {
-  CAPTION_MAX_DISPLAY_HALF_UNITS,
-  countCaptionDisplayHalfUnits,
-} from "./scene-readability";
 
 /**
  * Direct film contracts. A film is an ordinary Remotion source directory that
  * the Agent owns; these schemas only cover the script/recipe it writes and the
  * files that the voice, music, and delivery services generate for it.
  */
+
+export const CAPTION_MAX_DISPLAY_HALF_UNITS = 72 as const;
+
+const isRegionalIndicator = (codePoint: number) =>
+  codePoint >= 0x1f1e6 && codePoint <= 0x1f1ff;
+
+const isGraphemeContinuation = (codePoint: number) =>
+  codePoint === 0x200d ||
+  codePoint === 0x20e3 ||
+  (codePoint >= 0x0300 && codePoint <= 0x036f) ||
+  (codePoint >= 0x1ab0 && codePoint <= 0x1aff) ||
+  (codePoint >= 0x1dc0 && codePoint <= 0x1dff) ||
+  (codePoint >= 0x20d0 && codePoint <= 0x20ff) ||
+  (codePoint >= 0xfe00 && codePoint <= 0xfe0f) ||
+  (codePoint >= 0xfe20 && codePoint <= 0xfe2f) ||
+  (codePoint >= 0x1f3fb && codePoint <= 0x1f3ff) ||
+  (codePoint >= 0xe0100 && codePoint <= 0xe01ef);
+
+const splitCaptionGraphemes = (text: string) => {
+  const codePoints = Array.from(text);
+  const graphemes: string[] = [];
+  let regionalIndicatorCount = 0;
+  for (const codePointText of codePoints) {
+    const codePoint = codePointText.codePointAt(0);
+    if (codePoint === undefined) continue;
+    const previous = graphemes.at(-1);
+    const previousCodePoint = previous?.codePointAt(previous.length - 1);
+    const append =
+      previous !== undefined &&
+      (isGraphemeContinuation(codePoint) ||
+        previousCodePoint === 0x200d ||
+        (isRegionalIndicator(codePoint) && regionalIndicatorCount % 2 === 1));
+    if (append) graphemes[graphemes.length - 1] = previous + codePointText;
+    else graphemes.push(codePointText);
+    regionalIndicatorCount = isRegionalIndicator(codePoint)
+      ? regionalIndicatorCount + 1
+      : 0;
+  }
+  return graphemes;
+};
+
+export const countCaptionDisplayHalfUnits = (text: string) =>
+  splitCaptionGraphemes(text).reduce(
+    (total, grapheme) =>
+      total +
+      (Array.from(grapheme).every(
+        (character) => (character.codePointAt(0) ?? 0x80) <= 0x7f,
+      )
+        ? 1
+        : 2),
+    0,
+  );
 
 export const FILM_SCHEMA_VERSION = 1 as const;
 export const FILM_SPEECH_DUCKING_RAMP_FRAMES = 8;

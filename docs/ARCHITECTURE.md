@@ -23,7 +23,7 @@ AXMORF Studio 由两个 npm 包和一个用户 Workspace 组成。Agent 直接�
 ```text
 packages/studio/src/
   contracts/          zod 合同：film（FilmSpec/Timing/Music/Assets/Publish）、producer-config、旁白与音色、
-                      片头片尾主题与模板音频、合成配乐时间线
+                      片头片尾主题与模板音频、合成配乐时间线、媒体授权描述与可选运动组件所需的状态和计划
   remotion/film/      FilmProvider、useFilm/useFilmTiming、FilmCaptions、FilmSoundtrack、FilmBookends、
                       FilmCompositions（正片、--review、两张封面）与联系表 Still
   remotion/capabilities/  可选的镜头、运动、界面组件、媒体、特效与片头片尾模板
