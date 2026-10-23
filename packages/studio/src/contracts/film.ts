@@ -146,10 +146,53 @@ export const FilmSentenceSchema = z
   });
 export type FilmSentence = z.infer<typeof FilmSentenceSchema>;
 
+/**
+ * A registered audio asset used as the film's music. The beat grid is
+ * authored (film:music suggests values) so the cut stays reproducible.
+ */
+export const FilmMusicTrackSchema = z
+  .object({
+    /** File name of an audio entry in assets.json (`film:asset` registers it). */
+    asset: z.string().regex(/^[a-z0-9][a-z0-9._-]*\.(?:wav|mp3|m4a)$/u),
+    /** Seconds cut from the start of the file before the film's music begins. */
+    trimStartSeconds: z.number().finite().min(0).max(3_600).default(0),
+    /** Omit bpm and firstDownbeatSeconds once: film:music then suggests both. */
+    bpm: z.number().finite().min(50).max(220).optional(),
+    beatsPerBar: z.number().int().min(2).max(7).default(4),
+    /** Time of the first downbeat after the trim, in seconds. */
+    firstDownbeatSeconds: z.number().finite().min(0).max(60).optional(),
+    /** Bars (0-based, after the trim) where a new song section begins. */
+    sectionBars: z.array(z.number().int().min(0).max(1_000)).max(64).optional(),
+  })
+  .strict()
+  .superRefine((track, context) => {
+    const bars = track.sectionBars ?? [];
+    if (bars.some((bar, index) => index > 0 && bar <= bars[index - 1]!)) {
+      context.addIssue({
+        code: "custom",
+        path: ["sectionBars"],
+        message: "sectionBars must be strictly increasing.",
+      });
+    }
+    if (
+      (track.bpm === undefined) !==
+      (track.firstDownbeatSeconds === undefined)
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["bpm"],
+        message: "Set bpm and firstDownbeatSeconds together.",
+      });
+    }
+  });
+export type FilmMusicTrack = z.infer<typeof FilmMusicTrackSchema>;
+
 export const FilmMusicSpecSchema = z
   .object({
     /** studio-v2 score recipe without fps; the film fps is injected. */
-    score: z.record(z.string(), z.unknown()),
+    score: z.record(z.string(), z.unknown()).optional(),
+    /** A registered, licensed audio file instead of a synthesized score. */
+    track: FilmMusicTrackSchema.optional(),
     startFrame: NonNegativeFrameSchema.default(0),
     volume: VolumeSchema.default(0.24),
     /** Music volume while narration is speaking. */
@@ -165,7 +208,15 @@ export const FilmMusicSpecSchema = z
         message: "underSpeechVolume cannot be louder than volume.",
       });
     }
-    if ("fps" in music.score) {
+    if ((music.score === undefined) === (music.track === undefined)) {
+      context.addIssue({
+        code: "custom",
+        path: ["score"],
+        message:
+          "Set exactly one of music.score (synthesized) or music.track (registered audio).",
+      });
+    }
+    if (music.score !== undefined && "fps" in music.score) {
       context.addIssue({
         code: "custom",
         path: ["score", "fps"],
@@ -360,6 +411,8 @@ export const FilmMusicSchema = z
     barFrames: z.array(NonNegativeFrameSchema),
     sectionFrames: z.array(NonNegativeFrameSchema),
     accentFrames: z.array(NonNegativeFrameSchema),
+    /** Present for music.track: checksum of the registered source audio. */
+    trackChecksum: Sha256Schema.optional(),
   })
   .strict();
 export type FilmMusic = z.infer<typeof FilmMusicSchema>;

@@ -2,7 +2,7 @@ export const describeWorkspaceCliHelp = () => ({
   status: "help" as const,
   commands: [
     "npm run doctor",
-    "npm run film:new -- --film <filmId> --title <title> [--width <px>] [--height <px>] [--fps <n>]",
+    "npm run film:new -- --film <filmId> --title <title> [--width <px>] [--height <px>] [--fps <n>] [--bookends workspace|both|none]",
     "npm run film:voice -- --film <filmId>",
     "npm run film:music -- --film <filmId>",
     "npm run film:asset -- --film <filmId> --file <absolute-path> --name <file-name> --origin generated|original|licensed --creator <who> --license <license>",

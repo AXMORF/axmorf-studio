@@ -165,6 +165,26 @@ const checkGeneratedFiles = async (
       message: "music.wav is missing or changed; run film:music.",
     });
   }
+  const track = spec.music.track;
+  if (track !== undefined) {
+    // A re-registered track keeps its name, so compare the source checksum too.
+    const assets = await readOptionalJsonFile(
+      paths.assets,
+      FilmAssetsSchema,
+      "assets.json",
+    );
+    const source = assets?.assets.find(
+      (entry) =>
+        entry.kind === "audio" &&
+        entry.publicPath.endsWith(`/assets/${track.asset}`),
+    );
+    if (source === undefined || source.checksum !== music.trackChecksum) {
+      errors.push({
+        rule: "music-stale",
+        message: `music.track ${track.asset} is unregistered or changed since film:music; run film:music.`,
+      });
+    }
+  }
 };
 
 export const checkFilm = async ({
