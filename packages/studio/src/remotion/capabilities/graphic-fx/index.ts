@@ -1,3 +1,5 @@
+export { ProducerBeatCamera } from "./ProducerBeatCamera";
+export type { ProducerBeatCameraProps } from "./ProducerBeatCamera";
 export { ProducerBeatCutSeries } from "./ProducerBeatCutSeries";
 export type { ProducerBeatCutSeriesProps } from "./ProducerBeatCutSeries";
 export { ProducerChromaticSplit } from "./ProducerChromaticSplit";
@@ -15,6 +17,24 @@ export { ProducerGradientMap } from "./ProducerGradientMap";
 export type { ProducerGradientMapProps } from "./ProducerGradientMap";
 export { ProducerHalftoneOverlay } from "./ProducerHalftoneOverlay";
 export type { ProducerHalftoneOverlayProps } from "./ProducerHalftoneOverlay";
+export { ProducerSpeedLines } from "./ProducerSpeedLines";
+export type { ProducerSpeedLinesProps } from "./ProducerSpeedLines";
+export { ProducerSpriteSheet } from "./ProducerSpriteSheet";
+export type { ProducerSpriteSheetProps } from "./ProducerSpriteSheet";
+export { ProducerWhipIn } from "./ProducerWhipIn";
+export type { ProducerWhipInProps } from "./ProducerWhipIn";
+export {
+  findProducerLastHit,
+  resolveProducerBeatCamera,
+  resolveProducerDrawing,
+  resolveProducerSpeedLines,
+  resolveProducerWhip,
+} from "./motion";
+export type {
+  ProducerBeatCameraState,
+  ProducerDrawingTiming,
+  ProducerSpeedLine,
+} from "./motion";
 export {
   parseProducerHexColor,
   resolveProducerBeatCuts,

@@ -5,6 +5,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { Internals, type SequenceProps } from "remotion";
 
 import {
+  ProducerBeatCamera,
   ProducerBeatCutSeries,
   ProducerChromaticSplit,
   ProducerCreditTitle,
@@ -12,12 +13,19 @@ import {
   ProducerGlitchSlices,
   ProducerGradientMap,
   ProducerHalftoneOverlay,
+  ProducerSpriteSheet,
+  ProducerWhipIn,
+  findProducerLastHit,
   parseProducerHexColor,
+  resolveProducerBeatCamera,
   resolveProducerBeatCuts,
   resolveProducerBurstIntensity,
+  resolveProducerDrawing,
   resolveProducerFlashOpacity,
   resolveProducerGlitchSlices,
   resolveProducerGradientMapTables,
+  resolveProducerSpeedLines,
+  resolveProducerWhip,
   selectProducerCutFrames,
 } from "../../packages/studio/src/remotion";
 
@@ -333,5 +341,140 @@ test("credit title staggers name landings and keeps type above the readable mini
   assert.throws(
     () => render(<ProducerCreditTitle names={["名"]} sizePx={20} />),
     /at least minFontSizePx/u,
+  );
+});
+
+test("drawings hold on twos or advance on a musical grid", () => {
+  assert.deepEqual(
+    [0, 1, 2, 3, 4, 7, 8].map((frame) =>
+      resolveProducerDrawing(frame, 4, { holdFrames: 2 }),
+    ),
+    [0, 0, 1, 1, 2, 3, 0],
+  );
+  const beats = [10, 22, 34];
+  assert.deepEqual(
+    [0, 10, 21, 22, 40].map((frame) =>
+      resolveProducerDrawing(frame, 4, { onFrames: beats }),
+    ),
+    [0, 0, 0, 1, 2],
+  );
+  // Grid timing clamps on the last drawing unless asked to loop.
+  assert.equal(resolveProducerDrawing(99, 2, { onFrames: beats }), 1);
+  assert.equal(
+    resolveProducerDrawing(99, 2, { onFrames: beats, loop: true }),
+    0,
+  );
+  assert.deepEqual(findProducerLastHit(21, beats), { index: 0, frame: 10 });
+  assert.equal(findProducerLastHit(9, beats), null);
+  assert.throws(
+    () => resolveProducerDrawing(0, 0, { holdFrames: 2 }),
+    /positive integer/u,
+  );
+});
+
+test("the beat camera punches and shakes only right after its hits", () => {
+  const camera = (frame: number) =>
+    resolveProducerBeatCamera({
+      frame,
+      punches: [10],
+      shakes: [20],
+      punch: 0.04,
+    });
+  assert.deepEqual(camera(9), { scale: 1, x: 0, y: 0 });
+  assert.equal(camera(10).scale, 1.04);
+  assert.ok(camera(13).scale > 1 && camera(13).scale < 1.04);
+  assert.equal(camera(16).scale, 1);
+  assert.ok(Math.abs(camera(20).x) > 0 || Math.abs(camera(20).y) > 0);
+  assert.deepEqual(camera(20), camera(20));
+  assert.deepEqual(camera(26), { scale: 1, x: 0, y: 0 });
+  assert.throws(
+    () => resolveProducerBeatCamera({ frame: 0, punch: 1 }),
+    /between 0 and 0.3/u,
+  );
+});
+
+test("whips settle on time and speed lines redraw on their hold", () => {
+  assert.deepEqual(resolveProducerWhip({ frame: 0, direction: -1 }), {
+    offset: -0.35,
+    blurPx: 28,
+  });
+  assert.deepEqual(resolveProducerWhip({ frame: 5 }), { offset: 0, blurPx: 0 });
+  const lines = (frame: number) =>
+    resolveProducerSpeedLines({ frame, seed: "hit", count: 12 });
+  assert.equal(lines(0).length, 12);
+  assert.deepEqual(lines(0), lines(1));
+  assert.notDeepEqual(lines(1), lines(2));
+});
+
+test("sprite sheets crop one cell and whips blur only while moving", () => {
+  // Img needs a registered composition, so inspect the element tree directly.
+  const sprite = ProducerSpriteSheet({
+    src: "sheet.png",
+    columns: 3,
+    rows: 2,
+    cell: 4,
+    sheetWidth: 1536,
+    sheetHeight: 1024,
+    style: { left: 100, width: 300 },
+  }) as ReactElement<{
+    style: Record<string, unknown>;
+    children: ReactElement<{ style: Record<string, unknown> }>;
+  }>;
+  assert.equal(sprite.props.style.aspectRatio, "512 / 512");
+  assert.equal(sprite.props.style.width, 300);
+  assert.deepEqual(
+    (({ maxWidth, width, height, left, top }) => ({
+      maxWidth,
+      width,
+      height,
+      left,
+      top,
+    }))(sprite.props.children.props.style),
+    {
+      maxWidth: "none",
+      width: "300%",
+      height: "200%",
+      left: "-100%",
+      top: "-100%",
+    },
+  );
+  assert.throws(
+    () =>
+      ProducerSpriteSheet({
+        src: "s.png",
+        columns: 2,
+        rows: 2,
+        cell: 4,
+        sheetWidth: 2,
+        sheetHeight: 2,
+      }),
+    /between 0 and 3/u,
+  );
+  assert.match(
+    render(
+      <ProducerWhipIn>
+        <span>镜头</span>
+      </ProducerWhipIn>,
+      0,
+    ),
+    /translateX\(35\.000%\);filter:blur\(28\.0px\)/u,
+  );
+  assert.match(
+    render(
+      <ProducerWhipIn>
+        <span>镜头</span>
+      </ProducerWhipIn>,
+      5,
+    ),
+    /translateX\(0\.000%\);filter:none/u,
+  );
+  assert.match(
+    render(
+      <ProducerBeatCamera punches={[0]} punch={0.05}>
+        <span>镜头</span>
+      </ProducerBeatCamera>,
+      0,
+    ),
+    /scale\(1\.0500\)/u,
   );
 });
