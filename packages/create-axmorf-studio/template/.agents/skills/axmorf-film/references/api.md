@@ -124,6 +124,13 @@ const cuts = selectProducerCutFrames({ grid: music!.barFrames, fromFrame: 0, toF
 - `ProducerHalftoneOverlay`：铺满父容器的网点叠层，`spacingPx`、`radiusPx`、`color`、`opacity`、`angle`、`blendMode`、
   `fade: "none" | "edges" | "center"`、`driftPxPerFrame`。
 - `ProducerFlashCut`：`frames` 处闪白（`color` 可改黑），`decayFrames` 内衰减。全屏闪烁每秒不超过 3 次。
+- `ProducerSpriteSheet`：显示网格图的某一格（`src`、`columns`、`rows`、`cell`、`sheetWidth`、`sheetHeight`、`style`
+  定位与宽度）。配合 `resolveProducerDrawing(frame, count, { holdFrames })` 或 `{ onFrames: music.beatFrames }`
+  播放动作表；做法见 [素材](artwork.md#作画序列动作表)。
+- `ProducerBeatCamera`：包住一个镜头，`punches` 帧上推镜、`shakes` 帧上轻震（`punch`、`shakePx`、`decayFrames`），
+  只用在节拍段；纯函数 `resolveProducerBeatCamera`。
+- `ProducerWhipIn`：甩镜入场，`direction`、`frames`（4–6）、`distance`、`blurPx`。
+- `ProducerSpeedLines`：围绕焦点的放射速度线，每 `holdFrames` 帧重画一次（`seed`、`center`、`opacity`、`count`）。
 - `ProducerCreditTitle`：职员表式文字，`role`、`names`、`sizePx`、`fill`（`"gold"` 或颜色）、`orientation`、`align`、
   `entrance`（`"slam"` 缩放砸入，用于片名；`"fade"` 带短暂模糊淡入，用于克制的职员名）、`weight`（默认 900）、
   `startFrame`、`staggerFrames`、`echo`（镜像倒影）、`style`（定位）。默认字体 `producerDisplaySerifFamily`。

@@ -1,5 +1,22 @@
 # Iteration Status
 
+## MV / OP 类片子的支持（2026-10-23，未发布）
+
+用同一份需求让 Codex（gpt-6.1-sol，max）分别在 AXMORF Workspace 内外各做一部原创动漫 OP：Workspace 外的一组
+插画更多、画面更丰富。差距主要来自 Workspace 规则在这类片子上的约束：生图失败后不重试只剩 6 张图、配乐只能合成、
+60 秒里 10 秒是品牌片头片尾、审片查不出素材反复使用。据此按“讲述段 / 节拍段”的时间段思路改进，讲解片的默认行为不变：
+
+- `@axmorf/studio/remotion` 新增 `ProducerSpriteSheet` 与 `resolveProducerDrawing`（播放动作表）、`ProducerBeatCamera`、
+  `ProducerWhipIn`、`ProducerSpeedLines` 及其纯函数 resolver。
+- `film.json` 的 `music` 二选一：`score`（合成）或 `track`（已用 `film:asset` 登记来源与许可的音频）。`track` 的节拍网格
+  由作者写定，缺失时 `film:music` 从音频估计 `bpm` 与首个强拍并停下；登记的音频变了 `film:check` 报 `music-stale`。
+  `AGENTS.md`、产品目标与架构文档同步。
+- `film:review` 新增 `repetitionWarnings`：只在没有旁白的时段每 0.5 秒取样（最多 120 帧），同一画面超过这些时段 25%
+  时提示，不拦截交付。
+- `film:new --bookends workspace|both|none` 只决定本片的品牌片头片尾，Workspace 默认不变。
+- Skill：画面手艺新增“讲述段与节拍段”；配乐新增授权曲目流程；素材新增绿幕动作表的生成与抠像；OP 配方新增素材预算、
+  片头片尾与审片项；生图失败缺关键画面时停下请用户同意重试。creator 模板镜像同步。
+
 ## 动漫 OP 风格配方与图形处理组件（2026-10-22，未发布）
 
 `@axmorf/studio/remotion` 新增 `graphic-fx` 组件，全部用 SVG filter、clip-path 与帧驱动计算实现，不依赖

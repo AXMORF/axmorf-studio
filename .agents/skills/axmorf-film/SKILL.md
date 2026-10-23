@@ -27,6 +27,8 @@ Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐�
    `film:new` 按 Workspace 配置写入 `bookends`：系统会在正片前后自动接上品牌片头（2 秒）和片尾（8 秒，先列出
    `bookends.sources` 里的参考来源，再显示品牌）。不要在正片里再做品牌开场或结尾；只有用户明确不要时才把
    `intro`/`outro` 设为 `null`。`Film.tsx` 里的帧号只计正片，交付时长 = 片头 + 正片 + 片尾。
+   没有旁白、由音乐驱动的片（MV、OP、纯视觉短片）在构思时先问用户要不要品牌片头片尾：不要就建片时加
+   `--bookends none`，要但 Workspace 默认没开就加 `--bookends both`。这只决定本片，不改 Workspace 默认；有旁白的片照旧。
 4. **写剧本** `src/films/<filmId>/film.json`：
    - `narration` 按自然句写，每句是一行字幕，最多 72 个半角单位（一个汉字算 2）；需要停顿时给 `pauseAfterMs`。
    - 有旁白时删除 `timeline.durationInFrames`，总长由实测旁白加 `tailFrames` 决定；无旁白的纯视觉片保留它。
@@ -47,7 +49,8 @@ Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐�
    ```
    打开输出的 `contact-sheet.jpeg` 和单帧图片，按 [画面手艺](references/craft.md#审片) 逐条回答并写下帧号证据，
    修改后再次审片。输出里的 `stillWarnings` 列出相隔 2 秒以上却几乎没变的帧，必须改或说明理由。
-   `readabilityWarnings` 提示实测字号过小、文字越界或被字幕遮挡；必须为空，或逐条给出理由。`readability`
+   `readabilityWarnings` 提示实测字号过小、文字越界或被字幕遮挡；必须为空，或逐条给出理由。
+   `repetitionWarnings` 只统计没有旁白的时段，提示同一画面在开场、转场、高潮里反复出现；同样逐条修改或说明理由。`readability`
    中的 `missingFrames`、`truncatedFrames` 不为空时，补看对应单帧，不把测量缺失当作通过。这些提示不拦截交付。
    至少完成一轮“审片 → 修改 → 再审片”。需要看某些帧时用 `--frames 120,240,360`。
    用户想实时预览时，可运行 `npm run dev` 打开 Remotion Studio。
@@ -83,6 +86,9 @@ Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐�
 ## 故障
 
 - TTS、生图等外部服务失败是外部问题：报告原文，不自动重试、不换 provider；用户同意后再重试。
+- 生图失败时先判断缺的是什么：构思里的关键画面（主角、动作表、主视觉、高潮镜头）缺了，就停下来列出缺哪几张、
+  请用户同意重试，不要用更少的素材硬撑出一部重复的片；只是点缀的画面，可以按 [素材](references/artwork.md)
+  改用原创 SVG 并在报告里说明。
 - `film:deliver` 失败时原交付保持不变。按错误修复源码后重新交付。
 - 命令报告 “Another Workspace operation is already active” 时，等待正在运行的命令结束；不要手动删除锁文件。
 - 删除一部片只用 `npm run film:delete -- --film <filmId> --confirm-delete`，并且只在用户明确要求时执行。

@@ -82,7 +82,7 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
   禁止 CSS animation/transition、Tailwind 动画类与非确定的随机数/时间。
 - 媒体位于 Workspace `public/` 并登记来源与许可；未确认许可的音频不得进入作品。
 - 旁白时长以实测 PCM samples 为准，帧边界为 `ceilDiv(cumulativeSamples × fps, sampleRate)`；每句最多 72 caption
-  display half-units，超限由 Agent 改写或拆分，不得放宽检查。配乐由配方确定性生成，旁白与字幕不为踩拍改时。
+  display half-units，超限由 Agent 改写或拆分，不得放宽检查。配乐由配方确定性生成，或使用已登记来源与许可的音频文件；旁白与字幕不为踩拍改时。
 - 用户明确的尺寸/横竖屏、fps 写入该片，不为单次需求改长期默认值。
 - 交付恰好是 `video.mp4`、`cover-4x3.png`、`cover-3x4.png`、`publish.json`，全部复验后才替换当前交付。
 - `public/`、`src/films/`、生成的注册表与音频投影、`.axmorf/`、`out/` 与 `deliveries/` 都是 ignored 本地产物，

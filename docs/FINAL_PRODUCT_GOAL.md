@@ -17,7 +17,7 @@ AXMORF Studio 是一个本地视频工作室：Agent 像导演兼动效设计师
 
 1. 写剧本与配方 `film.json`（旁白分句、渲染规格、配乐编曲、发布文案）；
 2. `film:voice` 生成旁白并实测时序；
-3. `film:music` 按整片时长合成配乐与节拍网格；
+3. `film:music` 按整片时长合成配乐，或接入已登记许可的曲目，并导出节拍网格；
 4. 按需用 `film:asset` 准入生成图片、原创 SVG 或许可素材；
 5. Agent 自由编写 `Film.tsx` 与 `Cover.tsx`，用 hook 读取时序和节拍；
 6. 用 `dev` 和 `film:review` 渲染出来看，反复修改；
@@ -45,7 +45,7 @@ AXMORF Studio 是一个本地视频工作室：Agent 像导演兼动效设计师
   音频不得进入作品。
 - 旁白每句由 Agent 写定，工具不改写；每句最多 72 caption display half-units。实测 PCM samples 是时间
   authority，帧边界统一为 `ceilDiv(cumulativeSamples × fps, sampleRate)`；字幕与旁白来自同一时序。
-- 配乐由配方确定性生成，导出拍、小节、段落与重音帧；有旁白时配乐在旁白下平滑压低。
+- 配乐由配方确定性生成，或使用已登记许可的曲目（节拍网格由作者写定，`film:music` 只给建议值）；导出拍、小节、段落与重音帧；有旁白时配乐在旁白下平滑压低。
 - 用户明确的尺寸、横竖屏、fps、locale 写入该片 `film.json`，未指定字段继承配置，不为单次需求修改默认值。
 - 交付恰好是 `video.mp4`、`cover-4x3.png`、`cover-3x4.png`、`publish.json`，见第 4 节。
 - private config 与 voice profile 不进入 Git、交付或日志。

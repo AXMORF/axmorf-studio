@@ -1,7 +1,11 @@
 # 配乐与卡点
 
-原创配乐在本地用代码合成，不下载、不选用现成曲库。写在 `film.json` 的 `music` 字段，然后运行
-`npm run film:voice` 和 `npm run film:music`。
+配乐有两种来源，写在 `film.json` 的 `music` 字段，二选一：
+
+- `music.score`：在本地用代码合成的原创配乐（默认做法，下面大部分内容讲它）。
+- `music.track`：一首已用 `film:asset` 登记来源与许可的音频文件，见文末 [使用授权曲目](#使用授权曲目)。
+
+写好后运行 `npm run film:voice` 和 `npm run film:music`。
 
 ```json
 "music": {
@@ -64,3 +68,30 @@
   预备动作提前开始，让“到达”那一帧踩在拍上。
 - 语义优先：吸附会让画面早于或晚于对应旁白时就保留原帧。旁白和字幕的时间永远不为踩拍而改变。
 - 音效对齐同一个落点（`assets/axmorf-shared/audio/sound-effects/` 下的共享音效），不要每个拍点都发声。
+
+## 使用授权曲目
+
+合成音色有上限；MV、OP 这类靠音乐撑起来的片，可以改用一首真实制作的曲子，但它必须能证明可以用：
+
+1. **确认许可**：曲子来自用户本人、明确写了可再使用的许可（如 CC BY、购买的授权），或用户确认有权使用。
+   曲库、平台或生成服务没写清站外使用条款时，停下来问用户，不要自行认定可以用。
+2. **登记**：`npm run film:asset -- --film <filmId> --file /absolute/path/song.mp3 --name song.mp3 --origin licensed
+--creator "<作者>" --license "<许可>" --source-url "<来源网址>"`（用户原创的曲子用 `--origin original`）。
+3. **写 `music.track`**，先不写节拍：
+
+   ```json
+   "music": {
+     "track": { "asset": "song.mp3", "trimStartSeconds": 52.1, "beatsPerBar": 4, "sectionBars": [0, 8, 16] },
+     "volume": 0.9,
+     "underSpeechVolume": 0.9,
+     "fadeOutFrames": 45
+   }
+   ```
+
+4. 运行 `film:music`：没有 `bpm` 时它会从音频估一个 `bpm` 和 `firstDownbeatSeconds` 并停下。核对后把两个值写进
+   `music.track`，再运行一次。之后的节拍网格只来自你写下的值，重跑不会漂移；估计值与写定值不一致时输出里会提示。
+
+- `trimStartSeconds` 跳过安静的前奏，从曲子最有劲的段落开始；`sectionBars` 是裁剪后的小节号，决定
+  `sectionFrames` 与 `accentFrames`。曲子比片子短会循环，最好选够长的曲子或缩短片子。
+- 有旁白的片照样会在旁白下压低曲子；没有旁白的 MV 把 `volume` 和 `underSpeechVolume` 设成相同的 0.8–0.9。
+- 授权曲目的作者和许可会随素材登记写入交付的 `publish.json`。
