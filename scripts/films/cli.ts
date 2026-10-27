@@ -184,6 +184,7 @@ export const runFilmCli = async (
           filmId: options.required("film"),
           ...(frames === undefined ? {} : { frames }),
           ...(parsedScale === undefined ? {} : { scale: parsedScale }),
+          env: context.env,
         }),
       );
       return;
@@ -200,7 +201,13 @@ export const runFilmCli = async (
     }
     case "deliver": {
       const options = parseFilmOptions(rest, ["film"]);
-      print(await deliverFilm({ rootDir, filmId: options.required("film") }));
+      print(
+        await deliverFilm({
+          rootDir,
+          filmId: options.required("film"),
+          env: context.env,
+        }),
+      );
       return;
     }
     case "list":

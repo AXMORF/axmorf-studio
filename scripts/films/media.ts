@@ -25,18 +25,30 @@ const remotion = async (
   label: string,
   runProcess: ProcessRunner,
   logLevel: "error" | "warn" = "error",
+  timeoutMs?: number,
 ) => {
   const invocation = await resolveRemotionCliInvocation(rootDir);
-  const result = await runProcess(
-    invocation.command,
-    [
-      ...invocation.argsPrefix,
-      ...args,
-      `--log=${logLevel}`,
-      `--public-dir=${join(rootDir, "public")}`,
-    ],
-    { cwd: rootDir },
-  );
+  let result;
+  try {
+    result = await runProcess(
+      invocation.command,
+      [
+        ...invocation.argsPrefix,
+        ...args,
+        `--log=${logLevel}`,
+        `--public-dir=${join(rootDir, "public")}`,
+      ],
+      { cwd: rootDir, ...(timeoutMs === undefined ? {} : { timeoutMs }) },
+    );
+  } catch (error) {
+    if (/timed out/u.test((error as Error).message)) {
+      throw new Error(
+        `${label} stopped after ${Math.round((timeoutMs ?? 15 * 60_000) / 60_000)} minutes. Keep the film's size, fps and quality; raise renderDefaults.renderTimeoutMinutes (up to 120) in the Workspace settings and try again.`,
+        { cause: error },
+      );
+    }
+    throw error;
+  }
   if (result.status !== 0) throw failure(label, result);
   return result;
 };
@@ -47,11 +59,13 @@ export const renderFilmVideo = async ({
   rootDir,
   compositionId,
   outputPath,
+  timeoutMs,
   runProcess = runMediaProcess,
 }: {
   readonly rootDir: string;
   readonly compositionId: string;
   readonly outputPath: string;
+  readonly timeoutMs?: number;
   readonly runProcess?: ProcessRunner;
 }) =>
   renderH264AacVideo({
@@ -77,6 +91,8 @@ export const renderFilmVideo = async ({
         ],
         "Rendering the film",
         runProcess,
+        "error",
+        timeoutMs,
       );
     },
   });
@@ -85,11 +101,13 @@ export const renderFilmStill = async ({
   rootDir,
   compositionId,
   outputPath,
+  timeoutMs,
   runProcess = runMediaProcess,
 }: {
   readonly rootDir: string;
   readonly compositionId: string;
   readonly outputPath: string;
+  readonly timeoutMs?: number;
   readonly runProcess?: ProcessRunner;
 }) => {
   await remotion(
@@ -103,6 +121,8 @@ export const renderFilmStill = async ({
     ],
     `Rendering ${compositionId}`,
     runProcess,
+    "error",
+    timeoutMs,
   );
 };
 
@@ -114,6 +134,7 @@ export const renderFilmReviewFrames = ({
   outputDirectory,
   count,
   scale,
+  timeoutMs,
   runProcess = runMediaProcess,
 }: {
   readonly rootDir: string;
@@ -123,6 +144,7 @@ export const renderFilmReviewFrames = ({
   /** Number of requested film frames; review frame i shows the i-th one. */
   readonly count: number;
   readonly scale: number;
+  readonly timeoutMs?: number;
   readonly runProcess?: ProcessRunner;
 }) =>
   remotion(
@@ -146,6 +168,7 @@ export const renderFilmReviewFrames = ({
     // console.warn emits complete lines on stderr at warn. Avoid verbose noise:
     // bounded-process retains only the last 1 MiB of each output stream.
     "warn",
+    timeoutMs,
   );
 
 /** Renders the shared contact-sheet Still from review frames under public/. */

@@ -1,3 +1,5 @@
+import { DEFAULT_RENDER_TIMEOUT_MINUTES } from "@axmorf/studio/contracts";
+
 import { Field, FieldRow, Section } from "../../components/Form";
 import {
   COMMON_RENDER_SIZES,
@@ -65,6 +67,27 @@ export const General = ({ config, update }: EditorProps) => {
               onChange={(event) =>
                 update((draft) => {
                   draft.renderDefaults.locale = event.target.value;
+                })
+              }
+            />
+          </Field>
+          <Field
+            label="渲染超时（分钟）"
+            hint="单次渲染最长时间，15–120；长片或高分辨率调到 45–60，而不是降低画质或帧率"
+          >
+            <input
+              type="number"
+              min={15}
+              max={120}
+              value={
+                config.renderDefaults.renderTimeoutMinutes ??
+                DEFAULT_RENDER_TIMEOUT_MINUTES
+              }
+              onChange={(event) =>
+                update((draft) => {
+                  draft.renderDefaults.renderTimeoutMinutes = numberValue(
+                    event.target.value,
+                  );
                 })
               }
             />

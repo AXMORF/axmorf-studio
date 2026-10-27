@@ -24,6 +24,7 @@ import {
 import { meanAbsoluteDifference, readFrameSignature } from "./frame-compare";
 import { renderContactSheet, renderFilmReviewFrames } from "./media";
 import { loadCurrentFilmTiming } from "./music";
+import { readWorkspaceRenderTimeoutMs } from "./render-timeout";
 import { analyzeReviewReadability } from "./readability";
 
 export type ReviewFrame = Readonly<{ frame: number; reason: string }>;
@@ -216,12 +217,15 @@ export const runFilmReview = async ({
   filmId,
   frames: requested,
   scale = 0.5,
+  env = process.env,
 }: {
   readonly rootDir: string;
   readonly filmId: string;
   readonly frames?: readonly number[];
   readonly scale?: number;
+  readonly env?: NodeJS.ProcessEnv;
 }) => {
+  const timeoutMs = await readWorkspaceRenderTimeoutMs({ rootDir, env });
   const spec = await loadFilmSpec(rootDir, filmId);
   const timing = await loadCurrentFilmTiming(rootDir, spec);
   const paths = filmPaths(rootDir, filmId);
@@ -266,6 +270,7 @@ export const runFilmReview = async ({
       outputDirectory: relative(rootDir, join(scratch, "frames")),
       count: selected.length,
       scale,
+      timeoutMs,
     });
     const readability = analyzeReviewReadability({
       output: `${renderOutput.stdout}\n${renderOutput.stderr}`,
@@ -348,6 +353,7 @@ export const runFilmReview = async ({
       scratch,
       timing,
       fps: spec.render.fps,
+      timeoutMs,
     });
     return {
       status: "film-review-rendered",
@@ -371,12 +377,14 @@ const analyzeRepetition = async ({
   scratch,
   timing,
   fps,
+  timeoutMs,
 }: {
   readonly rootDir: string;
   readonly compositionId: string;
   readonly scratch: string;
   readonly timing: FilmTiming;
   readonly fps: number;
+  readonly timeoutMs: number;
 }) => {
   const frames = selectRepetitionSamples({
     ranges: findUnnarratedRanges(timing),
@@ -394,6 +402,7 @@ const analyzeRepetition = async ({
     outputDirectory: relative(rootDir, join(directory, "frames")),
     count: frames.length,
     scale: 0.125,
+    timeoutMs,
   });
   const rendered = (await readdir(join(directory, "frames")))
     .filter((name) => name.startsWith("review-"))
