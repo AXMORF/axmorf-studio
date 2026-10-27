@@ -74,6 +74,10 @@ export const FILM_CONTACT_SHEET_ID = "axmorf-contact-sheet";
 export const minimumReadableFontSize = (width: number, height: number) =>
   Math.round(Math.min(width, height) * 0.024);
 
+/** Captions below this read poorly on a phone (about 43px on a 1080-wide frame). */
+export const minimumCaptionFontSize = (width: number, height: number) =>
+  Math.round(Math.min(width, height) * 0.04);
+
 export const FILM_REVIEW_MEASUREMENT_MARKER = "AXMORF_REVIEW_MEASUREMENT";
 export const FILM_REVIEW_MAX_TEXTS = 120;
 

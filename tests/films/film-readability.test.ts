@@ -93,7 +93,11 @@ test("small-text uses the shared delivered-resolution threshold with a strict lo
   ]);
   assert.deepEqual(
     result.readabilityWarnings.map(({ rule, snippet }) => [rule, snippet]),
-    [["small-text", "small"]],
+    // Captions skip the body-text threshold and get their own, stricter one.
+    [
+      ["small-text", "small"],
+      ["small-caption", "captions"],
+    ],
   );
   assert.equal(
     result.readabilityWarnings[0]!.measurements[0]!.minimumFontSize,
@@ -147,6 +151,7 @@ test("outside-frame requires partial visibility and strictly more than one pixel
     text({
       snippet: "caption",
       caption: true,
+      fontSize: 50,
       rect: { x: -20, y: 10, width: 100, height: 20 },
     }),
   ]);
@@ -167,7 +172,7 @@ test("under-captions uses the padded block and includes exactly ten percent over
   const caption = text({
     snippet: "caption",
     caption: true,
-    fontSize: 12,
+    fontSize: 50,
     rect: { x: 190, y: 105, width: 50, height: 10 },
     captionRect: { x: 190, y: 100, width: 100, height: 20 },
   });
@@ -211,6 +216,7 @@ test("rules merge the same snippet across frames and keep measured values withou
       text({ fontSize: 16, rect: { x: -5, y: 100, width: 100, height: 20 } }),
       text({
         caption: true,
+        fontSize: 50,
         captionRect: { x: 80, y: 100, width: 100, height: 20 },
       }),
     ],
@@ -230,6 +236,7 @@ test("rules merge the same snippet across frames and keep measured values withou
       }),
       text({
         caption: true,
+        fontSize: 50,
         captionRect: { x: 60, y: 100, width: 100, height: 20 },
       }),
     ],
@@ -332,4 +339,41 @@ test("only review uses warn logging and returns complete captured process output
     runProcess,
   });
   assert.ok(calls[1]!.includes("--log=error"));
+});
+
+test("captions shrunk to fit one line are flagged once; default-size captions are not", () => {
+  const caption = (
+    fontSize: number,
+    snippet = "同一个太阳，为什么白天把天空",
+  ) =>
+    text({
+      snippet,
+      caption: true,
+      fontSize,
+      rect: { x: 40, y: 1600, width: 1000, height: fontSize * 1.4 },
+      captionRect: { x: 30, y: 1590, width: 1020, height: fontSize * 1.6 },
+    });
+  assert.deepEqual(analyze([caption(50)]).readabilityWarnings, []);
+  const warnings = analyzeReviewReadability({
+    output: [
+      line(record({ index: 0, frame: 10, texts: [caption(31)] })),
+      line(
+        record({
+          index: 1,
+          frame: 90,
+          texts: [caption(33, "阳光看起来是白色的，其实是红")],
+        }),
+      ),
+    ].join("\n"),
+    frames: [10, 90],
+    width: 1080,
+    height: 1920,
+  }).readabilityWarnings;
+  assert.equal(warnings.length, 1);
+  assert.equal(warnings[0]?.rule, "small-caption");
+  assert.deepEqual(warnings[0]?.frames, [10, 90]);
+  assert.match(
+    warnings[0]?.message ?? "",
+    /31px \(minimum 43px.*wrap to two lines/u,
+  );
 });
