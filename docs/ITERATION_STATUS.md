@@ -1,5 +1,26 @@
 # Iteration Status
 
+## VoxCPM 参考音频转换与远程服务诊断（2026-10-28，0.3.0-rc.5 候选）
+
+已在本机复现高保真克隆上传前 `FFmpeg prompt normalization failed with exit code 234`：
+Remotion bundled FFmpeg 不含 raw `s16le` muxer。改为写入可 seek 的 WAV 文件，严格解码 PCM，再生成标准
+48 kHz / mono / 16-bit WAV；不改原始参考文件、不引入另一套 FFmpeg、不重试或切换 provider。
+
+VoxCPM 诊断按配置的 HTTP(S) 地址访问 `/health` 和 `/ready`，支持 Tailscale 等远程自托管部署，
+不再因非 loopback 地址直接失败；仍不合成、不预热、不跟随重定向，错误不暴露地址或 token。
+回归覆盖真实 Remotion FFmpeg、转换失败/空音频/截断 WAV、远程/localhost/IPv6 地址及诊断错误脱敏。
+验证：完整 `npm run check` 通过（363 项测试、typecheck、lint、文档与素材检查、Web/Remotion 构建、creator
+检查及宿主 Chromium compositions），两包 typecheck/build 与 `npm audit --audit-level=low` 通过。
+`DefaultIntroPreview` 真实渲染为 1080×1920 / 30fps / 60 帧 H.264 + AAC stereo，完整解码到 EOF。
+
+用两个候选 tarball 创建全新外部 Workspace，安装、doctor 与 compositions 通过。通过该 Workspace 的公开
+`film:voice` 和既有已确认参考声线向原 VoxCPM 服务合成中性测试句，`/clone_with_prompt` 返回 HTTP 200
+`audio/wav`，最终音频约 5.181875 秒、48 kHz / mono / `pcm_s16le`，完整解码通过。连续两次公开配音命令
+只有一次真实合成请求，第二次复用缓存。生产默认配置未改。未实际听审，尚不作为 `latest` 的 Agent 晋级验收。
+
+前述画面、OP、超时改进已经随 `0.3.0-rc.4` 合入默认分支并通过
+[发布 CI](https://github.com/AXMORF/axmorf-studio/actions/runs/40550067560) 发布到 npm `next`；下方“未发布”是各条实现时的历史状态。
+
 ## 讲解片画面优化与渲染超时设置（2026-10-28，未发布）
 
 用同一份固定旁白脚本（瑞利散射，12 句）让 Codex 在 AXMORF Workspace 内外各做一部讲解片：Workspace 内的一组画面更有

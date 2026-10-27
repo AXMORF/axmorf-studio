@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { writeFile } from "node:fs/promises";
 import test from "node:test";
 
 import { resolveVoxcpmProfile } from "../../scripts/narration/adapters/private-config";
@@ -63,22 +64,65 @@ test("prompt M4A normalizes to canonical WAV without modifying source bytes", as
   const normalized = await normalizePromptAudio({
     sourceBytes,
     runProcess: async (_command, args) => {
-      assert.deepEqual(args.slice(-5), [
+      assert.deepEqual(args.slice(-5, -1), [
         "-acodec",
         "pcm_s16le",
         "-f",
-        "s16le",
-        "pipe:1",
+        "wav",
       ]);
+      await writeFile(args.at(-1)!, canonicalPromptWav);
       return {
         exitCode: 0,
-        stdout: Buffer.from([0, 0, 1, 0]),
+        stdout: Buffer.alloc(0),
         stderr: Buffer.alloc(0),
       };
     },
   });
   assert.deepEqual(sourceBytes, before);
   assert.deepEqual(measureCanonicalPcmWav(normalized).sampleFrameCount, 2);
+});
+
+test("prompt normalization works with the installed Remotion FFmpeg build", async () => {
+  const source = encodeCanonicalPcmWav(Buffer.alloc(4_800));
+  const normalized = await normalizePromptAudio({ sourceBytes: source });
+  assert.deepEqual(normalized, source);
+});
+
+test("prompt normalization rejects failed, truncated and empty output without retry", async () => {
+  let calls = 0;
+  await assert.rejects(
+    normalizePromptAudio({
+      sourceBytes,
+      runProcess: async () => {
+        calls += 1;
+        return {
+          exitCode: 234,
+          stdout: Buffer.alloc(0),
+          stderr: Buffer.from("private path"),
+        };
+      },
+    }),
+    /FFmpeg prompt normalization failed with exit code 234\./,
+  );
+  assert.equal(calls, 1);
+  for (const bytes of [
+    canonicalPromptWav.subarray(0, 43),
+    encodeCanonicalPcmWav(Buffer.alloc(0)),
+  ]) {
+    await assert.rejects(
+      normalizePromptAudio({
+        sourceBytes,
+        runProcess: async (_command, args) => {
+          await writeFile(args.at(-1)!, bytes);
+          return {
+            exitCode: 0,
+            stdout: Buffer.alloc(0),
+            stderr: Buffer.alloc(0),
+          };
+        },
+      }),
+    );
+  }
 });
 
 test("high fidelity profile binds exact prompt transcript and canonical audio", async () => {

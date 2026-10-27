@@ -57,6 +57,10 @@ creator 会安装精确依赖、生成 `package-lock.json`，并在原子提升�
 impact、片尾 8 秒电子 BGM、AXMORF 标记、24 条动效音效与五首循环 BGM。`npm run dev` 会同时启动 loopback-only
 Web 控制中心和 Remotion Studio：前者用于作品与交付预览、配置和环境诊断，后者用于实时预览。
 
+VoxCPM 可使用配置中的本机或远程 HTTP(S) 地址（例如 Tailscale 内的自托管服务）。环境诊断只访问该服务的
+`/health` 与 `/ready`，不合成、不预热、不跟随重定向。高保真克隆的参考音频通过 Workspace 自带的 Remotion
+FFmpeg 转成 48 kHz、单声道、16-bit PCM WAV；参考音频和逐字确认的文本仍保存在私有配置指定的位置。
+
 ### 环境要求
 
 - Node.js `>=20.19.0`

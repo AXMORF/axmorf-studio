@@ -36,6 +36,10 @@ npm run dev
 Package internals are not public API. A generated workspace owns its films, media, private configuration, output and
 deliveries. Make videos through its npm scripts and the Workspace-local `axmorf-film` Skill.
 
+VoxCPM supports the configured local or remote HTTP(S) deployment, including a private Tailscale endpoint. Diagnostics
+only read `/health` and `/ready`, without generation, warm-up or redirects. High-fidelity clone prompts are normalized
+with the Workspace's Remotion FFmpeg to 48 kHz mono 16-bit PCM WAV before upload; private source files stay unchanged.
+
 The package carries a checksum-covered Workspace seed for shared media. `axmorf bootstrap` projects only its manifested
 bytes into reserved Workspace paths and refuses conflicting files or symlinks. The seed includes a Mixkit cinematic
 opening impact excerpt and an eight-second Mixkit “Deep Urban” closing excerpt used by the default bookends, an AXMORF

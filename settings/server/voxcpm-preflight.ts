@@ -1,4 +1,3 @@
-import { isIP } from "node:net";
 import type { VoxcpmProfileMetadata } from "../../scripts/narration/adapters/private-config";
 
 export const VOXCPM_HEALTH_ROUTE = "/health" as const;
@@ -27,13 +26,13 @@ const failed = (summary: string, remediation: string): Failure => ({
   summary,
   remediation,
 });
-const loopback = (raw: string) => {
-  const url = new URL(raw);
-  const family = isIP(url.hostname);
-  return (
-    (family === 4 && url.hostname.startsWith("127.")) ||
-    (family === 6 && ["::1", "[::1]"].includes(url.hostname))
-  );
+const httpEndpoint = (raw: string) => {
+  try {
+    const url = new URL(raw);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
 };
 export const preflightVoxcpm = async ({
   metadata,
@@ -43,8 +42,10 @@ export const preflightVoxcpm = async ({
   readonly metadata: VoxcpmProfileMetadata;
   readonly probe: VoxcpmProbe;
 }) => {
-  if (!loopback(metadata.baseUrl))
-    return failed("VoxCPM 不是 loopback 服务。", "配置本地语音服务地址。");
+  // Probe only the explicitly configured provider, including a remote private
+  // deployment. The HTTP probe refuses redirects and never synthesizes audio.
+  if (!httpEndpoint(metadata.baseUrl))
+    return failed("VoxCPM 地址不是 HTTP 服务。", "配置有效的语音服务地址。");
   let health;
   try {
     health = await probe({
@@ -54,7 +55,7 @@ export const preflightVoxcpm = async ({
       timeoutMs: metadata.timeoutMs,
     });
   } catch {
-    return failed("VoxCPM liveness 不可达。", "恢复本地语音服务访问。");
+    return failed("VoxCPM liveness 不可达。", "恢复已配置语音服务的访问。");
   }
   if (
     health.status !== 200 ||
@@ -72,7 +73,7 @@ export const preflightVoxcpm = async ({
       timeoutMs: metadata.timeoutMs,
     });
   } catch {
-    return failed("VoxCPM readiness 不可达。", "恢复本地语音服务访问。");
+    return failed("VoxCPM readiness 不可达。", "恢复已配置语音服务的访问。");
   }
   const detail =
     ready.body !== null && typeof ready.body === "object"
