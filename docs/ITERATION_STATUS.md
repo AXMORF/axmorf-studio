@@ -1,5 +1,21 @@
 # Iteration Status
 
+## 讲解片画面优化与渲染超时设置（2026-10-28，未发布）
+
+用同一份固定旁白脚本（瑞利散射，12 句）让 Codex 在 AXMORF Workspace 内外各做一部讲解片：Workspace 内的一组画面更有
+电影感、空间连续，但字幕被压成约 30px 的单行，镜头只在原地推拉（平移不超过 80px），画面标注少，静音时不如
+Workspace 外的一组易懂。据此：
+
+- `film:review` 的 `readabilityWarnings` 新增 `small-caption`：字幕实测字号低于短边 4%（1080 宽约 43px）时提示；
+  Skill 写明一句是一个字幕事件、可折成两行，不要为排成一行缩小字号。
+- `@axmorf/studio/remotion` 新增 `ProducerWorldCamera`（比屏幕大的世界里平移、跟拍、推拉，各层按深度视差）、
+  `resolveProducerWorldCamera`、`resolveProducerWorldPlane` 与 `resolveProducerPathPoint`；示例段落新增
+  “镜头在大场景里跟着过程走”。
+- 画面手艺：推拉不算取景变化，每章至少一次平移、跟拍或换位；文字预算放宽为一个标题加最多 3 个贴在物体上的短标注；
+  旁白里的数字要画成可见的数量；审片新增静音测试、镜头类型与字幕字号三项。
+- Producer config 的 `renderDefaults.renderTimeoutMinutes`（15–120，缺省 15）决定 `film:deliver` 与 `film:review`
+  单次渲染的时限；Web 设置“通用”可改。超时报错提示调高设置而不是降低画质、尺寸或帧率，Skill 同步。
+
 ## MV / OP 类片子的支持（2026-10-23，未发布）
 
 用同一份需求让 Codex（gpt-6.1-sol，max）分别在 AXMORF Workspace 内外各做一部原创动漫 OP：Workspace 外的一组

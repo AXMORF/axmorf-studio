@@ -30,7 +30,9 @@ Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐�
    没有旁白、由音乐驱动的片（MV、OP、纯视觉短片）在构思时先问用户要不要品牌片头片尾：不要就建片时加
    `--bookends none`，要但 Workspace 默认没开就加 `--bookends both`。这只决定本片，不改 Workspace 默认；有旁白的片照旧。
 4. **写剧本** `src/films/<filmId>/film.json`：
-   - `narration` 按自然句写，每句是一行字幕，最多 72 个半角单位（一个汉字算 2）；需要停顿时给 `pauseAfterMs`。
+   - `narration` 按自然句写，每句是一个字幕事件，最多 72 个半角单位（一个汉字算 2）；需要停顿时给 `pauseAfterMs`。
+     `<FilmCaptions />` 会把长句自动折成最多两行并保持手机可读的字号；不要为了排成一行把字幕缩小
+     （`readabilityWarnings` 会提示过小的字幕）。
    - 有旁白时删除 `timeline.durationInFrames`，总长由实测旁白加 `tailFrames` 决定；无旁白的纯视觉片保留它。
    - `narrationStartFrame` 留给正片的开场画面；`publish` 写标题、简介和标签；用到的事实来源写进
      `bookends.sources`（标题 + 网址），会显示在片尾。
@@ -90,5 +92,8 @@ Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐�
   请用户同意重试，不要用更少的素材硬撑出一部重复的片；只是点缀的画面，可以按 [素材](references/artwork.md)
   改用原创 SVG 并在报告里说明。
 - `film:deliver` 失败时原交付保持不变。按错误修复源码后重新交付。
+- 渲染超时（报错 “stopped after N minutes”）时，不要为了赶时间降低分辨率、帧率、画质或缩短片子。
+  告诉用户在 Workspace 设置“通用 → 渲染超时（分钟）”里调高（15–120，长片或高分辨率常用 45–60），
+  或直接编辑 `private/producer.config.json` 的 `renderDefaults.renderTimeoutMinutes`，然后重新交付。
 - 命令报告 “Another Workspace operation is already active” 时，等待正在运行的命令结束；不要手动删除锁文件。
 - 删除一部片只用 `npm run film:delete -- --film <filmId> --confirm-delete`，并且只在用户明确要求时执行。

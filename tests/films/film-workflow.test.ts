@@ -251,7 +251,7 @@ test("static small-text uses the shared review threshold and preserves its messa
 
 test("the Skill's example segments pass film:check inside a film", async (context) => {
   const guides = [
-    { path: "references/examples.md", segments: 2 },
+    { path: "references/examples.md", segments: 3 },
     { path: "references/styles/anime-op.md", segments: 1 },
   ];
   const examples: string[] = [];

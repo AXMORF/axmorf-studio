@@ -30,7 +30,8 @@ t.music?.barFrames;          // 另有 beatFrames、sectionFrames、accentFrames
 ```
 
 - `FilmCaptions` 可调 `bottom`（离底边的画面高度比例）、`maxWidth`、`style`，或用
-  `render={(sentence, progress) => ...}` 自定义字幕外观（例如逐字高亮）。
+  `render={(sentence, progress) => ...}` 自定义字幕外观（例如逐字高亮）。默认字号竖屏约为宽度的 4.6%（1080 宽约 50px），
+  长句折成两行；自定义时保持字号不低于宽度的 4%（约 43px），宁可折行也不要缩小或强制单行。
 - `FilmSoundtrack narration={false}` 或 `music={false}` 可去掉其中一轨。
 - 音效用 Remotion 的 `<Sequence from={落点帧}><Audio src={staticFile("assets/axmorf-shared/audio/sound-effects/axmorf-whoosh-short-v1.wav")} volume={0.6} /></Sequence>`。
   共享音效：`ui-click`、`soft-pop`、`snap-lock`、`whoosh-short`、`whoosh-sweep`、`soft-impact`、`confirm-chime`、`sparkle-accent`、
@@ -76,6 +77,32 @@ const { width, height } = useVideoConfig();
 ```
 
 `focus` 是画面内的相对坐标（0–1），`zoom` 1–8，可选 `rotation` ±8 度。`frame` 默认取当前帧。
+`ProducerWorldCamera`：镜头在比屏幕大的世界里移动（平移、跟拍、推拉），各层按深度视差。
+
+```tsx
+<ProducerWorldCamera
+  width={width}
+  height={height}
+  worldWidth={width * 3}       // 竖屏三屏宽的世界
+  worldHeight={height}
+  shots={[
+    { frame: 0, center: [600, 900] },                                   // 世界像素坐标
+    { frame: 120, center: [1620, 980], zoom: 1.4, easing: "ease-in-out" },
+  ]}
+  layers={[
+    { depth: 0.35, content: <FarSky /> },     // 远景，移动最少
+    { depth: 1, content: <Process /> },       // 主体，按世界坐标绘制
+    { depth: 1.4, content: <NearHaze /> },    // 前景，掠过更快
+  ]}
+  overlay={<Title />}
+/>
+```
+
+`center` 是世界像素，`zoom` 1–6，中心会被限制在世界范围内不露边。每层都按 `worldWidth × worldHeight` 绘制；
+`depth` 大于 1 的前景层移动得比世界更远，内容要画到世界右边（或下边）之外，否则会露出硬边。
+`resolveProducerPathPoint(points, progress)` 按长度求折线上的点，可以让镜头或光点沿路径匀速前进；
+完整示范见 [示例段落](examples.md#讲解主题镜头在大场景里跟着过程走)。
+
 其他镜头工具：`ProducerCamera2D`、`ProducerCamera3D`、`ProducerLayeredStage`、`ProducerFocusPull`。
 
 ## 运动
