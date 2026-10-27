@@ -257,8 +257,10 @@ export const makeTimeline = (recipe) => {
     )
       throw new Error(`Invalid ${key}`);
   }
-  if (!["organic", "electronic"].includes(settings.style))
+  if (!["organic", "electronic", "drive"].includes(settings.style))
     throw new Error("Invalid score style");
+  if (settings.style === "drive" && !studio)
+    throw new Error('The drive style requires engine "studio-v2"');
   const arrangement =
     rawArrangement === undefined
       ? null
@@ -284,6 +286,8 @@ export const makeTimeline = (recipe) => {
     music.push({
       type,
       frame: Math.round(beat * fpb),
+      // studio-v2 keeps the exact onset so drums do not drift by up to half a frame.
+      ...(studio ? { beat: Number(beat.toFixed(6)) } : {}),
       durationInFrames: Math.min(
         Math.max(1, Math.round(beats * fpb)),
         endFrame - Math.round(beat * fpb),

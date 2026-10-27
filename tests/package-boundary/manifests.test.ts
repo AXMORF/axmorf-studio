@@ -44,12 +44,13 @@ test("the private repository root owns exactly the two public npm packages", asy
     "@remotion/eslint-config-flat": {
       "typescript-eslint": "8.48.0",
     },
-    "fast-uri": "3.1.8",
+    "fast-uri": "3.1.9",
     "brace-expansion@1": "1.1.21",
     "brace-expansion@2": "2.1.7",
     nanoid: "3.3.18",
     "postcss-selector-parser": "7.1.6",
     "source-map-js": "1.2.2",
+    zod: "4.6.7",
   });
   assert.deepEqual(manifest.workspaces, [
     "packages/studio",

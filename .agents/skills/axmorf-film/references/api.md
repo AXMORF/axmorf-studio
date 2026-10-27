@@ -30,7 +30,8 @@ t.music?.barFrames;          // 另有 beatFrames、sectionFrames、accentFrames
 ```
 
 - `FilmCaptions` 可调 `bottom`（离底边的画面高度比例）、`maxWidth`、`style`，或用
-  `render={(sentence, progress) => ...}` 自定义字幕外观（例如逐字高亮）。
+  `render={(sentence, progress) => ...}` 自定义字幕外观（例如逐字高亮）。默认字号竖屏约为宽度的 4.6%（1080 宽约 50px），
+  长句折成两行；自定义时保持字号不低于宽度的 4%（约 43px），宁可折行也不要缩小或强制单行。
 - `FilmSoundtrack narration={false}` 或 `music={false}` 可去掉其中一轨。
 - 音效用 Remotion 的 `<Sequence from={落点帧}><Audio src={staticFile("assets/axmorf-shared/audio/sound-effects/axmorf-whoosh-short-v1.wav")} volume={0.6} /></Sequence>`。
   共享音效：`ui-click`、`soft-pop`、`snap-lock`、`whoosh-short`、`whoosh-sweep`、`soft-impact`、`confirm-chime`、`sparkle-accent`、
@@ -76,6 +77,32 @@ const { width, height } = useVideoConfig();
 ```
 
 `focus` 是画面内的相对坐标（0–1），`zoom` 1–8，可选 `rotation` ±8 度。`frame` 默认取当前帧。
+`ProducerWorldCamera`：镜头在比屏幕大的世界里移动（平移、跟拍、推拉），各层按深度视差。
+
+```tsx
+<ProducerWorldCamera
+  width={width}
+  height={height}
+  worldWidth={width * 3}       // 竖屏三屏宽的世界
+  worldHeight={height}
+  shots={[
+    { frame: 0, center: [600, 900] },                                   // 世界像素坐标
+    { frame: 120, center: [1620, 980], zoom: 1.4, easing: "ease-in-out" },
+  ]}
+  layers={[
+    { depth: 0.35, content: <FarSky /> },     // 远景，移动最少
+    { depth: 1, content: <Process /> },       // 主体，按世界坐标绘制
+    { depth: 1.4, content: <NearHaze /> },    // 前景，掠过更快
+  ]}
+  overlay={<Title />}
+/>
+```
+
+`center` 是世界像素，`zoom` 1–6，中心会被限制在世界范围内不露边。每层都按 `worldWidth × worldHeight` 绘制；
+`depth` 大于 1 的前景层移动得比世界更远，内容要画到世界右边（或下边）之外，否则会露出硬边。
+`resolveProducerPathPoint(points, progress)` 按长度求折线上的点，可以让镜头或光点沿路径匀速前进；
+完整示范见 [示例段落](examples.md#讲解主题镜头在大场景里跟着过程走)。
+
 其他镜头工具：`ProducerCamera2D`、`ProducerCamera3D`、`ProducerLayeredStage`、`ProducerFocusPull`。
 
 ## 运动
@@ -95,6 +122,45 @@ const { width, height } = useVideoConfig();
 - `CodePanel`：逐行出现、可高亮的代码（`code`、`minFontSizePx`、`fileName`、`framesPerLine`、`startFrame`、`highlights`）。
 - `RepositoryCard`：仓库卡片（`owner`、`name`、`description`、`language`、`stars`、`topics`、`width`、`minFontSizePx`）。
 - `interfaceThemes.dark` / `interfaceThemes.light` 作为 `theme`。
+
+## 图形处理与节拍剪辑
+
+用于 MV、动漫 OP 一类段落（配方见 [动漫 OP](styles/anime-op.md)）。全部是 SVG filter 与帧驱动计算，
+任何 DOM 子树都能套用，不依赖 WebGL。它们只处理画面，不提供画面：主体仍然来自插画、照片或原创 SVG。
+
+```tsx
+const { music } = useFilmTiming();
+// Cut on phrases (bars) rather than every beat; effects land only on accents.
+const cuts = selectProducerCutFrames({ grid: music!.barFrames, fromFrame: 0, toFrame: 240 });
+
+<ProducerGlitchSlices seed="hook" bursts={music!.accentFrames} burstFrames={3}>
+  <ProducerBeatCutSeries cutFrames={cuts} endFrame={240} shots={[<CloseUp key="a" />, <Wide key="b" />]} />
+</ProducerGlitchSlices>
+<ProducerFlashCut frames={music!.accentFrames} decayFrames={5} />
+```
+
+- `selectProducerCutFrames({ grid, fromFrame, toFrame, every })`：从 `barFrames`/`beatFrames` 里每隔 `every` 个取切点。
+  普通切点优先用小节（乐句），逐拍硬切会显得机械。
+- `ProducerBeatCutSeries`：`cutFrames`（父时间线帧，在 Sequence 里要减去 `from`）、`endFrame`、`shots`（按顺序循环）；
+  每个镜头在自己的 Sequence 里，`useCurrentFrame()` 从切点开始为 0；短于 `minShotFrames`（默认 3）的镜头直接报错。
+- `ProducerGradientMap`：`stops` 从暗到亮 2–8 个十六进制颜色，`amount` 0–1；两色是双色调，多色是伪彩。
+- `ProducerChromaticSplit`：`amountPx` 0–120 的 RGB 通道错位，`angle` 为方向。
+- `ProducerGlitchSlices`：横向撕裂，`seed`、`intensity` 0–1、`bursts`（从这些帧开始撕裂并在 `burstFrames` 内衰减；
+  不传则持续）、`slices`、`maxOffsetPx`、`holdFrames`。撕裂条是子树的装饰副本，只在 burst 内存在；
+  子树里有视频时副本会多次解码，尽量包在图片和 SVG 上。
+- `ProducerHalftoneOverlay`：铺满父容器的网点叠层，`spacingPx`、`radiusPx`、`color`、`opacity`、`angle`、`blendMode`、
+  `fade: "none" | "edges" | "center"`、`driftPxPerFrame`。
+- `ProducerFlashCut`：`frames` 处闪白（`color` 可改黑），`decayFrames` 内衰减。全屏闪烁每秒不超过 3 次。
+- `ProducerSpriteSheet`：显示网格图的某一格（`src`、`columns`、`rows`、`cell`、`sheetWidth`、`sheetHeight`、`style`
+  定位与宽度）。配合 `resolveProducerDrawing(frame, count, { holdFrames })` 或 `{ onFrames: music.beatFrames }`
+  播放动作表；做法见 [素材](artwork.md#作画序列动作表)。
+- `ProducerBeatCamera`：包住一个镜头，`punches` 帧上推镜、`shakes` 帧上轻震（`punch`、`shakePx`、`decayFrames`），
+  只用在节拍段；纯函数 `resolveProducerBeatCamera`。
+- `ProducerWhipIn`：甩镜入场，`direction`、`frames`（4–6）、`distance`、`blurPx`。
+- `ProducerSpeedLines`：围绕焦点的放射速度线，每 `holdFrames` 帧重画一次（`seed`、`center`、`opacity`、`count`）。
+- `ProducerCreditTitle`：职员表式文字，`role`、`names`、`sizePx`、`fill`（`"gold"` 或颜色）、`orientation`、`align`、
+  `entrance`（`"slam"` 缩放砸入，用于片名；`"fade"` 带短暂模糊淡入，用于克制的职员名）、`weight`（默认 900）、
+  `startFrame`、`staggerFrames`、`echo`（镜像倒影）、`style`（定位）。默认字体 `producerDisplaySerifFamily`。
 
 ## 其他
 

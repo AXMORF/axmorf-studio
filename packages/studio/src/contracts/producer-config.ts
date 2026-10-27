@@ -308,6 +308,12 @@ const ProducerConfigInputObject = z
         height: PositiveIntegerSchema,
         fps: PositiveIntegerSchema.max(120),
         locale: CanonicalLocaleSchema,
+        /**
+         * Longest a single render may run before it is stopped, in minutes.
+         * Raise it for long or high-resolution films instead of lowering
+         * quality, size or fps. Omitted means the default of 15.
+         */
+        renderTimeoutMinutes: z.number().int().min(15).max(120).optional(),
       })
       .strict()
       .superRefine((render, context) => {
@@ -446,6 +452,17 @@ export const ProducerConfigSchema = ProducerConfigInputObject.safeExtend({
     }
   })
   .readonly();
+
+export const DEFAULT_RENDER_TIMEOUT_MINUTES = 15;
+
+/** Wall-clock limit for one render process under this Workspace's config. */
+export const resolveRenderTimeoutMs = (config: {
+  readonly renderDefaults: {
+    readonly renderTimeoutMinutes?: number | undefined;
+  };
+}) =>
+  (config.renderDefaults.renderTimeoutMinutes ??
+    DEFAULT_RENDER_TIMEOUT_MINUTES) * 60_000;
 
 export const buildProducerConfig = (rawInput: unknown) => {
   const input = ProducerConfigInputSchema.parse(rawInput);

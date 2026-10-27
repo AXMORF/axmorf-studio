@@ -24,6 +24,7 @@ import {
 } from "./files";
 import { renderFilmStill, renderFilmVideo } from "./media";
 import { loadCurrentFilmTiming } from "./music";
+import { readWorkspaceRenderTimeoutMs } from "./render-timeout";
 import { generateFilmRegistry } from "./registry";
 
 export type FilmDeliveryMedia = Readonly<{
@@ -62,11 +63,13 @@ export const deliverFilm = async ({
   filmId,
   media = defaultMedia,
   now = () => new Date(),
+  env = process.env,
 }: {
   readonly rootDir: string;
   readonly filmId: string;
   readonly media?: FilmDeliveryMedia;
   readonly now?: () => Date;
+  readonly env?: NodeJS.ProcessEnv;
 }) =>
   withWorkspaceLock(rootDir, "film-deliver", async () => {
     const report = await checkFilm({ rootDir, filmId });
@@ -86,6 +89,7 @@ export const deliverFilm = async ({
     const { introFrames, outroFrames } = resolveFilmBookendFrames(spec);
     // The delivered video adds the system bookends around the authored body.
     const totalFrames = introFrames + timing.durationInFrames + outroFrames;
+    const timeoutMs = await readWorkspaceRenderTimeoutMs({ rootDir, env });
     await generateFilmRegistry(rootDir);
 
     const stagingRoot = join(rootDir, ".axmorf/staging");
@@ -98,6 +102,7 @@ export const deliverFilm = async ({
         rootDir,
         compositionId: ids.film,
         outputPath: videoPath,
+        timeoutMs,
       });
       await media.inspectVideo({
         rootDir,
@@ -111,6 +116,7 @@ export const deliverFilm = async ({
           rootDir,
           compositionId: variant === "4x3" ? ids.cover4x3 : ids.cover3x4,
           outputPath: coverPath,
+          timeoutMs,
         });
         await media.inspectCover({
           rootDir,

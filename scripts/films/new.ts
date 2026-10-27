@@ -90,17 +90,25 @@ const Cover = () => {
 export default Cover;
 `;
 
+/**
+ * "workspace" follows the Workspace's saved opening/closing choice; "both" and
+ * "none" decide for this film only and never change the Workspace default.
+ */
+export type FilmBookendChoice = "workspace" | "both" | "none";
+
 export const createFilm = async ({
   rootDir,
   filmId,
   title,
   render,
+  bookends = "workspace",
   env = process.env,
 }: {
   readonly rootDir: string;
   readonly filmId: string;
   readonly title: string;
   readonly render?: Partial<FilmSpec["render"]>;
+  readonly bookends?: FilmBookendChoice;
   readonly env?: NodeJS.ProcessEnv;
 }) =>
   withWorkspaceLock(rootDir, "film-new", async () => {
@@ -127,12 +135,16 @@ export const createFilm = async ({
     // The Workspace's saved opening/closing choice becomes this film's bookends.
     const { introSceneTemplateId, outroSceneTemplateId } = config.sceneDefaults;
     const intro =
-      introSceneTemplateId === "axmorf-brand-reveal-v1"
-        ? introSceneTemplateId
+      bookends === "both" ||
+      (bookends === "workspace" &&
+        introSceneTemplateId === "axmorf-brand-reveal-v1")
+        ? ("axmorf-brand-reveal-v1" as const)
         : null;
     const outro =
-      outroSceneTemplateId === "axmorf-source-follow-v1"
-        ? outroSceneTemplateId
+      bookends === "both" ||
+      (bookends === "workspace" &&
+        outroSceneTemplateId === "axmorf-source-follow-v1")
+        ? ("axmorf-source-follow-v1" as const)
         : null;
     const spec = FilmSpecSchema.parse({
       schemaVersion: 1,

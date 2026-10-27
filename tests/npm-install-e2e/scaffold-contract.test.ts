@@ -269,12 +269,13 @@ test("no-install creates a standalone, host-neutral workspace without claiming r
   assert.equal(manifest.dependencies["@remotion/cli"], "4.0.489");
   assert.equal(manifest.dependencies.react, "19.2.3");
   assert.deepEqual(manifest.overrides, {
-    "fast-uri": "3.1.8",
+    "fast-uri": "3.1.9",
     "brace-expansion@1": "1.1.21",
     "brace-expansion@2": "2.1.7",
     nanoid: "3.3.18",
     "postcss-selector-parser": "7.1.6",
     "source-map-js": "1.2.2",
+    zod: "4.6.7",
   });
   for (const version of [
     ...Object.values(manifest.dependencies),

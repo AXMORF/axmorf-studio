@@ -5,7 +5,7 @@ import { checkFilm } from "./check";
 import { deliverFilm } from "./deliver";
 import { deleteFilm, listFilms } from "./manage";
 import { runFilmMusic } from "./music";
-import { createFilm } from "./new";
+import { createFilm, type FilmBookendChoice } from "./new";
 import { generateFilmRegistry } from "./registry";
 import { runFilmReview } from "./review";
 import { runFilmVoice } from "./voice";
@@ -18,7 +18,7 @@ export type FilmCliContext = Readonly<{
 }>;
 
 const USAGE = `Usage:
-  film new --film <id> --title <title> [--width <px>] [--height <px>] [--fps <n>]
+  film new --film <id> --title <title> [--width <px>] [--height <px>] [--fps <n>] [--bookends workspace|both|none]
   film voice --film <id>
   film music --film <id>
   film asset --film <id> --file <absolute-path> --name <file-name> --origin generated|original|licensed --creator <who> --license <license> [--source-url <url>] [--attribution <text>]
@@ -88,7 +88,12 @@ export const runFilmCli = async (
         "width",
         "height",
         "fps",
+        "bookends",
       ]);
+      const bookends = options.optional("bookends") ?? "workspace";
+      if (!["workspace", "both", "none"].includes(bookends)) {
+        throw new Error("--bookends must be workspace, both or none.");
+      }
       const render = {
         width: options.integer("width"),
         height: options.integer("height"),
@@ -102,6 +107,7 @@ export const runFilmCli = async (
           render: Object.fromEntries(
             Object.entries(render).filter(([, value]) => value !== undefined),
           ),
+          bookends: bookends as FilmBookendChoice,
           env: context.env,
         }),
       );
@@ -178,6 +184,7 @@ export const runFilmCli = async (
           filmId: options.required("film"),
           ...(frames === undefined ? {} : { frames }),
           ...(parsedScale === undefined ? {} : { scale: parsedScale }),
+          env: context.env,
         }),
       );
       return;
@@ -194,7 +201,13 @@ export const runFilmCli = async (
     }
     case "deliver": {
       const options = parseFilmOptions(rest, ["film"]);
-      print(await deliverFilm({ rootDir, filmId: options.required("film") }));
+      print(
+        await deliverFilm({
+          rootDir,
+          filmId: options.required("film"),
+          env: context.env,
+        }),
+      );
       return;
     }
     case "list":

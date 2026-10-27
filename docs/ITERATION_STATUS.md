@@ -1,5 +1,68 @@
 # Iteration Status
 
+## 讲解片画面优化与渲染超时设置（2026-10-28，未发布）
+
+用同一份固定旁白脚本（瑞利散射，12 句）让 Codex 在 AXMORF Workspace 内外各做一部讲解片：Workspace 内的一组画面更有
+电影感、空间连续，但字幕被压成约 30px 的单行，镜头只在原地推拉（平移不超过 80px），画面标注少，静音时不如
+Workspace 外的一组易懂。据此：
+
+- `film:review` 的 `readabilityWarnings` 新增 `small-caption`：字幕实测字号低于短边 4%（1080 宽约 43px）时提示；
+  Skill 写明一句是一个字幕事件、可折成两行，不要为排成一行缩小字号。
+- `@axmorf/studio/remotion` 新增 `ProducerWorldCamera`（比屏幕大的世界里平移、跟拍、推拉，各层按深度视差）、
+  `resolveProducerWorldCamera`、`resolveProducerWorldPlane` 与 `resolveProducerPathPoint`；示例段落新增
+  “镜头在大场景里跟着过程走”。
+- 画面手艺：推拉不算取景变化，每章至少一次平移、跟拍或换位；文字预算放宽为一个标题加最多 3 个贴在物体上的短标注；
+  旁白里的数字要画成可见的数量；审片新增静音测试、镜头类型与字幕字号三项。
+- Producer config 的 `renderDefaults.renderTimeoutMinutes`（15–120，缺省 15）决定 `film:deliver` 与 `film:review`
+  单次渲染的时限；Web 设置“通用”可改。超时报错提示调高设置而不是降低画质、尺寸或帧率，Skill 同步。
+
+## MV / OP 类片子的支持（2026-10-23，未发布）
+
+用同一份需求让 Codex（gpt-6.1-sol，max）分别在 AXMORF Workspace 内外各做一部原创动漫 OP：Workspace 外的一组
+插画更多、画面更丰富。差距主要来自 Workspace 规则在这类片子上的约束：生图失败后不重试只剩 6 张图、配乐只能合成、
+60 秒里 10 秒是品牌片头片尾、审片查不出素材反复使用。据此按“讲述段 / 节拍段”的时间段思路改进，讲解片的默认行为不变：
+
+- `@axmorf/studio/remotion` 新增 `ProducerSpriteSheet` 与 `resolveProducerDrawing`（播放动作表）、`ProducerBeatCamera`、
+  `ProducerWhipIn`、`ProducerSpeedLines` 及其纯函数 resolver。
+- `film.json` 的 `music` 二选一：`score`（合成）或 `track`（已用 `film:asset` 登记来源与许可的音频）。`track` 的节拍网格
+  由作者写定，缺失时 `film:music` 从音频估计 `bpm` 与首个强拍并停下；登记的音频变了 `film:check` 报 `music-stale`。
+  `AGENTS.md`、产品目标与架构文档同步。
+- `film:review` 新增 `repetitionWarnings`：只在没有旁白的时段每 0.5 秒取样（最多 120 帧），同一画面超过这些时段 25%
+  时提示，不拦截交付。
+- `film:new --bookends workspace|both|none` 只决定本片的品牌片头片尾，Workspace 默认不变。
+- Skill：画面手艺新增“讲述段与节拍段”；配乐新增授权曲目流程；素材新增绿幕动作表的生成与抠像；OP 配方新增素材预算、
+  片头片尾与审片项；生图失败缺关键画面时停下请用户同意重试。creator 模板镜像同步。
+
+## 动漫 OP 风格配方与图形处理组件（2026-10-22，未发布）
+
+`@axmorf/studio/remotion` 新增 `graphic-fx` 组件，全部用 SVG filter、clip-path 与帧驱动计算实现，不依赖
+WebGL 或实验性的 HTML-in-Canvas（`@remotion/effects` 只能挂在 `<Img>` 与 `HtmlInCanvas` 上，后者需要 Chrome 148 及 flag）：
+`ProducerBeatCutSeries` 与 `selectProducerCutFrames`（按音乐网格硬切）、`ProducerGradientMap`（双色调 / 伪彩）、
+`ProducerChromaticSplit`（RGB 错位）、`ProducerGlitchSlices`（切点撕裂，装饰副本 aria-hidden 且只在 burst 内存在）、
+`ProducerHalftoneOverlay`、`ProducerFlashCut` 与 `ProducerCreditTitle`（职员表式宋体文字，`entrance` 可选砸入或淡入），
+以及对应的纯函数 resolver。Skill 新增 `references/styles/anime-op.md` 风格配方，`SKILL.md` 指向 `references/styles/`，
+`api.md` 增加组件说明；creator 模板镜像同步。原有 `producerStyleProfiles` 未改动。
+
+配方初稿只依据每 3 秒一帧的抽样，误把高潮段的霓虹故障当成整体风格，样片观感很差。随后对两部参考 OP 逐镜头抽帧
+（150 / 196 段）并实测色彩与切点：基调是高调白灰金或靛蓝夜色，高饱和像素约 13–14%；切点与节拍网格的对齐只比随机略好，
+停留镜头多为 0.6–1.75 秒并夹有长镜头，快感主要来自镜头内作画。配方据此重写为作画优先、实测色板、意象体系、
+五段结构与特效上限，并要求缺少插画时说明只能做纯图形版；示例段落改为只演示组件用法的占位实现。
+
+配乐引擎新增 studio-v2 专用的 `drive` 风格：失真强力和弦 `guitar` 与 `tom` 声部、按 `energy` 分三档的军鼓反拍鼓型、
+八分音符贝斯、每 4 小节过门与段落前通鼓滚奏、可重复的两小节旋律钩子。合同的 `style` 增加 `drive`，事件增加可选 `beat`；
+所有 studio-v2 事件按精确拍位置合成，不再四舍五入到视频帧（原先 30fps 下鼓点最多偏差约 16ms）。
+`electronic` / `organic` 的编曲不变，但重新生成后起音时间更准确；原始引擎与其金样校验不受影响。
+用 `drive`（172 BPM）与 Codex 生成的插画、绿幕作画序列重做的原创样片在临时 Workspace 中交付复验通过，成片约 -14.8 LUFS；
+节奏感只做了起音自相关等粗略测量，未经人工听审。
+
+验证：完整 `npm run check` 通过（338 项测试，含新增 10 项组件测试；风格配方的示例段落纳入 `film:check` 用例）。
+用本地打包的 runtime 新建临时 Workspace（doctor 通过），制作 1920×1080 / 30fps 纯视觉样片：`film:check`、`film:review`
+（`stillWarnings` 与 `readabilityWarnings` 为空）、`film:deliver` 通过，交付 22 秒（含片头片尾）四文件复验通过；
+审片确认伪彩、网点、撕裂、闪白与金色大字在宿主 Chromium 中生效，并据此调低撕裂染色、把镜像倒影改到文字下方。
+
+未验证：人工连续观看与听审、竖屏样片、生图角色素材上的效果、非 macOS 宿主的宋体回退；配乐引擎仍只有
+`electronic` / `organic` 音色，未新增摇滚音色。本次未发布。
+
 ## 清理 contracts 旧主链残留（2026-10-21，未发布）
 
 按[实施计划](promotions/2026-10-21-contracts-old-chain-cleanup.md)，从公开的 `@axmorf/studio/contracts` 删除

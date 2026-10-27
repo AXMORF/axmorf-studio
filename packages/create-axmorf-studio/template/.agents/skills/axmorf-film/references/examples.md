@@ -1,7 +1,7 @@
 # 示例段落
 
-两个可直接编译的段落，用来借鉴技法：满画幅的镜头结构、分层光影、细节层级、运动阶段和文字层。它们不是模板：
-主体、文案、构图与时间都从本片的剧本出发，不要原样粘贴。两个例子都按 1080×1920 设计；横屏或其他尺寸要
+三个可直接编译的段落，用来借鉴技法：满画幅的镜头结构、分层光影、细节层级、运动阶段、文字层，以及在大场景里
+移动的镜头。它们不是模板：主体、文案、构图与时间都从本片的剧本出发，不要原样粘贴。三个例子都按 1080×1920 设计；横屏或其他尺寸要
 重新安排构图，而不只是缩放。
 
 每个段落是一个普通组件，放在 `Film.tsx` 的 `<Sequence from={...} durationInFrames={...}>` 里，由外层传入段落
@@ -409,6 +409,313 @@ export const InstallSegment = ({
           <div style={{ fontSize: 80, fontWeight: 900, color: ink }}>
             放进本地，立刻运行
           </div>
+        </div>
+      }
+    />
+  );
+};
+```
+
+## 讲解主题：镜头在大场景里跟着过程走
+
+适合有“过程”的科普：光、信号、物质沿一条路径发生变化。场景先搭成三屏宽，太阳、大气、观察者依次排开；镜头跟着
+光沿路径平移，到机制处推近，最后拉远看结果。远景、主体、前景三层按不同速度移动，产生纵深。标注贴在物体上并随
+镜头移动；数字（散射强度）画成会增长的条，而不是一句文字。
+
+```tsx
+import type { FC } from "react";
+import { interpolate, useCurrentFrame, useVideoConfig } from "remotion";
+import {
+  ProducerWorldCamera,
+  resolveProducerPathPoint,
+} from "@axmorf/studio/remotion";
+
+const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
+const FONT = '"PingFang SC", "Noto Sans SC", sans-serif';
+// Light path through the world, in world pixels: sun → molecule → eye.
+const PATH = [
+  [420, 640],
+  [1620, 980],
+  [2820, 1180],
+] as const;
+
+const Label: FC<{
+  readonly x: number;
+  readonly y: number;
+  readonly text: string;
+  readonly show: number;
+}> = ({ x, y, text, show }) => (
+  <div
+    style={{
+      position: "absolute",
+      left: x,
+      top: y,
+      opacity: show,
+      transform: `translateY(${(1 - show) * 16}px)`,
+      fontFamily: FONT,
+      fontSize: 44,
+      fontWeight: 700,
+      color: "#f4f8ff",
+      padding: "10px 18px",
+      borderRadius: 14,
+      background: "rgba(8, 20, 44, 0.72)",
+      whiteSpace: "nowrap",
+    }}
+  >
+    {text}
+  </div>
+);
+
+export const WorldPathSegment: FC<{ readonly durationInFrames: number }> = ({
+  durationInFrames,
+}) => {
+  const frame = useCurrentFrame();
+  const { width, height } = useVideoConfig();
+  const worldWidth = width * 3;
+  const d = durationInFrames;
+  // The light travels the whole path over the first 70% of the segment.
+  const travel = interpolate(frame, [0, d * 0.7], [0, 1], clamp);
+  const photon = resolveProducerPathPoint(PATH, travel);
+  const scatter = interpolate(frame, [d * 0.3, d * 0.55], [0, 1], clamp);
+  const strength = interpolate(frame, [d * 0.4, d * 0.5], [0, 1], clamp);
+  // Labels about the molecule leave before the camera does, so none slides off the frame.
+  const atMolecule = interpolate(
+    frame,
+    [d * 0.3, d * 0.4, d * 0.52, d * 0.57],
+    [0, 1, 1, 0],
+    clamp,
+  );
+  return (
+    <ProducerWorldCamera
+      width={width}
+      height={height}
+      worldWidth={worldWidth}
+      worldHeight={height}
+      shots={[
+        { frame: 0, center: [PATH[0][0] + 120, 900] },
+        // Follow the light to the molecule, then push in on the mechanism.
+        {
+          frame: Math.round(d * 0.35),
+          center: [PATH[1][0], 980],
+          zoom: 1.25,
+          easing: "ease-in-out",
+        },
+        {
+          frame: Math.round(d * 0.55),
+          center: [PATH[1][0] + 60, 1000],
+          zoom: 1.6,
+          easing: "ease-out",
+        },
+        // Pull out and travel on to the observer, then keep a slow push on the result.
+        {
+          frame: Math.round(d * 0.85),
+          center: [PATH[2][0] - 200, 980],
+          zoom: 1,
+          easing: "ease-in-out",
+        },
+        { frame: d, center: [PATH[2][0] - 120, 1060], zoom: 1.15 },
+      ]}
+      layers={[
+        {
+          // Far sky: a gradient band and distant clouds that drift slowly.
+          depth: 0.35,
+          content: (
+            <svg width={worldWidth} height={height}>
+              <defs>
+                <linearGradient id="world-sky" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor="#0b2a5c" />
+                  <stop offset="55%" stopColor="#1f5fa8" />
+                  <stop offset="100%" stopColor="#f0a35e" />
+                </linearGradient>
+              </defs>
+              <rect width={worldWidth} height={height} fill="url(#world-sky)" />
+              {[0, 1, 2, 3, 4, 5].map((i) => (
+                <ellipse
+                  key={i}
+                  cx={300 + i * 520}
+                  cy={260 + (i % 2) * 180}
+                  rx={220}
+                  ry={46}
+                  fill="#ffffff"
+                  opacity={0.12}
+                />
+              ))}
+            </svg>
+          ),
+        },
+        {
+          // Subject plane: sun, ray, molecule with scattered blue, observer.
+          depth: 1,
+          content: (
+            <div style={{ position: "absolute", inset: 0 }}>
+              <svg width={worldWidth} height={height}>
+                <defs>
+                  <radialGradient id="world-sun">
+                    <stop offset="0%" stopColor="#fffbe6" />
+                    <stop offset="60%" stopColor="#ffd36b" />
+                    <stop offset="100%" stopColor="#ffb347" stopOpacity={0} />
+                  </radialGradient>
+                  <radialGradient id="world-molecule" cx="35%" cy="30%">
+                    <stop offset="0%" stopColor="#e8f4ff" />
+                    <stop offset="70%" stopColor="#5f8fc9" />
+                    <stop offset="100%" stopColor="#23406e" />
+                  </radialGradient>
+                </defs>
+                <circle
+                  cx={PATH[0][0]}
+                  cy={PATH[0][1]}
+                  r={210}
+                  fill="url(#world-sun)"
+                />
+                <polyline
+                  points={PATH.map((p) => p.join(",")).join(" ")}
+                  fill="none"
+                  stroke="#fff5d6"
+                  strokeWidth={10}
+                  strokeLinecap="round"
+                  strokeDasharray="2400"
+                  strokeDashoffset={2400 * (1 - travel)}
+                  opacity={0.85}
+                />
+                {Array.from({ length: 12 }, (_, i) => {
+                  const angle = (i / 12) * Math.PI * 2;
+                  const reach = 60 + scatter * 300;
+                  return (
+                    <line
+                      key={i}
+                      x1={PATH[1][0]}
+                      y1={PATH[1][1]}
+                      x2={PATH[1][0] + Math.cos(angle) * reach}
+                      y2={PATH[1][1] + Math.sin(angle) * reach}
+                      stroke="#5fb4ff"
+                      strokeWidth={8}
+                      strokeLinecap="round"
+                      opacity={scatter * 0.9}
+                    />
+                  );
+                })}
+                <circle
+                  cx={PATH[1][0] - 26}
+                  cy={PATH[1][1]}
+                  r={46}
+                  fill="url(#world-molecule)"
+                />
+                <circle
+                  cx={PATH[1][0] + 30}
+                  cy={PATH[1][1] + 6}
+                  r={46}
+                  fill="url(#world-molecule)"
+                />
+                <circle cx={photon[0]} cy={photon[1]} r={18} fill="#ffffff" />
+                <path
+                  d={`M${PATH[2][0] - 90} ${PATH[2][1]} Q${PATH[2][0]} ${PATH[2][1] - 70} ${PATH[2][0] + 90} ${PATH[2][1]} Q${PATH[2][0]} ${PATH[2][1] + 70} ${PATH[2][0] - 90} ${PATH[2][1]} Z`}
+                  fill="#f4f8ff"
+                />
+                <circle cx={PATH[2][0]} cy={PATH[2][1]} r={34} fill="#2d6fc4" />
+              </svg>
+              <Label
+                x={PATH[0][0] - 120}
+                y={PATH[0][1] + 240}
+                text="白光：各色光混合"
+                show={interpolate(frame, [d * 0.05, d * 0.15], [0, 1], clamp)}
+              />
+              <Label
+                x={PATH[1][0] - 150}
+                y={PATH[1][1] - 230}
+                text="氮气分子 N₂"
+                show={atMolecule}
+              />
+              <Label
+                x={PATH[2][0] - 180}
+                y={PATH[2][1] + 120}
+                text="四面八方的蓝光"
+                show={interpolate(frame, [d * 0.7, d * 0.8], [0, 1], clamp)}
+              />
+              {/* The number in the narration, shown as a quantity instead of text. */}
+              <div
+                style={{
+                  position: "absolute",
+                  left: PATH[1][0] - 260,
+                  top: PATH[1][1] + 260,
+                  fontFamily: FONT,
+                  color: "#f4f8ff",
+                  opacity: Math.min(
+                    atMolecule,
+                    interpolate(frame, [d * 0.4, d * 0.45], [0, 1], clamp),
+                  ),
+                }}
+              >
+                {[
+                  { name: "红光", value: 1, color: "#ff7a6b" },
+                  { name: "蓝光", value: 5.9, color: "#5fb4ff" },
+                ].map((bar) => (
+                  <div
+                    key={bar.name}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 18,
+                      marginBottom: 18,
+                    }}
+                  >
+                    <div style={{ width: 120, fontSize: 40, fontWeight: 700 }}>
+                      {bar.name}
+                    </div>
+                    <div
+                      style={{
+                        height: 34,
+                        width: 60 * bar.value * strength,
+                        borderRadius: 17,
+                        background: bar.color,
+                      }}
+                    />
+                    <div
+                      style={{
+                        fontSize: 40,
+                        fontWeight: 800,
+                        opacity: strength,
+                      }}
+                    >{`${bar.value}×`}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ),
+        },
+        {
+          // Near haze sweeps past faster than the subject. A layer deeper than 1
+          // travels farther than the world, so its content runs past the right edge.
+          depth: 1.4,
+          content: (
+            <svg width={worldWidth * 1.5} height={height}>
+              {[0, 1, 2, 3, 4, 5].map((i) => (
+                <ellipse
+                  key={i}
+                  cx={500 + i * 900}
+                  cy={1760}
+                  rx={520}
+                  ry={140}
+                  fill="#081a36"
+                  opacity={0.55}
+                />
+              ))}
+            </svg>
+          ),
+        },
+      ]}
+      overlay={
+        <div
+          style={{
+            position: "absolute",
+            left: 64,
+            top: 150,
+            fontFamily: FONT,
+            fontSize: 76,
+            fontWeight: 900,
+            color: "#f4f8ff",
+          }}
+        >
+          蓝光被分子弹向四周
         </div>
       }
     />

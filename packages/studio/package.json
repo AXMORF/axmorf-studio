@@ -1,6 +1,6 @@
 {
   "name": "@axmorf/studio",
-  "version": "0.3.0-rc.3",
+  "version": "0.3.0-rc.4",
   "description": "Agent-first video production runtime, CLI, contracts, Remotion components, and local Web control center for AXMORF Studio.",
   "license": "Apache-2.0",
   "type": "module",
@@ -60,7 +60,7 @@
     "node-edge-tts": "1.2.11",
     "ogl": "1.0.11",
     "typescript": "5.9.3",
-    "zod": "4.3.6"
+    "zod": "4.6.7"
   },
   "peerDependencies": {
     "@react-three/fiber": "9.6.1",

@@ -12,7 +12,12 @@ import { resolveFilmRuntime } from "../../packages/studio/src/remotion/film/cont
 import { resolveFilmSoundtrack } from "../../packages/studio/src/remotion/film/FilmSoundtrack";
 import { projectFilmMusicGrid } from "../../scripts/films/music";
 import { renderFilmRegistrySource } from "../../scripts/films/registry";
-import { selectReviewFrames } from "../../scripts/films/review";
+import {
+  findRepetition,
+  findUnnarratedRanges,
+  selectRepetitionSamples,
+  selectReviewFrames,
+} from "../../scripts/films/review";
 import { buildFilmTiming } from "../../scripts/films/voice";
 
 const baseSpec = {
@@ -243,4 +248,58 @@ test("the registry imports only generated files that exist", () => {
     /timing: null,\s+music: null,\s+film: \(\) => import\("\.\/beta\/Film"\)/u,
   );
   assert.doesNotMatch(source, /readdir|import\.meta\.glob/u);
+});
+
+test("repetition is measured only where no sentence is playing", () => {
+  const timing = {
+    durationInFrames: 900,
+    sentences: [
+      { id: "a", text: "一", startFrame: 300, endFrame: 450 },
+      { id: "b", text: "二", startFrame: 450, endFrame: 600 },
+    ],
+  };
+  assert.deepEqual(findUnnarratedRanges(timing), [
+    [0, 300],
+    [600, 900],
+  ]);
+  const samples = selectRepetitionSamples({
+    ranges: findUnnarratedRanges(timing),
+    fps: 30,
+  });
+  assert.equal(samples.length, 40);
+  assert.ok(samples.every((frame) => frame < 300 || frame >= 600));
+  // A purely narrated film has nothing to sample.
+  assert.deepEqual(
+    selectRepetitionSamples({
+      ranges: findUnnarratedRanges({
+        durationInFrames: 300,
+        sentences: [{ id: "a", text: "一", startFrame: 0, endFrame: 300 }],
+      }),
+      fps: 30,
+    }),
+    [],
+  );
+
+  const picture = (value: number) => new Uint8Array(64 * 64).fill(value);
+  const varied = samples.map((frame, index) => ({
+    frame,
+    signature: picture((index * 37) % 250),
+  }));
+  assert.deepEqual(findRepetition({ samples: varied, fps: 30 }), []);
+  // The same background back for half of the music-led time is flagged once.
+  const repeated = samples.map((frame, index) => ({
+    frame,
+    // Other shots stay well away from the repeated value (120).
+    signature: index % 2 === 0 ? picture(120) : picture((index * 9) % 100),
+  }));
+  const [warning, ...rest] = findRepetition({ samples: repeated, fps: 30 });
+  assert.equal(rest.length, 0);
+  assert.equal(warning?.share, 0.5);
+  assert.equal(warning?.seconds, 10);
+  assert.match(warning?.message ?? "", /unnarrated time/u);
+  // Too little unnarrated time is not analysed.
+  assert.deepEqual(
+    findRepetition({ samples: repeated.slice(0, 10), fps: 30 }),
+    [],
+  );
 });

@@ -3,6 +3,7 @@ import { stripVTControlCharacters } from "node:util";
 import {
   FILM_REVIEW_MEASUREMENT_MARKER,
   FilmReviewMeasurementSchema,
+  minimumCaptionFontSize,
   minimumReadableFontSize,
   type FilmReviewMeasurement,
   type FilmReviewRect,
@@ -30,7 +31,11 @@ export const extractReviewMeasurements = (output: string) => {
   return { records, badLines };
 };
 
-type Rule = "small-text" | "text-outside-frame" | "text-under-captions";
+type Rule =
+  | "small-text"
+  | "small-caption"
+  | "text-outside-frame"
+  | "text-under-captions";
 type Measurement = {
   frame: number;
   fontSize: number;
@@ -98,10 +103,19 @@ export const analyzeReviewReadability = ({
     if (record.error) continue;
     const frameRect = { x: 0, y: 0, width, height };
     const minimumFontSize = minimumReadableFontSize(width, height);
+    const minimumCaption = minimumCaptionFontSize(width, height);
     const captions = record.texts
       .filter((text) => text.caption && text.captionRect)
       .map((text) => text.captionRect!);
     for (const { caption, snippet, fontSize, rect } of record.texts) {
+      // One warning for all caption lines: the cause is the caption style, not a sentence.
+      if (caption && fontSize < minimumCaption)
+        add("small-caption", "captions", {
+          frame: record.frame,
+          fontSize,
+          rect,
+          minimumFontSize: minimumCaption,
+        });
       if (caption || intersectionArea(rect, frameRect) === 0) continue;
       const measurement = { frame: record.frame, fontSize, rect };
       if (fontSize < minimumFontSize)
@@ -147,6 +161,15 @@ export const analyzeReviewReadability = ({
               ),
             );
             message = `${subject} renders at ${fontSize}px (minimum ${minimumReadableFontSize(width, height)}px for a ${width}×${height} frame) on frames ${frameList}; enlarge it or make it clearly decorative.`;
+            break;
+          }
+          case "small-caption": {
+            const fontSize = Number(
+              Math.min(...measurements.map((value) => value.fontSize)).toFixed(
+                1,
+              ),
+            );
+            message = `Captions render at ${fontSize}px (minimum ${minimumCaptionFontSize(width, height)}px for a ${width}×${height} frame) on frames ${frameList}; let long sentences wrap to two lines instead of shrinking them.`;
             break;
           }
           case "text-outside-frame": {

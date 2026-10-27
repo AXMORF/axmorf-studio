@@ -5,7 +5,7 @@
 > 最后复核：2026-10-19（0.3.0）
 
 AXMORF Studio 由两个 npm 包和一个用户 Workspace 组成。Agent 直接编写每部片的 Remotion 源码；工具只负责
-旁白时序、原创配乐、素材准入、审片帧、硬规则检查和经过复验的交付。
+旁白时序、原创配乐或已登记曲目、素材准入、审片帧、硬规则检查和经过复验的交付。
 
 ## 1. 包与 Workspace
 
@@ -50,7 +50,7 @@ CLI 通过动态 import 加载 `scripts/films` 等实现并由 esbuild 打进 `d
 film:new     → src/films/<filmId>/film.json、Film.tsx、Cover.tsx、assets.json；更新 src/films/index.ts
 film:voice   → TTS（按 provider、音色与文本缓存在 .axmorf/cache/voice）→ public/films/<id>/narration.wav
                → generated/timing.json（实测 PCM samples 换算帧）
-film:music   → film.json 的 music.score → public/films/<id>/music.wav → generated/music.json（拍、段落、重音帧）
+film:music   → film.json 的 music.score（合成）或 music.track（已登记曲目）→ public/films/<id>/music.wav → generated/music.json（拍、段落、重音帧）
 film:review  → <id>--review 组合按帧渲染并测量文字 → 联系表、stillWarnings、readabilityWarnings 与测量摘要 readability（仅提示）
 film:check   → TypeScript、网络调用、CSS 动画、随机数与时间、未登记媒体、跨片 import、必须挂载的组件、过期时序
 film:deliver → .axmorf/staging 中渲染正片（片头 + 正片 + 片尾）与两张封面 → 复验 → publish.json

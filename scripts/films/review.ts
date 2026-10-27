@@ -24,6 +24,7 @@ import {
 import { meanAbsoluteDifference, readFrameSignature } from "./frame-compare";
 import { renderContactSheet, renderFilmReviewFrames } from "./media";
 import { loadCurrentFilmTiming } from "./music";
+import { readWorkspaceRenderTimeoutMs } from "./render-timeout";
 import { analyzeReviewReadability } from "./readability";
 
 export type ReviewFrame = Readonly<{ frame: number; reason: string }>;
@@ -120,17 +121,111 @@ export const findStillStretches = ({
   return stretches;
 };
 
+/** Two samples closer than this (0–255) count as the same picture. */
+export const REPEAT_FRAME_DIFFERENCE = 8;
+/** One picture holding more than this share of the unnarrated time is flagged. */
+export const REPEAT_MAX_SHARE = 0.25;
+/** Unnarrated stretches shorter than this in total are not analysed. */
+export const REPEAT_MIN_SECONDS = 8;
+/** Sampling interval for the repetition pass, and its sample cap. */
+export const REPEAT_SAMPLE_SECONDS = 0.5;
+export const REPEAT_MAX_SAMPLES = 120;
+
+/** Frame ranges with no sentence playing: hooks, transitions, climaxes, endings. */
+export const findUnnarratedRanges = (
+  timing: Pick<FilmTiming, "durationInFrames" | "sentences">,
+): (readonly [number, number])[] => {
+  const ranges: (readonly [number, number])[] = [];
+  let cursor = 0;
+  for (const { startFrame, endFrame } of [...timing.sentences].sort(
+    (left, right) => left.startFrame - right.startFrame,
+  )) {
+    if (startFrame > cursor) ranges.push([cursor, startFrame]);
+    cursor = Math.max(cursor, endFrame);
+  }
+  if (cursor < timing.durationInFrames)
+    ranges.push([cursor, timing.durationInFrames]);
+  return ranges;
+};
+
+/** Evenly spaced sample frames inside the unnarrated ranges, capped. */
+export const selectRepetitionSamples = ({
+  ranges,
+  fps,
+}: {
+  readonly ranges: readonly (readonly [number, number])[];
+  readonly fps: number;
+}): number[] => {
+  const step = Math.max(1, Math.round(fps * REPEAT_SAMPLE_SECONDS));
+  const frames = ranges.flatMap(([start, end]) => {
+    const inside: number[] = [];
+    for (let frame = start + Math.floor(step / 2); frame < end; frame += step)
+      inside.push(frame);
+    return inside;
+  });
+  if (frames.length <= REPEAT_MAX_SAMPLES) return frames;
+  return Array.from(
+    { length: REPEAT_MAX_SAMPLES },
+    (_, index) =>
+      frames[
+        Math.round((index * (frames.length - 1)) / (REPEAT_MAX_SAMPLES - 1))
+      ]!,
+  );
+};
+
+/**
+ * Flags one picture returning for much of the music-led time, the "same
+ * background again" a viewer reads as a slideshow. Narrated ranges are left
+ * out: a held explanation shot is expected there.
+ */
+export const findRepetition = ({
+  samples,
+  fps,
+}: {
+  readonly samples: readonly { frame: number; signature: Uint8Array }[];
+  readonly fps: number;
+}) => {
+  if (samples.length * REPEAT_SAMPLE_SECONDS < REPEAT_MIN_SECONDS) return [];
+  const clusters: { signature: Uint8Array; frames: number[] }[] = [];
+  for (const sample of [...samples].sort(
+    (left, right) => left.frame - right.frame,
+  )) {
+    const match = clusters.find(
+      ({ signature }) =>
+        meanAbsoluteDifference(signature, sample.signature) <
+        REPEAT_FRAME_DIFFERENCE,
+    );
+    if (match) match.frames.push(sample.frame);
+    else clusters.push({ signature: sample.signature, frames: [sample.frame] });
+  }
+  return clusters
+    .filter(({ frames }) => frames.length / samples.length > REPEAT_MAX_SHARE)
+    .map(({ frames }) => {
+      const share = frames.length / samples.length;
+      const seconds = frames.length * REPEAT_SAMPLE_SECONDS;
+      return {
+        frames: [frames[0]!, frames.at(-1)!] as const,
+        share: Number(share.toFixed(2)),
+        seconds: Number(seconds.toFixed(1)),
+        message: `One picture fills ${Math.round(share * 100)}% (about ${seconds.toFixed(1)}s) of the unnarrated time, seen from f${frames[0]} to f${frames.at(-1)} at ${fps} fps; vary the framing, artwork or palette so music-led stretches do not read as a slideshow.`,
+      };
+    });
+};
+
 export const runFilmReview = async ({
   rootDir,
   filmId,
   frames: requested,
   scale = 0.5,
+  env = process.env,
 }: {
   readonly rootDir: string;
   readonly filmId: string;
   readonly frames?: readonly number[];
   readonly scale?: number;
+  readonly env?: NodeJS.ProcessEnv;
 }) => {
+  const timeoutMs = await readWorkspaceRenderTimeoutMs({ rootDir, env });
   const spec = await loadFilmSpec(rootDir, filmId);
   const timing = await loadCurrentFilmTiming(rootDir, spec);
   const paths = filmPaths(rootDir, filmId);
@@ -175,6 +270,7 @@ export const runFilmReview = async ({
       outputDirectory: relative(rootDir, join(scratch, "frames")),
       count: selected.length,
       scale,
+      timeoutMs,
     });
     const readability = analyzeReviewReadability({
       output: `${renderOutput.stdout}\n${renderOutput.stderr}`,
@@ -251,16 +347,84 @@ export const runFilmReview = async ({
       frames: signatures,
       fps: spec.render.fps,
     });
+    const repetitionWarnings = await analyzeRepetition({
+      rootDir,
+      compositionId: filmCompositionIds(paths.id).review,
+      scratch,
+      timing,
+      fps: spec.render.fps,
+      timeoutMs,
+    });
     return {
       status: "film-review-rendered",
       filmId: paths.id,
       contactSheet: workspacePath(rootDir, sheet),
       frames: images,
       stillWarnings,
+      repetitionWarnings,
       ...readability,
-      next: "Open the contact sheet and the frames; resolve or justify each readabilityWarning and inspect missingFrames. Check subject, framing, and changes on the listed sentences and accents.",
+      next: "Open the contact sheet and the frames; resolve or justify each readabilityWarning and repetitionWarning, and inspect missingFrames. Check subject, framing, and changes on the listed sentences and accents.",
     } as const;
   } finally {
     await rm(scratch, { recursive: true, force: true });
   }
+};
+
+/** Renders small samples of the unnarrated ranges and measures repetition. */
+const analyzeRepetition = async ({
+  rootDir,
+  compositionId,
+  scratch,
+  timing,
+  fps,
+  timeoutMs,
+}: {
+  readonly rootDir: string;
+  readonly compositionId: string;
+  readonly scratch: string;
+  readonly timing: FilmTiming;
+  readonly fps: number;
+  readonly timeoutMs: number;
+}) => {
+  const frames = selectRepetitionSamples({
+    ranges: findUnnarratedRanges(timing),
+    fps,
+  });
+  if (frames.length * REPEAT_SAMPLE_SECONDS < REPEAT_MIN_SECONDS) return [];
+  const directory = join(scratch, "repetition");
+  await mkdir(directory, { recursive: true });
+  const propsPath = join(directory, "props.json");
+  await writeFile(propsPath, JSON.stringify({ frames }));
+  await renderFilmReviewFrames({
+    rootDir,
+    compositionId,
+    propsPath,
+    outputDirectory: relative(rootDir, join(directory, "frames")),
+    count: frames.length,
+    scale: 0.125,
+    timeoutMs,
+  });
+  const rendered = (await readdir(join(directory, "frames")))
+    .filter((name) => name.startsWith("review-"))
+    .sort(
+      (left, right) =>
+        Number(left.match(/\d+/u)?.[0]) - Number(right.match(/\d+/u)?.[0]),
+    );
+  if (rendered.length !== frames.length) {
+    throw new Error(
+      `Expected ${frames.length} repetition samples, got ${rendered.length}.`,
+    );
+  }
+  const samples = [];
+  for (const [index, name] of rendered.entries()) {
+    samples.push({
+      frame: frames[index]!,
+      signature: await readFrameSignature({
+        rootDir,
+        imagePath: join(directory, "frames", name),
+        signaturePath: join(directory, `signature-${index}.png`),
+      }),
+    });
+  }
+  return findRepetition({ samples, fps });
 };

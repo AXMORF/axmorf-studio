@@ -10,7 +10,8 @@ export const SynthesizedMusicTimelineSchema = z
     bpm: z.number().finite().min(50).max(180),
     beatsPerBar: z.number().int().min(2).max(7),
     bars: z.number().int().min(1).max(64),
-    style: z.enum(["organic", "electronic"]),
+    /** "drive" is a studio-v2-only band style: power chords, backbeat drums and fills. */
+    style: z.enum(["organic", "electronic", "drive"]),
     seed: z.number().int().min(1).max(0xffffffff),
     /** Present only for studio-v2 scores; the original engine omits it. */
     engine: z.literal("studio-v2").optional(),
@@ -52,8 +53,12 @@ export const SynthesizedMusicTimelineSchema = z
               "lead",
               "crash",
               "riser",
+              "guitar",
+              "tom",
             ]),
             frame: z.number().int().nonnegative(),
+            /** studio-v2 onset in beats; audio starts here instead of at the rounded frame. */
+            beat: z.number().finite().nonnegative().optional(),
             durationInFrames: z.number().int().positive(),
             note: z.number().int().min(0).max(127),
             gain: z.number().finite().min(0).max(1),
@@ -77,9 +82,13 @@ export const SynthesizedMusicTimelineSchema = z
       timeline.beatFrames.some(
         (frame, index) => frame !== Math.round(index * framesPerBeat),
       ) ||
-      timeline.music.some((event) => event.frame >= timeline.durationInFrames) ||
+      timeline.music.some(
+        (event) => event.frame >= timeline.durationInFrames,
+      ) ||
       (timeline.engine === undefined &&
-        (timeline.sections !== undefined ||
+        (timeline.style === "drive" ||
+          timeline.music.some((event) => event.beat !== undefined) ||
+          timeline.sections !== undefined ||
           timeline.accentFrames !== undefined ||
           timeline.bars > 16)) ||
       timeline.sections?.some(

@@ -9,11 +9,7 @@ import {
 } from "@axmorf/studio/contracts";
 
 const loadSynth = () =>
-  import(
-    pathToFileURL(
-      resolve("scripts/films/score/synth-score.mjs"),
-    ).href
-  );
+  import(pathToFileURL(resolve("scripts/films/score/synth-score.mjs")).href);
 
 const recipe = {
   fps: 30,
@@ -142,5 +138,64 @@ test("the original engine keeps its 16-bar limit and rejects studio-only fields"
       durationInFrames: 30,
     }).accentFrames,
     undefined,
+  );
+});
+
+test("drive scores lock a backbeat, power chords and fills to exact beats", async () => {
+  const { generateScore, makeTimeline } = await loadSynth();
+  const drive = {
+    ...recipe,
+    bpm: 172,
+    bars: 8,
+    style: "drive",
+    arrangement: {
+      ...recipe.arrangement,
+      sections: [
+        {
+          bars: 4,
+          instruments: ["kick", "snare", "hat", "bass", "guitar"],
+          density: 0.5,
+          energy: 0.45,
+        },
+        {
+          bars: 4,
+          instruments: ["kick", "snare", "hat", "bass", "guitar", "lead"],
+          density: 0.9,
+          energy: 0.95,
+        },
+      ],
+    },
+  };
+  const first = generateScore(drive);
+  assert.deepEqual(generateScore(drive), first);
+  const timeline = SynthesizedMusicTimelineSchema.parse(first.timeline);
+  const types = new Set<string>(timeline.music.map(({ type }) => type));
+  for (const type of ["guitar", "tom", "snare", "lead", "crash"]) {
+    assert.ok(types.has(type), type);
+  }
+  // Every event keeps its exact onset; the backbeat lands on beats 2 and 4.
+  assert.ok(timeline.music.every(({ beat }) => beat !== undefined));
+  const verseSnares = timeline.music
+    .filter(({ type, beat }) => type === "snare" && beat! < 12)
+    .map(({ beat }) => beat! % 4);
+  assert.deepEqual([...new Set(verseSnares)].sort(), [1, 3]);
+  // The bar before the louder section ends in a falling tom run.
+  const toms = timeline.music.filter(({ type }) => type === "tom");
+  assert.ok(
+    toms.every(({ beat }) => (beat! >= 14 && beat! < 16) || beat! >= 30),
+  );
+  assert.deepEqual(timeline.accentFrames, [Math.round((16 * (60 * 30)) / 172)]);
+  assert.throws(
+    () => makeTimeline({ fps: 30, bpm: 172, bars: 2, style: "drive" }),
+    /requires engine "studio-v2"/u,
+  );
+  assert.equal(
+    SynthesizedMusicTimelineSchema.safeParse({
+      ...makeTimeline({ fps: 30, bpm: 120, bars: 1 }),
+      style: "drive",
+      audioChecksum: `sha256:${"0".repeat(64)}`,
+    }).success,
+    false,
+    "drive timelines belong to studio-v2",
   );
 });

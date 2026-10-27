@@ -28,7 +28,7 @@ const APPLICATION_DEPENDENCIES = Object.freeze({
   "react-dom": "19.2.3",
   remotion: "4.0.489",
   three: "0.185.0",
-  zod: "4.3.6",
+  zod: "4.6.7",
 });
 
 const APPLICATION_DEV_DEPENDENCIES = Object.freeze({
@@ -40,12 +40,13 @@ const APPLICATION_DEV_DEPENDENCIES = Object.freeze({
 });
 
 const APPLICATION_OVERRIDES = Object.freeze({
-  "fast-uri": "3.1.8",
+  "fast-uri": "3.1.9",
   "brace-expansion@1": "1.1.21",
   "brace-expansion@2": "2.1.7",
   nanoid: "3.3.18",
   "postcss-selector-parser": "7.1.6",
   "source-map-js": "1.2.2",
+  zod: "4.6.7",
 });
 
 const SCRIPTS = Object.freeze({
