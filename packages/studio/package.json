@@ -60,7 +60,7 @@
     "node-edge-tts": "1.2.11",
     "ogl": "1.0.11",
     "typescript": "5.9.3",
-    "zod": "4.3.6"
+    "zod": "4.6.7"
   },
   "peerDependencies": {
     "@react-three/fiber": "9.6.1",

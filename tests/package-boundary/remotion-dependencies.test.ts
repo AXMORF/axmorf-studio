@@ -47,6 +47,6 @@ test("runtime-only libraries are declared instead of relying on workspace hoisti
     "node-edge-tts": "1.2.11",
     ogl: "1.0.11",
     typescript: "5.9.3",
-    zod: "4.3.6",
+    zod: "4.6.7",
   });
 });
