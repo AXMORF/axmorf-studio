@@ -8,6 +8,21 @@ export { ProducerLayeredStage } from "./ProducerLayeredStage";
 export type { ProducerLayeredStageProps } from "./ProducerLayeredStage";
 export { ProducerShotStage } from "./ProducerShotStage";
 export type { ProducerShotStageProps } from "./ProducerShotStage";
+export { ProducerWorldCamera } from "./ProducerWorldCamera";
+export type {
+  ProducerWorldCameraProps,
+  ProducerWorldLayer,
+} from "./ProducerWorldCamera";
+export {
+  resolveProducerPathPoint,
+  resolveProducerWorldCamera,
+  resolveProducerWorldPlane,
+} from "./world-camera";
+export type {
+  ProducerWorldCameraState,
+  ProducerWorldPlaneTransform,
+  ProducerWorldShot,
+} from "./world-camera";
 export {
   assertProducerLayerDepths,
   getProducerStagePlanePosition,

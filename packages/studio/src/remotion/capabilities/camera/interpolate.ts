@@ -26,20 +26,20 @@ const planePositions = {
 } as const satisfies Record<ProducerStagePlane, number>;
 const supportedPlanes = new Set<string>(["background", "subject", "foreground"]);
 
-const assertFinite = (value: number, label: string) => {
+export const assertFinite = (value: number, label: string) => {
   if (!Number.isFinite(value)) {
     throw new Error(`${label} must be finite.`);
   }
 };
 
-const assertRange = (value: number, minimum: number, maximum: number, label: string) => {
+export const assertRange = (value: number, minimum: number, maximum: number, label: string) => {
   assertFinite(value, label);
   if (value < minimum || value > maximum) {
     throw new Error(`${label} must be between ${minimum} and ${maximum}.`);
   }
 };
 
-const assertPoint2D = (point: ProducerPoint2D, label: string) => {
+export const assertPoint2D = (point: ProducerPoint2D, label: string) => {
   if (!Array.isArray(point) || point.length !== 2) {
     throw new Error(`${label} must contain exactly two values.`);
   }
@@ -56,7 +56,7 @@ const assertPoint3D = (point: ProducerPoint3D, label: string) => {
   assertFinite(point[2], `${label}[2]`);
 };
 
-const assertTimeline = <T extends { readonly frame: number; readonly easing?: string }>(
+export const assertTimeline = <T extends { readonly frame: number; readonly easing?: string }>(
   keyframes: readonly T[],
   label: string,
 ) => {
@@ -96,7 +96,7 @@ const applyEasing = (progress: number, easing: ProducerCameraEasing | undefined)
   return progress;
 };
 
-const getSegment = <T extends { readonly frame: number; readonly easing?: ProducerCameraEasing }>(
+export const getSegment = <T extends { readonly frame: number; readonly easing?: ProducerCameraEasing }>(
   keyframes: readonly T[],
   frame: number,
 ) => {
@@ -126,9 +126,9 @@ const getSegment = <T extends { readonly frame: number; readonly easing?: Produc
   return { from: last, to: last, progress: 0 };
 };
 
-const mix = (from: number, to: number, progress: number) => from + (to - from) * progress;
+export const mix = (from: number, to: number, progress: number) => from + (to - from) * progress;
 
-const mixPoint2D = (
+export const mixPoint2D = (
   from: ProducerPoint2D,
   to: ProducerPoint2D,
   progress: number,
