@@ -67,7 +67,7 @@
 - 用 `snapProducerFrameToBeat(frame, music.barFrames, { maxShiftFrames: 6, minFrame, maxFrame })` 在允许的窗口里吸附；
   预备动作提前开始，让“到达”那一帧踩在拍上。
 - 语义优先：吸附会让画面早于或晚于对应旁白时就保留原帧。旁白和字幕的时间永远不为踩拍而改变。
-- 音效对齐同一个落点（`assets/axmorf-shared/audio/sound-effects/` 下的共享音效），不要每个拍点都发声。
+- 音效 cue、吸附、揭示前 `musicDips` 与 `ending` 收音统一见 [音效计划与音效轨](sound.md)，不在此重复维护。
 
 ## 使用授权曲目
 

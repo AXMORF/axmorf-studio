@@ -24,9 +24,9 @@ AXMORF Studio 由两个 npm 包和一个用户 Workspace 组成。Agent 直接�
 packages/studio/src/
   contracts/          zod 合同：film（FilmSpec/Timing/Music/Assets/Publish）、producer-config、旁白与音色、
                       片头片尾主题与模板音频、合成配乐时间线、媒体授权描述与可选运动组件所需的状态和计划
-  remotion/film/      FilmProvider、useFilm/useFilmTiming、FilmCaptions、FilmSoundtrack、FilmBookends、
+  remotion/film/      FilmProvider、useFilm/useFilmTiming、FilmCaptions、FilmSoundtrack、FilmSceneTrack、FilmSoundEffects、FilmBookends、
                       FilmCompositions（正片、--review、两张封面）与联系表 Still
-  remotion/capabilities/  可选的镜头、运动、界面组件、媒体、特效与片头片尾模板
+  remotion/capabilities/  可选的镜头、六个镜头配方及其 resolver/catalog、运动、界面组件、媒体、特效与片头片尾模板
   remotion/runtime/sound-design/  音频播放、循环与旁白 ducking
   bootstrap/          Workspace 目录、共享资源种子与 doctor（含真实浏览器渲染）
   cli/                axmorf 命令路由：bootstrap、doctor、browser prepare、web、preview、dev、film
@@ -51,14 +51,20 @@ film:new     → src/films/<filmId>/film.json、Film.tsx、Cover.tsx、assets.js
 film:voice   → TTS（按 provider、音色与文本缓存在 .axmorf/cache/voice）→ public/films/<id>/narration.wav
                → generated/timing.json（实测 PCM samples 换算帧）
 film:music   → film.json 的 music.score（合成）或 music.track（已登记曲目）→ public/films/<id>/music.wav → generated/music.json（拍、段落、重音帧）
-film:review  → <id>--review 组合按帧渲染并测量文字 → 联系表、stillWarnings、readabilityWarnings 与测量摘要 readability（仅提示）
+Agent        → src/films/<id>/storyboard.md（章节、世界、镜头路径、配方、转场、音效 cue 与句子 id/帧号）
+               → FilmSceneTrack 编排画面；配方/场景轨 resolver 的 sfxCues → FilmSoundEffects
+film:review  → 联系表、stillWarnings、readabilityWarnings、repetitionWarnings 与测量摘要 readability（仅提示）
+               → motion / motionWarnings、review/motion-curve.json 与 .png、review/dense/ 密集帧（仅提示）
+               → --animatic 时输出 review/animatic.mp4（短边 360、原帧率、带声音；先看节奏再精修）
 film:check   → TypeScript、网络调用、CSS 动画、随机数与时间、未登记媒体、跨片 import、必须挂载的组件、过期时序
 film:deliver → .axmorf/staging 中渲染正片（片头 + 正片 + 片尾）与两张封面 → 复验 → publish.json
                → 替换 deliveries/<id>/，旧交付移到 .axmorf/history/<id>/<deliveredAt>
 ```
 
 渲染期间不调用网络、Agent、Git 或目录扫描；Remotion Root 只读生成的静态注册表。`Film.tsx` 只看到正片帧，
-片头片尾由 `FilmWithBookends` 在交付组合中接上，各自带模板音频。
+片头片尾由 `FilmWithBookends` 在交付组合中接上，各自带模板音频。场景轨按名义边界居中安排转场，不挪旁白绝对时序；音效 cue 显式交给音效轨，
+配乐支持揭示前的 musicDips 与 ending 收音。上述 motion 字段是 `film:review` 输出，阈值待样片校准；
+不拦 `film:check`/交付。animatic 默认关闭、Skill 要求成片前至少看一次；缺少或过期时交付命令提醒，不增加交付文件。
 
 ## 4. 写入所有权与并发
 

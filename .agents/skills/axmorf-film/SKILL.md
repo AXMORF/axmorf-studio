@@ -9,6 +9,7 @@ description: 用 AXMORF Studio 制作或修改讲解短视频。Agent 直接编�
 Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐与节拍、素材许可、渲染与交付校验。
 
 画面好不好看取决于构思和反复看图修改，不取决于检查通过。开工前读 [画面手艺](references/craft.md)；
+分镜时读 [镜头配方](references/recipes.md) 与 [音效计划](references/sound.md)；
 用配乐时读 [配乐与卡点](references/music.md)；需要图片或 SVG 时读 [素材](references/artwork.md)；
 写代码时查 [运行时 API](references/api.md)，并按需读 [示例段落](references/examples.md) 借鉴镜头、光影和层级技法。
 用户点名或认可某种风格时，读 `references/styles/` 下对应的配方，例如 [动漫 OP](references/styles/anime-op.md)。
@@ -40,31 +41,70 @@ Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐�
 5. **生成旁白**：`npm run film:voice -- --film <filmId>`。输出每句的起止帧。修改旁白文本后重新运行；
    没改过的句子来自缓存，不会重复调用 TTS。
 6. **生成配乐**：`npm run film:music -- --film <filmId>`。输出段落起点与重音帧。旁白时长变了就重新运行。
-7. **准备素材**（可选）：生成图片或原创 SVG 后用 `film:asset` 登记，见 [素材](references/artwork.md)。
-8. **编写** `Film.tsx` 与 `Cover.tsx`：
-   - 用 `useFilmTiming()` 读取每句旁白的帧区间和音乐网格，画面变化跟着旁白语义走，关键落点对齐重音或小节线。
-   - 必须挂载 `<FilmSoundtrack />` 与 `<FilmCaptions />`（放在最上层）。
-   - 按段落拆成子组件或 `scenes/*.tsx`；所有文件留在本片目录内。
-9. **看图迭代**（必做）：
-   ```bash
-   npm run film:review -- --film <filmId>
+7. **分镜与音效计划**（必做）：先写 `src/films/<filmId>/storyboard.md`，并告知用户文件路径和画面路线。
+   按 [画面手艺](references/craft.md) 划分章节，为每章设计一个连续世界与跟随因果的镜头路径；
+   用 [镜头配方](references/recipes.md) 选择动作，用 [音效计划](references/sound.md) 记录可见动作的声音落点。
+   句子 id 与帧号来自旁白实测时序和音乐网格，全部计正片帧；无旁白时句子 id 写“无”。最小模板：
+
+   ```markdown
+   # 分镜与音效计划：<filmId>
+
+   规格：<width>×<height> / <fps> fps；正片 <N> 帧
+   主张：<观众要记住的事>
+
+   ## 章节 <chapterId>：<因果阶段>
+
+   - 句子与范围：<sentenceId> [<startFrame>, <endFrame>)
+   - 世界：<主体、空间关系、前中后景、文字安静区>
+   - 镜头路径：f<起点> <取景/中心> → f<落点> <取景/中心>，跟随<可见因果>
+   - 配方：<名称/关键参数>；anticipate/move/land/settle = <绝对帧>
+   - 入章转场：<kind/frames/边界帧/动机>；同章连续时写“无”
+   - 音效：<for/角色/frame 或 endFrame/snap/允许窗口/对应句子 id>
+   - 留白与收音：<musicDips 区间/音量、ending 落点，或无>
    ```
-   打开输出的 `contact-sheet.jpeg` 和单帧图片，按 [画面手艺](references/craft.md#审片) 逐条回答并写下帧号证据，
-   修改后再次审片。输出里的 `stillWarnings` 列出相隔 2 秒以上却几乎没变的帧，必须改或说明理由。
-   `readabilityWarnings` 提示实测字号过小、文字越界或被字幕遮挡；必须为空，或逐条给出理由。
-   `repetitionWarnings` 只统计没有旁白的时段，提示同一画面在开场、转场、高潮里反复出现；同样逐条修改或说明理由。`readability`
-   中的 `missingFrames`、`truncatedFrames` 不为空时，补看对应单帧，不把测量缺失当作通过。这些提示不拦截交付。
-   至少完成一轮“审片 → 修改 → 再审片”。需要看某些帧时用 `--frames 120,240,360`。
-   用户想实时预览时，可运行 `npm run dev` 打开 Remotion Studio。
-10. **检查**：`npm run film:check -- --film <filmId>`。错误必须修复；警告逐条判断。
-11. **交付**：`npm run film:deliver -- --film <filmId>`。它先检查，再渲染并复验
+
+   改片时同步更新；animatic、审片和验收均对照这份文件核对，不能只在聊天中口述计划。
+
+8. **准备素材**（可选）：生成图片或原创 SVG 后用 `film:asset` 登记，见 [素材](references/artwork.md)。
+9. **编写** `Film.tsx` 与 `Cover.tsx`：
+   - 用 `useFilmTiming()` 读取每句旁白的帧区间和音乐网格，画面变化跟着旁白语义走，关键落点对齐重音或小节线。
+   - 推荐用 `FilmSceneTrack` 组织章节与场景：同章默认连续、不写 `enter`，跨章才选择有动机的转场。
+     配方只解决怎么动，构图和世界从剧本出发，不原样粘贴配方卡。
+   - 用 `FilmSoundEffects` 放置计划中的音效；把场景轨和配方 resolver 的 `sfxCues` 显式交给它，组件不会自动发声。
+   - 必须挂载 `<FilmSoundtrack />` 与 `<FilmCaptions />`（字幕放在最上层，均在场景轨之外）。
+   - 按段落拆成子组件或 `scenes/*.tsx`；所有文件留在本片目录内。
+10. **先出 animatic 看节奏**（必做）：
+    ```bash
+    npm run film:review -- --film <filmId> --animatic
+    ```
+    播放输出的 `review/animatic.mp4`，对照 `storyboard.md` 看镜头路径、因果推进、转场和停留，实际听音效与音乐落点；
+    节奏对了再精修画面。它是短边 360、原帧率、带声音的连续预览，不属于交付四件套。默认 review 不生成它，
+    成片前至少看一次；修改节奏后重新生成并复看。无法实际播放或听音时如实报告未验证，不能以联系表代替。
+11. **看图迭代**（必做）：
+    ```bash
+    npm run film:review -- --film <filmId>
+    ```
+    打开输出的 `contact-sheet.jpeg` 和单帧图片，按 [画面手艺](references/craft.md#审片) 逐条回答并写下帧号证据，
+    修改后再次审片。输出里的 `stillWarnings` 列出相隔 2 秒以上却几乎没变的帧，必须改或说明理由。
+    `readabilityWarnings` 提示实测字号过小、文字越界或被字幕遮挡；必须为空，或逐条给出理由。
+    `repetitionWarnings` 只统计没有旁白的时段，提示同一画面在开场、转场、高潮里反复出现；同样逐条修改或说明理由。
+    `readability` 中的 `missingFrames`、`truncatedFrames` 不为空时，补看对应单帧，不把测量缺失当作通过。这些提示不拦截交付。
+    `film:review` 输出的 `motion` / `motionWarnings` 记录运动与声音提示：motionWarnings 必须为空，或按
+    [审片](references/craft.md#审片) 对五条规则逐条说明理由与帧号；`unknown` 不是已通过。
+    对照 `storyboard.md` 核对章节、世界、镜头路径、配方落点、转场和音效，偏离计划就同步修改。
+    至少完成一轮“审片 → 修改 → 再审片”。需要看某些帧时用 `--frames 120,240,360`。
+    用户想实时预览时，可运行 `npm run dev` 打开 Remotion Studio。
+12. **检查**：`npm run film:check -- --film <filmId>`。错误必须修复；警告逐条判断。
+    motion 提示和 animatic 不替代、不弱化这道硬规则检查。
+13. **交付**：`npm run film:deliver -- --film <filmId>`。它先检查，再渲染并复验
     `deliveries/<filmId>/video.mp4`、`cover-4x3.png`、`cover-3x4.png`、`publish.json`；旧交付自动移到 `.axmorf/history/`。
-12. **报告**：交付路径、时长、关键画面与卡点所在帧、每轮审片清单的结论与帧号、修正了什么、
-    还没验证的（例如没有实际听音）。
+    缺少或过期的 animatic 会提醒，但不拦交付；交付前确认已完成节奏审片。
+14. **报告**：交付路径、时长、关键画面与卡点所在帧、每轮审片清单的结论与帧号、修正了什么、
+    storyboard 与实际成片是否一致、motionWarnings 的处理、animatic 路径，以及还没验证的（例如没有实际听音）。
 
 ## 修改已有的片
 
-直接修改 `film.json` 或源码，然后按需重新运行 `film:voice`、`film:music`，再审片、检查、交付。
+直接修改 `film.json` 或源码，然后按需重新运行 `film:voice`、`film:music`，同步更新 `storyboard.md`，再出 animatic、审片、检查、交付。
 `film:check` 会指出旁白或配乐是否与 `film.json` 不一致。不要修改 `generated/` 下的文件。
 `npm run film:list` 列出所有片及其交付状态。
 

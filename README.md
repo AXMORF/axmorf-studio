@@ -9,12 +9,12 @@
 
 AXMORF Studio 是一个基于 [Remotion](https://www.remotion.dev/) 的 Agent-first 本地视频工作室。你正在使用的 coding
 Agent 像导演兼动效设计师一样，直接用 Remotion 代码制作讲解短视频；Workspace 替它完成旁白与实测时序、原创配乐与节拍、
-素材许可、审片联系表和交付校验。项目、媒体、配置和最终视频都留在本地。
+素材许可、审片与交付校验。项目、媒体、配置和最终视频都留在本地。
 
 - **Agent-first**：支持 Codex、Claude Code、Cursor、Gemini CLI、GitHub Copilot，以及其他能读写文件并运行 npm 的
   Agent。
 - **直接创作**：每部片是 `src/films/<film-id>/` 下一个普通的 Remotion 工程，构图、镜头、转场和字幕样式都由
-  Agent 决定，并通过审片联系表看图迭代。
+  Agent 决定；先写分镜与音效计划，再看带声音 animatic 的节奏，最后看图精修。
 - **Local-first**：Workspace 和视频资产属于用户，不需要 AXMORF 云端账号。
 - **可验证交付**：完成结果固定为视频、两张封面和发布清单四个文件，不把聊天中的“完成了”当作成功。
 
@@ -54,7 +54,7 @@ npx create-axmorf-studio@latest upgrade
 
 creator 会安装精确依赖、生成 `package-lock.json`，并在原子提升目标目录前运行无 provider 的
 `bootstrap`/`doctor`。`bootstrap` 从 runtime package 投影经过清单与 checksum 验证的共享素材：片头 cinematic
-impact、片尾 8 秒电子 BGM、AXMORF 标记、24 条动效音效与五首循环 BGM。`npm run dev` 会同时启动 loopback-only
+impact、片尾 8 秒电子 BGM、AXMORF 标记、30 条原创动效音效（含 riser、reverse swell、low impact、glitch tick、whip、shimmer）与五首循环 BGM。`npm run dev` 会同时启动 loopback-only
 Web 控制中心和 Remotion Studio：前者用于作品与交付预览、配置和环境诊断，后者用于实时预览。
 
 VoxCPM 可使用配置中的本机或远程 HTTP(S) 地址（例如 Tailscale 内的自托管服务）。环境诊断只访问该服务的
@@ -78,8 +78,10 @@ AXMORF 不用操作系统 allowlist 预先阻止安装。Agent 可以准备声�
   → film:new 建立 src/films/<film-id>/（film.json 剧本 + Film.tsx + Cover.tsx）
   → film:voice 逐句 TTS，按实测音频给出每句起止帧
   → film:music 按编曲配方合成原创配乐，给出段落、重音与小节帧
-  → Agent 用 useFilmTiming() 编写画面，挂载 <FilmSoundtrack /> 与 <FilmCaptions />
-  → film:review 渲染联系表，看图修改（至少一轮）
+  → Agent 写 src/films/<film-id>/storyboard.md：章节、世界、镜头路径、配方、转场与音效 cue
+  → Agent 用 FilmSceneTrack、镜头配方和 FilmSoundEffects 编写音画，挂载 FilmSoundtrack / FilmCaptions
+  → film:review --animatic 输出带声音预览，先看节奏
+  → film:review 输出联系表与 motion / motionWarnings，对照分镜看图修改（至少一轮）
   → film:check 硬规则检查
   → film:deliver 渲染并复验四个交付文件
 ```
@@ -95,7 +97,7 @@ deliveries/<film-id>/publish.json
 
 `film:check` 只拦会导致渲染失败、交付不合格或许可问题的情况：TypeScript 错误、渲染时联网、CSS 动画、
 不确定的随机数与时间、未登记的媒体、跨片导入，以及与 `film.json` 不一致的旁白和配乐。审美和可读性靠
-Skill 中的创作方法和看图回路。修改作品就是修改源码后重新交付，上一版交付自动移到 `.axmorf/history/`。
+Skill 中的创作方法、animatic 与看图回路；motionWarnings 仅作提示，不拦交付。修改作品就是修改源码后重新交付，上一版交付自动移到 `.axmorf/history/`。
 
 ## 常用命令
 
@@ -108,6 +110,7 @@ Skill 中的创作方法和看图回路。修改作品就是修改源码后重�
 | 生成配乐与节拍网格                 | `npm run film:music -- --film <film-id>`                   |
 | 登记生成图片或原创 SVG             | `npm run film:asset -- --film <film-id> --file <path> ...` |
 | 渲染审片联系表                     | `npm run film:review -- --film <film-id>`                  |
+| 先看带声音的节奏预览               | `npm run film:review -- --film <film-id> --animatic`       |
 | 交付前检查                         | `npm run film:check -- --film <film-id>`                   |
 | 渲染并复验四个交付文件             | `npm run film:deliver -- --film <film-id>`                 |
 | 列出所有片与交付状态               | `npm run film:list`                                        |
@@ -115,7 +118,8 @@ Skill 中的创作方法和看图回路。修改作品就是修改源码后重�
 | 升级 Workspace                     | `npm run workspace:upgrade`                                |
 
 新建视频时，提示词明确指定的横竖屏、尺寸、帧率写入该片的 `film.json`；未指定字段继承配置，单次覆盖不改写长期默认值。
-制作方法见 Workspace 内的 `.agents/skills/axmorf-film/SKILL.md`。
+制作方法见 Workspace 内的 `.agents/skills/axmorf-film/SKILL.md`；分镜、六种镜头配方、音效与横屏接线示例均在其参考文档中。
+`film:review` 的 animatic 不属于交付四件套；`film:deliver` 在缺少或过期时提醒，不拦交付。
 
 ## Packages
 
