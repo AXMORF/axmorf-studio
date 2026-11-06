@@ -7,8 +7,12 @@
 
 一个 3200×1400 的证据世界：旧公理先完整出现；证据路径扫过，旧字碎裂，共有字随镜头平移，碎片重组为新公理。
 `AxiomMorph mode="reform"` 同时处理共有字的移动、旧字碎裂与新字聚合，不需要跳回另一张文字卡。
-问题章 → 证据章在 f90 用覆盖式 `mask-wipe`（12 帧），动机是证据扫过视野；两章共享世界和正片时钟。
-碎裂 f99、重组 f183 各有 cue，重组 cue 从 f181 吸附至 accent f183；镜头沿碎片的总体迁移方向跟拍。
+开场 f0→60 缓慢移镜，f45 开始显露证据线，前三秒有取景与主体两次变化，旧公理保持可读。
+问题章 → 证据章在 f90 用覆盖式 `light-leak`（12 帧，窗口 [84,96)）：证据带来的光照揭示延续暖色证据线，
+避免纯色几何遮挡切断同一世界；两章共享世界和正片时钟。
+“旧假设”只属于问题章；“可检验的结论”在证据章 f183→198 随重组完成显现，不把两个标签同时放进世界。
+碎裂 f99、重组 f183 各有 cue，重组 cue 从 f181 吸附至 accent f183；镜头沿碎片迁移方向跟拍，
+到达后 f183→299 继续缓慢漂移，让结论保持可读而不定格。
 
 ### 对应 storyboard.md 片段
 
@@ -21,19 +25,19 @@
 ## 章节 question：旧假设
 
 - 句子与范围：s01 [0, 90)（示意锚点，实际片用 film:voice 实测值）
-- 世界：3200×1400 的证据空间，旧字在 (960, 600)，远景网格、近景遮挡；字幕留在底部
-- 镜头路径：f0 中心 (960, 700)，f75 开始预备；旧公理完整可读
-- 配方：AxiomMorph reform，startFrame 75 / duration 150 / spread 260；f75/99/183/224 为四阶段
+- 世界：3200×1400 的证据空间，旧字在 (960, 600)，远景网格、近景遮挡；只有“旧假设”标签；字幕留在底部
+- 镜头路径：ProducerWorldCamera，f0 中心 (1120,740) → f60 (960,700)，ease-in-out；随后停稳至 f99，旧公理完整可读
+- 配方：证据线 f45→99 逐渐显露；AxiomMorph reform，startFrame 75 / duration 150 / spread 260；f75/99/183/224 为四阶段
 - 入章转场：无
 - 音效：s01 无，保留预期
 
 ## 章节 proof：证据改变判断
 
 - 句子与范围：s02 [90, 159)，s03 [159, 240)；[240, 300) 为收束（示意，无合成旁白）
-- 世界：沿用同一空间，证据击中旧字，新字最终位于 (2240, 600)
-- 镜头路径：CameraMove pan-along-path，f75→224，经 (960,700)→(1580,620)→(2240,700)，f183 到达
+- 世界：沿用同一空间，证据击中旧字，新字最终位于 (2240, 600)；移除旧标签，仅在 f183→198 淡入“可检验的结论”
+- 镜头路径：同一 ProducerWorldCamera，f99 (960,700) → f141 (1580,620) → f183 (2240,700)，两段 ease-in-out；再缓移至 f299 (2180,680)
 - 配方：沿用同一次 AxiomMorph，旧字裂开/共有字迁移/新字聚合，不重置时钟
-- 入章转场：f90 mask-wipe / 12 帧；证据划过视野；sfx false，避开碎裂声
+- 入章转场：f90 light-leak / 12 帧 / 窗口 [84,96)；选光照揭示呼应暖色证据线，保持世界连贯；sfx false，避开 f99 碎裂声
 - 音效：s02 f99 glitch-tick「证据击碎旧字」；s03 endFrame 183 riser-short「重组前蓄势」
 - 音效：s03 f181 soft-impact，snap accent / maxShift 3 / 窗口 [181,183]，解析为 f183「碎片重组」
 - 留白与收音：musicDips [159,183) 音量 0.02；ending landFrame 270；不改旁白字幕
@@ -50,11 +54,11 @@ import { useMemo } from "react";
 import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
 import {
   AxiomMorph,
-  CameraMove,
   FilmCaptions,
   FilmSceneTrack,
   FilmSoundEffects,
   FilmSoundtrack,
+  ProducerWorldCamera,
   measureAxiomText,
   resolveAxiomMorph,
   resolveFilmSceneTrack,
@@ -75,27 +79,33 @@ const MORPH = {
   spread: 260,
 };
 const CAMERA = {
-  startFrame: 75,
-  durationInFrames: 150,
-  preset: "pan-along-path" as const,
   width: 1920,
   height: 1080,
   worldWidth: 3200,
   worldHeight: 1400,
-  path: [
-    [960, 700],
-    [1580, 620],
-    [2240, 700],
+  shots: [
+    { frame: 0, center: [1120, 740], easing: "ease-in-out" },
+    { frame: 60, center: [960, 700] },
+    { frame: 99, center: [960, 700], easing: "ease-in-out" },
+    { frame: 141, center: [1580, 620], easing: "ease-in-out" },
+    { frame: 183, center: [2240, 700] },
+    { frame: 299, center: [2180, 680] },
   ] as const,
 };
 const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
 
 // frame is explicitly the body clock, never the enclosing scene Sequence clock.
-const AxiomWorld = ({ frame }: { frame: number }) => {
+const AxiomWorld = ({
+  frame,
+  chapter,
+}: {
+  frame: number;
+  chapter: "question" | "proof";
+}) => {
   const travel = interpolate(frame, [99, 183], [0, 1], clamp);
   const x = 960 + travel * 1280;
   return (
-    <CameraMove
+    <ProducerWorldCamera
       {...CAMERA}
       frame={frame}
       layers={[
@@ -155,7 +165,7 @@ const AxiomWorld = ({ frame }: { frame: number }) => {
                   strokeWidth={12}
                   strokeDasharray={1400}
                   strokeDashoffset={
-                    1400 * (1 - interpolate(frame, [75, 99], [0, 1], clamp))
+                    1400 * (1 - interpolate(frame, [45, 99], [0, 1], clamp))
                   }
                 />
               </svg>
@@ -179,24 +189,17 @@ const AxiomWorld = ({ frame }: { frame: number }) => {
               <div
                 style={{
                   position: "absolute",
-                  left: 800,
+                  left: chapter === "question" ? 800 : x - 160,
                   top: 990,
                   fontSize: 38,
-                  color: "#f3b66d",
+                  color: chapter === "question" ? "#f3b66d" : "#62dcda",
+                  opacity:
+                    chapter === "question"
+                      ? 1
+                      : interpolate(frame, [183, 198], [0, 1], clamp),
                 }}
               >
-                旧假设
-              </div>
-              <div
-                style={{
-                  position: "absolute",
-                  left: 2100,
-                  top: 990,
-                  fontSize: 38,
-                  color: "#62dcda",
-                }}
-              >
-                可检验的结论
+                {chapter === "question" ? "旧假设" : "可检验的结论"}
               </div>
             </>
           ),
@@ -234,14 +237,14 @@ export const AxiomStoryExample = () => {
       id: "old",
       from: 0,
       chapter: "question",
-      render: (f) => <AxiomWorld frame={f} />,
+      render: (f) => <AxiomWorld frame={f} chapter="question" />,
     },
     {
       id: "evidence",
       from: 90,
       chapter: "proof",
-      enter: { kind: "mask-wipe", frames: 12, sfx: false },
-      render: (f) => <AxiomWorld frame={f + 90} />,
+      enter: { kind: "light-leak", frames: 12, sfx: false },
+      render: (f) => <AxiomWorld frame={f + 90} chapter="proof" />,
     },
   ];
   const track = resolveFilmSceneTrack(film, scenes);
@@ -253,6 +256,7 @@ export const AxiomStoryExample = () => {
       <FilmSoundEffects
         cues={[
           ...track.sfxCues,
+          // Fracture stays at f99, after the light-leak window [84, 96).
           { ...morph.sfxCues[0], for: "s02：证据击碎旧字" },
           // The visual land is f183; f181 snaps to the fixture's accent at f183.
           {
@@ -279,10 +283,11 @@ export const AxiomStoryExample = () => {
 
 Gallery 组合 id：`AxiomStoryGallery`（`npm run dev` → System）。适配层只在 gallery 使用共享已许可的
 118 BPM 循环与静态节拍网格，无 provider 调用；实际片挂接 `film:music` 生成的网格。
-在仓库根目录可验证：
+在仓库根目录验证时，先重建本地包（gallery 入口读取编译产物），再列组合与渲染：
 
 ```bash
 npm run typecheck
+npm --workspace @axmorf/studio run build:runtime
 npm run compositions
 npx remotion still src/index.ts AxiomStoryGallery out/axiom-story.png --frame=183
 npx remotion render src/index.ts AxiomStoryGallery out/axiom-story.mp4

@@ -8,6 +8,14 @@ const skill = ".agents/skills/axmorf-film/references";
 
 test("landscape Skill example stays identical to the compiled gallery source", async () => {
   const source = await readFile(`${skill}/examples.md`, "utf8");
+  assert.equal(
+    await readFile(
+      `packages/create-axmorf-studio/template/${skill}/examples.md`,
+      "utf8",
+    ),
+    source,
+    "New Workspaces must receive the same landscape example as the repository.",
+  );
   const example = source.match(/```tsx\n([\s\S]*?)```/u)?.[1];
   const gallery = await readFile(
     "packages/studio/src/remotion/compositions/capability-gallery/AxiomStoryExample.tsx",

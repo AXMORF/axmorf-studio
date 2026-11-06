@@ -2,11 +2,11 @@ import { useMemo } from "react";
 import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
 import {
   AxiomMorph,
-  CameraMove,
   FilmCaptions,
   FilmSceneTrack,
   FilmSoundEffects,
   FilmSoundtrack,
+  ProducerWorldCamera,
   measureAxiomText,
   resolveAxiomMorph,
   resolveFilmSceneTrack,
@@ -27,27 +27,33 @@ const MORPH = {
   spread: 260,
 };
 const CAMERA = {
-  startFrame: 75,
-  durationInFrames: 150,
-  preset: "pan-along-path" as const,
   width: 1920,
   height: 1080,
   worldWidth: 3200,
   worldHeight: 1400,
-  path: [
-    [960, 700],
-    [1580, 620],
-    [2240, 700],
+  shots: [
+    { frame: 0, center: [1120, 740], easing: "ease-in-out" },
+    { frame: 60, center: [960, 700] },
+    { frame: 99, center: [960, 700], easing: "ease-in-out" },
+    { frame: 141, center: [1580, 620], easing: "ease-in-out" },
+    { frame: 183, center: [2240, 700] },
+    { frame: 299, center: [2180, 680] },
   ] as const,
 };
 const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
 
 // frame is explicitly the body clock, never the enclosing scene Sequence clock.
-const AxiomWorld = ({ frame }: { frame: number }) => {
+const AxiomWorld = ({
+  frame,
+  chapter,
+}: {
+  frame: number;
+  chapter: "question" | "proof";
+}) => {
   const travel = interpolate(frame, [99, 183], [0, 1], clamp);
   const x = 960 + travel * 1280;
   return (
-    <CameraMove
+    <ProducerWorldCamera
       {...CAMERA}
       frame={frame}
       layers={[
@@ -107,7 +113,7 @@ const AxiomWorld = ({ frame }: { frame: number }) => {
                   strokeWidth={12}
                   strokeDasharray={1400}
                   strokeDashoffset={
-                    1400 * (1 - interpolate(frame, [75, 99], [0, 1], clamp))
+                    1400 * (1 - interpolate(frame, [45, 99], [0, 1], clamp))
                   }
                 />
               </svg>
@@ -131,24 +137,17 @@ const AxiomWorld = ({ frame }: { frame: number }) => {
               <div
                 style={{
                   position: "absolute",
-                  left: 800,
+                  left: chapter === "question" ? 800 : x - 160,
                   top: 990,
                   fontSize: 38,
-                  color: "#f3b66d",
+                  color: chapter === "question" ? "#f3b66d" : "#62dcda",
+                  opacity:
+                    chapter === "question"
+                      ? 1
+                      : interpolate(frame, [183, 198], [0, 1], clamp),
                 }}
               >
-                旧假设
-              </div>
-              <div
-                style={{
-                  position: "absolute",
-                  left: 2100,
-                  top: 990,
-                  fontSize: 38,
-                  color: "#62dcda",
-                }}
-              >
-                可检验的结论
+                {chapter === "question" ? "旧假设" : "可检验的结论"}
               </div>
             </>
           ),
@@ -186,14 +185,14 @@ export const AxiomStoryExample = () => {
       id: "old",
       from: 0,
       chapter: "question",
-      render: (f) => <AxiomWorld frame={f} />,
+      render: (f) => <AxiomWorld frame={f} chapter="question" />,
     },
     {
       id: "evidence",
       from: 90,
       chapter: "proof",
-      enter: { kind: "mask-wipe", frames: 12, sfx: false },
-      render: (f) => <AxiomWorld frame={f + 90} />,
+      enter: { kind: "light-leak", frames: 12, sfx: false },
+      render: (f) => <AxiomWorld frame={f + 90} chapter="proof" />,
     },
   ];
   const track = resolveFilmSceneTrack(film, scenes);
@@ -205,6 +204,7 @@ export const AxiomStoryExample = () => {
       <FilmSoundEffects
         cues={[
           ...track.sfxCues,
+          // Fracture stays at f99, after the light-leak window [84, 96).
           { ...morph.sfxCues[0], for: "s02：证据击碎旧字" },
           // The visual land is f183; f181 snaps to the fixture's accent at f183.
           {
