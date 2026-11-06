@@ -66,7 +66,11 @@ export const AxiomMorphCard = () => {
 - 什么时候用：金额、计数或量级揭示。
 - 什么时候避开：精确读数需要始终可读时。
 - 建议时长：0.8–2 秒，按本片 fps 换算帧，保留停稳阅读时间。
-- 关键参数：`value`（绝对值 < 1e15）、`decimals`（0–8）、`grouping`、`prefix/suffix`、`turns`（1–6）、`fontSize`。落定帧每一位都是最终值。
+- 关键参数：`value`（绝对值 < 1e15）、`decimals`（0–8）、`grouping`、`prefix/suffix`、`turns`（1–6，递增速度控制）、`fontSize`。落定帧每一位都是最终值。
+- 过程中的数值不能误导：不能大于目标值，不能和旁白矛盾。所有数字列由同一个单调递增的定点数值生成，
+  按 `decimals` 的显示精度向下取值（避免舍入超过事实目标），千分位与前后缀一起格式化；
+  过冲只做位移回弹，不改变数值。
+  非负目标从 0 增长，负目标从显示目标的两倍递增到目标；需要始终看到精确事实时直接显示最终值。
 - 声音建议：land → soft-impact。下面从 resolver 取 cue 交给 FilmSoundEffects；可选取，避免与转场重复。
 - Gallery 组合 id：`Recipe-NumberRoll`。
 

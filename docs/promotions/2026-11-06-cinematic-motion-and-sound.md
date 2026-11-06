@@ -236,6 +236,16 @@ ParallaxLayers 复用任意深度的 ProducerWorldCamera，不另建投影引擎
 带声预览（含片头片尾）已生成、看图与完整解码通过；人工听审留待后续。
 校准阈值、证据路径、验证范围和未验证项见 [ITERATION_STATUS](../ITERATION_STATUS.md)。
 
+**P5 审片反馈修正（2026-11-07，未发布）**：本批只改代码、Skill 和文档，不重做片子。
+已强化 AxiomMorph 母题与横屏示例必读、storyboard 句子/帧号、空容器时限、前景避让、状态标识正文级字号/对比及手机亮度建议；
+NumberRoll 改为同一递增数值驱动所有列、数值不越目标、仅位移回弹；两份 Skill 逐字一致，registry 安装说明同步。
+新增仅提示的 `text-under-foreground` 与 `repeated-composition`，无场景轨或不可靠命中保持 unknown，不进入检查/交付门禁。
+新增 16 项回归，完整 `npm run check` 通过（437 项：436 通过，1 项平台跳过）；NumberRoll gallery 的 108 帧短片与五张 still
+已重渲、看图、完整解码。P5 临时副本真实 review 命中 9 条前景遮挡（含 f873「64 × H100」，20%）；
+`repeated-composition` 为 `[]`，结尾三个镜头仍在同一场景且没有内部切点，中点法不能单独比较它们，未扩大方案范围。
+片源只读、复制品按 owned-path 清理，不提交素材；证据、漏检边界及尚未验证范围见 [ITERATION_STATUS](../ITERATION_STATUS.md)。
+下一轮仍需全新 Agent 制作 P5-v3，并由用户实际审阅；此批不代表 P5 通过。
+
 P5 由“只读 Skill 的新 Agent”来做，是为了检验 Skill 能不能把 Agent 引到这些能力上，而不是检验实现者能不能手工做出好片。
 
 ## 7. 风险与取舍

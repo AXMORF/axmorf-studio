@@ -60,6 +60,17 @@ these against `storyboard.md`, revises the film and updates the plan. They are a
 The optional `review/animatic.mp4` is a preview, not a fifth delivery file; the Skill requires watching it before completion.
 `film:deliver` reminds you when the animatic is missing or older than the source, without blocking delivery.
 
+## Registry when creating or upgrading
+
+Using npmmirror with `prefer-offline` can make installation fail with `three@undefined` (`ERESOLVE`).
+For creation or upgrade, use `npm_config_registry=https://registry.npmjs.org/ npm_config_prefer_online=true`:
+
+```bash
+npm_config_registry=https://registry.npmjs.org/ npm_config_prefer_online=true npm run workspace:upgrade
+```
+
+Keep exact dependency versions; do not bypass checks with `--force` or `--legacy-peer-deps`.
+
 ## Completion means four verified files
 
 ```text

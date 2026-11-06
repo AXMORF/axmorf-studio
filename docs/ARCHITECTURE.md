@@ -63,7 +63,9 @@ film:deliver → .axmorf/staging 中渲染正片（片头 + 正片 + 片尾）�
 
 渲染期间不调用网络、Agent、Git 或目录扫描；Remotion Root 只读生成的静态注册表。`Film.tsx` 只看到正片帧，
 片头片尾由 `FilmWithBookends` 在交付组合中接上，各自带模板音频。场景轨按名义边界居中安排转场，不挪旁白绝对时序；音效 cue 显式交给音效轨，
-配乐支持揭示前的 musicDips 与 ending 收音。上述 motion 字段是 `film:review` 输出，阈值待样片校准；
+配乐支持揭示前的 musicDips 与 ending 收音。可读性测量用可见文字矩形的命中采样提示 `text-under-foreground`，不可靠命中保留 `readability.unknown`；
+运动分析以场景轨/内部候选切点的中点签名提示非相邻的 `repeated-composition`（含旁白时段，无场景轨旧片为 unknown）。
+上述 motion 字段是 `film:review` 输出，阈值待样片校准；
 不拦 `film:check`/交付。animatic 默认关闭、Skill 要求成片前至少看一次；缺少或过期时交付命令提醒，不增加交付文件。
 
 ## 4. 写入所有权与并发

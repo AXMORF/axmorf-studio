@@ -77,6 +77,16 @@ the files are restored. `.axmorf/managed.json` records checksums so later upgrad
 `localChanges`. Use `--dry-run` to list changes without writing. The upgrade refuses to run while a film command holds
 `.project-operation.lock`. Workspaces created from 0.1.23 on also have `npm run workspace:upgrade`.
 
+When the registry is npmmirror and `prefer-offline` is enabled, creation or upgrade may fail with
+`three@undefined` (`ERESOLVE`). Use the official registry and prefer online metadata for that operation:
+
+```bash
+npm_config_registry=https://registry.npmjs.org/ npm_config_prefer_online=true npm create axmorf-studio@latest my-video -- --yes
+npm_config_registry=https://registry.npmjs.org/ npm_config_prefer_online=true npx create-axmorf-studio@latest upgrade
+```
+
+Keep the exact dependency versions; do not bypass checks with `--force` or `--legacy-peer-deps`.
+
 ## Requirements
 
 - Node.js 20.19 or newer

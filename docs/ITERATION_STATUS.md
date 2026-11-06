@@ -1,5 +1,58 @@
 # Iteration Status
 
+## P5 审片反馈修正（2026-11-07，未发布）
+
+本批只改运行时、Skill 与文档，没有重做、交付或发布影片；后续由全新 Agent 做 P5-v3 验证 Skill 引导。
+
+- Skill 的分镜/编写流程与 craft 构思/章节明确要求：旁白出现旧公理或新公理候选时，用 `AxiomMorph`
+  从旧公理形变到候选，必读横屏示例并在 storyboard 写句子 id 与出现/形变/落定/阅读帧。
+  补入空容器约 0.3 秒内开始出内容、不得等待超过约 0.5 秒、前景避让阅读文字、状态标识正文级字号
+  （不低于 `minimumReadableFontSize`）与清楚对比、手机亮度建议，并逐条审片；两份 Skill 逐字一致。
+- `NumberRoll` 的所有列改由同一个单调递增的定点整数生成（非负从 0 起，负目标从显示目标的两倍起）；
+  保持 props 签名与原有返回字段类型，新增当前 `displayText` 与位移 `offsetInEm`。
+  千分位、小数、符号、前后缀保持支持，`turns` 保留为递增速度控制；回弹只动位置，不动数值。
+  显示精度向下取值，避免舍入后超过事实目标；配方卡提醒过程数值不得大于目标或与旁白矛盾。
+- `text-under-foreground`：对非字幕的可见文字矩形做 10×3 点 `elementsFromPoint` 测量，
+  累积 opacity ≥0.3 的非字幕前景覆盖 ≥20% 时在 `readabilityWarnings` 提示，附帧与覆盖比例。
+  忽略透明布局容器；pointer-events:none 等不可靠命中在 `readability.unknown` 中保留，不报遮挡警告。
+  新遥测字段 optional，兼容旧日志；采样、opacity 与覆盖阈值均为待校准常量。
+- `repeated-composition`：以单一完整场景轨的边界和内部候选切点分段，排除转场窗口与不足 1 秒的切点碎段，
+  渲染精确中点，比较所有非相邻段落的 64×64 灰度签名，MAD <12 时提示两个帧号，包含有旁白时段。
+  无场景轨、日志不完整/歧义或缺中点签名为 unknown。阈值待校准；没有添加新的镜头识别器。
+- release 指南、根 README/creator 升级说明和模板 README 记录 npmmirror + prefer-offline 的 `three@undefined`
+  （ERESOLVE）及官方 registry / prefer-online 环境变量；未改依赖或使用安装绕过参数。
+
+真实验证只读取试用 Workspace，复制 17 个片源文件及媒体到当前 worktree 的临时 fixture，确认片源 SHA256
+逐项一致；没有向主 checkout、ai Workspace、试用 Workspace 写入，也未调用 TTS。
+更新 runtime build 后跑 P5 `film:review`，2643 帧正片 / 30fps，177 个运动样本、6 场景、31 cue；
+readability/motion 无 missingFrames、badLines、truncated 或 unknown。`text-under-foreground` 输出 9 条：
+
+```text
+"64 × H100": f873，20%
+"此前实验": f1161，37%
+"接口匹配 · 证明能用": f2176 / f2215，67% / 33%
+```
+
+`repeated-composition` 的 P5 输出为 `[]`：结尾在同一场景 `[1936,2643)`，没有检测到内部切点，
+只取到一个中点 f2289，无法把结尾三个镜头互相比对。六段的中点为 f135/f645/f1188/f1494/f1782/f2289；
+非相邻中点均未达到 MAD <12 的提示阈值（另以 0.25 scale 中点图复核，最小 MAD 约 23.65）。没有为制造命中而放宽阈值或新增镜头分段；
+这条规则的正例/反例、仅相邻不报、阈值边界与 unknown 已有单测，但 P5 结尾仍是已知漏检，不能宣称该处已被识别。
+
+新增 16 项回归：NumberRoll 10 项（逐帧解析实际列、千分位/小数/带数字前后缀、负数/0、高精度、
+不同 turns 与向下舍入）；前景 3 项（20% 边界、字幕/离屏跳过、跨帧合并、unknown/旧日志及 schema）；
+构图 3 项（非相邻/旁白、阈值、unknown、场景/内部切点与转场排除）。
+完整 `npm run check` 通过（437 项：436 通过，Linux 跳过 1 项 macOS 专用测试），含 typecheck、lint、
+文档/素材检查、Web/Remotion 构建、creator 包检查与宿主 compositions；
+两包构建、包级 typecheck、runtime `build:types` 和 `check:package` 也通过。
+NumberRoll gallery 已重渲 1920×1080 / 30fps / 108 帧 H.264 + AAC 双声道短片及 f25/40/63/65/100 still；
+运动与停稳画面已看图，完整解码至 EOF 通过，f40 为 ¥10,097.35、f100 为 ¥12,804.75。
+
+证据在本 worktree `out/p5-fixes-validation/`（ignored）：review.json、review-original.json、review/、
+fixture-source/、source-sha256.json、midpoints/（中点图与距离对照）、gallery/（预览、still、media-validation.json）。
+临时片已按 `film:delete` 的 owned-path 清理；片源副本、媒体和验证输出不提交。
+尚未验证：P5-v3、新 Agent 是否遵循新增 Skill 规则、更多片型的提示阈值泛化、人工连续播放听审、
+npmmirror 安装修复环境变量的本次重现实跑。两条新提示均未接入 `film:check` 或交付门禁，现有检查未降低。
+
 ## 审片运动提示与 animatic P3（2026-11-07，未发布）
 
 按 [实施方案](promotions/2026-11-06-cinematic-motion-and-sound.md) 完成第 4 节及 deliver 提醒：

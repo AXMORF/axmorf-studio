@@ -20,7 +20,9 @@
 | 分镜与音效计划（storyboard） | Agent 写入 `src/films/<filmId>/storyboard.md` 的章节、世界、镜头路径、配方、转场、音效及句子 id/帧号；审片和改片时同步核对。 |
 | animatic | `film:review --animatic` 输出的 `review/animatic.mp4`：短边 360、原帧率、带声音的连续预览，先看节奏再精修；默认关闭，Skill 要求成片前至少看一次，不属于交付物。 |
 | 素材登记（FilmAssets） | `assets.json` 中每个媒体文件的来源、作者、许可与 checksum，由 `film:asset` 写入；`film:check` 拒绝未登记或被改动的媒体。 |
-| 审片（review） | `film:review` 用 `<filmId>--review` 组合渲染所选帧，生成联系表、`stillWarnings`（相隔 2 秒以上且几乎不变的帧对）与 `readabilityWarnings`（实测字号、文字越界、字幕遮挡）；`readability` 列出测量帧数与缺失帧。另输出运动声音摘要 `motion` 与 `motionWarnings`、变化曲线及被标记时段的密集帧。全部仅作提示，不拦截检查或交付。 |
+| 审片（review） | `film:review` 用 `<filmId>--review` 组合渲染所选帧，生成联系表、`stillWarnings`（相隔 2 秒以上且几乎不变的帧对）与 `readabilityWarnings`（实测字号、文字越界、字幕遮挡、前景遮挡）；`readability` 列出测量帧数与缺失帧。另输出运动声音摘要 `motion` 与 `motionWarnings`、变化曲线及被标记时段的密集帧。全部仅作提示，不拦截检查或交付。 |
+| `text-under-foreground` | `readabilityWarnings` 提示：非字幕可见文字矩形按 10×3 点命中测量，被有效 opacity ≥ 0.3 的非字幕前景覆盖 ≥20% 时提示并列帧号；pointer-events:none 等不可靠命中在 `readability.unknown` 中记录，不报警。阈值待校准，不拦交付。 |
+| `repeated-composition` | `motionWarnings` 提示：用单一完整场景轨的边界及内部候选切点分段，取各段中点的 64×64 灰度签名，非相邻段的 MAD <12 时提示中点帧号（包含有旁白时段）；无场景轨旧片、日志或签名缺失时为 unknown。阈值待校准，不作语义判断或交付门禁。 |
 | 交付（delivery） | `deliveries/<filmId>/` 下恰好四个文件：`video.mp4`、`cover-4x3.png`、`cover-3x4.png`、`publish.json`，全部复验后才替换上一版。 |
 | 历史交付 | 被新交付替换的旧交付，按其 `deliveredAt` 存于 `.axmorf/history/<filmId>/`。 |
 | Workspace 操作锁 | `.project-operation.lock`；film 写命令与 Workspace 升级互斥，被占用时直接失败。 |

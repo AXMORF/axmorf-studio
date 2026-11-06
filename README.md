@@ -52,6 +52,14 @@ npm run dev
 npx create-axmorf-studio@latest upgrade
 ```
 
+registry 使用 npmmirror 且开启 `prefer-offline` 时，创建或升级的安装可能报 `three@undefined`（`ERESOLVE`）。
+为该次操作指定官方 registry 并优先在线元数据：
+
+```bash
+npm_config_registry=https://registry.npmjs.org/ npm_config_prefer_online=true npm create axmorf-studio@latest my-video -- --yes
+npm_config_registry=https://registry.npmjs.org/ npm_config_prefer_online=true npx create-axmorf-studio@latest upgrade
+```
+
 creator 会安装精确依赖、生成 `package-lock.json`，并在原子提升目标目录前运行无 provider 的
 `bootstrap`/`doctor`。`bootstrap` 从 runtime package 投影经过清单与 checksum 验证的共享素材：片头 cinematic
 impact、片尾 8 秒电子 BGM、AXMORF 标记、30 条原创动效音效（含 riser、reverse swell、low impact、glitch tick、whip、shimmer）与五首循环 BGM。`npm run dev` 会同时启动 loopback-only

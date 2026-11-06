@@ -44,6 +44,9 @@ Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐�
 7. **分镜与音效计划**（必做）：先写 `src/films/<filmId>/storyboard.md`，并告知用户文件路径和画面路线。
    按 [画面手艺](references/craft.md) 划分章节，为每章设计一个连续世界与跟随因果的镜头路径；
    用 [镜头配方](references/recipes.md) 选择动作，用 [音效计划](references/sound.md) 记录可见动作的声音落点。
+   **旁白里出现旧公理，或者出现新公理候选时，用 AxiomMorph 从旧公理形变到新公理候选**，这是账号母题。
+   必须先读 [横屏「旧公理文字形变」示例](references/examples.md#横屏19201080旧公理文字形变)，
+   在 storyboard 写清旧/新文字、对应句子 id、出现/形变/落定/阅读的帧号；不能只把两段文字分别淡入。
    句子 id 与帧号来自旁白实测时序和音乐网格，全部计正片帧；无旁白时句子 id 写“无”。最小模板：
 
    ```markdown
@@ -70,6 +73,10 @@ Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐�
    - 用 `useFilmTiming()` 读取每句旁白的帧区间和音乐网格，画面变化跟着旁白语义走，关键落点对齐重音或小节线。
    - 推荐用 `FilmSceneTrack` 组织章节与场景：同章默认连续、不写 `enter`，跨章才选择有动机的转场。
      配方只解决怎么动，构图和世界从剧本出发，不原样粘贴配方卡。
+   - 按 storyboard 用 `AxiomMorph` 呈现旧公理到新公理候选的形变；旧公理或候选出现的句子都要有对应动作与帧号，
+     参考 [横屏「旧公理文字形变」示例](references/examples.md#横屏19201080旧公理文字形变)。
+   - 「已发生 / 迹象 / 推测」等状态标识是账号内容红线，字号须达到正文可读标准，不低于
+     `minimumReadableFontSize(width, height)`；对比清楚，在手机尺寸下可读，不能当小字装饰。
    - 用 `FilmSoundEffects` 放置计划中的音效；把场景轨和配方 resolver 的 `sfxCues` 显式交给它，组件不会自动发声。
    - 必须挂载 `<FilmSoundtrack />` 与 `<FilmCaptions />`（字幕放在最上层，均在场景轨之外）。
    - 按段落拆成子组件或 `scenes/*.tsx`；所有文件留在本片目录内。
@@ -86,11 +93,14 @@ Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐�
     ```
     打开输出的 `contact-sheet.jpeg` 和单帧图片，按 [画面手艺](references/craft.md#审片) 逐条回答并写下帧号证据，
     修改后再次审片。输出里的 `stillWarnings` 列出相隔 2 秒以上却几乎没变的帧，必须改或说明理由。
-    `readabilityWarnings` 提示实测字号过小、文字越界或被字幕遮挡；必须为空，或逐条给出理由。
+    `readabilityWarnings` 提示实测字号过小、文字越界、被字幕或前景遮挡；必须为空，或逐条给出理由。
     `repetitionWarnings` 只统计没有旁白的时段，提示同一画面在开场、转场、高潮里反复出现；同样逐条修改或说明理由。
     `readability` 中的 `missingFrames`、`truncatedFrames` 不为空时，补看对应单帧，不把测量缺失当作通过。这些提示不拦截交付。
     `film:review` 输出的 `motion` / `motionWarnings` 记录运动与声音提示：motionWarnings 必须为空，或按
-    [审片](references/craft.md#审片) 对五条规则逐条说明理由与帧号；`unknown` 不是已通过。
+    [审片](references/craft.md#审片) 对各条规则逐条说明理由与帧号；`unknown` 不是已通过。
+    `text-under-foreground` 必须逐条回应；`readability.unknown` 中命中判定不准的文字（如 pointer-events:none）
+    要看图核对。`repeated-composition` 比较包含旁白的非相邻段落构图；没有场景轨的旧片保持 unknown。
+    单独检查状态标识的正文级字号与对比，写出帧号证据。
     对照 `storyboard.md` 核对章节、世界、镜头路径、配方落点、转场和音效，偏离计划就同步修改。
     至少完成一轮“审片 → 修改 → 再审片”。需要看某些帧时用 `--frames 120,240,360`。
     用户想实时预览时，可运行 `npm run dev` 打开 Remotion Studio。
