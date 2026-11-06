@@ -1,5 +1,33 @@
 # Iteration Status
 
+## 场景轨与音效轨 P1（2026-11-06，未发布）
+
+按 [实施方案](promotions/2026-11-06-cinematic-motion-and-sound.md) 完成 P1：
+
+- `@axmorf/studio/remotion` 新增 `FilmSceneTrack` / `resolveFilmSceneTrack`：句子 id 或绝对帧编排，
+  4 种覆盖式与 8 种重叠式转场，窗口居中，补偿 Sequence 时长，保持正片长度与名义边界；提前出现时本地帧钳到 0。
+  resolver 校验边界、窗口和相邻场景长度，并产出可直接传入音效轨的 `sfxCues`。
+- 新增 `FilmSoundEffects` / `resolveFilmSoundEffects`：共享角色/id、已登记素材、起点/终点锚定、
+  beat/bar/accent/section 有界吸附、同帧去重及旁白压低。本片素材复用 `FilmAssetSchema`，由调用方传入登记条目与实测时长。
+- `FilmSoundtrack` 增加 `musicDips` 和 `ending`；留白与旁白压低取较低音量，复用 8 帧斜坡。
+  ending 默认选最后一个有效重音（无重音取正片末尾），可指定帧，收尾音效尾端也对齐该帧。
+  不传新参数时输出逐字段保持原状，旧转场映射的类型与行为保留。
+- 扩展既有 `scripts/sound-effects/generate.ts` 确定性 PCM 合成器，生成 riser-short、reverse-swell、
+  low-impact、glitch-tick、whip、shimmer；冻结 WAV、Apache-2.0 许可与媒体元数据进入共享 seed、manifest 和打包校验，
+  沿用创建/升级 Workspace 的资源分发路径。
+
+验证：新增 18 项回归测试通过；完整 `npm run check` 通过（381 项，380 通过，1 项 macOS 专用测试在 Linux 跳过；
+含 typecheck、lint、文档/素材检查、Web/Remotion 构建、creator 包检查与宿主 Chromium compositions）。
+两包 typecheck/build、runtime `check:package`、六个 WAV 两次逐字节复现及 manifest 校验通过。
+12 种转场分别通过真实 Chromium 中点 still 冒烟；gallery 的 match-scale + flash + 多音效示例已渲染、看图，
+预览为 960×540 / 30fps / 87 帧（视频 2.9 秒，含 AAC 的容器 2.944 秒），H.264 + AAC 完整解码通过，音轨非静音。
+预览目录：`/home/zzzxc/AgentWorkspace/backups/axmorf-p1-preview/`（`scene-track.png`、`scene-track.mp4`、`transitions/`）。
+开发仓库预览用 `--public-dir=packages/studio/src/runtime/workspace-seed/files/public` 读取共享 seed。
+现有 Remotion CLI 仍提示仓库锁定的 zod 4.6.7 与其建议 4.3.6 不同；此次检查与渲染均成功。
+
+尚未验证：人工实际听审、独立新 Workspace 的安装/升级实跑、生产片新旧对比；后续按 P5 验收。
+Skill、api.md 和其他权威文档的能力说明按计划留到 P4 同步。
+
 ## VoxCPM 参考音频转换与远程服务诊断（2026-10-28，0.3.0-rc.5 候选）
 
 已在本机复现高保真克隆上传前 `FFmpeg prompt normalization failed with exit code 234`：

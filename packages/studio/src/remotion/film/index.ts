@@ -18,3 +18,7 @@ export {
   type FilmSoundtrackProps,
 } from "./FilmSoundtrack";
 export { FilmCompositions, type FilmRegistryEntry } from "./compositions";
+
+export * from "./scene-track";
+export * from "./FilmSceneTrack";
+export * from "./FilmSoundEffects";

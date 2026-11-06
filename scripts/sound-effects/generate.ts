@@ -31,6 +31,12 @@ export const soundEffectDefinitions = [
   { name: "notification-ping", duration: 0.45, syncTime: 0, peak: 0.28 },
   { name: "warning-blip", duration: 0.35, syncTime: 0, peak: 0.3 },
   { name: "success-arpeggio", duration: 0.7, syncTime: 0, peak: 0.3 },
+  { name: "riser-short", duration: 0.8, syncTime: 0.8, peak: 0.3 },
+  { name: "reverse-swell", duration: 0.7, syncTime: 0.7, peak: 0.3 },
+  { name: "low-impact", duration: 0.6, syncTime: 0, peak: 0.42 },
+  { name: "glitch-tick", duration: 0.12, syncTime: 0, peak: 0.28 },
+  { name: "whip", duration: 0.28, syncTime: 0.14, peak: 0.32 },
+  { name: "shimmer", duration: 0.85, syncTime: 0, peak: 0.26 },
 ] as const;
 
 type SoundEffectDefinition = (typeof soundEffectDefinitions)[number];
@@ -88,6 +94,45 @@ export const renderSoundEffectWav = (
     let sample: number;
     let pan = 0;
     switch (name) {
+      case "riser-short":
+        sample =
+          progress ** 1.8 *
+          (0.6 * (bandNoise - lowNoise) +
+            0.18 * sine(180 * time + 1800 * time * time));
+        pan = -0.2 + progress * 0.4;
+        break;
+      case "reverse-swell":
+        sample =
+          progress ** 2.6 *
+          (sine(140 * time) + 0.28 * sine(281 * time) + 0.35 * lowNoise);
+        break;
+      case "low-impact":
+        sample =
+          envelope(time, 0.002, 0.14) *
+            sine(42 * time + 90 * 0.04 * (1 - Math.exp(-time / 0.04))) +
+          0.18 * envelope(time, 0.001, 0.018) * bandNoise;
+        break;
+      case "glitch-tick":
+        sample =
+          envelope(time, 0.0008, 0.018) *
+          (0.6 * Math.sign(sine(1700 * time)) + 0.4 * whiteNoise) *
+          (Math.floor(time * 350) % 3 === 0 ? 0.15 : 1);
+        break;
+      case "whip":
+        sample =
+          Math.exp(-0.5 * ((time - 0.14) / 0.035) ** 2) *
+          (whiteNoise -
+            lowNoise +
+            0.12 * sine(600 * time + 3600 * time * time));
+        pan = -0.65 + progress * 1.3;
+        break;
+      case "shimmer":
+        sample =
+          note(time, 1567.982, 0.19) +
+          0.6 * note(time - 0.07, 2349.318, 0.22) +
+          0.4 * note(time - 0.14, 3135.964, 0.25);
+        pan = 0.3 * sine(progress * 2);
+        break;
       case "ui-click":
         sample =
           envelope(time, 0.0008, 0.008) *

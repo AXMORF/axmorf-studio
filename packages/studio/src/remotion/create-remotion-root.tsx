@@ -3,6 +3,7 @@ import { Composition, Folder } from "remotion";
 
 import { DEFAULT_SCENE_TEMPLATE_AUDIO_PROJECTION } from "./capabilities/scene-templates/registry";
 import { SceneTemplateAudioProjectionSchema } from "./capabilities/scene-templates/template-audio";
+import { SceneTrackGallery } from "./compositions/capability-gallery/SceneTrackGallery";
 import { CapabilityGallery } from "./compositions/capability-gallery/CapabilityGallery";
 import {
   BrandRevealTemplatePreview,
@@ -40,6 +41,14 @@ export const createRemotionRoot = (
           id="CapabilityGallery"
           component={CapabilityGallery}
           durationInFrames={150}
+          fps={30}
+          width={1920}
+          height={1080}
+        />
+        <Composition
+          id="SceneTrackGallery"
+          component={SceneTrackGallery}
+          durationInFrames={90}
           fps={30}
           width={1920}
           height={1080}

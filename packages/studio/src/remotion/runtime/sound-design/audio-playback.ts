@@ -94,3 +94,23 @@ export const resolveSoundVolume = (
   // Overlapping ramps use the lower gain, keeping the envelope piecewise linear.
   return volume * Math.max(0, Math.min(1, inGain, outGain));
 };
+
+/** Combines independent absolute-volume envelopes without double ducking. */
+export const resolveSoundDuckingGain = (
+  localFrame: number,
+  baseVolume: number,
+  speechDucking?: SpeechDucking,
+  volumeDips: readonly SpeechDucking[] = [],
+) => {
+  const envelopes = [
+    ...(speechDucking === undefined ? [] : [speechDucking]),
+    ...volumeDips,
+  ];
+  return envelopes.length === 0
+    ? 1
+    : Math.min(
+        ...envelopes.map((envelope) =>
+          resolveSpeechDuckingGain(localFrame, baseVolume, envelope),
+        ),
+      );
+};

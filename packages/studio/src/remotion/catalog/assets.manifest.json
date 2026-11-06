@@ -1362,6 +1362,264 @@
         "codec": "pcm_s16le",
         "sampleRate": 44100
       }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "asset.axmorf.sfx.riser-short-v1",
+      "kind": "asset",
+      "status": "approved",
+      "title": "AXMORF riser-short",
+      "description": "Original deterministic riser-short synthesized offline by scripts/sound-effects/generate.ts.",
+      "useCases": [
+        "Cinematic scene transition",
+        "Motion-synchronized sound effect"
+      ],
+      "tags": [
+        "axmorf",
+        "cinematic",
+        "riser-short",
+        "sound-effect"
+      ],
+      "authority": {
+        "kind": "repository-file",
+        "repositoryPath": "src/remotion/catalog/assets.manifest.json"
+      },
+      "allowedUse": "runtime-approved",
+      "assetKind": "audio",
+      "mediaRole": "sound-effect",
+      "localPath": "public/assets/axmorf-shared/audio/sound-effects/axmorf-riser-short-v1.wav",
+      "checksum": "sha256:f8a7b0cd34419d459910e4d2d15ddd40ac61dc695b366b04b29e08c750e22b90",
+      "license": {
+        "id": "Apache-2.0",
+        "verificationStatus": "verified",
+        "sourceUrl": "https://github.com/AXMORF/axmorf-studio/blob/HEAD/LICENSE",
+        "attributionRequired": false,
+        "attributionText": null,
+        "verifiedAt": "2026-11-06T00:00:00.000Z",
+        "sourceEvidenceFingerprint": "sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "media": {
+        "mimeType": "audio/wav",
+        "sizeBytes": 153644,
+        "durationInSeconds": 0.8,
+        "codec": "pcm_s16le",
+        "sampleRate": 48000
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "asset.axmorf.sfx.reverse-swell-v1",
+      "kind": "asset",
+      "status": "approved",
+      "title": "AXMORF reverse-swell",
+      "description": "Original deterministic reverse-swell synthesized offline by scripts/sound-effects/generate.ts.",
+      "useCases": [
+        "Cinematic scene transition",
+        "Motion-synchronized sound effect"
+      ],
+      "tags": [
+        "axmorf",
+        "cinematic",
+        "reverse-swell",
+        "sound-effect"
+      ],
+      "authority": {
+        "kind": "repository-file",
+        "repositoryPath": "src/remotion/catalog/assets.manifest.json"
+      },
+      "allowedUse": "runtime-approved",
+      "assetKind": "audio",
+      "mediaRole": "sound-effect",
+      "localPath": "public/assets/axmorf-shared/audio/sound-effects/axmorf-reverse-swell-v1.wav",
+      "checksum": "sha256:8ecfa8a6614a6acf7c93915b3342e912393ba407e2d5be556700d99e156132b5",
+      "license": {
+        "id": "Apache-2.0",
+        "verificationStatus": "verified",
+        "sourceUrl": "https://github.com/AXMORF/axmorf-studio/blob/HEAD/LICENSE",
+        "attributionRequired": false,
+        "attributionText": null,
+        "verifiedAt": "2026-11-06T00:00:00.000Z",
+        "sourceEvidenceFingerprint": "sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "media": {
+        "mimeType": "audio/wav",
+        "sizeBytes": 134444,
+        "durationInSeconds": 0.7,
+        "codec": "pcm_s16le",
+        "sampleRate": 48000
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "asset.axmorf.sfx.low-impact-v1",
+      "kind": "asset",
+      "status": "approved",
+      "title": "AXMORF low-impact",
+      "description": "Original deterministic low-impact synthesized offline by scripts/sound-effects/generate.ts.",
+      "useCases": [
+        "Cinematic scene transition",
+        "Motion-synchronized sound effect"
+      ],
+      "tags": [
+        "axmorf",
+        "cinematic",
+        "low-impact",
+        "sound-effect"
+      ],
+      "authority": {
+        "kind": "repository-file",
+        "repositoryPath": "src/remotion/catalog/assets.manifest.json"
+      },
+      "allowedUse": "runtime-approved",
+      "assetKind": "audio",
+      "mediaRole": "sound-effect",
+      "localPath": "public/assets/axmorf-shared/audio/sound-effects/axmorf-low-impact-v1.wav",
+      "checksum": "sha256:18e58fb550e807269773f79e718bb818eea2bfb673a8f239cf41d12b5b630a69",
+      "license": {
+        "id": "Apache-2.0",
+        "verificationStatus": "verified",
+        "sourceUrl": "https://github.com/AXMORF/axmorf-studio/blob/HEAD/LICENSE",
+        "attributionRequired": false,
+        "attributionText": null,
+        "verifiedAt": "2026-11-06T00:00:00.000Z",
+        "sourceEvidenceFingerprint": "sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "media": {
+        "mimeType": "audio/wav",
+        "sizeBytes": 115244,
+        "durationInSeconds": 0.6,
+        "codec": "pcm_s16le",
+        "sampleRate": 48000
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "asset.axmorf.sfx.glitch-tick-v1",
+      "kind": "asset",
+      "status": "approved",
+      "title": "AXMORF glitch-tick",
+      "description": "Original deterministic glitch-tick synthesized offline by scripts/sound-effects/generate.ts.",
+      "useCases": [
+        "Cinematic scene transition",
+        "Motion-synchronized sound effect"
+      ],
+      "tags": [
+        "axmorf",
+        "cinematic",
+        "glitch-tick",
+        "sound-effect"
+      ],
+      "authority": {
+        "kind": "repository-file",
+        "repositoryPath": "src/remotion/catalog/assets.manifest.json"
+      },
+      "allowedUse": "runtime-approved",
+      "assetKind": "audio",
+      "mediaRole": "sound-effect",
+      "localPath": "public/assets/axmorf-shared/audio/sound-effects/axmorf-glitch-tick-v1.wav",
+      "checksum": "sha256:ad6f370f137fe6150de3526d243f849893edc34489516fecb6681ec7828bfab8",
+      "license": {
+        "id": "Apache-2.0",
+        "verificationStatus": "verified",
+        "sourceUrl": "https://github.com/AXMORF/axmorf-studio/blob/HEAD/LICENSE",
+        "attributionRequired": false,
+        "attributionText": null,
+        "verifiedAt": "2026-11-06T00:00:00.000Z",
+        "sourceEvidenceFingerprint": "sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "media": {
+        "mimeType": "audio/wav",
+        "sizeBytes": 23084,
+        "durationInSeconds": 0.12,
+        "codec": "pcm_s16le",
+        "sampleRate": 48000
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "asset.axmorf.sfx.whip-v1",
+      "kind": "asset",
+      "status": "approved",
+      "title": "AXMORF whip",
+      "description": "Original deterministic whip synthesized offline by scripts/sound-effects/generate.ts.",
+      "useCases": [
+        "Cinematic scene transition",
+        "Motion-synchronized sound effect"
+      ],
+      "tags": [
+        "axmorf",
+        "cinematic",
+        "sound-effect",
+        "whip"
+      ],
+      "authority": {
+        "kind": "repository-file",
+        "repositoryPath": "src/remotion/catalog/assets.manifest.json"
+      },
+      "allowedUse": "runtime-approved",
+      "assetKind": "audio",
+      "mediaRole": "sound-effect",
+      "localPath": "public/assets/axmorf-shared/audio/sound-effects/axmorf-whip-v1.wav",
+      "checksum": "sha256:6d3c9cf7806e502baa926dd7cc358b457eb5101e636b1374ffd5d4048a6c8fc3",
+      "license": {
+        "id": "Apache-2.0",
+        "verificationStatus": "verified",
+        "sourceUrl": "https://github.com/AXMORF/axmorf-studio/blob/HEAD/LICENSE",
+        "attributionRequired": false,
+        "attributionText": null,
+        "verifiedAt": "2026-11-06T00:00:00.000Z",
+        "sourceEvidenceFingerprint": "sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "media": {
+        "mimeType": "audio/wav",
+        "sizeBytes": 53804,
+        "durationInSeconds": 0.28,
+        "codec": "pcm_s16le",
+        "sampleRate": 48000
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "asset.axmorf.sfx.shimmer-v1",
+      "kind": "asset",
+      "status": "approved",
+      "title": "AXMORF shimmer",
+      "description": "Original deterministic shimmer synthesized offline by scripts/sound-effects/generate.ts.",
+      "useCases": [
+        "Cinematic scene transition",
+        "Motion-synchronized sound effect"
+      ],
+      "tags": [
+        "axmorf",
+        "cinematic",
+        "shimmer",
+        "sound-effect"
+      ],
+      "authority": {
+        "kind": "repository-file",
+        "repositoryPath": "src/remotion/catalog/assets.manifest.json"
+      },
+      "allowedUse": "runtime-approved",
+      "assetKind": "audio",
+      "mediaRole": "sound-effect",
+      "localPath": "public/assets/axmorf-shared/audio/sound-effects/axmorf-shimmer-v1.wav",
+      "checksum": "sha256:664e5e518477ca8b34634a4099e87f9520f375ab56cdc6fbfefdabfc1f83a901",
+      "license": {
+        "id": "Apache-2.0",
+        "verificationStatus": "verified",
+        "sourceUrl": "https://github.com/AXMORF/axmorf-studio/blob/HEAD/LICENSE",
+        "attributionRequired": false,
+        "attributionText": null,
+        "verifiedAt": "2026-11-06T00:00:00.000Z",
+        "sourceEvidenceFingerprint": "sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "media": {
+        "mimeType": "audio/wav",
+        "sizeBytes": 163244,
+        "durationInSeconds": 0.85,
+        "codec": "pcm_s16le",
+        "sampleRate": 48000
+      }
     }
   ]
 }
