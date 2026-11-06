@@ -15,6 +15,7 @@ import {
 import {
   analyzeReviewReadability,
   extractReviewMeasurements,
+  foregroundCoverage,
 } from "../../scripts/films/readability";
 
 type Text = FilmReviewMeasurement["texts"][number];
@@ -375,5 +376,92 @@ test("captions shrunk to fit one line are flagged once; default-size captions ar
   assert.match(
     warnings[0]?.message ?? "",
     /31px \(minimum 43px.*wrap to two lines/u,
+  );
+});
+
+test("foreground coverage includes the 20% boundary, skips captions, and retains unknown hit tests", () => {
+  const result = analyze([
+    text({
+      snippet: "covered",
+      foreground: { samples: 30, covered: 6, unknown: 0 },
+    }),
+    text({
+      snippet: "below",
+      foreground: { samples: 30, covered: 5, unknown: 0 },
+    }),
+    text({
+      snippet: "caption",
+      caption: true,
+      fontSize: 50,
+      foreground: { samples: 30, covered: 30, unknown: 0 },
+    }),
+    text({
+      snippet: "pointer-events:none",
+      foreground: { samples: 30, covered: 20, unknown: 1 },
+    }),
+    text({ snippet: "legacy" }),
+  ]);
+  assert.deepEqual(
+    result.readabilityWarnings.map((w) => [w.rule, w.snippet]),
+    [["text-under-foreground", "covered"]],
+  );
+  assert.equal(
+    result.readabilityWarnings[0].measurements[0].foregroundCoverageRatio,
+    0.2,
+  );
+  assert.match(result.readabilityWarnings[0].message, /20%.*frames 10/);
+  assert.deepEqual(
+    result.readability.unknown.map((u) => u.snippet),
+    ["pointer-events:none", "legacy"],
+  );
+  assert.equal(foregroundCoverage({ samples: 30, covered: 0, unknown: 0 }), 0);
+  assert.equal(
+    foregroundCoverage({ samples: 30, covered: 6, unknown: 1 }),
+    null,
+  );
+  assert.equal(foregroundCoverage(), null);
+});
+
+test("foreground hints merge frame evidence and ignore offscreen text", () => {
+  const covered = { samples: 30, covered: 9, unknown: 0 };
+  const result = analyzeReviewReadability({
+    output: [
+      line(record({ texts: [text({ foreground: covered })] })),
+      line(
+        record({ index: 1, frame: 20, texts: [text({ foreground: covered })] }),
+      ),
+    ].join("\n"),
+    frames: [10, 20],
+    width: 1080,
+    height: 1920,
+  });
+  assert.deepEqual(result.readabilityWarnings[0].frames, [10, 20]);
+  assert.equal(
+    analyze([
+      text({
+        foreground: covered,
+        rect: { x: 1080, y: 0, width: 100, height: 20 },
+      }),
+    ]).readabilityWarnings.length,
+    0,
+  );
+});
+
+test("foreground telemetry rejects impossible sample counts, supports old records", () => {
+  for (const foreground of [
+    { samples: 0, covered: 0, unknown: 0 },
+    { samples: 30, covered: 31, unknown: 0 },
+    { samples: 30, covered: 20, unknown: 11 },
+    { samples: 30, covered: -1, unknown: 0 },
+  ])
+    assert.equal(
+      FilmReviewMeasurementSchema.safeParse(
+        record({ texts: [text({ foreground })] }),
+      ).success,
+      false,
+    );
+  assert.equal(
+    FilmReviewMeasurementSchema.safeParse(record({ texts: [text()] })).success,
+    true,
   );
 });

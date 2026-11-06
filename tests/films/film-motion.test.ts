@@ -11,6 +11,8 @@ import {
 import {
   analyzeMotion,
   buildMotionCurve,
+  compositionSegments,
+  MOTION_COMPOSITION_DIFFERENCE,
   extractMotionMeasurements,
   scanLegacyMotionAudio,
   selectDenseMotionFrames,
@@ -489,4 +491,101 @@ test("animatic keeps complete composition/audio and timeout while scaling short 
     }),
     /Test stops before rendering/u,
   );
+});
+
+const repeatedScenes = [
+  scene("a", 0, 100),
+  scene("b", 100, 200),
+  scene("c", 200, 300),
+];
+const midpointSamples = (values: number[]) =>
+  values.map((v, i) => ({
+    frame: i * 100 + 49,
+    signature: new Uint8Array([v]),
+  }));
+const repeated = (values: number[]) =>
+  analyze({
+    records: [record([{ type: "scene-track", scenes: repeatedScenes }])],
+    durationInFrames: 300,
+    compositionSamples: midpointSamples(values),
+  });
+test("repeated-composition compares non-adjacent midpoints even during narration", () => {
+  const result = repeated([10, 200, 10]);
+  const warnings = result.motionWarnings.filter(
+    (w) => w.rule === "repeated-composition",
+  );
+  assert.equal(warnings.length, 1);
+  assert.deepEqual(warnings[0].frames, [49, 249]);
+  assert.match(warnings[0].message, /f49 \/ f249.*MAD 0.000/);
+  assert.equal(has(repeated([10, 10, 200]), "repeated-composition"), false);
+  assert.equal(
+    has(
+      repeated([0, 200, MOTION_COMPOSITION_DIFFERENCE]),
+      "repeated-composition",
+    ),
+    false,
+  );
+  assert.equal(
+    has(
+      repeated([0, 200, MOTION_COMPOSITION_DIFFERENCE - 1]),
+      "repeated-composition",
+    ),
+    true,
+  );
+});
+test("repeated-composition keeps legacy, incomplete, ambiguous and missing midpoint evidence unknown", () => {
+  for (const options of [
+    {},
+    {
+      records: [
+        {
+          ...record([{ type: "scene-track" as const, scenes: repeatedScenes }]),
+          truncated: true,
+        },
+      ],
+    },
+    {
+      records: [
+        record([
+          track(),
+          { type: "scene-track" as const, scenes: repeatedScenes },
+        ]),
+      ],
+    },
+    {
+      records: [
+        record([{ type: "scene-track" as const, scenes: repeatedScenes }]),
+      ],
+      compositionSamples: midpointSamples([10, 200]),
+    },
+  ]) {
+    const result = analyze(options);
+    assert.equal(has(result, "repeated-composition"), false);
+    assert.ok(result.unknown.some((u) => u.rule === "repeated-composition"));
+  }
+});
+test("composition segments use scene boundaries and internal cuts, ignoring transition spikes and nearby cuts", () => {
+  const scenes = [
+    scene("a", 0, 300),
+    scene("b", 300, 600, "b", {
+      kind: "flash",
+      mode: "overlay",
+      startFrame: 260,
+      endFrame: 340,
+    }),
+  ];
+  const result = compositionSegments(scenes, {
+    ...curve,
+    cuts: [110, 115, 270, 330].map((frame) => ({
+      from: frame - 15,
+      to: frame,
+      frame,
+      difference: 80,
+    })),
+  });
+  assert.deepEqual(result, [
+    { from: 0, to: 110, frame: 54 },
+    { from: 110, to: 300, frame: 204 },
+    { from: 300, to: 600, frame: 449 },
+  ]);
 });

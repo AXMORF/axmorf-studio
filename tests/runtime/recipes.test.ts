@@ -192,20 +192,100 @@ test("NumberRoll preserves grouping, decimals, sign, currency and suffix; lands 
     resolveNumberRoll(0, { ...options, grouping: false }).formatted,
     "¥−1234.50 kg",
   );
-  const columns = resolveNumberRoll(t.land, options).columns;
-  assert.ok(
-    resolveNumberRoll(t.land - 1, options)
-      .columns.filter((c) => c.digit !== null)
-      .every((c) => c.position !== c.target),
+  const landed = resolveNumberRoll(t.land, options);
+  assert.equal(landed.displayText, landed.formatted);
+  assert.equal(
+    resolveNumberRoll(t.settle + 5, options).displayText,
+    landed.formatted,
   );
-  assert.ok(columns.every((c) => c.position === c.target));
-  assert.ok(
-    resolveNumberRoll(t.land - 2, options).columns.some(
-      (c) => c.position > c.target,
-    ),
+  assert.ok(resolveNumberRoll(t.land + 2, options).offsetInEm > 0);
+  assert.equal(resolveNumberRoll(t.settle, options).offsetInEm, 0);
+});
+for (const { value, decimals, grouping, prefix, suffix } of [
+  { value: 21038, decimals: 0, grouping: true, prefix: "$", suffix: "" },
+  {
+    value: 1234.56,
+    decimals: 2,
+    grouping: true,
+    prefix: "¥ ",
+    suffix: " / 次",
+  },
+  {
+    value: 9999.999,
+    decimals: 3,
+    grouping: false,
+    prefix: "2026 / ",
+    suffix: " m2",
+  },
+  { value: 0.00000001, decimals: 8, grouping: true, prefix: "", suffix: " kg" },
+  { value: 0, decimals: 2, grouping: true, prefix: "$", suffix: "" },
+  { value: 1.239, decimals: 2, grouping: true, prefix: "$", suffix: "" },
+  { value: -1.234, decimals: 2, grouping: true, prefix: "$", suffix: "" },
+  { value: -1234.5, decimals: 2, grouping: true, prefix: "¥", suffix: " kg" },
+  {
+    value: 999999999999999,
+    decimals: 8,
+    grouping: true,
+    prefix: "",
+    suffix: "",
+  },
+]) {
+  test(`NumberRoll every displayed frame is monotone and bounded: ${prefix}${value}${suffix}`, () => {
+    for (const turns of [1, 2, 6]) {
+      const options = {
+        ...timing,
+        value,
+        decimals,
+        grouping,
+        prefix,
+        suffix,
+        turns,
+      };
+      let previous = -Infinity;
+      for (
+        let frame = 0;
+        frame <= timing.startFrame + timing.durationInFrames + 10;
+        frame++
+      ) {
+        const state = resolveNumberRoll(frame, options);
+        // Parse the actual rendered columns, excluding even numeric affixes.
+        const display = state.columns
+          .map((column) => column.character)
+          .join("");
+        assert.equal(display, state.displayText);
+        const numeric = display.slice(
+          prefix.length,
+          suffix ? -suffix.length : undefined,
+        );
+        const current = Number(numeric.replaceAll(",", "").replace("−", "-"));
+        assert.ok(Number.isFinite(current));
+        assert.ok(current >= previous, `f${frame}: ${current} < ${previous}`);
+        assert.ok(current <= value, `f${frame}: ${current} > ${value}`);
+        if (frame >= state.land)
+          assert.equal(
+            current,
+            Number(
+              state.formatted
+                .slice(prefix.length, suffix ? -suffix.length : undefined)
+                .replaceAll(",", "")
+                .replace("−", "-"),
+            ),
+          );
+        previous = current;
+      }
+    }
+  });
+}
+test("NumberRoll rounds downward at the chosen precision without exceeding the factual target", () => {
+  assert.equal(
+    resolveNumberRoll(100, { ...timing, value: 1.239, decimals: 2 })
+      .displayText,
+    "1.23",
   );
-  assert.ok(
-    resolveNumberRoll(0, options).columns.every((c) => c.position === 0),
+  assert.equal(
+    resolveNumberRoll(100, { ...timing, value: -1.234, decimals: 2 })
+      .displayText,
+    "−1.24",
   );
 });
 test("NumberRoll validates precision, magnitude and turn count", () => {
@@ -386,7 +466,11 @@ test("components can share the root clock inside a Sequence; camera blur sample 
       ),
     );
   const number = render(h(NumberRoll, { ...timing, value: 42, frame: 100 }));
-  assert.match(number, /translateY\(-4032px\)/);
+  assert.match(number, /aria-label="42"/);
+  assert.deepEqual(
+    [...number.matchAll(/<span[^>]*>([0-9])<\/span>/g)].map((m) => m[1]),
+    ["4", "2"],
+  );
   assert.notEqual(number, render(h(NumberRoll, { ...timing, value: 42 })));
   const layers = [{ depth: 1, content: h("span", null, "subject") }];
   const cam = render(h(CameraMove, { ...camera, layers, frame: 100 }));

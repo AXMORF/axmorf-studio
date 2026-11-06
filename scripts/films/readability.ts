@@ -5,6 +5,8 @@ import {
   FilmReviewMeasurementSchema,
   minimumCaptionFontSize,
   minimumReadableFontSize,
+  FILM_REVIEW_FOREGROUND_COVERAGE,
+  type FilmReviewForeground,
   type FilmReviewMeasurement,
   type FilmReviewRect,
 } from "@axmorf/studio/contracts";
@@ -35,7 +37,8 @@ type Rule =
   | "small-text"
   | "small-caption"
   | "text-outside-frame"
-  | "text-under-captions";
+  | "text-under-captions"
+  | "text-under-foreground";
 type Measurement = {
   frame: number;
   fontSize: number;
@@ -43,6 +46,7 @@ type Measurement = {
   minimumFontSize?: number;
   outsidePixels?: number;
   captionOverlapRatio?: number;
+  foregroundCoverageRatio?: number;
 };
 export type ReadabilityWarning = {
   rule: Rule;
@@ -51,6 +55,12 @@ export type ReadabilityWarning = {
   measurements: Measurement[];
   message: string;
 };
+
+/** Any uncertain sample keeps this measurement unknown (hints must not guess). */
+export const foregroundCoverage = (foreground?: FilmReviewForeground) =>
+  !foreground || foreground.unknown > 0
+    ? null
+    : foreground.covered / foreground.samples;
 
 const intersectionArea = (a: FilmReviewRect, b: FilmReviewRect) =>
   Math.max(0, Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x)) *
@@ -80,6 +90,12 @@ export const analyzeReviewReadability = ({
     if (!measured.has(record.index) || !record.error)
       measured.set(record.index, record);
   }
+  const unknown: {
+    rule: "text-under-foreground";
+    frame: number;
+    snippet: string;
+    reason: string;
+  }[] = [];
   const warnings = new Map<string, Omit<ReadabilityWarning, "message">>();
   const add = (rule: Rule, snippet: string, measurement: Measurement) => {
     const key = `${rule}:${snippet}`;
@@ -107,7 +123,13 @@ export const analyzeReviewReadability = ({
     const captions = record.texts
       .filter((text) => text.caption && text.captionRect)
       .map((text) => text.captionRect!);
-    for (const { caption, snippet, fontSize, rect } of record.texts) {
+    for (const {
+      caption,
+      snippet,
+      fontSize,
+      rect,
+      foreground,
+    } of record.texts) {
       // One warning for all caption lines: the cause is the caption style, not a sentence.
       if (caption && fontSize < minimumCaption)
         add("small-caption", "captions", {
@@ -118,6 +140,20 @@ export const analyzeReviewReadability = ({
         });
       if (caption || intersectionArea(rect, frameRect) === 0) continue;
       const measurement = { frame: record.frame, fontSize, rect };
+      const foregroundCoverageRatio = foregroundCoverage(foreground);
+      if (foregroundCoverageRatio === null)
+        unknown.push({
+          rule: "text-under-foreground",
+          frame: record.frame,
+          snippet,
+          reason:
+            "Hit testing is unavailable or uncertain (for example pointer-events:none); inspect the frame.",
+        });
+      else if (foregroundCoverageRatio >= FILM_REVIEW_FOREGROUND_COVERAGE)
+        add("text-under-foreground", snippet, {
+          ...measurement,
+          foregroundCoverageRatio,
+        });
       if (fontSize < minimumFontSize)
         add("small-text", snippet, { ...measurement, minimumFontSize });
       const outsidePixels = Math.max(
@@ -181,6 +217,15 @@ export const analyzeReviewReadability = ({
             message = `${subject} extends ${outsidePixels}px outside the frame on frames ${frameList}; move or wrap it so it stays fully visible.`;
             break;
           }
+          case "text-under-foreground": {
+            const percent = Math.round(
+              Math.max(
+                ...measurements.map((value) => value.foregroundCoverageRatio!),
+              ) * 100,
+            );
+            message = `${subject} has ${percent}% of visible text samples under foreground elements on frames ${frameList}; move the foreground away from reading text.`;
+            break;
+          }
           case "text-under-captions": {
             const overlapPercent = Math.round(
               Math.max(
@@ -195,6 +240,7 @@ export const analyzeReviewReadability = ({
       },
     ),
     readability: {
+      unknown,
       measuredFrames: successful.length,
       missingFrames: frames.filter(
         (_, index) =>

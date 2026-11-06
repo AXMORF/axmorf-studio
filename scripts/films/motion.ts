@@ -4,6 +4,7 @@ import {
   FILM_REVIEW_MOTION_MARKER,
   FilmReviewMotionSchema,
   type FilmReviewMotion,
+  type FilmReviewMotionSceneSchema,
   type FilmMotionCurve,
   type FilmMusic,
 } from "@axmorf/studio/contracts";
@@ -29,6 +30,55 @@ export const MOTION_SFX_MIN_SECONDS = 30;
 export const MOTION_DENSE_FPS = 6;
 export const MOTION_DENSE_MAX_SECONDS = 3;
 export const MOTION_DENSE_MAX_FRAMES = 108;
+// 待校准：64×64 灰度签名 MAD（0–255），不是内容/语义相同的判定。
+export const MOTION_COMPOSITION_DIFFERENCE = 12;
+export const MOTION_COMPOSITION_MIN_SECONDS = 1;
+
+type Scene = z.infer<typeof FilmReviewMotionSceneSchema>;
+/** Logged scene boundaries plus internal candidate cuts. Ignore transition spikes
+ * and sub-second cut fragments; legacy films without a scene track stay unknown. */
+export const compositionSegments = (
+  scenes: readonly Scene[],
+  curve: FilmMotionCurve,
+) =>
+  scenes.flatMap((scene) => {
+    const margin = Math.round(curve.fps * MOTION_COMPOSITION_MIN_SECONDS);
+    const from = scene.boundaryFrame;
+    const to = scene.endFrame;
+    const cuts = curve.cuts
+      .filter(
+        (cut) =>
+          cut.frame >= from + margin &&
+          cut.frame <= to - margin &&
+          !scenes.some(
+            (s) =>
+              s.enter &&
+              cut.to >= s.enter.startFrame &&
+              cut.from <= s.enter.endFrame,
+          ),
+      )
+      .map((cut) => cut.frame)
+      .sort((a, b) => a - b);
+    const boundaries = [from];
+    for (const cut of cuts)
+      if (cut - boundaries.at(-1)! >= margin) boundaries.push(cut);
+    boundaries.push(to);
+    return boundaries.slice(0, -1).map((start, i) => ({
+      from: start,
+      to: boundaries[i + 1],
+      frame: Math.floor((start + boundaries[i + 1] - 1) / 2),
+    }));
+  });
+
+export const reviewMotionScenes = (records: readonly FilmReviewMotion[]) => {
+  const tracks = new Map(
+    records
+      .flatMap((r) => r.events)
+      .filter((e) => e.type === "scene-track")
+      .map((e) => [JSON.stringify(e), e]),
+  );
+  return tracks.size === 1 ? [...tracks.values()][0].scenes : [];
+};
 
 /** Same tolerant transport as readability; malformed telemetry never blocks delivery. */
 export const extractMotionMeasurements = (output: string) => {
@@ -150,6 +200,7 @@ export const analyzeMotion = ({
   legacyAudio,
   music,
   stillWarnings,
+  compositionSamples = [],
 }: {
   readonly records: readonly FilmReviewMotion[];
   readonly frames: readonly number[];
@@ -160,6 +211,10 @@ export const analyzeMotion = ({
   readonly legacyAudio: boolean;
   readonly music: Pick<FilmMusic, "beatFrames" | "accentFrames"> | null;
   readonly stillWarnings: readonly { frames: readonly [number, number] }[];
+  readonly compositionSamples?: readonly {
+    frame: number;
+    signature: Uint8Array;
+  }[];
 }) => {
   const measured = new Map<number, FilmReviewMotion>();
   for (const record of records)
@@ -190,6 +245,41 @@ export const analyzeMotion = ({
     to: number,
     message: string,
   ) => motionWarnings.push({ rule, frames: [from, to], message });
+
+  if (!scenes.length || !complete)
+    addUnknown(
+      "repeated-composition",
+      "Requires one complete scene track; legacy films without a track remain unknown.",
+    );
+  else {
+    const segments = compositionSegments(scenes, curve);
+    const signatures = new Map(
+      compositionSamples.map((s) => [s.frame, s.signature]),
+    );
+    if (segments.some((segment) => !signatures.has(segment.frame)))
+      addUnknown(
+        "repeated-composition",
+        "Some segment midpoint signatures are missing.",
+      );
+    else
+      for (let i = 0; i < segments.length; i++) {
+        for (let j = i + 2; j < segments.length; j++) {
+          const a = segments[i],
+            b = segments[j];
+          const difference = meanAbsoluteDifference(
+            signatures.get(a.frame)!,
+            signatures.get(b.frame)!,
+          );
+          if (difference < MOTION_COMPOSITION_DIFFERENCE)
+            warn(
+              "repeated-composition",
+              a.frame,
+              b.frame,
+              `Non-adjacent segments [${a.from},${a.to}) and [${b.from},${b.to}) have similar midpoint compositions at f${a.frame} / f${b.frame} (MAD ${difference.toFixed(3)} < ${MOTION_COMPOSITION_DIFFERENCE}); inspect framing even during narration.`,
+            );
+        }
+      }
+  }
 
   // A large isolated spike followed by a hold is usable for legacy slide-style scenes.
   // Candidate cuts are approximate evidence, never exact timing for beat judgments.

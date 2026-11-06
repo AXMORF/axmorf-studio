@@ -37,6 +37,8 @@ import { analyzeReviewReadability } from "./readability";
 import {
   analyzeMotion,
   buildMotionCurve,
+  compositionSegments,
+  reviewMotionScenes,
   extractMotionMeasurements,
   MOTION_SAMPLE_SECONDS,
   selectDenseMotionFrames,
@@ -571,10 +573,39 @@ const reviewMotion = async ({
     },
   });
   const curve = buildMotionCurve(samples, spec.render.fps);
+  const compositionSamples: typeof samples = [];
+  const midpoints = compositionSegments(reviewMotionScenes(records), curve).map(
+    (s) => s.frame,
+  );
+  const sampled = new Map(samples.map((sample) => [sample.frame, sample]));
+  for (const frame of midpoints)
+    if (sampled.has(frame)) compositionSamples.push(sampled.get(frame)!);
+  const missingMidpoints = [
+    ...new Set(midpoints.filter((frame) => !sampled.has(frame))),
+  ];
+  if (missingMidpoints.length)
+    await sampleMotionFrames({
+      rootDir,
+      compositionId,
+      scratch,
+      frames: missingMidpoints,
+      timeoutMs,
+      onImage: async (frame, path, index) => {
+        compositionSamples.push({
+          frame,
+          signature: await readFrameSignature({
+            rootDir,
+            imagePath: path,
+            signaturePath: join(scratch, `composition-signature-${index}.png`),
+          }),
+        });
+      },
+    });
   const analysis = analyzeMotion({
     records,
     frames,
     curve,
+    compositionSamples,
     durationInFrames: timing.durationInFrames,
     fps: spec.render.fps,
     hasNarration: timing.sentences.length > 0,

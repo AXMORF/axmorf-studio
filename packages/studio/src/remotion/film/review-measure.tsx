@@ -3,6 +3,10 @@ import { continueRender, delayRender, useVideoConfig } from "remotion";
 
 import {
   FILM_REVIEW_MAX_TEXTS,
+  FILM_REVIEW_FOREGROUND_COLUMNS,
+  FILM_REVIEW_FOREGROUND_ROWS,
+  FILM_REVIEW_FOREGROUND_OPACITY,
+  type FilmReviewForeground,
   FILM_REVIEW_MOTION_MARKER,
   FILM_REVIEW_MEASUREMENT_MARKER,
   type FilmReviewMeasurement,
@@ -11,7 +15,7 @@ import {
 
 import { useReviewMotionRegistry } from "./review-motion";
 
-const visible = (element: Element) => {
+const effectiveOpacity = (element: Element) => {
   let opacity = 1;
   for (
     let current: Element | null = element;
@@ -19,11 +23,117 @@ const visible = (element: Element) => {
     current = current.parentElement
   ) {
     const style = getComputedStyle(current);
-    if (style.display === "none") return false;
+    if (style.display === "none") return 0;
     opacity *= Number(style.opacity);
   }
   // Visibility can be overridden by descendants, unlike display and opacity.
-  return getComputedStyle(element).visibility === "visible" && opacity >= 0.05;
+  return getComputedStyle(element).visibility === "visible" ? opacity : 0;
+};
+
+// Hit testing sees transparent layout boxes too. Only painted leaves/backgrounds
+// can cover text; svg/g viewport boxes and unpainted HTML wrappers cannot.
+const painted = (element: Element) => {
+  if (element instanceof SVGElement)
+    return (
+      element instanceof SVGGeometryElement ||
+      element instanceof SVGTextContentElement ||
+      element instanceof SVGImageElement
+    );
+  const style = getComputedStyle(element);
+  return (
+    style.backgroundImage !== "none" ||
+    !["transparent", "rgba(0, 0, 0, 0)"].includes(style.backgroundColor) ||
+    ["IMG", "VIDEO", "CANVAS"].includes(element.tagName) ||
+    [...element.childNodes].some(
+      (node) => node.nodeType === Node.TEXT_NODE && node.textContent?.trim(),
+    )
+  );
+};
+const related = (a: Element, b: Element) => a.contains(b) || b.contains(a);
+
+const foregroundSampler = (root: Element) => {
+  const opacityCache = new WeakMap<Element, number>();
+  const opacity = (element: Element) => {
+    if (!opacityCache.has(element))
+      opacityCache.set(element, effectiveOpacity(element));
+    return opacityCache.get(element)!;
+  };
+  // elementsFromPoint skips pointer-events:none. Conservatively mark overlapping
+  // samples unknown, rather than pretending such painted content is absent.
+  const skipped = [...root.querySelectorAll("*")]
+    .filter(
+      (element) =>
+        getComputedStyle(element).pointerEvents === "none" &&
+        !element.closest("[data-axmorf-captions]") &&
+        painted(element) &&
+        opacity(element) >= FILM_REVIEW_FOREGROUND_OPACITY,
+    )
+    .map((element) => ({ element, rect: element.getBoundingClientRect() }));
+  return (
+    element: Element,
+    rects: readonly DOMRect[],
+  ): FilmReviewForeground | undefined => {
+    let samples = 0,
+      covered = 0,
+      unknown = 0;
+    const viewport = root.getBoundingClientRect();
+    for (const rect of rects) {
+      const left = Math.max(rect.left, viewport.left, 0);
+      const top = Math.max(rect.top, viewport.top, 0);
+      const right = Math.min(rect.right, viewport.right, window.innerWidth);
+      const bottom = Math.min(rect.bottom, viewport.bottom, window.innerHeight);
+      if (right <= left || bottom <= top) continue;
+      for (let row = 0; row < FILM_REVIEW_FOREGROUND_ROWS; row++) {
+        for (
+          let column = 0;
+          column < FILM_REVIEW_FOREGROUND_COLUMNS;
+          column++
+        ) {
+          const x =
+            left +
+            ((column + 0.5) * (right - left)) / FILM_REVIEW_FOREGROUND_COLUMNS;
+          const y =
+            top + ((row + 0.5) * (bottom - top)) / FILM_REVIEW_FOREGROUND_ROWS;
+          samples++;
+          if (
+            getComputedStyle(element).pointerEvents === "none" ||
+            skipped.some(
+              ({ element: other, rect }) =>
+                !related(element, other) &&
+                x >= rect.left &&
+                x <= rect.right &&
+                y >= rect.top &&
+                y <= rect.bottom,
+            )
+          ) {
+            unknown++;
+            continue;
+          }
+          const stack = document.elementsFromPoint(x, y);
+          if (
+            !stack.some(
+              (hit) =>
+                related(element, hit) && root.contains(hit) && hit !== root,
+            )
+          ) {
+            unknown++;
+            continue;
+          }
+          const topmost = stack.find(
+            (hit) =>
+              root.contains(hit) &&
+              !hit.closest("[data-axmorf-captions]") &&
+              (related(element, hit) ||
+                (painted(hit) &&
+                  opacity(hit) >= FILM_REVIEW_FOREGROUND_OPACITY)),
+          );
+          if (!topmost) unknown++;
+          else if (!related(element, topmost)) covered++;
+        }
+      }
+    }
+    return samples ? { samples, covered, unknown } : undefined;
+  };
 };
 
 const captionBlock = (element: Element, marker: Element) => {
@@ -57,13 +167,14 @@ const measure = (
     width: rect.width / scale,
     height: rect.height / scale,
   });
+  const foreground = foregroundSampler(root);
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
   const texts: FilmReviewMeasurement["texts"] = [];
   let truncated = false;
   for (let node = walker.nextNode(); node; node = walker.nextNode()) {
     const snippet = node.textContent?.replace(/\s+/gu, " ").trim().slice(0, 24);
     const element = node.parentElement;
-    if (!snippet || !element || !visible(element)) continue;
+    if (!snippet || !element || effectiveOpacity(element) < 0.05) continue;
     const range = document.createRange();
     range.selectNodeContents(node);
     const rects = [...range.getClientRects()].filter(
@@ -103,6 +214,7 @@ const measure = (
     texts.push({
       snippet,
       caption: marker !== null,
+      ...(marker ? {} : { foreground: foreground(element, rects) }),
       fontSize: fontSize * transformScale,
       rect: rectOf({ left, top, width: right - left, height: bottom - top }),
       ...(block && block.width > 0 && block.height > 0

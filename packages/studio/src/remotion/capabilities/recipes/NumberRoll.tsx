@@ -33,38 +33,55 @@ export const resolveNumberRoll = (
   integer(decimals, 0, 8, "decimals");
   const turns = options.turns ?? 2;
   integer(turns, 1, 6, "turns");
-  const [whole, fraction] = Math.abs(options.value)
-    .toFixed(decimals)
-    .split(".");
-  const numericText = `${options.value < 0 ? "−" : ""}${options.grouping === false ? whole : whole.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}${fraction ? `.${fraction}` : ""}`;
+  const fixed = Math.abs(options.value).toFixed(decimals);
+  // Integer fixed-point units avoid unsafe Number arithmetic at high precision.
+  const rounded = BigInt(fixed.replace(".", ""));
+  const signed = options.value < 0 ? -rounded : rounded;
+  // If precision would round above the factual target, use the lower unit.
+  const targetUnits =
+    Number(`${options.value < 0 ? "-" : ""}${fixed}`) > options.value
+      ? signed - 1n
+      : signed;
+  const magnitude = targetUnits < 0n ? -targetUnits : targetUnits;
+  const format = (units: bigint) => {
+    const negative = units < 0n || (units === 0n && options.value < 0);
+    const digits = (units < 0n ? -units : units)
+      .toString()
+      .padStart(decimals + 1, "0");
+    const whole = decimals ? digits.slice(0, -decimals) : digits;
+    const fraction = decimals ? `.${digits.slice(-decimals)}` : "";
+    return `${negative ? "−" : ""}${options.grouping === false ? whole : whole.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}${fraction}`;
+  };
   const prefix = options.prefix ?? "";
   const suffix = options.suffix ?? "";
-  const formatted = `${prefix}${numericText}${suffix}`;
+  const formatted = `${prefix}${format(targetUnits)}${suffix}`;
+  const t = clamp((frame - timing.move) / (timing.land - timing.move));
+  // turns remains compatible as a speed control, never independent column cycles.
+  const progress = 1 - (1 - t) ** (turns + 1);
+  const travelUnits =
+    (magnitude * BigInt(Math.floor(progress * 1_000_000_000))) / 1_000_000_000n;
+  // Negative targets approach from below as well; no signed value overshoots.
+  const units =
+    targetUnits < 0n ? targetUnits - magnitude + travelUnits : travelUnits;
+  const numericText = format(units);
+  const displayText = `${prefix}${numericText}${suffix}`;
   const prefixLength = Array.from(prefix).length;
   const numericLength = Array.from(numericText).length;
-  // Overshoot happens before contact: at land every digit is exactly its final value.
-  const t = clamp((frame - timing.move) / (timing.land - timing.move));
-  const columns = Array.from(formatted, (character, index) => {
+  const columns = Array.from(displayText, (character, index) => {
     const digit =
       index >= prefixLength &&
       index < prefixLength + numericLength &&
       /^[0-9]$/.test(character)
         ? Number(character)
         : null;
-    const target = digit === null ? 0 : turns * 10 + digit;
-    const delay = (index / formatted.length) * 0.15;
-    const local = clamp((t - delay) / (1 - delay));
-    const progress =
-      t === 1
-        ? 1
-        : local < 0.85
-          ? (1 - (1 - local / 0.85) ** 3) * 1.015
-          : 1 + 0.015 * Math.sin(((1 - (local - 0.85) / 0.15) * Math.PI) / 2);
-    return { character, digit, position: target * progress, target };
+    return { character, digit, position: digit ?? 0, target: digit ?? 0 };
   });
   return {
     ...timing,
     formatted,
+    displayText,
+    // Rebound moves the already fixed readout, never its numeric value.
+    offsetInEm: frame >= timing.land ? (timing.progress - 1) * 0.8 : 0,
     columns,
     sfxCues: recipeCues(
       "NumberRoll",
@@ -96,42 +113,28 @@ export const NumberRoll = ({
   return (
     <div
       data-recipe="NumberRoll"
-      aria-label={state.formatted}
+      aria-label={state.displayText}
       style={{
         display: "flex",
         fontSize,
         fontVariantNumeric: "tabular-nums",
         lineHeight: 1.2,
         color,
+        transform: `translateY(${state.offsetInEm}em)`,
       }}
     >
-      {state.columns.map((column, index) =>
-        column.digit === null ? (
-          <span key={index}>{column.character}</span>
-        ) : (
-          <div
-            key={index}
-            style={{
-              height: fontSize * 1.2,
-              width: "0.65em",
-              overflow: "hidden",
-              textAlign: "center",
-            }}
-          >
-            <div
-              style={{
-                transform: `translateY(${-column.position * fontSize * 1.2}px)`,
-              }}
-            >
-              {Array.from({ length: column.target + 3 }, (_, i) => (
-                <div key={i} style={{ height: fontSize * 1.2 }}>
-                  {i % 10}
-                </div>
-              ))}
-            </div>
-          </div>
-        ),
-      )}
+      {state.columns.map((column, index) => (
+        <span
+          key={index}
+          style={
+            column.digit === null
+              ? undefined
+              : { width: "0.65em", textAlign: "center" }
+          }
+        >
+          {column.character}
+        </span>
+      ))}
     </div>
   );
 };
