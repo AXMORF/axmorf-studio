@@ -1,3 +1,4 @@
+import { useReviewMotion } from "../../film/review-motion";
 import { useCurrentFrame } from "remotion";
 import {
   integer,
@@ -104,6 +105,14 @@ export const BarGrow = ({
     bottom = height - 60,
     plotHeight = height - 110,
     step = (width - left) / state.bars.length;
+  useReviewMotion({
+    type: "recipe",
+    id: "BarGrow",
+    anticipate: state.anticipate,
+    move: state.move,
+    land: state.land,
+    settle: state.settle,
+  });
   return (
     <svg
       data-recipe="BarGrow"

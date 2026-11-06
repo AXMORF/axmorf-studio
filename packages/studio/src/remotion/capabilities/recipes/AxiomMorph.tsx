@@ -1,3 +1,4 @@
+import { useReviewMotion } from "../../film/review-motion";
 import { measureText } from "@remotion/layout-utils";
 import { useMemo } from "react";
 import { random, useCurrentFrame } from "remotion";
@@ -223,6 +224,14 @@ export const AxiomMorph = ({
     ...options,
     text: layout,
     nextText: next,
+  });
+  useReviewMotion({
+    type: "recipe",
+    id: "AxiomMorph",
+    anticipate: state.anticipate,
+    move: state.move,
+    land: state.land,
+    settle: state.settle,
   });
   return (
     <div

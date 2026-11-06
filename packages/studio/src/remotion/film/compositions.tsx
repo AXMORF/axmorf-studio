@@ -11,6 +11,7 @@ import { z } from "zod";
 
 import {
   FILM_CONTACT_SHEET_ID,
+  FILM_MOTION_CURVE_ID,
   FILM_COVER_VARIANTS,
   filmCompositionIds,
 } from "../../contracts/film";
@@ -25,6 +26,9 @@ import { FilmWithBookends } from "./FilmBookends";
 import { FilmProvider, resolveFilmRuntime, type FilmRuntime } from "./context";
 import { ReviewMeasure } from "./review-measure";
 
+import { ReviewMotionProvider } from "./review-motion";
+import { MotionCurve } from "./MotionCurve";
+
 type FilmModule = Promise<{ default: ComponentType }>;
 
 /** One entry of the Workspace-generated `src/films/index.ts`. */
@@ -37,6 +41,7 @@ export type FilmRegistryEntry = Readonly<{
 }>;
 
 const ReviewPropsSchema = z.object({
+  readability: z.boolean().default(true),
   frames: z.array(z.number().int().min(0)).min(1),
 });
 type ReviewProps = z.infer<typeof ReviewPropsSchema>;
@@ -77,16 +82,22 @@ const reviewLoader =
   (runtime: FilmRuntime, load: () => FilmModule) => async () => {
     const { default: Authored } = await load();
     const Review = (props: Record<string, unknown>) => {
-      const { frames } = ReviewPropsSchema.parse(props);
+      const { frames, readability } = ReviewPropsSchema.parse(props);
       const index = useCurrentFrame();
       const frame = frames[Math.min(index, frames.length - 1)] ?? 0;
       return (
         <FilmProvider runtime={runtime}>
-          <ReviewMeasure key={index} index={index} frame={frame}>
-            <Freeze frame={frame}>
-              <Authored />
-            </Freeze>
-          </ReviewMeasure>
+          <ReviewMotionProvider key={index}>
+            <ReviewMeasure
+              index={index}
+              frame={frame}
+              readability={readability}
+            >
+              <Freeze frame={frame}>
+                <Authored />
+              </Freeze>
+            </ReviewMeasure>
+          </ReviewMotionProvider>
         </FilmProvider>
       );
     };
@@ -133,6 +144,19 @@ export const FilmCompositions = ({
 }) => (
   <Folder name="Films">
     <Still
+      id={FILM_MOTION_CURVE_ID}
+      component={MotionCurve}
+      width={960}
+      height={320}
+      defaultProps={{
+        fps: 30,
+        sampleSeconds: 0.5,
+        samples: [],
+        seconds: [],
+        cuts: [],
+      }}
+    />
+    <Still
       id={FILM_CONTACT_SHEET_ID}
       component={ContactSheet}
       width={480}
@@ -162,7 +186,7 @@ export const FilmCompositions = ({
       }
       const { filmId, render } = runtime.spec;
       const ids = filmCompositionIds(filmId);
-      const reviewDefaults: ReviewProps = { frames: [0] };
+      const reviewDefaults: ReviewProps = { frames: [0], readability: true };
       return (
         <Folder key={filmId} name={filmId}>
           <Composition

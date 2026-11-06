@@ -1,3 +1,4 @@
+import { useReviewMotion } from "../../film/review-motion";
 import { useCurrentFrame } from "remotion";
 import {
   ProducerWorldCamera,
@@ -57,6 +58,14 @@ export const ParallaxLayers = ({
   const state = resolveParallaxLayers(frameOverride ?? currentFrame, {
     ...options,
     depths: layers.map((l) => l.depth),
+  });
+  useReviewMotion({
+    type: "recipe",
+    id: "ParallaxLayers",
+    anticipate: state.anticipate,
+    move: state.move,
+    land: state.land,
+    settle: state.settle,
   });
   return (
     <ProducerWorldCamera

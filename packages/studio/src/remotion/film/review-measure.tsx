@@ -3,10 +3,13 @@ import { continueRender, delayRender, useVideoConfig } from "remotion";
 
 import {
   FILM_REVIEW_MAX_TEXTS,
+  FILM_REVIEW_MOTION_MARKER,
   FILM_REVIEW_MEASUREMENT_MARKER,
   type FilmReviewMeasurement,
   type FilmReviewRect,
 } from "../../contracts/film";
+
+import { useReviewMotionRegistry } from "./review-motion";
 
 const visible = (element: Element) => {
   let opacity = 1;
@@ -115,11 +118,14 @@ export const ReviewMeasure = ({
   index,
   frame,
   children,
+  readability = true,
 }: {
+  readonly readability?: boolean;
   readonly index: number;
   readonly frame: number;
   readonly children: ReactNode;
 }) => {
+  const motion = useReviewMotionRegistry();
   const root = useRef<HTMLDivElement>(null);
   const { width, height } = useVideoConfig();
   useLayoutEffect(() => {
@@ -158,9 +164,14 @@ export const ReviewMeasure = ({
         if (cancelled) return;
         if (!root.current)
           throw new Error("Review measurement container is missing.");
-        console.warn(
-          `${FILM_REVIEW_MEASUREMENT_MARKER} ${JSON.stringify({ ...record, ...measure(root.current, width) })}`,
-        );
+        if (motion)
+          console.warn(
+            `${FILM_REVIEW_MOTION_MARKER} ${JSON.stringify({ index, frame, events: [...motion.events.values()], truncated: motion.truncated })}`,
+          );
+        if (readability)
+          console.warn(
+            `${FILM_REVIEW_MEASUREMENT_MARKER} ${JSON.stringify({ ...record, ...measure(root.current, width) })}`,
+          );
       } catch (error) {
         if (!cancelled)
           console.warn(
@@ -177,7 +188,7 @@ export const ReviewMeasure = ({
       clearTimeout(timer);
       continueRender(handle);
     };
-  }, [frame, height, index, width]);
+  }, [frame, height, index, width, motion, readability]);
   return (
     <div ref={root} style={{ position: "absolute", inset: 0 }}>
       {children}

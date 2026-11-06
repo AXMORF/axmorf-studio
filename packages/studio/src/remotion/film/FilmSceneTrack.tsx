@@ -22,6 +22,8 @@ import {
   type ResolvedFilmSceneTransition,
 } from "./scene-track";
 
+import { useReviewMotion } from "./review-motion";
+
 export type FilmSceneTrackProps = Readonly<{ scenes: readonly FilmScene[] }>;
 
 const SceneContent = ({
@@ -180,6 +182,24 @@ export const FilmSceneTrack = ({ scenes }: FilmSceneTrackProps) => {
   const film = useFilm();
   const { width, height } = useVideoConfig();
   const resolved = resolveFilmSceneTrack(film, scenes);
+  useReviewMotion({
+    type: "scene-track",
+    scenes: resolved.scenes.map((scene, i) => ({
+      id: scene.scene.id,
+      chapter: scene.scene.chapter ?? null,
+      boundaryFrame: scene.boundaryFrame,
+      endFrame: resolved.scenes[i + 1]?.boundaryFrame ?? film.durationInFrames,
+      enter:
+        scene.enter === null
+          ? null
+          : {
+              kind: scene.enter.kind,
+              mode: scene.enter.mode,
+              startFrame: scene.enter.startFrame,
+              endFrame: scene.enter.endFrame,
+            },
+    })),
+  });
   return (
     <TransitionSeries>
       {resolved.scenes.flatMap((scene) => [

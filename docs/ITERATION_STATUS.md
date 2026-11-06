@@ -1,5 +1,61 @@
 # Iteration Status
 
+## 审片运动提示与 animatic P3（2026-11-07，未发布）
+
+按 [实施方案](promotions/2026-11-06-cinematic-motion-and-sound.md) 完成第 4 节及 deliver 提醒：
+
+- review 专用 context 收集场景轨边界/kind/mode/窗口、已解析音效 cue、六个配方关键帧与镜头预设、
+  WorldCamera 使用情况（含 FilmSoundtrack 的 ending 音效）。沿用 readability 的 warn 日志通道、固定标记 +
+  单行 JSON、contracts schema、ANSI/tag 容错；正片/封面/片头片尾不输出 review 遥测。
+- 默认每 0.5 秒以 0.125 scale 采样，用既有 readFrameSignature 生成 `motion-curve.json`（每秒变化量、候选切点及
+  采样区间）和内部 Still 绘制的 `motion-curve.png`。`motion.boundaryChecks` 将候选切点区间与已知场景边界核对，
+  不把半秒采样伪装为逐帧精确切点。每批最多 48 帧、遥测每帧最多 16 KB，避免进程 1 MiB 日志尾部截断。
+- 新增纯函数提示 enter-then-hold、hard-cut-heavy、no-sound-effects、off-beat-cuts、static-camera；
+  motion 摘要包含统计、曲线路径、密集帧路径、unknown、missingFrames/badLines。旧手写 Audio/Html5Audio
+  （含 import 别名）和 sound-effects/staticFile 识别为 unknown；无带 chapter 的场景轨不报 static-camera。
+  enter-then-hold 和 stillWarnings 重叠时不重复报；不确定的精确踩拍判断写 unknown。
+- 标记时段以 6 fps、每段最多 3 秒输出 `dense/<rule>-<from>-<to>/`，全片最多 108 张，另报 denseSkipped。
+  `--animatic` 默认关闭，开启时用交付组合（含系统片头片尾）、短边 360、原 fps、H.264/AAC 双声道输出
+  `review/animatic.mp4`，沿用 Workspace 渲染超时；不写入 deliveries。普通 review 保留已有 animatic。
+- deliver 新增 animaticReminder，按本片源码、film.json、generated 与本片媒体 mtime 判断缺失/过期；
+  读取失败也只提醒，未改变现有错误/许可/画质检查，未把 motion 提示接入 film:check 或交付门禁。
+
+旧片校准：仅从 ai Workspace **读取并复制** `ai-small-lab-training-cost-20261106` 的片源、实测 timing/music 和媒体，
+在当前 worktree 的临时 fixture 运行真实 film:review；未向 ai Workspace 写入或调用 TTS。正片 2643 帧 / 30fps
+（88.1 秒），177 个连续样本，无遥测缺帧/坏行；stillWarnings 为空。初始切点阈值 8 把持续平移也算成切点（48 个），
+校准为 45 后得到 16 个候选切点；旧片的连续运动可达 MAD 35，背景硬切超过 130。入场后的停留允许 20% 的
+采样含收尾/字幕变化，同时要求平均变化 <3，避免用单次字幕切换否定整段停留。阈值仍注释「待校准」，P5 再复验。
+最终 motionWarnings：enter-then-hold `[0,120)`、`[120,285)`；hard-cut-heavy `[0,2643)`；
+no-sound-effects `[0,2643)`。cueCount=0；off-beat-cuts（缺精确边界）与 static-camera（旧片无场景轨）为 unknown。
+四个标记区间生成 72 张密集帧，无预算跳过。示例：
+
+```json
+{
+  "rule": "no-sound-effects",
+  "frames": [0, 2643],
+  "message": "Narrated film exceeds 30 seconds and has no sound-effect cues; consider sound tied to visible actions."
+}
+```
+
+真实验收：P1 gallery 派生 fixture 识别 3 场景、4 cue、NumberRoll/CameraMove 关键帧、push-in 及 2 个
+WorldCamera 样本；跨章节两段 static-camera 提示产生 12 张密集帧，曲线与边界核对正常，无 missingFrames/badLines。
+animatic 为 640×360 / 30fps / 390 帧（90 帧正片 + 300 帧系统片头片尾），846,036 字节；
+inspectFilmVideo 校验与完整解码通过，AAC 双声道，解码 PCM 峰值 7553、79,311 个非零 mono samples，确认为有声音。
+曲线与密集帧已看图；另以 warn 级别实渲正常正片确认无 review 日志，普通 review 实跑确认 animatic 大小/mtime 未变。
+证据保存在当前 worktree 的 `out/p3-validation/`（ignored）：两片各有 review.json、review-original.json、
+review/ 和 fixture-source/；整理后的 review.json 路径已指向保留目录。预览：
+`out/p3-validation/p3-motion-probe/review/animatic.mp4`，媒体复验数据在 media-validation.json。
+临时片已用 film:delete 的 owned-path 清理，片源、媒体和验证输出不提交。
+
+新增 16 项回归覆盖五条规则的正反例、旧片 unknown、字幕/收尾容忍、切点校准、边界互核、日志容错、密集帧预算、
+review 新字段 schema、animatic 参数/声音/超时与 deliver 缺失/过期/新鲜提醒；既有交付测试追加缺预览仍成功的断言。
+完整 `npm run check` 通过（419 项：418 通过，Linux 跳过 1 项 macOS 专用测试），含 typecheck、lint、文档/素材检查、
+Web/Remotion 构建、creator 包检查及新 motion-curve Still 的宿主 compositions；runtime 包 typecheck、
+两包构建与 runtime check:package 通过。
+
+尚未验证：人工实际播放听审、提示阈值在更多片型上的泛化、独立新 Workspace 安装/升级实跑和 P5 新旧生产样片对比。
+未新增依赖；未改 Skill、模板、README 或其他任务持有的文档，未发布。
+
 ## 镜头配方 P2（2026-11-07，未发布）
 
 按 [实施方案](promotions/2026-11-06-cinematic-motion-and-sound.md) 完成第一批六个配方：

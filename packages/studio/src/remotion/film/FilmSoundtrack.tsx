@@ -10,6 +10,8 @@ import {
 } from "./FilmSoundEffects";
 import { useFilm, type FilmRuntime } from "./context";
 
+import { useReviewMotion } from "./review-motion";
+
 export type FilmSoundtrackProps = Readonly<{
   /** Set false to leave out the narration track. */
   narration?: boolean;
@@ -140,18 +142,30 @@ export const FilmSoundtrack = ({
   ending,
 }: FilmSoundtrackProps) => {
   const film = useFilm();
+  const tracks = resolveFilmSoundtrack(film, { musicDips, ending }).filter(
+    ({ contributionId }) =>
+      contributionId === "narration" ? narration : music,
+  );
+  // P1 ending.sfx also contributes an effect without a FilmSoundEffects node.
+  useReviewMotion({
+    type: "sound-effects",
+    cues: tracks
+      .filter((track) => track.contributionId.startsWith("sfx:"))
+      .map((track) => ({
+        frame: track.startFrame,
+        endFrame: track.endFrame,
+        sfx: track.publicPath,
+        for: "Film ending",
+      })),
+  });
   return (
     <>
-      {resolveFilmSoundtrack(film, { musicDips, ending })
-        .filter(({ contributionId }) =>
-          contributionId === "narration" ? narration : music,
-        )
-        .map((contribution) => (
-          <SoundContribution
-            key={contribution.contributionId}
-            contribution={contribution}
-          />
-        ))}
+      {tracks.map((contribution) => (
+        <SoundContribution
+          key={contribution.contributionId}
+          contribution={contribution}
+        />
+      ))}
     </>
   );
 };

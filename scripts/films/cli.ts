@@ -22,13 +22,13 @@ const USAGE = `Usage:
   film voice --film <id>
   film music --film <id>
   film asset --film <id> --file <absolute-path> --name <file-name> --origin generated|original|licensed --creator <who> --license <license> [--source-url <url>] [--attribution <text>]
-  film review --film <id> [--frames <f1,f2,...>] [--scale <0.1-1>]
+  film review --film <id> [--frames <f1,f2,...>] [--scale <0.1-1>] [--animatic]
   film check --film <id>
   film deliver --film <id>
   film list
   film delete --film <id> --confirm-delete`;
 
-const FLAGS = new Set(["confirm-delete"]);
+const FLAGS = new Set(["confirm-delete", "animatic"]);
 
 /** Parses `--name value` pairs and bare flags; rejects anything unexpected. */
 export const parseFilmOptions = (
@@ -161,7 +161,12 @@ export const runFilmCli = async (
       return;
     }
     case "review": {
-      const options = parseFilmOptions(rest, ["film", "frames", "scale"]);
+      const options = parseFilmOptions(rest, [
+        "film",
+        "frames",
+        "scale",
+        "animatic",
+      ]);
       const frames = options
         .optional("frames")
         ?.split(",")
@@ -182,6 +187,7 @@ export const runFilmCli = async (
         await runFilmReview({
           rootDir,
           filmId: options.required("film"),
+          animatic: options.has("animatic"),
           ...(frames === undefined ? {} : { frames }),
           ...(parsedScale === undefined ? {} : { scale: parsedScale }),
           env: context.env,

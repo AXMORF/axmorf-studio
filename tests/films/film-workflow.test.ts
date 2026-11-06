@@ -342,6 +342,7 @@ test("deliver replaces the delivery only after every file renders and keeps the 
     now: () => new Date("2026-10-14T01:00:00Z"),
   });
   assert.equal(first.status, "film-delivered");
+  assert.match(first.animaticReminder!, /Animatic is missing/u);
   assert.equal(first.previousDelivery, null);
   assert.deepEqual(calls, [
     "video",

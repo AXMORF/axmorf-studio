@@ -1,3 +1,4 @@
+import { useReviewMotion } from "../../film/review-motion";
 import { CameraMotionBlur } from "@remotion/motion-blur";
 import { useCurrentFrame } from "remotion";
 import {
@@ -151,6 +152,15 @@ export const CameraMove = ({
   const currentFrame = useCurrentFrame();
   const frameOffset = (frameOverride ?? currentFrame) - currentFrame;
   const state = resolveCameraMove(currentFrame + frameOffset, options);
+  useReviewMotion({
+    type: "recipe",
+    id: "CameraMove",
+    anticipate: state.anticipate,
+    move: state.move,
+    land: state.land,
+    settle: state.settle,
+    preset: options.preset,
+  });
   integer(blurSamples, 2, CAMERA_MOVE_MAX_BLUR_SAMPLES, "blurSamples");
   // Each sample renders the entire subtree: ~samples× CPU/DOM cost. Only fast travel is sampled.
   // CameraSample reads the shifted frame inside the blur provider, never a frozen outer state.

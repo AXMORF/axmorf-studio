@@ -1,3 +1,4 @@
+import { useReviewMotion } from "../../film/review-motion";
 import { useCurrentFrame } from "remotion";
 import {
   clamp,
@@ -84,6 +85,14 @@ export const NumberRoll = ({
   positive(fontSize, "fontSize");
   const currentFrame = useCurrentFrame();
   const state = resolveNumberRoll(frameOverride ?? currentFrame, options);
+  useReviewMotion({
+    type: "recipe",
+    id: "NumberRoll",
+    anticipate: state.anticipate,
+    move: state.move,
+    land: state.land,
+    settle: state.settle,
+  });
   return (
     <div
       data-recipe="NumberRoll"

@@ -492,3 +492,134 @@ export const filmFrameFromSamples = (
   const denominator = BigInt(sampleRate);
   return Number((numerator + denominator - 1n) / denominator);
 };
+
+/** Shares readability's warn-level, marker + single-line JSON transport. */
+export const FILM_REVIEW_MOTION_MARKER = "AXMORF_REVIEW_MOTION";
+export const FILM_MOTION_CURVE_ID = "axmorf-motion-curve";
+const ReviewFrameSchema = z.number().int().nonnegative();
+export const FilmReviewMotionSceneSchema = z.strictObject({
+  id: z.string(),
+  chapter: z.string().nullable(),
+  boundaryFrame: ReviewFrameSchema,
+  endFrame: ReviewFrameSchema,
+  enter: z
+    .strictObject({
+      kind: z.string(),
+      mode: z.enum(["overlay", "overlap"]),
+      startFrame: ReviewFrameSchema,
+      endFrame: ReviewFrameSchema,
+    })
+    .nullable(),
+});
+export const FilmReviewMotionEventSchema = z.discriminatedUnion("type", [
+  z.strictObject({
+    type: z.literal("scene-track"),
+    scenes: z.array(FilmReviewMotionSceneSchema),
+  }),
+  z.strictObject({
+    type: z.literal("sound-effects"),
+    cues: z.array(
+      z.strictObject({
+        frame: ReviewFrameSchema,
+        endFrame: ReviewFrameSchema,
+        sfx: z.string(),
+        for: z.string(),
+      }),
+    ),
+  }),
+  z.strictObject({
+    type: z.literal("recipe"),
+    id: z.string(),
+    preset: z.string().optional(),
+    anticipate: ReviewFrameSchema,
+    move: ReviewFrameSchema,
+    land: ReviewFrameSchema,
+    settle: ReviewFrameSchema,
+  }),
+  z.strictObject({ type: z.literal("world-camera"), moving: z.boolean() }),
+]);
+export type FilmReviewMotionEvent = z.infer<typeof FilmReviewMotionEventSchema>;
+export const FilmReviewMotionSchema = z.strictObject({
+  index: ReviewFrameSchema,
+  frame: ReviewFrameSchema,
+  events: z.array(FilmReviewMotionEventSchema).max(120),
+  truncated: z.boolean(),
+});
+export type FilmReviewMotion = z.infer<typeof FilmReviewMotionSchema>;
+export const FilmMotionRuleSchema = z.enum([
+  "enter-then-hold",
+  "hard-cut-heavy",
+  "no-sound-effects",
+  "off-beat-cuts",
+  "static-camera",
+]);
+export const FilmMotionWarningSchema = z.strictObject({
+  rule: FilmMotionRuleSchema,
+  frames: z.tuple([ReviewFrameSchema, ReviewFrameSchema]),
+  message: z.string(),
+});
+export const FilmMotionCurveSchema = z.strictObject({
+  fps: z.number().positive(),
+  sampleSeconds: z.number().positive(),
+  samples: z.array(
+    z.strictObject({
+      frame: ReviewFrameSchema,
+      difference: z.number().nonnegative(),
+    }),
+  ),
+  seconds: z.array(
+    z.strictObject({
+      second: ReviewFrameSchema,
+      difference: z.number().nonnegative(),
+    }),
+  ),
+  cuts: z.array(
+    z.strictObject({
+      from: ReviewFrameSchema,
+      to: ReviewFrameSchema,
+      frame: ReviewFrameSchema,
+      difference: z.number().nonnegative(),
+    }),
+  ),
+});
+export type FilmMotionCurve = z.infer<typeof FilmMotionCurveSchema>;
+export const FilmMotionReviewSchema = z.strictObject({
+  motion: z.strictObject({
+    summary: z.strictObject({
+      sampledFrames: ReviewFrameSchema,
+      sceneCount: ReviewFrameSchema,
+      cueCount: ReviewFrameSchema,
+      recipeIds: z.array(z.string()),
+      cameraPresets: z.array(z.string()),
+      worldCameraSamples: ReviewFrameSchema,
+      detectedCuts: ReviewFrameSchema,
+    }),
+    boundaryChecks: z.array(
+      z.strictObject({
+        boundaryFrame: ReviewFrameSchema,
+        kind: z.string().nullable(),
+        candidateCutFrames: z
+          .tuple([ReviewFrameSchema, ReviewFrameSchema])
+          .nullable(),
+      }),
+    ),
+    telemetry: z.array(FilmReviewMotionSchema),
+    badLines: ReviewFrameSchema,
+    missingFrames: z.array(ReviewFrameSchema),
+    unknown: z.array(
+      z.strictObject({ rule: FilmMotionRuleSchema, reason: z.string() }),
+    ),
+    curve: z.strictObject({ json: z.string(), image: z.string() }),
+    dense: z.array(
+      z.strictObject({
+        rule: FilmMotionRuleSchema,
+        frames: z.tuple([ReviewFrameSchema, ReviewFrameSchema]),
+        directory: z.string(),
+        count: ReviewFrameSchema,
+      }),
+    ),
+    denseSkipped: ReviewFrameSchema,
+    animatic: z.string().nullable(),
+  }),
+  motionWarnings: z.array(FilmMotionWarningSchema),
+});

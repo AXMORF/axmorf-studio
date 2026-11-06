@@ -10,6 +10,8 @@ import { join, relative } from "node:path";
 
 import {
   FILM_CONTACT_SHEET_ID,
+  FILM_MOTION_CURVE_ID,
+  FilmMotionReviewSchema,
   filmCompositionIds,
   FilmMusicSchema,
   type FilmTiming,
@@ -22,10 +24,24 @@ import {
   workspacePath,
 } from "./files";
 import { meanAbsoluteDifference, readFrameSignature } from "./frame-compare";
-import { renderContactSheet, renderFilmReviewFrames } from "./media";
+import {
+  renderFilmAnimatic,
+  renderMotionCurve,
+  renderContactSheet,
+  renderFilmReviewFrames,
+} from "./media";
 import { loadCurrentFilmTiming } from "./music";
 import { readWorkspaceRenderTimeoutMs } from "./render-timeout";
 import { analyzeReviewReadability } from "./readability";
+
+import {
+  analyzeMotion,
+  buildMotionCurve,
+  extractMotionMeasurements,
+  MOTION_SAMPLE_SECONDS,
+  selectDenseMotionFrames,
+} from "./motion";
+import { filmHasLegacyAudio } from "./motion-files";
 
 export type ReviewFrame = Readonly<{ frame: number; reason: string }>;
 
@@ -217,12 +233,14 @@ export const runFilmReview = async ({
   filmId,
   frames: requested,
   scale = 0.5,
+  animatic = false,
   env = process.env,
 }: {
   readonly rootDir: string;
   readonly filmId: string;
   readonly frames?: readonly number[];
   readonly scale?: number;
+  readonly animatic?: boolean;
   readonly env?: NodeJS.ProcessEnv;
 }) => {
   const timeoutMs = await readWorkspaceRenderTimeoutMs({ rootDir, env });
@@ -252,8 +270,13 @@ export const runFilmReview = async ({
           }
           return { frame, reason: "requested" };
         });
-  await rm(paths.review, { recursive: true, force: true });
   await mkdir(paths.review, { recursive: true });
+  // A normal contact-sheet refresh must not discard an expensive animatic.
+  // Its mtime still lets deliver identify source edits since the preview.
+  for (const name of await readdir(paths.review)) {
+    if (name === "animatic.mp4") continue;
+    await rm(join(paths.review, name), { recursive: true, force: true });
+  }
   // Remotion reads anything after the last dot of a sequence directory as an
   // extension, so the scratch name has no dot and is passed relative to rootDir.
   const scratch = await mkdtemp(join(paths.review, "render-"));
@@ -355,6 +378,16 @@ export const runFilmReview = async ({
       fps: spec.render.fps,
       timeoutMs,
     });
+    const motion = await reviewMotion({
+      rootDir,
+      filmId,
+      scratch,
+      timing,
+      music,
+      stillWarnings,
+      timeoutMs,
+      animatic,
+    });
     return {
       status: "film-review-rendered",
       filmId: paths.id,
@@ -363,7 +396,8 @@ export const runFilmReview = async ({
       stillWarnings,
       repetitionWarnings,
       ...readability,
-      next: "Open the contact sheet and the frames; resolve or justify each readabilityWarning and repetitionWarning, and inspect missingFrames. Check subject, framing, and changes on the listed sentences and accents.",
+      ...motion,
+      next: "Open the contact sheet and the frames; resolve or justify each readabilityWarning, repetitionWarning and motionWarning, and inspect missingFrames. Open the motion curve, dense frames and animatic (use --animatic to generate it); inspect motion.unknown and missingFrames. Check subject, framing, and changes on the listed sentences and accents.",
     } as const;
   } finally {
     await rm(scratch, { recursive: true, force: true });
@@ -427,4 +461,191 @@ const analyzeRepetition = async ({
     });
   }
   return findRepetition({ samples, fps });
+};
+
+/** Keep telemetry well below bounded-process's 1 MiB tail and reuse one frame
+ * renderer for the curve and dense frames. Chunking preserves 0.5s coverage. */
+const sampleMotionFrames = async ({
+  rootDir,
+  compositionId,
+  scratch,
+  frames,
+  timeoutMs,
+  onImage,
+}: {
+  rootDir: string;
+  compositionId: string;
+  scratch: string;
+  frames: readonly number[];
+  timeoutMs: number;
+  onImage: (frame: number, path: string, index: number) => Promise<void>;
+}) => {
+  const records = [];
+  let badLines = 0;
+  const chunkSize = 48;
+  for (let start = 0; start < frames.length; start += chunkSize) {
+    const batch = frames.slice(start, start + chunkSize);
+    const dir = join(scratch, `motion-${start}`);
+    await mkdir(dir, { recursive: true });
+    const propsPath = join(dir, "props.json");
+    await writeFile(
+      propsPath,
+      JSON.stringify({ frames: batch, readability: false }),
+    );
+    const result = await renderFilmReviewFrames({
+      rootDir,
+      compositionId,
+      propsPath,
+      outputDirectory: relative(rootDir, join(dir, "frames")),
+      count: batch.length,
+      scale: 0.125,
+      timeoutMs,
+    });
+    const parsed = extractMotionMeasurements(
+      `${result.stdout}\n${result.stderr}`,
+    );
+    badLines += parsed.badLines;
+    records.push(
+      ...parsed.records
+        .filter((r) => batch[r.index] === r.frame)
+        .map((r) => ({ ...r, index: r.index + start })),
+    );
+    const images = (await readdir(join(dir, "frames")))
+      .filter((n) => n.startsWith("review-"))
+      .sort(
+        (a, b) => Number(a.match(/\d+/u)?.[0]) - Number(b.match(/\d+/u)?.[0]),
+      );
+    if (images.length !== batch.length)
+      throw new Error(
+        `Expected ${batch.length} motion samples, got ${images.length}.`,
+      );
+    for (const [i, name] of images.entries())
+      await onImage(batch[i], join(dir, "frames", name), start + i);
+    await rm(dir, { recursive: true, force: true });
+  }
+  return { records, badLines };
+};
+
+const reviewMotion = async ({
+  rootDir,
+  filmId,
+  scratch,
+  timing,
+  music,
+  stillWarnings,
+  timeoutMs,
+  animatic,
+}: {
+  rootDir: string;
+  filmId: string;
+  scratch: string;
+  timing: FilmTiming;
+  music: ReturnType<typeof FilmMusicSchema.parse> | null;
+  stillWarnings: ReturnType<typeof findStillStretches>;
+  timeoutMs: number;
+  animatic: boolean;
+}) => {
+  const paths = filmPaths(rootDir, filmId);
+  const spec = await loadFilmSpec(rootDir, filmId);
+  const compositionId = filmCompositionIds(filmId).review;
+  const step = Math.max(1, Math.round(spec.render.fps * MOTION_SAMPLE_SECONDS));
+  const frames: number[] = [];
+  for (let frame = 0; frame < timing.durationInFrames; frame += step)
+    frames.push(frame);
+  const samples: { frame: number; signature: Uint8Array }[] = [];
+  const { records, badLines } = await sampleMotionFrames({
+    rootDir,
+    compositionId,
+    scratch,
+    frames,
+    timeoutMs,
+    onImage: async (frame, path, index) => {
+      samples.push({
+        frame,
+        signature: await readFrameSignature({
+          rootDir,
+          imagePath: path,
+          signaturePath: join(scratch, `motion-signature-${index}.png`),
+        }),
+      });
+    },
+  });
+  const curve = buildMotionCurve(samples, spec.render.fps);
+  const analysis = analyzeMotion({
+    records,
+    frames,
+    curve,
+    durationInFrames: timing.durationInFrames,
+    fps: spec.render.fps,
+    hasNarration: timing.sentences.length > 0,
+    legacyAudio: await filmHasLegacyAudio(paths.dir),
+    music,
+    stillWarnings,
+  });
+  const curveJson = join(paths.review, "motion-curve.json");
+  const curveImage = join(paths.review, "motion-curve.png");
+  await writeFile(curveJson, JSON.stringify(curve, null, 2) + "\n");
+  await renderMotionCurve({
+    rootDir,
+    compositionId: FILM_MOTION_CURVE_ID,
+    propsPath: curveJson,
+    outputPath: curveImage,
+    timeoutMs,
+  });
+  const dense = [];
+  const ranges = selectDenseMotionFrames(
+    analysis.motionWarnings,
+    spec.render.fps,
+  );
+  for (const range of ranges) {
+    const directory = join(
+      paths.review,
+      "dense",
+      `${range.rule}-${range.range[0]}-${range.range[1]}`,
+    );
+    await mkdir(directory, { recursive: true });
+    await sampleMotionFrames({
+      rootDir,
+      compositionId,
+      scratch,
+      frames: range.frames,
+      timeoutMs,
+      onImage: async (frame, path) => {
+        await copyFile(path, join(directory, `frame-${frame}.jpeg`));
+      },
+    });
+    dense.push({
+      rule: range.rule,
+      frames: range.range,
+      directory: workspacePath(rootDir, directory),
+      count: range.frames.length,
+    });
+  }
+  const preview = join(paths.review, "animatic.mp4");
+  if (animatic)
+    await renderFilmAnimatic({
+      rootDir,
+      compositionId: filmCompositionIds(filmId).film,
+      outputPath: preview,
+      ...spec.render,
+      timeoutMs,
+    });
+  return FilmMotionReviewSchema.parse({
+    motion: {
+      summary: analysis.summary,
+      boundaryChecks: analysis.boundaryChecks,
+      telemetry: analysis.telemetry,
+      badLines,
+      missingFrames: analysis.missingFrames,
+      unknown: analysis.unknown,
+      curve: {
+        json: workspacePath(rootDir, curveJson),
+        image: workspacePath(rootDir, curveImage),
+      },
+      dense,
+      denseSkipped: analysis.motionWarnings.length - ranges.length,
+      animatic: animatic ? workspacePath(rootDir, preview) : null,
+    },
+    motionWarnings: analysis.motionWarnings,
+  });
 };

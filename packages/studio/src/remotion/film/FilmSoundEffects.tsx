@@ -12,6 +12,8 @@ import { mergeSpeechRanges } from "../runtime/sound-design/audio-playback";
 import { FILM_SPEECH_DUCKING_RAMP_FRAMES } from "../../contracts/film";
 import { useFilm, type FilmRuntime } from "./context";
 
+import { useReviewMotion } from "./review-motion";
+
 export const FILM_SFX_DEFAULT_VOLUME = 0.55;
 export const FILM_SFX_UNDER_SPEECH_GAIN = 0.55;
 export const FILM_SFX_DEFAULT_MAX_SHIFT_FRAMES = 4;
@@ -167,9 +169,19 @@ export const resolveFilmSoundEffects = (
 
 export const FilmSoundEffects = ({ cues }: FilmSoundEffectsProps) => {
   const film = useFilm();
+  const resolved = resolveFilmSoundEffects(film, cues);
+  useReviewMotion({
+    type: "sound-effects",
+    cues: resolved.map((cue) => ({
+      frame: cue.startFrame,
+      endFrame: cue.endFrame,
+      sfx: cue.sfxId,
+      for: cue.for,
+    })),
+  });
   return (
     <>
-      {resolveFilmSoundEffects(film, cues).map((contribution) => (
+      {resolved.map((contribution) => (
         <SoundContribution
           key={contribution.contributionId}
           contribution={contribution}

@@ -1,3 +1,4 @@
+import { useReviewMotion } from "../../film/review-motion";
 import { getLength, getPointAtLength } from "@remotion/paths";
 import { random, useCurrentFrame } from "remotion";
 import {
@@ -74,6 +75,14 @@ export const ParticleField = ({
 }: ParticleFieldProps) => {
   const currentFrame = useCurrentFrame();
   const state = resolveParticleField(frameOverride ?? currentFrame, options);
+  useReviewMotion({
+    type: "recipe",
+    id: "ParticleField",
+    anticipate: state.anticipate,
+    move: state.move,
+    land: state.land,
+    settle: state.settle,
+  });
   return (
     <svg
       data-recipe="ParticleField"
