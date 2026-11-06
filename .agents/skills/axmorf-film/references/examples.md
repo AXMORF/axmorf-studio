@@ -1,14 +1,305 @@
 # 示例段落
 
-三个可直接编译的段落，用来借鉴技法：满画幅的镜头结构、分层光影、细节层级、运动阶段、文字层，以及在大场景里
-移动的镜头。它们不是模板：主体、文案、构图与时间都从本片的剧本出发，不要原样粘贴。三个例子都按 1080×1920 设计；横屏或其他尺寸要
-重新安排构图，而不只是缩放。
+先读横屏的完整接线示例，再按需参考三个竖屏段落。它们不是模板：主体、文案、构图与时间都从本片剧本出发，
+不要原样粘贴。横屏示例为 1920×1080；原有三个段落按 1080×1920 设计，换尺寸需重新构图。
+
+## 横屏（1920×1080）：旧公理文字形变
+
+一个 3200×1400 的证据世界：旧公理先完整出现；证据路径扫过，旧字碎裂，共有字随镜头平移，碎片重组为新公理。
+`AxiomMorph mode="reform"` 同时处理共有字的移动、旧字碎裂与新字聚合，不需要跳回另一张文字卡。
+开场 f0→60 缓慢移镜，f45 开始显露证据线，前三秒有取景与主体两次变化，旧公理保持可读。
+问题章 → 证据章在 f90 用覆盖式 `light-leak`（12 帧，窗口 [84,96)）：证据带来的光照揭示延续暖色证据线，
+避免纯色几何遮挡切断同一世界；两章共享世界和正片时钟。
+“旧假设”只属于问题章；“可检验的结论”在证据章 f183→198 随重组完成显现，不把两个标签同时放进世界。
+碎裂 f99、重组 f183 各有 cue，重组 cue 从 f181 吸附至 accent f183；镜头沿碎片迁移方向跟拍，
+到达后 f183→299 继续缓慢漂移，让结论保持可读而不定格。
+
+### 对应 storyboard.md 片段
+
+```markdown
+# 分镜与音效计划：axiom-story
+
+规格：1920×1080 / 30 fps；正片 300 帧（10 秒）
+主张：用证据修正旧判断
+
+## 章节 question：旧假设
+
+- 句子与范围：s01 [0, 90)（示意锚点，实际片用 film:voice 实测值）
+- 世界：3200×1400 的证据空间，旧字在 (960, 600)，远景网格、近景遮挡；只有“旧假设”标签；字幕留在底部
+- 镜头路径：ProducerWorldCamera，f0 中心 (1120,740) → f60 (960,700)，ease-in-out；随后停稳至 f99，旧公理完整可读
+- 配方：证据线 f45→99 逐渐显露；AxiomMorph reform，startFrame 75 / duration 150 / spread 260；f75/99/183/224 为四阶段
+- 入章转场：无
+- 音效：s01 无，保留预期
+
+## 章节 proof：证据改变判断
+
+- 句子与范围：s02 [90, 159)，s03 [159, 240)；[240, 300) 为收束（示意，无合成旁白）
+- 世界：沿用同一空间，证据击中旧字，新字最终位于 (2240, 600)；移除旧标签，仅在 f183→198 淡入“可检验的结论”
+- 镜头路径：同一 ProducerWorldCamera，f99 (960,700) → f141 (1580,620) → f183 (2240,700)，两段 ease-in-out；再缓移至 f299 (2180,680)
+- 配方：沿用同一次 AxiomMorph，旧字裂开/共有字迁移/新字聚合，不重置时钟
+- 入章转场：f90 light-leak / 12 帧 / 窗口 [84,96)；选光照揭示呼应暖色证据线，保持世界连贯；sfx false，避开 f99 碎裂声
+- 音效：s02 f99 glitch-tick「证据击碎旧字」；s03 endFrame 183 riser-short「重组前蓄势」
+- 音效：s03 f181 soft-impact，snap accent / maxShift 3 / 窗口 [181,183]，解析为 f183「碎片重组」
+- 留白与收音：musicDips [159,183) 音量 0.02；ending landFrame 270；不改旁白字幕
+```
+
+### 可编译 Film 根组件
+
+下面完整代码与仓库 gallery 中的 `AxiomStoryExample.tsx` 仅导入路径适配仓库源码入口，其余逐字同步（自动测试保证），根 typecheck 和
+`npm run compositions` 覆盖它。放到本片的 `Film.tsx` 时导出这个组件；无需自己创建 FilmProvider。
+实际作品用本片时序替换示意帧并更新 storyboard，不复制 gallery 的无旁白 fixture 当作已生成旁白。
+
+```tsx
+import { useMemo } from "react";
+import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
+import {
+  AxiomMorph,
+  FilmCaptions,
+  FilmSceneTrack,
+  FilmSoundEffects,
+  FilmSoundtrack,
+  ProducerWorldCamera,
+  measureAxiomText,
+  resolveAxiomMorph,
+  resolveFilmSceneTrack,
+  useFilm,
+  type FilmScene,
+} from "@axmorf/studio/remotion";
+
+const FONT = {
+  fontFamily: "Noto Sans CJK SC, sans-serif",
+  fontSize: 100,
+  fontWeight: 700,
+};
+const MORPH = {
+  startFrame: 75,
+  durationInFrames: 150,
+  mode: "reform" as const,
+  seed: "axiom-story",
+  spread: 260,
+};
+const CAMERA = {
+  width: 1920,
+  height: 1080,
+  worldWidth: 3200,
+  worldHeight: 1400,
+  shots: [
+    { frame: 0, center: [1120, 740], easing: "ease-in-out" },
+    { frame: 60, center: [960, 700] },
+    { frame: 99, center: [960, 700], easing: "ease-in-out" },
+    { frame: 141, center: [1580, 620], easing: "ease-in-out" },
+    { frame: 183, center: [2240, 700] },
+    { frame: 299, center: [2180, 680] },
+  ] as const,
+};
+const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
+
+// frame is explicitly the body clock, never the enclosing scene Sequence clock.
+const AxiomWorld = ({
+  frame,
+  chapter,
+}: {
+  frame: number;
+  chapter: "question" | "proof";
+}) => {
+  const travel = interpolate(frame, [99, 183], [0, 1], clamp);
+  const x = 960 + travel * 1280;
+  return (
+    <ProducerWorldCamera
+      {...CAMERA}
+      frame={frame}
+      layers={[
+        {
+          depth: 0.15,
+          content: (
+            <svg width={4000} height={1600}>
+              <defs>
+                <radialGradient id="axiom-light">
+                  <stop stopColor="#254d64" />
+                  <stop offset="1" stopColor="#08131f" />
+                </radialGradient>
+                <pattern
+                  id="axiom-grid"
+                  width={120}
+                  height={120}
+                  patternUnits="userSpaceOnUse"
+                >
+                  <path
+                    d="M120 0H0V120"
+                    fill="none"
+                    stroke="#45718b"
+                    strokeWidth={2}
+                    opacity={0.2}
+                  />
+                </pattern>
+              </defs>
+              <rect width={4000} height={1600} fill="url(#axiom-light)" />
+              <rect width={4000} height={1600} fill="url(#axiom-grid)" />
+            </svg>
+          ),
+        },
+        {
+          depth: 1,
+          content: (
+            <>
+              <svg width={3200} height={1400}>
+                <path
+                  d="M350 920 Q1600 780 2850 920"
+                  fill="none"
+                  stroke="#44758a"
+                  strokeWidth={8}
+                />
+                <ellipse
+                  cx={x}
+                  cy={830}
+                  rx={560}
+                  ry={45}
+                  fill="#000"
+                  opacity={0.3}
+                />
+                {/* Evidence crosses the old claim as fracture begins at f99. */}
+                <path
+                  d={`M${x - 600} 420 L${x - 100} 570 L${x + 560} 390`}
+                  fill="none"
+                  stroke="#f3b66d"
+                  strokeWidth={12}
+                  strokeDasharray={1400}
+                  strokeDashoffset={
+                    1400 * (1 - interpolate(frame, [45, 99], [0, 1], clamp))
+                  }
+                />
+              </svg>
+              <div
+                style={{
+                  position: "absolute",
+                  left: x - 700,
+                  top: 600,
+                  width: 1400,
+                }}
+              >
+                <AxiomMorph
+                  {...MORPH}
+                  {...FONT}
+                  frame={frame}
+                  text="规模决定能力"
+                  nextText="证据决定能力"
+                  color="#ecf7fa"
+                />
+              </div>
+              <div
+                style={{
+                  position: "absolute",
+                  left: chapter === "question" ? 800 : x - 160,
+                  top: 990,
+                  fontSize: 38,
+                  color: chapter === "question" ? "#f3b66d" : "#62dcda",
+                  opacity:
+                    chapter === "question"
+                      ? 1
+                      : interpolate(frame, [183, 198], [0, 1], clamp),
+                }}
+              >
+                {chapter === "question" ? "旧假设" : "可检验的结论"}
+              </div>
+            </>
+          ),
+        },
+        {
+          depth: 1.4,
+          content: (
+            <svg width={4600} height={1800}>
+              <path
+                d="M0 1270 L4600 1000 L4600 1800 L0 1800Z"
+                fill="#050d17"
+                opacity={0.65}
+              />
+            </svg>
+          ),
+        },
+      ]}
+    />
+  );
+};
+
+export const AxiomStoryExample = () => {
+  const film = useFilm();
+  const frame = useCurrentFrame();
+  const layouts = useMemo(
+    () => ({
+      text: measureAxiomText("规模决定能力", FONT),
+      nextText: measureAxiomText("证据决定能力", FONT),
+    }),
+    [],
+  );
+  const morph = resolveAxiomMorph(frame, { ...MORPH, ...layouts });
+  const scenes: readonly FilmScene[] = [
+    {
+      id: "old",
+      from: 0,
+      chapter: "question",
+      render: (f) => <AxiomWorld frame={f} chapter="question" />,
+    },
+    {
+      id: "evidence",
+      from: 90,
+      chapter: "proof",
+      enter: { kind: "light-leak", frames: 12, sfx: false },
+      render: (f) => <AxiomWorld frame={f + 90} chapter="proof" />,
+    },
+  ];
+  const track = resolveFilmSceneTrack(film, scenes);
+  return (
+    <AbsoluteFill
+      style={{ background: "#08131f", fontFamily: FONT.fontFamily }}
+    >
+      <FilmSceneTrack scenes={scenes} />
+      <FilmSoundEffects
+        cues={[
+          ...track.sfxCues,
+          // Fracture stays at f99, after the light-leak window [84, 96).
+          { ...morph.sfxCues[0], for: "s02：证据击碎旧字" },
+          // The visual land is f183; f181 snaps to the fixture's accent at f183.
+          {
+            frame: morph.land - 2,
+            sfx: "soft-impact",
+            snap: "accent",
+            maxShiftFrames: 3,
+            minFrame: morph.land - 2,
+            maxFrame: morph.land,
+            for: "s03：碎片重组为新公理",
+          },
+          { endFrame: morph.land, sfx: "riser-short", for: "s03：重组前蓄势" },
+        ]}
+      />
+      <FilmSoundtrack
+        musicDips={[{ from: 159, to: 183, volume: 0.02 }]}
+        ending={{ landFrame: 270 }}
+      />
+      <FilmCaptions />
+    </AbsoluteFill>
+  );
+};
+```
+
+Gallery 组合 id：`AxiomStoryGallery`（`npm run dev` → System）。适配层只在 gallery 使用共享已许可的
+118 BPM 循环与静态节拍网格，无 provider 调用；实际片挂接 `film:music` 生成的网格。
+在仓库根目录验证时，先重建本地包（gallery 入口读取编译产物），再列组合与渲染：
+
+```bash
+npm run typecheck
+npm --workspace @axmorf/studio run build:runtime
+npm run compositions
+npx remotion still src/index.ts AxiomStoryGallery out/axiom-story.png --frame=183
+npx remotion render src/index.ts AxiomStoryGallery out/axiom-story.mp4
+```
+
+以下三个是竖屏子段落，不是完整 Film 根组件；配乐、字幕和音效由外层统一组织。
 
 每个段落是一个普通组件，放在 `Film.tsx` 的 `<Sequence from={...} durationInFrames={...}>` 里，由外层传入段落
 长度；`useCurrentFrame()` 在 Sequence 内从 0 开始计数。时间点优先取自 `useFilmTiming()` 的句子和重音帧，
 这里为了独立可读用段落长度的比例代替。
 
-## 软件主题：真实界面与有动机的镜头
+## 竖屏：软件主题：真实界面与有动机的镜头
 
 适合开发工具、仓库和命令行流程。世界铺满画面，镜头从全景推到关键的一行代码，再推到结果；标题留在不随镜头
 运动的稳定文字层。
@@ -194,7 +485,7 @@ export const InspectSegment = ({
 };
 ```
 
-## 概念主题：有光影的物体造成可见结果
+## 竖屏：概念主题：有光影的物体造成可见结果
 
 适合没有真实界面的概念。一个精心绘制的物体作用于另一个：预备、接触、回弹，再停在结果上。体积来自渐变、
 接触阴影和高光边；每个物体有大、中、小三级细节；结果出现后镜头推近一次。
@@ -416,7 +707,7 @@ export const InstallSegment = ({
 };
 ```
 
-## 讲解主题：镜头在大场景里跟着过程走
+## 竖屏：讲解主题：镜头在大场景里跟着过程走
 
 适合有“过程”的科普：光、信号、物质沿一条路径发生变化。场景先搭成三屏宽，太阳、大气、观察者依次排开；镜头跟着
 光沿路径平移，到机制处推近，最后拉远看结果。远景、主体、前景三层按不同速度移动，产生纵深。标注贴在物体上并随

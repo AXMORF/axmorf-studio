@@ -3,6 +3,7 @@ import { Composition, Folder } from "remotion";
 
 import { DEFAULT_SCENE_TEMPLATE_AUDIO_PROJECTION } from "./capabilities/scene-templates/registry";
 import { SceneTemplateAudioProjectionSchema } from "./capabilities/scene-templates/template-audio";
+import { AxiomStoryGallery } from "./compositions/capability-gallery/AxiomStoryGallery";
 import { SceneTrackGallery } from "./compositions/capability-gallery/SceneTrackGallery";
 import {
   RecipeGallery,
@@ -54,6 +55,14 @@ export const createRemotionRoot = (
           id="SceneTrackGallery"
           component={SceneTrackGallery}
           durationInFrames={90}
+          fps={30}
+          width={1920}
+          height={1080}
+        />
+        <Composition
+          id="AxiomStoryGallery"
+          component={AxiomStoryGallery}
+          durationInFrames={300}
           fps={30}
           width={1920}
           height={1080}
