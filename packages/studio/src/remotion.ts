@@ -18,3 +18,4 @@ export * from "./remotion/capabilities/visual-components";
 export * from "./remotion/runtime/sound-design";
 export * from "./remotion/film";
 export * from "./remotion/create-remotion-root";
+export * from "./remotion/capabilities/recipes";

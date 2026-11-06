@@ -4,6 +4,11 @@ import { Composition, Folder } from "remotion";
 import { DEFAULT_SCENE_TEMPLATE_AUDIO_PROJECTION } from "./capabilities/scene-templates/registry";
 import { SceneTemplateAudioProjectionSchema } from "./capabilities/scene-templates/template-audio";
 import { SceneTrackGallery } from "./compositions/capability-gallery/SceneTrackGallery";
+import {
+  RecipeGallery,
+  RECIPE_GALLERY_IDS,
+  RECIPE_GALLERY_FRAMES,
+} from "./compositions/capability-gallery/RecipeGallery";
 import { CapabilityGallery } from "./compositions/capability-gallery/CapabilityGallery";
 import {
   BrandRevealTemplatePreview,
@@ -53,6 +58,20 @@ export const createRemotionRoot = (
           width={1920}
           height={1080}
         />
+        <Folder name="Recipes">
+          {RECIPE_GALLERY_IDS.map((recipe) => (
+            <Composition
+              key={recipe}
+              id={`Recipe-${recipe}`}
+              component={RecipeGallery}
+              defaultProps={{ recipe }}
+              durationInFrames={RECIPE_GALLERY_FRAMES}
+              fps={30}
+              width={1920}
+              height={1080}
+            />
+          ))}
+        </Folder>
         <Composition
           id="DefaultIntroPreview"
           component={BrandRevealTemplatePreview}

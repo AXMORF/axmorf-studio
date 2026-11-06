@@ -222,6 +222,13 @@ Skill 根目录 `.agents/skills/axmorf-film/` 和模板 `packages/create-axmorf-
 gallery 已输出 still 与 2.9 秒视频（含声音，完整解码、看图通过），12 种转场各有真实 Chromium 中点 still 冒烟。
 证据与未验证事项见 [ITERATION_STATUS](../ITERATION_STATUS.md)：尚未人工听审，独立 Workspace 实跑与样片对比留到 P5；Skill/api 留到 P4。
 
+**P2 进度（2026-11-07，未发布）**：六个配方、纯 resolver、绝对帧 `FilmSoundEffectCue`、元数据目录与六个横屏 gallery 已实现；
+ParallaxLayers 复用任意深度的 ProducerWorldCamera，不另建投影引擎。新增 22 项回归，完整 `npm run check` 通过
+（403 项中 402 通过，Linux 跳过 1 项 macOS 专用测试）；六个组合通过宿主 compositions，六张 still 与六段 3.6 秒含声音预览已输出、
+看图和完整解码通过。AxiomMorph / ParticleField 各在运动与停稳帧独立渲染两次，完整 PNG 逐字节一致；
+五种镜头与快速段 motion blur 有真实 still 冒烟。验证证据、预览路径与尚未验证项见 [ITERATION_STATUS](../ITERATION_STATUS.md)。
+未拷外部代码、未新增依赖；人工听审/独立 Workspace/生产对比后续验收，Skill/api/配方卡留到 P4。
+
 P5 由“只读 Skill 的新 Agent”来做，是为了检验 Skill 能不能把 Agent 引到这些能力上，而不是检验实现者能不能手工做出好片。
 
 ## 7. 风险与取舍

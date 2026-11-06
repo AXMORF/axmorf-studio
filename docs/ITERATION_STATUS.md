@@ -1,5 +1,38 @@
 # Iteration Status
 
+## 镜头配方 P2（2026-11-07，未发布）
+
+按 [实施方案](promotions/2026-11-06-cinematic-motion-and-sound.md) 完成第一批六个配方：
+
+- `@axmorf/studio/remotion` 新增 `AxiomMorph`、`NumberRoll`、`BarGrow`、`CameraMove`、`ParticleField`、
+  `ParallaxLayers`，每个组件有独立的 `resolve* (frame, options)` 纯函数，返回状态、绝对关键帧与
+  `FilmSoundEffectCue[]`，可直接展开到 `FilmSoundEffects`。组件可传根时间轴 `frame`，在嵌套 Sequence 内保持音画同钟。
+- 新增 `ProducerRecipeMeta` 与 `PRODUCER_RECIPE_CATALOG`：使用/避用场景、建议秒数、
+  anticipate/move/land/settle 语义、建议音效落点。仅新增导出，未改旧 API 或依赖。
+- AxiomMorph 用 `@remotion/layout-utils` 逐 grapheme 实测布局，测量与帧 resolver 分离；支持 assemble、scatter、
+  shatter、reform，中英文共有字按 FIFO 一对一匹配（含重复字）；字形按三角 clip 碎裂，轨迹用 `random(seed)`。
+  NumberRoll 支持逐位过冲后精确 land、千分位、小数、固定前后缀；BarGrow 含基线/刻度与每柱错峰 land cue。
+- CameraMove 的五种预设复用世界镜头和按长度取点，统一缓动；motion blur 仅在快速段开启，默认 4、上限 8 次采样，
+  源码标注约采样数倍的子树渲染成本。ParticleField 按 SVG path 长度采样，默认 120、最多 400 粒子。
+- ParallaxLayers 评估了固定三槽的 `ProducerLayeredStage` / `ProducerShotStage`，选择薄封装已支持任意深度层的
+  `ProducerWorldCamera`，复用投影和边界校验，默认背/中/主/前景深度为 0.15/0.5/1/1.5，不重复实现变换引擎。
+- 六个 `Recipe-*` gallery 组合均为 1920×1080 / 30fps / 108 帧，音效由配方 cue 直接接入。
+  实现为项目内原创，没有拷贝外部项目代码或新增素材，许可清单无需修改。
+
+验证：新增 22 项回归覆盖各 resolver 的阶段边界、land、cue 帧与角色、参数校验、重复字匹配、确定性状态、
+前后缀数字不滚动及嵌套时间轴。完整 `npm run check` 通过（403 项：402 通过，1 项 macOS 专用测试在 Linux 跳过），
+含六个新 composition 的宿主 Chromium 枚举；两包构建、typecheck 和 runtime `check:package` 通过。
+`scripts/tests/check-recipe-pixels.ts` 为独立宿主 Chromium 检查：AxiomMorph、ParticleField 的第 40/100 帧各独立渲染两次，
+1920×1080 PNG 全部逐字节相同（比像素相同更严格），共 4 对/8 张；不使用灰度缩略签名代替完整像素验证。
+六张 still 已看图；六段 H.264 + AAC 短片全部解码至 EOF，108 帧/3.6 秒画面，容器 3.648 秒，PCM 检查音轨非静音。
+五种镜头预设及快速段 motion blur 有真实 Chromium still 冒烟。
+预览目录：`/home/zzzxc/AgentWorkspace/backups/axmorf-p2-preview/`，每个配方各有同名 `.png`/`.mp4`，
+另附 `determinism.json`、`media-validation.json` 与 `camera-presets/`。开发预览使用共享 seed 的 public-dir。
+Remotion CLI 仍有既存 zod 4.6.7 / 建议 4.3.6 提示，未改依赖或检查。
+
+尚未验证：人工实际听审、跨机器/字体环境的像素一致性、motion blur 性能基准、独立新 Workspace 安装/升级实跑与生产样片对比；
+后两项按 P5 验收。Skill、api.md 与配方卡按计划留到 P4。
+
 ## 场景轨与音效轨 P1（2026-11-06，未发布）
 
 按 [实施方案](promotions/2026-11-06-cinematic-motion-and-sound.md) 完成 P1：
