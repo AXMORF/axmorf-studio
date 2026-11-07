@@ -270,3 +270,48 @@ P5 由“只读 Skill 的新 Agent”来做，是为了检验 Skill 能不能把
 2. animatic 默认关闭（`--animatic` 开启），Skill 要求成片前至少看一次；`film:deliver` 在缺少 animatic 时提醒（见 4.4）。
 3. P5 先在试用 Workspace 用本地 rc 包验证；对比样片先交 commander 审，再交用户；用户认可后再发 `next`。
 4. 第 1.1 节的统计以按片目录去重的口径为准。
+
+## 9. 追加：配乐与音效按本片制作（P7，2026-11-07 用户要求）
+
+用户要求：**配乐和音效都按这部视频专门制作，不用现成的。**这里的「现成的」指共享音效库（包括 P1 合成的 6 个）
+和预先做好、只做裁剪的曲目。旁白不在这一节范围内。
+
+### 9.1 每片音效：`film:sfx`
+
+- `film.json` 新增 `sound.effects[]`，每条写 `{ id, kind, frame, durationFrames, anchor: "start"|"end"|"center", params, for }`：
+  - `kind` 是参数化合成器的种类，第一批包括 riser、impact、whoosh、tick、glitch、shimmer、swell、thud、paper、clank、chime、click。
+  - `params` 包括 pitch（半音偏移或基频）、brightness、intensity、tail、stereo，以及 `seed`。
+  - `frame` 是正片绝对帧，`durationFrames` 由画面动作的时长决定，比如 riser 的长度就是 anticipate 到 land 的帧数。
+- `npm run film:sfx -- --film <id>`：在本地确定性地离线合成每条音效，输出到 `public/films/<id>/sfx/<id>.wav`，
+  同时写出 `generated/sfx.json`（逐条记录内容指纹、实际时长、对齐帧）。重复运行会命中缓存。不联网，许可为本片原创。
+- `film:check` 要校验 `generated/sfx.json` 与 `film.json` 一致；不一致时报错，提示重新运行 `film:sfx`，做法与 voice/music 相同。
+- 运行时：`<FilmSoundEffects />` 不传 `cues` 时直接播放生成的计划；代码里的 cue 可以写 `sfx: "plan:<id>"` 引用计划条目。
+  共享库继续保留，旧片不受影响，但 Skill 默认不再使用共享库，只有用户点名要求时才用。
+- 配方和场景轨产出的 `sfxCues` 给出建议的 kind 和时长，Agent 把它们写进 `sound.effects`。
+
+### 9.2 配乐跟片子结构走：score 锚点
+
+- `music.score.arrangement.sections[]` 支持用 `from: <句子 id | 正片帧>` 代替 `bars`，可以和 `bars` 混用：
+  - 引擎在 `bpmRange`（例如 `[92, 112]`）内搜索一个 bpm，使各段边界离最近小节线的误差最小，再把边界落到小节线上；
+  - 输出每个边界的残差。残差超过 3 帧时给出警告，并建议调整锚点或 bpm 范围。
+- `music.score.hits[]`：`{ frame, kind: "stinger"|"lift"|"drop"|"swell", intensity }`，在指定帧合成进配乐，不受小节网格限制，
+  用于给揭示时刻加重音。
+- `music.score.breaks[]`：`{ from, to, keep: [...乐器] }`，在这一段编曲里抽空，只保留指定乐器，例如揭示前只留 pad。
+  这和 `musicDips` 的音量压低不同，是编曲层面真正停下来。
+- `music.score.ending`：`{ landFrame, cadence: "resolve"|"cut"|"ring" }`，最后的和声在 landFrame 解决；
+  不再用循环加淡出来收尾。
+- 输出的 `sectionFrames`/`accentFrames` 改为锚点对齐后的实际值，`hits` 也写进 `accentFrames`，供画面卡点使用。
+
+### 9.3 Skill
+
+- music.md / sound.md 写成默认流程：storyboard 定下章节和关键落点后，先写 `music.score`（sections 用 from 锚定到章节，
+  hits 对准揭示帧，breaks 和 ending 对准落点），再写 `sound.effects`（按动作逐条设定 kind、时长和参数），然后运行 `film:music`
+  和 `film:sfx`。
+- 不使用 `music.track` 和共享音效库，除非用户指定曲目或素材。审片清单增加一条：每条音效都要对应一个可见动作，
+  音长与动作时长一致。
+
+### 9.4 验收
+
+- 单测覆盖：合成结果的确定性、每种 kind 的时长和对齐、锚点 bpm 搜索与残差、hits/breaks/ending、`film:check` 的一致性校验。
+- 先按 P5 的做法用 v3 片源重做声音（画面不动），只交付不发布。把对比片和用户听审结论交给 commander，确认后再进 P6。
+  做声音的是不是新 Agent，由 commander 和用户决定。
