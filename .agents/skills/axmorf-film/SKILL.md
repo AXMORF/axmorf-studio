@@ -75,8 +75,9 @@ Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐�
      配方只解决怎么动，构图和世界从剧本出发，不原样粘贴配方卡。
    - 按 storyboard 用 `AxiomMorph` 呈现旧公理到新公理候选的形变；旧公理或候选出现的句子都要有对应动作与帧号，
      参考 [横屏「旧公理文字形变」示例](references/examples.md#横屏19201080旧公理文字形变)。
-   - 「已发生 / 迹象 / 推测」等状态标识是账号内容红线，字号须达到正文可读标准，不低于
-     `minimumReadableFontSize(width, height)`；对比清楚，在手机尺寸下可读，不能当小字装饰。
+   - 「已发生 / 迹象 / 推测」等内容状态标识统一用 `FilmStatusTag`，不手写。放在场景轨之外，
+     主词和副词都不得低于实测字幕字号的 70%，且不低于 `minimumReadableFontSize(width, height)`；
+     使用清楚的底板和对比，在手机尺寸下可读，不能当小字装饰。
    - 用 `FilmSoundEffects` 放置计划中的音效；把场景轨和配方 resolver 的 `sfxCues` 显式交给它，组件不会自动发声。
    - 必须挂载 `<FilmSoundtrack />` 与 `<FilmCaptions />`（字幕放在最上层，均在场景轨之外）。
    - 按段落拆成子组件或 `scenes/*.tsx`；所有文件留在本片目录内。
@@ -100,7 +101,8 @@ Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐�
     [审片](references/craft.md#审片) 对各条规则逐条说明理由与帧号；`unknown` 不是已通过。
     `text-under-foreground` 必须逐条回应；`readability.unknown` 中命中判定不准的文字（如 pointer-events:none）
     要看图核对。`repeated-composition` 比较包含旁白的非相邻段落构图；没有场景轨的旧片保持 unknown。
-    单独检查状态标识的正文级字号与对比，写出帧号证据。
+    内容状态标识必须用 `FilmStatusTag`；同时核对 `small-status-tag`，主词和副词都不低于字幕字号的 70%，
+    看图确认底板、对比和手机可读性，写出帧号证据。这条提示不拦交付。
     对照 `storyboard.md` 核对章节、世界、镜头路径、配方落点、转场和音效，偏离计划就同步修改。
     至少完成一轮“审片 → 修改 → 再审片”。需要看某些帧时用 `--frames 120,240,360`。
     用户想实时预览时，可运行 `npm run dev` 打开 Remotion Studio。

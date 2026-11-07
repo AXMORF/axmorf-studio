@@ -246,6 +246,11 @@ NumberRoll 改为同一递增数值驱动所有列、数值不越目标、仅位
 片源只读、复制品按 owned-path 清理，不提交素材；证据、漏检边界及尚未验证范围见 [ITERATION_STATUS](../ITERATION_STATUS.md)。
 下一轮仍需全新 Agent 制作 P5-v3，并由用户实际审阅；此批不代表 P5 通过。
 
+**P5-v3 rc 前修正（2026-11-07，未发布）**：在 v3 只读片源复制品上验证羽化 mask-wipe/tint、
+同组字形遮挡排除与 `FilmStatusTag` / `small-status-tag`。同一 53 帧的前景提示 19→13，剩余全在转场帧；
+状态主副词约 43px、字幕约 48px，无 small-status-tag。完整 `npm run check` 通过（443 项，1 项平台跳过），
+预览、实测值和渐变命中局限见 [ITERATION_STATUS](../ITERATION_STATUS.md)。没有新 Agent 重做、改版本、发布或进入 P6。
+
 P5 由“只读 Skill 的新 Agent”来做，是为了检验 Skill 能不能把 Agent 引到这些能力上，而不是检验实现者能不能手工做出好片。
 
 ## 7. 风险与取舍

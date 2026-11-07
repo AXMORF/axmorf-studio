@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { useReviewMotion } from "../../film/review-motion";
 import { useCurrentFrame } from "remotion";
 import {
@@ -100,6 +101,7 @@ export const NumberRoll = ({
   ...options
 }: NumberRollProps) => {
   positive(fontSize, "fontSize");
+  const textGroup = useId();
   const currentFrame = useCurrentFrame();
   const state = resolveNumberRoll(frameOverride ?? currentFrame, options);
   useReviewMotion({
@@ -113,6 +115,7 @@ export const NumberRoll = ({
   return (
     <div
       data-recipe="NumberRoll"
+      data-axmorf-text-group={textGroup}
       aria-label={state.displayText}
       style={{
         display: "flex",

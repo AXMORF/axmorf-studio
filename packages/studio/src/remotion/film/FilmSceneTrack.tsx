@@ -1,4 +1,4 @@
-import type { ReactElement } from "react";
+import { useId, type ReactElement } from "react";
 import { LightLeak } from "@remotion/light-leaks";
 import {
   linearTiming,
@@ -64,20 +64,61 @@ const SceneOverlay = ({
   readonly sceneTransition: ResolvedFilmSceneTransition;
 }) => {
   const frame = useCurrentFrame();
+  const gradientId = useId();
   const { width, height } = useVideoConfig();
   const p = frame / Math.max(1, sceneTransition.frames - 1);
   const envelope = Math.sin(Math.PI * p);
   if (sceneTransition.kind === "light-leak")
     return <LightLeak durationInFrames={sceneTransition.frames} seed={17} />;
-  if (sceneTransition.kind === "mask-wipe")
+  if (sceneTransition.kind === "mask-wipe") {
+    const bandWidth = width * 0.8;
+    const center = -bandWidth + p * (width + bandWidth * 2);
+    const tint = sceneTransition.tint ?? "rgba(255, 242, 220, 0.8)";
     return (
-      <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
-        <path
-          d={`M ${-width + p * width * 3} 0 l ${width * 0.65} 0 l ${-width * 0.35} ${height} l ${-width * 0.65} 0 Z`}
-          fill="#e6f8ff"
-        />
+      <svg
+        width={width}
+        height={height}
+        viewBox={`0 0 ${width} ${height}`}
+        aria-hidden="true"
+        style={{ opacity: envelope }}
+      >
+        <defs>
+          {/* Feather both edges, with a clear center and a narrow leading light. */}
+          <linearGradient id={gradientId}>
+            {[
+              [0, 0],
+              [0.12, 0.06],
+              [0.26, 0.28],
+              [0.34, 0.5],
+              [0.43, 0.12],
+              [0.54, 0.025],
+              [0.66, 0.06],
+              [0.78, 0.24],
+              [0.85, 0.85],
+              [0.91, 0.18],
+              [1, 0],
+            ].map(([offset, opacity]) => (
+              <stop
+                key={offset}
+                offset={offset}
+                stopColor={tint}
+                stopOpacity={opacity}
+              />
+            ))}
+          </linearGradient>
+        </defs>
+        <g transform={`translate(${center} ${height / 2}) skewX(-18)`}>
+          <rect
+            x={-bandWidth / 2}
+            y={-height}
+            width={bandWidth}
+            height={height * 2}
+            fill={`url(#${gradientId})`}
+          />
+        </g>
       </svg>
     );
+  }
   if (sceneTransition.kind === "whip-blur")
     return (
       <AbsoluteFill

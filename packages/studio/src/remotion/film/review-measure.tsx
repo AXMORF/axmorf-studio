@@ -13,6 +13,7 @@ import {
   type FilmReviewRect,
 } from "../../contracts/film";
 
+import { resolveFilmCaptionFontSize } from "./FilmCaptions";
 import { useReviewMotionRegistry } from "./review-motion";
 
 const effectiveOpacity = (element: Element) => {
@@ -51,7 +52,14 @@ const painted = (element: Element) => {
 };
 const related = (a: Element, b: Element) => a.contains(b) || b.contains(a);
 
-const foregroundSampler = (root: Element) => {
+// Compare the nearest group element, not its attribute value: separate recipe
+// instances (including nested groups) must still be able to occlude each other.
+const sameTextGroup = (a: Element, b: Element) => {
+  const group = a.closest("[data-axmorf-text-group]");
+  return group !== null && group === b.closest("[data-axmorf-text-group]");
+};
+
+export const foregroundSampler = (root: Element) => {
   const opacityCache = new WeakMap<Element, number>();
   const opacity = (element: Element) => {
     if (!opacityCache.has(element))
@@ -100,6 +108,7 @@ const foregroundSampler = (root: Element) => {
             skipped.some(
               ({ element: other, rect }) =>
                 !related(element, other) &&
+                !sameTextGroup(element, other) &&
                 x >= rect.left &&
                 x <= rect.right &&
                 y >= rect.top &&
@@ -124,7 +133,8 @@ const foregroundSampler = (root: Element) => {
               root.contains(hit) &&
               !hit.closest("[data-axmorf-captions]") &&
               (related(element, hit) ||
-                (painted(hit) &&
+                (!sameTextGroup(element, hit) &&
+                  painted(hit) &&
                   opacity(hit) >= FILM_REVIEW_FOREGROUND_OPACITY)),
           );
           if (!topmost) unknown++;
@@ -151,7 +161,8 @@ const captionBlock = (element: Element, marker: Element) => {
 const measure = (
   root: HTMLDivElement,
   width: number,
-): Pick<FilmReviewMeasurement, "texts" | "truncated"> => {
+  height: number,
+): Pick<FilmReviewMeasurement, "texts" | "truncated" | "captionFontSize"> => {
   const origin = root.getBoundingClientRect();
   // Remove only Remotion's outer preview scale, retaining authored transforms.
   // CLI --scale changes deviceScaleFactor, not these CSS composition coordinates.
@@ -214,6 +225,9 @@ const measure = (
     texts.push({
       snippet,
       caption: marker !== null,
+      ...(element.closest("[data-axmorf-status-tag]")
+        ? { statusTag: true }
+        : {}),
       ...(marker ? {} : { foreground: foreground(element, rects) }),
       fontSize: fontSize * transformScale,
       rect: rectOf({ left, top, width: right - left, height: bottom - top }),
@@ -222,7 +236,14 @@ const measure = (
         : {}),
     });
   }
-  return { texts, truncated };
+  const captions = texts.filter((text) => text.caption);
+  return {
+    texts,
+    truncated,
+    captionFontSize: captions.length
+      ? Math.max(...captions.map((text) => text.fontSize))
+      : resolveFilmCaptionFontSize(width, height),
+  };
 };
 
 /** Mounted only by reviewLoader; the wrapper adds no painted content. */
@@ -282,7 +303,7 @@ export const ReviewMeasure = ({
           );
         if (readability)
           console.warn(
-            `${FILM_REVIEW_MEASUREMENT_MARKER} ${JSON.stringify({ ...record, ...measure(root.current, width) })}`,
+            `${FILM_REVIEW_MEASUREMENT_MARKER} ${JSON.stringify({ ...record, ...measure(root.current, width, height) })}`,
           );
       } catch (error) {
         if (!cancelled)

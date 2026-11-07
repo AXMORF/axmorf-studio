@@ -24,7 +24,7 @@ AXMORF Studio 由两个 npm 包和一个用户 Workspace 组成。Agent 直接�
 packages/studio/src/
   contracts/          zod 合同：film（FilmSpec/Timing/Music/Assets/Publish）、producer-config、旁白与音色、
                       片头片尾主题与模板音频、合成配乐时间线、媒体授权描述与可选运动组件所需的状态和计划
-  remotion/film/      FilmProvider、useFilm/useFilmTiming、FilmCaptions、FilmSoundtrack、FilmSceneTrack、FilmSoundEffects、FilmBookends、
+  remotion/film/      FilmProvider、useFilm/useFilmTiming、FilmCaptions、FilmStatusTag、FilmSoundtrack、FilmSceneTrack、FilmSoundEffects、FilmBookends、
                       FilmCompositions（正片、--review、两张封面）与联系表 Still
   remotion/capabilities/  可选的镜头、六个镜头配方及其 resolver/catalog、运动、界面组件、媒体、特效与片头片尾模板
   remotion/runtime/sound-design/  音频播放、循环与旁白 ducking
@@ -63,7 +63,11 @@ film:deliver → .axmorf/staging 中渲染正片（片头 + 正片 + 片尾）�
 
 渲染期间不调用网络、Agent、Git 或目录扫描；Remotion Root 只读生成的静态注册表。`Film.tsx` 只看到正片帧，
 片头片尾由 `FilmWithBookends` 在交付组合中接上，各自带模板音频。场景轨按名义边界居中安排转场，不挪旁白绝对时序；音效 cue 显式交给音效轨，
-配乐支持揭示前的 musicDips 与 ending 收音。可读性测量用可见文字矩形的命中采样提示 `text-under-foreground`，不可靠命中保留 `readability.unknown`；
+配乐支持揭示前的 musicDips 与 ending 收音。`mask-wipe` 是羽化光带，可用 `tint` 调色，不改变边界时序。
+内容状态标识使用 `FilmStatusTag`，主副词同字号、同对比层级，有独立底板；review 用 `small-status-tag`
+提示实测字号低于实测字幕的 70%（句间用画布默认字幕字号）。
+可读性测量用可见文字矩形的命中采样提示 `text-under-foreground`，排除同一 `data-axmorf-text-group`
+组件内部字形间的遮挡，保留其他组件与外部前景；不可靠命中保留 `readability.unknown`；
 运动分析以场景轨/内部候选切点的中点签名提示非相邻的 `repeated-composition`（含旁白时段，无场景轨旧片为 unknown）。
 上述 motion 字段是 `film:review` 输出，阈值待样片校准；
 不拦 `film:check`/交付。animatic 默认关闭、Skill 要求成片前至少看一次；缺少或过期时交付命令提醒，不增加交付文件。

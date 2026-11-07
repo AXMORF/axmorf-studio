@@ -1,5 +1,62 @@
 # Iteration Status
 
+## P5-v3 rc 前运行时与审片修正（2026-11-07，未发布）
+
+本批修正 mask-wipe、文字组遮挡采样与状态标识；用 v3 片源复制品复测，没有新 Agent 重做片子，
+不改版本、不发布、不进入 P6。v3 原 Workspace 只读，19 个片源文件的 SHA256 复验未变。
+
+- `mask-wipe` 从硬边纯色路径改为确定性的羽化渐变光带：半透明暖白、窄亮边、低不透明度中心，
+  可选 `enter.tint` 调色。仅透传外观参数，resolver 的窗口、Sequence 时长、场景时钟和 cue 不变；其他转场不变。
+  gallery 改为深→浅默认色、浅→深自定义 tint，分别渲染约 25%/50%/75% 的 1920×1080 still；
+  v3 f1014/f1019/f1023 与 f2276 也已渲染、看图。gallery f30 独立渲染两次 PNG 逐字节一致。
+- `AxiomMorph`、`NumberRoll` 的根字形容器带 `data-axmorf-text-group`。前景采样只忽略同一最近组元素内的字形互挡，
+  不按属性字符串把不同实例合并；外部图形、其他组与嵌套组仍判遮挡。pointer-events:none 的同组兄弟排除，
+  被测文字自身或外部前景命中不可靠时仍为 unknown。没有放宽采样、opacity 或覆盖阈值。
+- 新增公共 `FilmStatusTag` 与 props 导出，六种默认状态文案和自定义文本、detail、position、style；
+  默认字号由当前画布的正文最低字号和默认字幕字号共同推导，主副词同字号、同暖白颜色、独立不透明深底。
+  `data-axmorf-status-tag` 进入 review；`small-status-tag` 用实测（含缩放）字号与实测字幕的 70% 比较，
+  句间没有字幕时用画布默认字幕字号。遥测新字段 optional，兼容旧日志；字幕字号公式共享后原导出与计算结果保持一致。
+  该提示只在 review，不接入 `film:check` 或 deliver。两份 Skill 的 craft/api/SKILL 逐字一致，
+  要求内容状态标识统一用该组件，并核对 `small-status-tag`、底板与实际对比。
+
+**v3 实测**（1920×1080 / 30fps；DOM computed style + review 几何测量，f61/f545/f2106/f2100）：
+
+| 项 | 替换前字号 / 颜色 | 替换后字号 / 颜色 |
+| --- | --- | --- |
+| 主词 | 38px / `#eaf3ed` | 43.03px / `#fff4e3` |
+| 副词 | 34px / `#a7bdc2` | 43.03px / `#fff4e3` |
+| 字幕 | 48.09px / `#eaf3ed` | 48.09px / `#eaf3ed`（不变） |
+
+新组件 computed font-size 为 43px，字幕为 48px；上表保留 review 对布局取整后的实测值。
+底板实测 `#101c28`。复制品只改 `scenes/design.tsx` 中的手写 Status 为 `FilmStatusTag`，
+并把状态栏放到上方空位（left=900、top=24），避免新增底板压住原有移动标题；其他 18 个片源文件逐字节一致。
+五个全尺寸前后帧（另含 f1783「可能没公开」所在镜头）的完整 RGB 比较，在状态栏所在 y=[24,153) 之外差异均为 0；
+没有改其他画面、旁白、音乐、字幕或时序，也没有修改原片。
+
+**真实 review**：同一组 53 个帧、177 个运动样本、7 场景、29 cue；修复前复现 19 条 `text-under-foreground`，
+修复后按 snippet 合并为 **13 条**，同组碎字的非转场误报消失；没有 `small-status-tag` 或其他可读性规则提示。
+两轮测量的 missingFrames/truncatedFrames/errors/unknown 均为空、badLines=0；最终 motionWarnings 为空。
+剩余前景提示全部在转场帧：
+
+- f1223（match-scale）：此前实验、数据准备、人力、未计入，共 4 条，两世界短暂叠合。
+- f2276（mask-wipe）：`$21k`、一次训练、＝、便、宜、训、练、研、发，共 9 条。
+  羽化带中心可透出画面，但现有 elementsFromPoint 按几何命中，不按渐变每个像素的 alpha 判断，仍可能高估覆盖。
+  新光带几何范围比旧路径更宽，新增「训/练」两条转场命中；未通过跳过转场、放宽阈值或扩大本批判定方案来消除它们。
+
+完整 `npm run check` 通过（443 项：442 通过，Linux 跳过 1 项 macOS 专用测试），含 typecheck、lint、
+文档/素材检查、Web/Remotion 构建、creator 包检查及宿主 compositions。新增 6 项回归覆盖 tint 时序不变、
+同组/不同组/嵌套组/外部前景与 unknown、状态文案/自定义样式/画布字号、主副词 70% 临界值及旧遥测兼容；
+包级 typecheck、runtime `build:types` 与 `check:package` 也通过。现有检查未降低，未新增依赖。
+
+预览在 `/home/zzzxc/AgentWorkspace/backups/axmorf-prerelease/`：`mask-wipe-{25,50,75}.png`、
+`mask-wipe-tint-*.png`、`mask-wipe-v3-*.png`，以及 f61/f545/f2106/f2100/f1783 的
+`status-tag-before-*.png`、`status-tag-after-*.png`、`status-tag-compare-*.png`（左旧右新）。
+审片、原始日志、字号/颜色、源文件 hash、RGB 对比、修改前后片源与检查记录保存在本 worktree 的
+`out/prerelease-validation/`；临时片已通过仓库 film CLI 的 delete owned-path 清理，不提交片源、媒体或输出。
+
+尚未验证：人工连续播放与听审、手机真机观感、更多片型的提示泛化、完整成片重渲/交付及新包安装升级；
+本批没有让新 Agent 重新制作，也不代表 P5 用户验收通过。
+
 ## P5 审片反馈修正（2026-11-07，未发布）
 
 本批只改运行时、Skill 与文档，没有重做、交付或发布影片；后续由全新 Agent 做 P5-v3 验证 Skill 引导。

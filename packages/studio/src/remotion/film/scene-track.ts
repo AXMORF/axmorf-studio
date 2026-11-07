@@ -38,6 +38,8 @@ export type FilmScene = Readonly<{
     kind: FilmSceneTransitionKind;
     frames: number;
     sfx?: FilmSoundEffectSource | false;
+    /** Color of the feathered mask-wipe light band; ignored by other kinds. */
+    tint?: string;
   }>;
 }>;
 export type ResolvedFilmSceneTransition = Readonly<{
@@ -47,6 +49,7 @@ export type ResolvedFilmSceneTransition = Readonly<{
   startFrame: number;
   endFrame: number;
   frames: number;
+  tint?: string;
 }>;
 export type ResolvedFilmScene = Readonly<{
   scene: FilmScene;
@@ -123,6 +126,9 @@ export const resolveFilmSceneTrack = (
         startFrame,
         endFrame,
         frames,
+        ...(kind === "mask-wipe" && scene.enter.tint !== undefined
+          ? { tint: scene.enter.tint }
+          : {}),
       };
     },
   );

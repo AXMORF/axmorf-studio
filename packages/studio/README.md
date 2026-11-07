@@ -30,7 +30,7 @@ npm run dev
 - `@axmorf/studio` — runtime metadata and workspace helpers
 - `@axmorf/studio/contracts` — versioned data contracts, including `film.json` and `publish.json`
 - `@axmorf/studio/remotion` — film hooks and components (`useFilm`, `useFilmTiming`, `FilmCaptions`,
-  `FilmSoundtrack`, `FilmSceneTrack`, `FilmSoundEffects`), six motion recipes with pure resolvers and
+  `FilmSoundtrack`, `FilmSceneTrack`, `FilmSoundEffects`, `FilmStatusTag`), six motion recipes with pure resolvers and
   `PRODUCER_RECIPE_CATALOG`, the system bookends, and optional camera, motion, interface, media and effect components
 - `axmorf` — the workspace CLI used by generated npm scripts (`doctor`, `dev`, `film new|voice|music|asset|review|check|deliver|list|delete`)
 

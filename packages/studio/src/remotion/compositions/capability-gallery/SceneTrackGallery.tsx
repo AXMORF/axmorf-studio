@@ -60,7 +60,7 @@ const scenes: readonly FilmScene[] = [
     id: "evidence",
     from: 30,
     chapter: "evidence",
-    enter: { kind: "match-scale", frames: 12 },
+    enter: { kind: "mask-wipe", frames: 12 },
     render: (f) => (
       <AbsoluteFill
         style={{
@@ -92,7 +92,7 @@ const scenes: readonly FilmScene[] = [
     id: "reveal",
     from: 60,
     chapter: "answer",
-    enter: { kind: "flash", frames: 10 },
+    enter: { kind: "mask-wipe", frames: 10, tint: "#d8f4ee" },
     render: (f) => (
       <AbsoluteFill
         style={{

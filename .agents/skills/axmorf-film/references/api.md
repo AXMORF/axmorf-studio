@@ -37,6 +37,24 @@ t.music?.barFrames; // 另有 beatFrames、sectionFrames、accentFrames、bpm、
 - `FilmSoundtrack narration={false}` 或 `music={false}` 可去掉其中一轨。
 - 音效推荐用 `<FilmSoundEffects cues={cues} />`；cue、素材角色、吸附、留白和收音见 [音效轨](sound.md)。
 
+## 内容状态标识
+
+内容状态标识统一用 `FilmStatusTag`，不手写，放在场景轨之外：
+
+```tsx
+<FilmStatusTag status="self-reported" detail="机制示意" />
+```
+
+- `status`：`observed` →「已发生」、`signal` →「迹象」、`speculation` →「推测」、`candidate` →「候选·待验证」、
+  `opinion` →「社区观点」、`self-reported` →「作者自报」；也可直接传自定义中文文本。
+- `detail?`：副词，与主词同字号、同文字颜色；默认暖白字、深色不透明底板。
+- `position?`：`top-left`（默认）、`top-right`、`bottom-left`、`bottom-right`；下方位置避开默认字幕区。
+- `style?`：合并到根元素，可调字体与位置。默认字号由当前画布的 `minimumReadableFontSize` 和默认字幕字号推导，
+  与默认字幕同大，不写死像素。更大的自定义字幕仍需核对状态标识大小。
+- 根元素带 `data-axmorf-status-tag`；`film:review` 的 `small-status-tag` 按实际渲染（含缩放）的字号，
+  提示主词或副词低于实测字幕字号的 70%。句间无字幕时用当前画布的默认字幕字号；只提示，不拦检查或交付。
+  同时看图确认对比与手机可读性，不把没有提示当作人工审片通过。
+
 ## 场景轨
 
 `FilmSceneTrack` 只组织正片画面，放在 Film 根层。`FilmSoundtrack`、`FilmSoundEffects` 和字幕在它之外，
@@ -76,17 +94,19 @@ const track = resolveFilmSceneTrack(film, scenes);
 - `chapter?` 用于标注因果章节；`render(localFrame)` 的值为 `max(0, 正片帧 − 名义边界)`。
   提前重叠出现时保持 0，到名义边界后才开始计时。必须把这个参数传给需要场景本地帧的组件；
   内部 `useCurrentFrame()` 读到的是 TransitionSeries Sequence 的时钟，提前重叠时不等于上述本地帧。
-- `enter?: { kind, frames, sfx? }` 挂在进入的场景上；第一场不能写。`frames` 为正整数，窗口是
+- `enter?: { kind, frames, sfx?, tint? }` 挂在进入的场景上；第一场不能写。`frames` 为正整数，窗口是
   `[B − floor(frames/2), B + ceil(frames/2))`，不能重叠、越出正片，且 frames 不得超过任一相邻场景名义时长的一半。
 - 覆盖式 kind：`light-leak`、`flash`、`whip-blur`、`mask-wipe`（`FILM_OVERLAY_TRANSITIONS`）。
   不改变场景绝对边界，优先用于有动机的跨章换景。
 - 重叠式 kind：`fade`、`slide`、`wipe`、`iris`、`zoom-blur`、`linear-blur`、`cross-zoom`、`match-scale`
   （`FILM_OVERLAP_TRANSITIONS`）。resolver 反推 Sequence 时长以抵消重叠扣减，名义边界和正片总长不漂移。
+- `tint` 仅用于 `mask-wipe`，例如 `enter: { kind: "mask-wipe", frames: 12, tint: "#f5dfb9" }`；
+  默认半透明暖白，羽化渐变带有亮边、中心透明，可透出底下的下一场景；不改变场景切换边界。
 - `sfx` 可覆盖默认角色，`false` 禁止建议。声音不会自动播放：显式把 `sfxCues` 交给音效轨。
 
 `resolveFilmSceneTrack(film, scenes)` 是纯函数，film 至少提供 `durationInFrames/timing`；返回
 `{ scenes, durationInFrames, sfxCues }`。每场含 `scene/boundaryFrame/startFrame/endFrame/durationInFrames/enter`；
-`enter` 为 null 或 `{kind, mode, boundaryFrame, startFrame, endFrame, frames}`。建议 cue 位于名义边界。
+`enter` 为 null 或 `{kind, mode, boundaryFrame, startFrame, endFrame, frames, tint?}`。建议 cue 位于名义边界。
 
 ## 音效轨与配乐段落
 

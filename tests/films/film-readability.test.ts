@@ -465,3 +465,81 @@ test("foreground telemetry rejects impossible sample counts, supports old record
     true,
   );
 });
+
+test("small-status-tag measures both words against 70% of actual captions without affecting other text or legacy logs", () => {
+  const result = analyzeReviewReadability({
+    output: [
+      line(
+        record({
+          captionFontSize: 60,
+          texts: [
+            text({ snippet: "main", statusTag: true, fontSize: 41.999 }),
+            text({ snippet: "detail", statusTag: true, fontSize: 34 }),
+            text({ snippet: "boundary", statusTag: true, fontSize: 42 }),
+            text({ snippet: "ordinary", fontSize: 34 }),
+            text({ snippet: "caption", caption: true, fontSize: 60 }),
+            text({
+              snippet: "offscreen",
+              statusTag: true,
+              fontSize: 20,
+              rect: { x: 1080, y: 0, width: 100, height: 20 },
+            }),
+          ],
+        }),
+      ),
+      line(
+        record({
+          index: 1,
+          frame: 20,
+          captionFontSize: 48,
+          texts: [text({ snippet: "detail", statusTag: true, fontSize: 33.6 })],
+        }),
+      ),
+    ].join("\n"),
+    frames: [10, 20],
+    width: 1080,
+    height: 1920,
+  });
+  const hints = result.readabilityWarnings.filter(
+    (w) => w.rule === "small-status-tag",
+  );
+  assert.deepEqual(
+    hints.map((w) => [w.snippet, w.frames]),
+    [
+      ["main", [10]],
+      ["detail", [10]],
+    ],
+  );
+  assert.equal(hints[0].measurements[0].minimumFontSize, 42);
+  assert.match(hints[0].message, /at least 70%/);
+  assert.equal(analyze([text({ fontSize: 30 })]).readabilityWarnings.length, 0);
+  assert.equal(
+    FilmReviewMeasurementSchema.safeParse(
+      record({
+        captionFontSize: 48,
+        texts: [text({ statusTag: true })],
+      }),
+    ).success,
+    true,
+  );
+  assert.equal(
+    FilmReviewMeasurementSchema.safeParse(record({ captionFontSize: 0 }))
+      .success,
+    false,
+  );
+});
+
+test("status hints use canvas caption default between sentences and stay separate from the body minimum", () => {
+  const result = analyze([
+    text({ snippet: "tag", statusTag: true, fontSize: 34 }),
+    text({ snippet: "tiny-tag", statusTag: true, fontSize: 20 }),
+  ]);
+  assert.deepEqual(
+    result.readabilityWarnings.map((w) => [w.rule, w.snippet]),
+    [
+      ["small-status-tag", "tag"],
+      ["small-status-tag", "tiny-tag"],
+      ["small-text", "tiny-tag"],
+    ],
+  );
+});

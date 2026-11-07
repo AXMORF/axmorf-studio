@@ -1,6 +1,9 @@
 import type { CSSProperties, ReactNode } from "react";
 import { AbsoluteFill, useCurrentFrame, useVideoConfig } from "remotion";
 
+import { resolveFilmCaptionFontSize } from "../../contracts/film";
+export { resolveFilmCaptionFontSize } from "../../contracts/film";
+
 import { useFilmTiming, type FilmSentenceTiming } from "./context";
 
 export type FilmCaptionsProps = Readonly<{
@@ -13,10 +16,6 @@ export type FilmCaptionsProps = Readonly<{
   /** Fully custom caption rendering; receives the active sentence and its 0–1 progress. */
   render?: (sentence: FilmSentenceTiming, progress: number) => ReactNode;
 }>;
-
-/** Pixel size that keeps a 72 half-unit sentence on at most two lines. */
-export const resolveFilmCaptionFontSize = (width: number, height: number) =>
-  Math.round(Math.min(width, height) * (width < height ? 0.046 : 0.04));
 
 /**
  * Captions for the measured narration. Each sentence is shown exactly while it

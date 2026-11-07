@@ -4,6 +4,7 @@ import {
   FILM_REVIEW_MEASUREMENT_MARKER,
   FilmReviewMeasurementSchema,
   minimumCaptionFontSize,
+  resolveFilmCaptionFontSize,
   minimumReadableFontSize,
   FILM_REVIEW_FOREGROUND_COVERAGE,
   type FilmReviewForeground,
@@ -36,6 +37,7 @@ export const extractReviewMeasurements = (output: string) => {
 type Rule =
   | "small-text"
   | "small-caption"
+  | "small-status-tag"
   | "text-outside-frame"
   | "text-under-captions"
   | "text-under-foreground";
@@ -125,6 +127,7 @@ export const analyzeReviewReadability = ({
       .map((text) => text.captionRect!);
     for (const {
       caption,
+      statusTag,
       snippet,
       fontSize,
       rect,
@@ -140,6 +143,14 @@ export const analyzeReviewReadability = ({
         });
       if (caption || intersectionArea(rect, frameRect) === 0) continue;
       const measurement = { frame: record.frame, fontSize, rect };
+      const minimumStatusTag =
+        (record.captionFontSize ?? resolveFilmCaptionFontSize(width, height)) *
+        0.7;
+      if (statusTag && fontSize < minimumStatusTag)
+        add("small-status-tag", snippet, {
+          ...measurement,
+          minimumFontSize: minimumStatusTag,
+        });
       const foregroundCoverageRatio = foregroundCoverage(foreground);
       if (foregroundCoverageRatio === null)
         unknown.push({
@@ -206,6 +217,13 @@ export const analyzeReviewReadability = ({
               ),
             );
             message = `Captions render at ${fontSize}px (minimum ${minimumCaptionFontSize(width, height)}px for a ${width}×${height} frame) on frames ${frameList}; let long sentences wrap to two lines instead of shrinking them.`;
+            break;
+          }
+          case "small-status-tag": {
+            const fontSize = Math.min(
+              ...measurements.map((value) => value.fontSize),
+            );
+            message = `${subject} status tag renders at ${Number(fontSize.toFixed(1))}px on frames ${frameList}; keep status and detail at least 70% of the rendered caption size with clear contrast.`;
             break;
           }
           case "text-outside-frame": {

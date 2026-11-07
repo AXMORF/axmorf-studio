@@ -225,3 +225,27 @@ test("render receives zero through early overlap, then body-relative scene time"
   assert.match(render(200), /c:0/u);
   assert.match(render(299), /c:99/u);
 });
+
+test("mask-wipe tint passes through without changing windows, scene clocks, or sound cues", () => {
+  const scenes = [
+    scene("a", 0),
+    scene("b", 100, { kind: "mask-wipe", frames: 9 }),
+  ];
+  const original = resolveFilmSceneTrack(film, scenes);
+  const tinted = resolveFilmSceneTrack(film, [
+    scenes[0],
+    {
+      ...scenes[1],
+      enter: { ...scenes[1].enter!, tint: "#f5dfb9" },
+    },
+  ]);
+  assert.equal(tinted.scenes[1].enter?.tint, "#f5dfb9");
+  const { tint, ...transition } = tinted.scenes[1].enter!;
+  assert.equal(tint, "#f5dfb9");
+  assert.deepEqual(transition, original.scenes[1].enter);
+  assert.deepEqual(
+    tinted.scenes.map((s) => [s.startFrame, s.endFrame, s.durationInFrames]),
+    original.scenes.map((s) => [s.startFrame, s.endFrame, s.durationInFrames]),
+  );
+  assert.deepEqual(tinted.sfxCues, original.sfxCues);
+});

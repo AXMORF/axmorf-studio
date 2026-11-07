@@ -1,6 +1,6 @@
 import { useReviewMotion } from "../../film/review-motion";
 import { measureText } from "@remotion/layout-utils";
-import { useMemo } from "react";
+import { useId, useMemo } from "react";
 import { random, useCurrentFrame } from "remotion";
 import {
   clamp,
@@ -207,6 +207,7 @@ export const AxiomMorph = ({
   color = "currentColor",
   ...options
 }: AxiomMorphProps) => {
+  const textGroup = useId();
   const currentFrame = useCurrentFrame();
   const frame = frameOverride ?? currentFrame;
   const layout = useMemo(
@@ -237,6 +238,7 @@ export const AxiomMorph = ({
     <div
       aria-label={nextText ?? text}
       data-recipe="AxiomMorph"
+      data-axmorf-text-group={textGroup}
       style={{
         position: "relative",
         width: "100%",

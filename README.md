@@ -87,7 +87,7 @@ AXMORF 不用操作系统 allowlist 预先阻止安装。Agent 可以准备声�
   → film:voice 逐句 TTS，按实测音频给出每句起止帧
   → film:music 按编曲配方合成原创配乐，给出段落、重音与小节帧
   → Agent 写 src/films/<film-id>/storyboard.md：章节、世界、镜头路径、配方、转场与音效 cue
-  → Agent 用 FilmSceneTrack、镜头配方和 FilmSoundEffects 编写音画，挂载 FilmSoundtrack / FilmCaptions
+  → Agent 用 FilmSceneTrack、镜头配方和 FilmSoundEffects 编写音画，内容状态标识用 FilmStatusTag，挂载 FilmSoundtrack / FilmCaptions
   → film:review --animatic 输出带声音预览，先看节奏
   → film:review 输出联系表与 motion / motionWarnings，对照分镜看图修改（至少一轮）
   → film:check 硬规则检查
