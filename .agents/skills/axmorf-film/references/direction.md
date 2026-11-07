@@ -123,10 +123,11 @@ export const RhythmDirectionExample = ({
     strength:
       music?.onsets?.accents?.find((a) => a.frame === at)?.strength ?? 1,
   }));
-  const impact = useImpact(accents);
+  // Start eight frames early: the first ramp sample is zero, leaving seven visible steps.
+  const impact = useImpact(accents, { preFrames: 8 });
   const level = resolveImpactLevel(impact.strength);
   const nextAt = accents.find((a) => a.frame > frame)?.frame ?? Infinity;
-  const anticipating = nextAt - frame <= 6;
+  const anticipating = nextAt - frame <= 8;
   const elapsed =
     frame -
     (anticipating
@@ -149,7 +150,7 @@ export const RhythmDirectionExample = ({
     <AbsoluteFill style={{ backgroundColor: "#0b1020", overflow: "hidden" }}>
       <AbsoluteFill
         style={{
-          transform: `translate(${shake}px,${shake * 0.6}px) scale(${1 + level.cameraImpulse * strike})`,
+          transform: `translate(${shake}px,${shake * 0.6}px) scale(${1 + level.cameraImpulse * (strike - anticipation * 0.5)})`,
         }}
       >
         <ProducerWorldCamera
@@ -182,7 +183,7 @@ export const RhythmDirectionExample = ({
                           "radial-gradient(circle at 35% 30%, #427d88, #102338 70%)",
                         opacity: 0.65 + 0.35 * pulse,
                         // L3 deforms the subject as well as overshooting its scale; reading text stays still.
-                        transform: `scale(${resolveBreathScale(pulse, narrating) * (1 + (level.subjectScale - 1) * strike - 0.04 * anticipation)}) scaleX(${1 + (level.subjectScale - 1) * strike}) scaleY(${1 - (level.subjectScale - 1) * strike})`,
+                        transform: `translateX(${-width * level.cameraImpulse * 1.5 * anticipation}px) scale(${resolveBreathScale(pulse, narrating) * (1 + (level.subjectScale - 1) * (strike - anticipation))}) scaleX(${1 + (level.subjectScale - 1) * strike}) scaleY(${1 - (level.subjectScale - 1) * strike})`,
                       }}
                     />
                   ))}
@@ -280,6 +281,10 @@ shots 用真实世界像素 `{ center: [x, y], zoom }`，少于小节数时停�
 `strength ≥ 0.9` 的重音必须是全片画面变化最大的时刻：主体过冲至少 8%、shake 12–20px，
 **至少包含主体形变、碎裂、数字落定之一，再加镜头冲击**，不能只做缩放加微抖。
 转场不能比最强重音更抢眼，除非转场本身落在最强重音上。
+**strength ≥0.9 的重音之前，必须有至少 6 帧可见的预备动作**：蓄力、后缩、数字可见地滚动、碎片聚拢等。
+配方的过程不能被遮挡或藏起来，只露出终值；“代码里提前开始”不等于画面里看得见。
+例如金额揭示不能让 NumberRoll 在隐藏层滚完，直到重音才切出最终金额。
+上例显式用 `preFrames: 8` 留出至少 6 帧可见后移/收缩；旧默认 6 只描述包络，不自动保证预备足够可见。
 上例用 strength 选档，12 帧释放的冲击包络与主体形变、粒子一起落在重音帧，闪光只持续 4 帧。
 不要把最终停在 strength 的 `hit` 直接当作持续冲击量，也不要再把预设乘一次 strength 导致重复衰减。
 以下旧包络保留兼容；仅接旧 `scale` / `shake` 不足以完成强重音：
@@ -291,7 +296,7 @@ shake 只在落点后的 `[at, at+6)` 出现，用 Remotion 的有种子 random�
 这就是冲击包络，主体轨迹、碎裂和重组仍由你设计。
 
 - **落点帧 = 音乐重音帧，误差 0 帧。** 预备动作提前开始，不能在重音那一帧才入场。
-- 公理形变（AxiomMorph）的碎裂落在 hook 的第一个重音，重组落在 drop。读 [横屏示例](examples.md#横屏19201080旧公理文字形变)，
+- **旁白有旧公理或新公理候选时，必须用 AxiomMorph**，这是账号母题；没有就说明理由。公理形变的碎裂落在 hook 的第一个重音，重组落在 drop。读 [横屏示例](examples.md#横屏19201080旧公理文字形变)，
   在每小节表标明对应句子、旧/新文字、出现/碎裂/重组/阅读帧，按 resolver 校准，不能只把两个标题淡入。
 - 闪白或光斑最多 3–4 帧，透明度 ≤ 0.6，只给最大的那一两个揭示用。
 - hook 上报完整 impact 和 bar camera 计划供审片使用；配方继续上报 anticipate/move/land/settle。
@@ -350,7 +355,7 @@ shake 只在落点后的 `[at, at+6)` 出现，用 Remotion 的有种子 random�
 3. 每个 `accentFrames` 和 `hits` 都有大动作吗？大动作的落点和重音差几帧？
 4. 有没有没声音的大动作、没画面的声音？
 5. 能量曲线：hook 高 → 证据中 → 揭示前收 → 揭示爆 → 结尾落，哪一段平了？
-6. 挑 3 个重音，取前后各 0.5 秒、每 0.1 秒一帧的序列，看预备、冲击、回弹是否完整。
+6. 挑 3 个最强重音，逐帧检查 [f-8,f-1] 至少 6 帧可见预备，再取前后各 0.5 秒、每 0.1 秒一帧看冲击、回弹；过程有没有被隐藏、遮挡，只露出终值？
 7. 讲述段旁白是否始终听得清？
 8. 静音看最强的 3 个重音（按 strength 选择并写帧号）：它们是不是全片最大的动作？有没有普通转场盖过它们？
 9. 节拍段是不是比讲述段更动？分别写出开场、揭示前后、章节转场、结尾的 L1/L2 幅度与帧号，不能只回答落点对齐。
@@ -412,16 +417,22 @@ f474 侧视机柜，构图不同”）；答不出帧号就当作“否”。“
 
 另有基于连续全帧的力度提示：
 
-| 规则                   | 回应                                                                                          |
-| ---------------------- | --------------------------------------------------------------------------------------------- |
-| `accent-underplayed`   | strength ≥0.9 的重音在 [f-1,f+3] 最大运动能量低于全片 p95；核对主体动作、镜头冲击与转场层级。 |
-| `beat-sections-static` | 非旁白段运动能量中位数不高于讲述段；提高节拍段 L1/L2，给出再审帧号。                          |
+| 规则                   | 回应                                                                                                                                                       |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `accent-underplayed`   | strength ≥0.9 的重音若在 [f-8,f-1] 不足 6 帧能量严格高于全片中位数 2 倍，报“缺预备”；[f-1,f+3] 峰值低于 p95 报“冲击不够”。核对主体可见性、动作与镜头冲击。 |
+| `beat-sections-static` | 非旁白段运动能量中位数不高于讲述段；提高节拍段 L1/L2，给出再审帧号。                                                                                       |
 
-`motion.summary.motionEnergy` 给出 p95、各强重音峰值、讲述/节拍段中位数；`motion.energy.json` 指向逐帧数据。
+`motion.summary.motionEnergy` 给出全片中位数、预备阈值、p95、各强重音峰值与合格预备帧数、讲述/节拍段中位数；`motion.energy.json` 指向逐帧数据。
 分析解码 fresh animatic 的全部正片帧，缩到 160×90 灰度，以相邻帧亮度差均值计能量；片头片尾不计入。
 复用 Workspace 的 FFmpeg，以无损灰度 PNG 逐张读取，单次解码上限 120 秒；不拿 0.5 秒稀疏采样冒充全帧。
 没有 animatic、已过期或不完整时两项为 unknown；没有带强度的重音时前一项 unknown，没有讲述段或没有节拍段时后一项 unknown。
+全画面能量也可能来自背景或镜头，不能证明具体主体/数字过程可见；即使没有“缺预备”提示，也必须逐帧确认主体动作。
 提示只辅助审片，不拦交付；仍需静音看最强动作，并看实际节拍段是否更动。
+
+`axiom-morph-missing` 在全片完整遥测中完全没有 AxiomMorph 时只提醒一次：
+“账号母题：旁白有旧公理或新公理候选时用 AxiomMorph；没有就说明理由”。
+任一时段有 AxiomMorph 遥测就不提醒，不按旁白关键词猜测；遥测缺失/截断且没见到 AxiomMorph 时为 unknown。
+这只是软提醒，不削弱上面的必须规则，不拦交付。
 
 同步统计在 `motion.summary.rhythmSync`；缺配乐、遥测、音效记录或采样截断时对应项为 null / unknown，不能当作通过。
 新规则已用 MusicSyncGallery 配乐事件表做正反校准；未识别的手写动作仍要人工审片。

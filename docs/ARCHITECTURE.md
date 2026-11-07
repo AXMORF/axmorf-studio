@@ -93,7 +93,13 @@ accent-without-visual、visual-without-sound、sound-without-visual、bar-withou
 160×90 灰度的相邻帧 MAD 记为 E[f]（f 与 f-1 之差），不伪造首帧能量。
 FFmpeg 用已有 trim / lossless PNG，逐张读取，单次解码上限 120 秒，不新增依赖。
 `motion.summary.motionEnergy` / `motion.energy` 给出 p95、强重音峰值、讲述/非旁白段中位数及逐帧 JSON 路径。
-`accent-underplayed` 提示 strength ≥.9 的 [f-1,f+3] 峰值低于 p95；`beat-sections-static` 提示非旁白中位数不高于讲述段。
+`accent-underplayed` 对 strength ≥.9 重音分别检查预备和冲击：[f-8,f-1] 至少 6 帧能量严格大于全片中位数 2 倍，
+且 [f-1,f+3] 峰值不低于 p95；不满足时 message 区分“缺预备”/“冲击不够”，同一重音只发一条，可同时包含两原因。
+summary 另含 median、anticipationThreshold 与各重音 anticipationFrames。窗口/帧数/倍率有注释常量；
+全画面能量可能来自其他物体或镜头，不等同于主体过程可见，仍需看图。
+`beat-sections-static` 提示非旁白中位数不高于讲述段。
+`axiom-morph-missing` 在完整遥测中完全缺 AxiomMorph 时提醒一次，任一时段有该配方遥测就不提醒；
+缺失/截断且未发现母题时保持 unknown，不猜测旁白关键词。Skill 的旧公理/新公理候选必须用 AxiomMorph 要求不变。
 缺失、过期或不完整 animatic 为 unknown；缺带强度重音、缺讲述/非旁白样本时对应规则为 unknown。
 FFmpeg 失败/超时直接报告，不自动重试。上述 motion 字段是 `film:review` 输出；
 不拦 `film:check`/交付。animatic 默认关闭、Skill 要求成片前至少看一次；缺少或过期时交付命令提醒，不增加交付文件。

@@ -60,10 +60,11 @@ export const RhythmDirectionExample = ({
     strength:
       music?.onsets?.accents?.find((a) => a.frame === at)?.strength ?? 1,
   }));
-  const impact = useImpact(accents);
+  // Start eight frames early: the first ramp sample is zero, leaving seven visible steps.
+  const impact = useImpact(accents, { preFrames: 8 });
   const level = resolveImpactLevel(impact.strength);
   const nextAt = accents.find((a) => a.frame > frame)?.frame ?? Infinity;
-  const anticipating = nextAt - frame <= 6;
+  const anticipating = nextAt - frame <= 8;
   const elapsed =
     frame -
     (anticipating
@@ -86,7 +87,7 @@ export const RhythmDirectionExample = ({
     <AbsoluteFill style={{ backgroundColor: "#0b1020", overflow: "hidden" }}>
       <AbsoluteFill
         style={{
-          transform: `translate(${shake}px,${shake * 0.6}px) scale(${1 + level.cameraImpulse * strike})`,
+          transform: `translate(${shake}px,${shake * 0.6}px) scale(${1 + level.cameraImpulse * (strike - anticipation * 0.5)})`,
         }}
       >
         <ProducerWorldCamera
@@ -119,7 +120,7 @@ export const RhythmDirectionExample = ({
                           "radial-gradient(circle at 35% 30%, #427d88, #102338 70%)",
                         opacity: 0.65 + 0.35 * pulse,
                         // L3 deforms the subject as well as overshooting its scale; reading text stays still.
-                        transform: `scale(${resolveBreathScale(pulse, narrating) * (1 + (level.subjectScale - 1) * strike - 0.04 * anticipation)}) scaleX(${1 + (level.subjectScale - 1) * strike}) scaleY(${1 - (level.subjectScale - 1) * strike})`,
+                        transform: `translateX(${-width * level.cameraImpulse * 1.5 * anticipation}px) scale(${resolveBreathScale(pulse, narrating) * (1 + (level.subjectScale - 1) * (strike - anticipation))}) scaleX(${1 + (level.subjectScale - 1) * strike}) scaleY(${1 - (level.subjectScale - 1) * strike})`,
                       }}
                     />
                   ))}

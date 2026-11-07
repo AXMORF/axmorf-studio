@@ -49,10 +49,11 @@ Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐�
 7. **按小节分镜 → 画面 → 音效**（顺序必做）：先写 `src/films/<filmId>/storyboard.md`，告知用户路径和画面路线。
    使用 [导演手册第 8 节](references/direction.md#8-storyboardmd-写法) 的表格，每行一个小节，列帧、段落、旁白句、L2、L3 和音效，
    并补章节世界、镜头路径、转场动机、配方起止和声音窗口；不按句子分页。
-   **旁白出现旧公理或新公理候选时，用 AxiomMorph 从旧公理形变到新公理候选**，这是账号母题。
+   **旁白出现旧公理或新公理候选时，必须用 AxiomMorph 从旧公理形变到新公理候选**，这是账号母题。
    先读 [横屏「旧公理文字形变」示例](references/examples.md#横屏19201080旧公理文字形变)，表中写清旧/新文字、句子 id、
    出现/碎裂/重组/阅读帧；碎裂挂 hook 第一个重音，重组挂 drop，不能用两个独立淡入标题代替。
    先搭 L1 每 kick 呼吸、L2 每小节构图变化、L3 每重音大动作，落点误差 0 帧，再填细节。
+   strength ≥0.9 的重音之前必须有至少 6 帧可见预备；不能把配方过程藏起来只露出终值，详见导演手册。
    按第 9 步完成画面后，才从可见动作派生逐条 `sound.effects`，写 kind、动作长度、anchor、params 和 for，
    运行 `npm run film:sfx -- --film <filmId>`。默认本片原创，不用 track/共享音效库，除非用户指定。
    技法见 [镜头配方](references/recipes.md)，声音接线见 [音效轨](references/sound.md)；改片同步小节表，不能只在聊天口述。
@@ -64,7 +65,7 @@ Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐�
      按 [可编译最小示例](references/direction.md#41-用运行时接好三层动效) 接世界镜头，不在阅读文字上做呼吸。
    - 推荐用 `FilmSceneTrack` 组织章节与场景：同章默认连续、不写 `enter`，跨章才选择有动机的转场。
      配方只解决怎么动，构图和世界从剧本出发，不原样粘贴配方卡。
-   - 按 storyboard 用 `AxiomMorph` 呈现旧公理到新公理候选的形变；旧公理或候选出现的句子都要有对应动作与帧号，
+   - 旁白有旧公理或新公理候选时，必须按 storyboard 用 `AxiomMorph` 呈现形变；旧公理或候选出现的句子都要有对应动作与帧号，
      参考 [横屏「旧公理文字形变」示例](references/examples.md#横屏19201080旧公理文字形变)。
    - 「已发生 / 迹象 / 推测」等内容状态标识统一用 `FilmStatusTag`，不手写。放在场景轨之外，
      主词和副词都不得低于实测字幕字号的 70%，且不低于 `minimumReadableFontSize(width, height)`；
@@ -94,6 +95,7 @@ Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐�
     [导演手册自检](references/direction.md#9-自检看-animatic-时逐条回答写帧号) 对各条规则逐条说明理由与帧号；`unknown` 不是已通过。
     `text-under-foreground` 必须逐条回应；`readability.unknown` 中命中判定不准的文字（如 pointer-events:none）
     要看图核对。`repeated-composition` 比较包含旁白的非相邻段落构图；没有场景轨的旧片保持 unknown。
+    `axiom-morph-missing` 提醒全片缺母题遥测；有旧公理/新公理候选必须用 AxiomMorph，没有就说明理由，不把提醒当自动语义判断。
     内容状态标识必须用 `FilmStatusTag`；同时核对 `small-status-tag`，主词和副词都不低于字幕字号的 70%，
     看图确认底板、对比和手机可读性，写出帧号证据。这条提示不拦交付。
     对照 `storyboard.md` 逐小节核对 L2、L3、章节世界、镜头路径、配方落点、转场和音效，偏离计划就同步修改。
