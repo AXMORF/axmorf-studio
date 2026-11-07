@@ -229,7 +229,7 @@ test("recipe land, transitions and end/center sound anchors use the intended fra
     !result.motionWarnings.some((w) => w.rule !== "bar-without-change"),
   );
 });
-test("MusicSyncGallery score calibration: a complying event plan passes; removing hit f150 is detected", () => {
+test("MusicSyncGallery plan passes rhythm sync, reminds about its absent motif, and detects missing f150", () => {
   const spec = FilmSpecSchema.parse(MUSIC_SYNC_SPEC);
   const timing = FilmTimingSchema.parse({
     schemaVersion: 1,
@@ -304,11 +304,18 @@ test("MusicSyncGallery score calibration: a complying event plan passes; removin
       music: { ...grid, onsets },
       stillWarnings: [],
     });
-  assert.deepEqual(run(planned).motionWarnings, []);
+  assert.deepEqual(
+    run(planned).motionWarnings.map((w) => w.rule),
+    ["axiom-morph-missing"],
+  );
   const broken = planned.map((e) =>
     e.type === "rhythm" && e.kind === "impact"
       ? { ...e, frames: e.frames.filter((f) => f !== 150) }
       : e,
+  );
+  assert.deepEqual(
+    run(broken).motionWarnings.map((w) => w.rule),
+    ["axiom-morph-missing", "accent-without-visual", "sound-without-visual"],
   );
   assert.ok(
     run(broken).motionWarnings.some(

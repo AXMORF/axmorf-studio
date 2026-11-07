@@ -639,6 +639,7 @@ export const FilmMotionRuleSchema = z.enum([
   "bar-without-change",
   "accent-underplayed",
   "beat-sections-static",
+  "axiom-morph-missing",
 ]);
 export const FilmMotionWarningSchema = z.strictObject({
   rule: FilmMotionRuleSchema,
@@ -684,12 +685,15 @@ export const FilmMotionReviewSchema = z.strictObject({
         .strictObject({
           sampledFrames: ReviewFrameSchema,
           p95: z.number().nonnegative(),
+          median: z.number().nonnegative().optional(),
+          anticipationThreshold: z.number().nonnegative().optional(),
           strongAccents: z
             .array(
               z.strictObject({
                 frame: ReviewFrameSchema,
                 strength: z.number().min(0).max(1),
                 peak: z.number().nonnegative(),
+                anticipationFrames: ReviewFrameSchema.optional(),
               }),
             )
             .nullable(),

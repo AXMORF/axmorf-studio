@@ -76,6 +76,57 @@ const analyze = (options: Partial<Parameters<typeof analyzeMotion>[0]> = {}) =>
 const has = (result: ReturnType<typeof analyze>, rule: string) =>
   result.motionWarnings.some((w) => w.rule === rule);
 
+test("account motif reminder appears once when a complete film has no AxiomMorph", () => {
+  for (const hasNarration of [false, true]) {
+    const result = analyze({
+      records: [record(), record([], 30, 1)],
+      frames: [0, 30],
+      hasNarration,
+    });
+    const warnings = result.motionWarnings.filter(
+      (w) => w.rule === "axiom-morph-missing",
+    );
+    assert.equal(warnings.length, 1);
+    assert.deepEqual(warnings[0].frames, [0, 1199]);
+    assert.equal(
+      warnings[0].message,
+      "账号母题：旁白有旧公理或新公理候选时用 AxiomMorph；没有就说明理由。",
+    );
+  }
+});
+
+test("AxiomMorph telemetry anywhere in the film suppresses the missing motif reminder", () => {
+  const axiom = {
+    type: "recipe",
+    id: "AxiomMorph",
+    anticipate: 60,
+    move: 70,
+    land: 106,
+    settle: 123,
+  } as const;
+  const result = analyze({
+    records: [record(), record([axiom], 120, 1)],
+    frames: [0, 120],
+  });
+  assert.equal(has(result, "axiom-morph-missing"), false);
+  assert.equal(
+    result.unknown.some((u) => u.rule === "axiom-morph-missing"),
+    false,
+  );
+  assert.ok(result.summary.recipeIds.includes("AxiomMorph"));
+});
+
+test("missing or truncated telemetry keeps motif absence unknown, not a false reminder", () => {
+  for (const options of [
+    { records: [] },
+    { records: [{ ...record(), truncated: true }] },
+  ]) {
+    const result = analyze(options);
+    assert.equal(has(result, "axiom-morph-missing"), false);
+    assert.ok(result.unknown.some((u) => u.rule === "axiom-morph-missing"));
+  }
+});
+
 test("motion transport tolerates ANSI, tags, malformed JSON, schema errors and truncated lines", () => {
   const output = `\x1b[33m[Tab 0, review.tsx:1] ${FILM_REVIEW_MOTION_MARKER} ${JSON.stringify(record())}\x1b[0m\n${FILM_REVIEW_MOTION_MARKER} {\n${FILM_REVIEW_MOTION_MARKER} {}\nnoise`;
   const parsed = extractMotionMeasurements(output);

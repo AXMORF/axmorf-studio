@@ -19,6 +19,12 @@ export const MOTION_ENERGY_ACCENT_PERCENTILE = 0.95;
 // Inclusive landing window. This diagnoses magnitude, not the exact-sync requirement.
 export const MOTION_ENERGY_WINDOW_BEFORE = 1;
 export const MOTION_ENERGY_WINDOW_AFTER = 3;
+// A visible preparation needs >=6 moving frames in the inclusive eight-frame
+// window before the hit. Strictly >2x the film median excludes ordinary stillness;
+// whole-frame energy can still come from the background, so inspect the subject too.
+export const MOTION_ENERGY_ANTICIPATION_WINDOW = 8;
+export const MOTION_ENERGY_ANTICIPATION_MIN_FRAMES = 6;
+export const MOTION_ENERGY_ANTICIPATION_MEDIAN_MULTIPLIER = 2;
 
 export type MotionEnergySample = Readonly<{
   frame: number;
@@ -179,6 +185,12 @@ export const analyzeMotionEnergy = ({
     samples.map((s) => s.difference),
     MOTION_ENERGY_ACCENT_PERCENTILE,
   )!;
+  const median = motionEnergyQuantile(
+    samples.map((s) => s.difference),
+    0.5,
+  )!;
+  const anticipationThreshold =
+    median * MOTION_ENERGY_ANTICIPATION_MEDIAN_MULTIPLIER;
   const strongAccents =
     accents === null
       ? null
@@ -201,16 +213,44 @@ export const analyzeMotionEnergy = ({
             const peak = Math.max(
               ...samples.slice(from - 1, to).map((s) => s.difference),
             );
-            if (peak < p95)
+            const anticipationFrom = Math.max(
+              1,
+              accent.frame - MOTION_ENERGY_ANTICIPATION_WINDOW,
+            );
+            const anticipationFrames = samples
+              .slice(anticipationFrom - 1, Math.max(0, accent.frame - 1))
+              .filter((s) => s.difference > anticipationThreshold).length;
+            const missingAnticipation =
+              anticipationFrames < MOTION_ENERGY_ANTICIPATION_MIN_FRAMES;
+            const weakImpact = peak < p95;
+            const reasons = [
+              ...(missingAnticipation
+                ? [
+                    `缺预备：[f-8,f-1] 仅 ${anticipationFrames} 帧能量 > ${anticipationThreshold.toFixed(3)}（全片中位数 ${median.toFixed(3)} × ${MOTION_ENERGY_ANTICIPATION_MEDIAN_MULTIPLIER}），至少需要 ${MOTION_ENERGY_ANTICIPATION_MIN_FRAMES} 帧可见预备`,
+                  ]
+                : []),
+              ...(weakImpact
+                ? [
+                    `冲击不够：[f-1,f+3] 峰值 ${peak.toFixed(3)} < 全片 p95 ${p95.toFixed(3)}`,
+                  ]
+                : []),
+            ];
+            if (missingAnticipation || weakImpact)
               motionWarnings.push({
                 rule: "accent-underplayed",
                 frames: [
-                  Math.max(0, accent.frame - MOTION_ENERGY_WINDOW_BEFORE),
-                  to,
+                  Math.max(
+                    0,
+                    accent.frame -
+                      (missingAnticipation
+                        ? MOTION_ENERGY_ANTICIPATION_WINDOW
+                        : MOTION_ENERGY_WINDOW_BEFORE),
+                  ),
+                  weakImpact ? to : Math.max(0, accent.frame - 1),
                 ],
-                message: `Strong accent f${accent.frame} (strength ${accent.strength}) peaks at ${peak.toFixed(3)}, below film p95 ${p95.toFixed(3)}; inspect subject action and camera impulse.`,
+                message: `强重音 f${accent.frame}（strength ${accent.strength}）：${reasons.join("；")}。核对主体可见性、动作与镜头冲击。`,
               });
-            return { ...accent, peak };
+            return { ...accent, peak, anticipationFrames };
           });
   if (strongAccents === null)
     unknown.push({
@@ -247,6 +287,8 @@ export const analyzeMotionEnergy = ({
     summary: {
       sampledFrames: samples.length,
       p95,
+      median,
+      anticipationThreshold,
       strongAccents,
       speechFrames: speech.length,
       speechMedian,

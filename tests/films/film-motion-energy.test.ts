@@ -13,6 +13,9 @@ import {
   MOTION_ENERGY_WIDTH,
   MOTION_ENERGY_HEIGHT,
   MOTION_ENERGY_TIMEOUT_MS,
+  MOTION_ENERGY_ANTICIPATION_MIN_FRAMES,
+  MOTION_ENERGY_ANTICIPATION_MEDIAN_MULTIPLIER,
+  MOTION_ENERGY_ANTICIPATION_WINDOW,
 } from "../../scripts/films/motion-energy";
 
 const size = MOTION_ENERGY_WIDTH * MOTION_ENERGY_HEIGHT;
@@ -61,6 +64,8 @@ test("strong-accent threshold is inclusive .9; peaks use exactly [f-1,f+3]", () 
   const values: number[] = Array.from({ length: 100 }, (_, i) =>
     i < 10 ? 10 : 1,
   );
+  // Supply six real preparation frames so this test isolates the impact window.
+  for (let frame = 72; frame <= 77; frame++) values[frame - 1] = 3;
   for (const frame of [79, 80, 81, 82, 83]) {
     const good = [...values];
     good[frame - 1] = 10;
@@ -89,7 +94,7 @@ test("strong-accent threshold is inclusive .9; peaks use exactly [f-1,f+3]", () 
   }
 });
 
-test("accent windows clip to body ends; a peak equal to p95 passes", () => {
+test("accent windows clip to body ends without inventing preparation before frame zero", () => {
   const result = analyze([2, 2, 2, 2], {
     accents: [
       { frame: 0, strength: 1 },
@@ -101,9 +106,68 @@ test("accent windows clip to body ends; a peak equal to p95 passes", () => {
     [2, 2],
   );
   assert.equal(
-    result.motionWarnings.some((w) => w.rule === "accent-underplayed"),
+    result.motionWarnings.some((w) => w.message.includes("冲击不够")),
     false,
   );
+  assert.equal(
+    result.motionWarnings.filter((w) => w.message.includes("缺预备")).length,
+    2,
+  );
+  assert.deepEqual(
+    result.summary?.strongAccents?.map((a) => a.anticipationFrames),
+    [0, 0],
+  );
+});
+
+test("preparation requires six frames strictly above 2x median inside [f-8,f-1]", () => {
+  assert.equal(MOTION_ENERGY_ANTICIPATION_WINDOW, 8);
+  assert.equal(MOTION_ENERGY_ANTICIPATION_MIN_FRAMES, 6);
+  assert.equal(MOTION_ENERGY_ANTICIPATION_MEDIAN_MULTIPLIER, 2);
+  const base: number[] = Array(100).fill(1);
+  base[79] = 20; // The hit itself is strong, but does not count as preparation.
+  const prepared = [...base];
+  for (const frame of [72, 73, 74, 75, 76, 79]) prepared[frame - 1] = 3;
+  const good = analyze(prepared);
+  assert.equal(good.summary?.median, 1);
+  assert.equal(good.summary?.anticipationThreshold, 2);
+  assert.equal(good.summary?.strongAccents?.[0].anticipationFrames, 6);
+  assert.equal(
+    good.motionWarnings.some((w) => w.rule === "accent-underplayed"),
+    false,
+  );
+  for (const frame of [72, 79]) {
+    const bad = [...prepared];
+    bad[frame - 1] = 2; // Equality is insufficient.
+    bad[70] = 100; // f71 lies outside the preparation window.
+    const result = analyze(bad);
+    const warning = result.motionWarnings.find(
+      (w) => w.rule === "accent-underplayed",
+    )!;
+    assert.match(warning.message, /缺预备/u);
+    assert.doesNotMatch(warning.message, /冲击不够/u);
+    assert.deepEqual(warning.frames, [72, 79]);
+    assert.equal(result.summary?.strongAccents?.[0].anticipationFrames, 5);
+  }
+});
+
+test("one accent warning distinguishes missing preparation, weak impact, or both", () => {
+  const base: number[] = Array.from({ length: 100 }, (_, i) =>
+    i < 10 ? 10 : 1,
+  );
+  const both = analyze(base).motionWarnings.filter(
+    (w) => w.rule === "accent-underplayed",
+  );
+  assert.equal(both.length, 1);
+  assert.match(both[0].message, /缺预备.*冲击不够/u);
+  assert.deepEqual(both[0].frames, [72, 83]);
+  const prepared = [...base];
+  for (let frame = 72; frame <= 77; frame++) prepared[frame - 1] = 3;
+  const weak = analyze(prepared).motionWarnings.find(
+    (w) => w.rule === "accent-underplayed",
+  )!;
+  assert.match(weak.message, /冲击不够/u);
+  assert.doesNotMatch(weak.message, /缺预备/u);
+  assert.deepEqual(weak.frames, [79, 83]);
 });
 
 test("beat vs speech uses half-open sentence windows and warns on equal medians", () => {
