@@ -310,8 +310,24 @@ P5 由“只读 Skill 的新 Agent”来做，是为了检验 Skill 能不能把
 - 不使用 `music.track` 和共享音效库，除非用户指定曲目或素材。审片清单增加一条：每条音效都要对应一个可见动作，
   音长与动作时长一致。
 
-### 9.4 验收
+### 9.4 同步模型：声音跟画面，画面跟音乐
+
+调研结论（2026-11-07，Remotion 官方文档 audio visualization、`visualizeAudio`、`useWindowedAudioData`）：Remotion 本身不做
+节拍或 onset 检测。常见做法是离线得到节拍时间表，换算成帧，再驱动动画；音频波形和频谱可以通过 `@remotion/media-utils`
+在渲染时逐帧读取。我们的配乐和音效都是从数据确定性合成出来的，所以**事件表本身就是唯一的事实来源**，不需要从音频里反推。
+
+- **声音跟画面**：storyboard 和配方/场景轨给出画面事件帧（边界、anticipate/land、转场窗口），`sound.effects`
+  和 score 的 sections/hits/breaks/ending 都锚定在这些帧上（9.1、9.2）。
+- **画面跟音乐**：`film:music` 额外导出合成时每个乐器的 onset 帧（kick、snare、clap、hat、bass，以及 hits 和段落起点），
+  写入 `generated/music.json`，再经 `useFilmTiming().music.onsets` 提供给画面。画面上的次级节奏（灯光脉动、指示灯闪烁、
+  粒子呼吸）用这些精确帧驱动，误差为 0 帧。
+- **频谱驱动（可选，只做次级运动）**：新增 `useFilmMusicEnergy()`，内部用 `useWindowedAudioData` 加 `visualizeAudio`
+  逐帧读取本片配乐 wav，返回对数刻度、平滑后的 low/mid/high 能量（0–1），用于辉光、呼吸这类连续的次级运动；
+  主要动作的落点仍然用事件帧，不靠频谱判断。只读本片 `staticFile`，渲染时不联网。
+
+### 9.5 验收
 
 - 单测覆盖：合成结果的确定性、每种 kind 的时长和对齐、锚点 bpm 搜索与残差、hits/breaks/ending、`film:check` 的一致性校验。
-- 先按 P5 的做法用 v3 片源重做声音（画面不动），只交付不发布。把对比片和用户听审结论交给 commander，确认后再进 P6。
+- 先按 P5 的做法用 v3 片源重做声音（画面不动），只交付不发布。**画面必须与 v3 逐帧一致**：以 v3 的画面事件帧为锚，
+  不改任何画面代码；交付后用 `ffmpeg -map 0:v -f framemd5` 比对新旧两版的视频流，全部帧的 md5 必须相同。把对比片和用户听审结论交给 commander，确认后再进 P6。
   做声音的是不是新 Agent，由 commander 和用户决定。
