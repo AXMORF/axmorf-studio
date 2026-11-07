@@ -13,6 +13,8 @@ import {
   resolveBreathScale,
   resolveFilmRuntime,
   resolveImpact,
+  resolveImpactLevel,
+  IMPACT_LEVELS,
   resolveNarrationActive,
   resolveProducerWorldCamera,
   useBarCamera,
@@ -173,6 +175,7 @@ test("bar spring steps start on the bar, hold the last shot, and adapt to a stab
 });
 test("impact anticipates for six frames, starts its spring at the exact hit, and shakes for only six frames", () => {
   assert.deepEqual(resolveImpact(93, 100, 30), {
+    strength: 1,
     pre: 0,
     hit: 0,
     scale: 1,
@@ -209,6 +212,7 @@ test("impact anticipates for six frames, starts its spring at the exact hit, and
     resolveImpact(214, 220, 30),
   );
   assert.deepEqual(resolveImpact(150, [], 30), {
+    strength: 1,
     pre: 0,
     hit: 0,
     scale: 1,
@@ -219,6 +223,61 @@ test("impact anticipates for six frames, starts its spring at the exact hit, and
   resolveImpact(222, [100, 220], 30);
   assert.deepEqual(resolveImpact(103, [100, 220], 30), later);
   assert.equal(resolveImpact(97, 100, 30, { preFrames: 3 }).pre, 0);
+});
+test("impact exposes the selected strength, including the next anticipation and legacy defaults", () => {
+  const events = [
+    { frame: 100, strength: 0.3 },
+    { frame: 110, strength: 0.95 },
+  ];
+  for (const frame of [94, 99, 100, 103])
+    assert.equal(resolveImpact(frame, events, 30).strength, 0.3);
+  for (const frame of [104, 109, 110, 120])
+    assert.equal(resolveImpact(frame, events, 30).strength, 0.95);
+  for (const at of [100, [100], []])
+    assert.equal(resolveImpact(100, at, 30).strength, 1);
+  assert.equal(resolveImpact(93, events, 30).strength, 1);
+  assert.equal(
+    resolveImpact(100, [{ frame: 100, strength: 0 }], 30).strength,
+    0,
+  );
+});
+
+test("impact levels lock the three treatments, inclusive boundaries and monotone amplitudes", () => {
+  assert.deepEqual(resolveImpactLevel(0.49), {
+    cameraImpulse: 0.02,
+    subjectScale: 1.03,
+    shakePixels: 3,
+    flashOpacity: 0,
+    particleCount: 6,
+  });
+  assert.deepEqual(resolveImpactLevel(0.5), {
+    cameraImpulse: 0.05,
+    subjectScale: 1.06,
+    shakePixels: 8,
+    flashOpacity: 0,
+    particleCount: 18,
+  });
+  assert.deepEqual(resolveImpactLevel(0.9), {
+    cameraImpulse: 0.12,
+    subjectScale: 1.12,
+    shakePixels: 16,
+    flashOpacity: 0.5,
+    particleCount: 40,
+  });
+  assert.equal(resolveImpactLevel(0.8999), IMPACT_LEVELS.section);
+  assert.equal(resolveImpactLevel(1), IMPACT_LEVELS.drop);
+  assert.ok(IMPACT_LEVELS.drop.subjectScale >= 1.08);
+  assert.ok(
+    IMPACT_LEVELS.drop.shakePixels >= 12 &&
+      IMPACT_LEVELS.drop.shakePixels <= 20,
+  );
+  assert.ok(IMPACT_LEVELS.drop.flashOpacity <= 0.6);
+  for (let i = 1; i <= 100; i++) {
+    const previous = resolveImpactLevel((i - 1) / 100);
+    const next = resolveImpactLevel(i / 100);
+    for (const key of Object.keys(previous) as (keyof typeof previous)[])
+      assert.ok(next[key] >= previous[key], `${key} must not decrease`);
+  }
 });
 test("hooks preserve no-music behavior and accept the film-root frame inside sequences", () => {
   const runtime = resolveFilmRuntime({

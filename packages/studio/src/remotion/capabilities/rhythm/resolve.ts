@@ -137,11 +137,55 @@ export const impactEventFrames = (at: ImpactEvents): readonly number[] =>
       ? (at as readonly number[])
       : (at as readonly FilmMusicAccent[]).map((event) => event.frame);
 export type ImpactState = Readonly<{
+  strength: number;
   pre: number;
   hit: number;
   scale: number;
   shake: number;
 }>;
+
+/** Recommended amplitudes, not an automatic treatment: author the subject action too.
+ * subjectScale is a peak multiplier; cameraImpulse is a zoom delta; shakePixels
+ * is the peak displacement. Flash is optional, only on the largest reveals and
+ * for at most four frames. Keep transitions below the strongest L3 treatment. */
+export const IMPACT_LEVELS = {
+  light: {
+    cameraImpulse: 0.02,
+    subjectScale: 1.03,
+    shakePixels: 3,
+    flashOpacity: 0,
+    particleCount: 6,
+  },
+  section: {
+    cameraImpulse: 0.05,
+    subjectScale: 1.06,
+    shakePixels: 8,
+    flashOpacity: 0,
+    particleCount: 18,
+  },
+  drop: {
+    cameraImpulse: 0.12,
+    subjectScale: 1.12,
+    shakePixels: 16,
+    flashOpacity: 0.5,
+    particleCount: 40,
+  },
+} as const;
+export type ImpactLevel = Readonly<{
+  cameraImpulse: number;
+  subjectScale: number;
+  shakePixels: number;
+  flashOpacity: number;
+  particleCount: number;
+}>;
+/** v3 strength boundaries: light < .5, section [.5, .9), drop >= .9. */
+export const resolveImpactLevel = (strength: number): ImpactLevel =>
+  strength >= 0.9
+    ? IMPACT_LEVELS.drop
+    : strength >= 0.5
+      ? IMPACT_LEVELS.section
+      : IMPACT_LEVELS.light;
+
 /** Sorted event arrays: the next anticipation supersedes the previous rebound. */
 export const resolveImpact = (
   frame: number,
@@ -160,7 +204,7 @@ export const resolveImpact = (
     next !== undefined && frame >= next - preFrames ? index + 1 : index;
   const event = events[eventIndex];
   if (event === undefined || frame < event - preFrames)
-    return { pre: 0, hit: 0, scale: 1, shake: 0 };
+    return { strength: 1, pre: 0, hit: 0, scale: 1, shake: 0 };
   const pre = Math.max(0, Math.min(1, (frame - event + preFrames) / preFrames));
   const elapsed = frame - event;
   const hit =
@@ -175,6 +219,7 @@ export const resolveImpact = (
   const strength = entry && typeof entry !== "number" ? entry.strength : 1;
   const scale = elapsed < 0 ? 1 - 0.04 * pre : 0.96 + 0.04 * hit;
   return {
+    strength,
     pre: pre * strength,
     hit: hit * strength,
     scale: strength === 1 ? scale : 1 + (scale - 1) * strength,
