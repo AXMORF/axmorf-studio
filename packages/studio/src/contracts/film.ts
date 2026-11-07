@@ -637,6 +637,8 @@ export const FilmMotionRuleSchema = z.enum([
   "visual-without-sound",
   "sound-without-visual",
   "bar-without-change",
+  "accent-underplayed",
+  "beat-sections-static",
 ]);
 export const FilmMotionWarningSchema = z.strictObject({
   rule: FilmMotionRuleSchema,
@@ -678,6 +680,26 @@ export const FilmMotionReviewSchema = z.strictObject({
       cameraPresets: z.array(z.string()),
       worldCameraSamples: ReviewFrameSchema,
       detectedCuts: ReviewFrameSchema,
+      motionEnergy: z
+        .strictObject({
+          sampledFrames: ReviewFrameSchema,
+          p95: z.number().nonnegative(),
+          strongAccents: z
+            .array(
+              z.strictObject({
+                frame: ReviewFrameSchema,
+                strength: z.number().min(0).max(1),
+                peak: z.number().nonnegative(),
+              }),
+            )
+            .nullable(),
+          speechFrames: ReviewFrameSchema,
+          speechMedian: z.number().nonnegative().nullable(),
+          beatFrames: ReviewFrameSchema,
+          beatMedian: z.number().nonnegative().nullable(),
+        })
+        .nullable()
+        .optional(),
       rhythmSync: z
         .strictObject({
           accents: z
@@ -733,6 +755,14 @@ export const FilmMotionReviewSchema = z.strictObject({
     ),
     denseSkipped: ReviewFrameSchema,
     animatic: z.string().nullable(),
+    energy: z
+      .strictObject({
+        json: z.string(),
+        decodedFrames: ReviewFrameSchema,
+        decodeMs: z.number().nonnegative(),
+      })
+      .nullable()
+      .optional(),
   }),
   motionWarnings: z.array(FilmMotionWarningSchema),
 });

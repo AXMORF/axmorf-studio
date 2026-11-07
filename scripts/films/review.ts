@@ -14,6 +14,7 @@ import {
   FilmMotionReviewSchema,
   filmCompositionIds,
   FilmMusicSchema,
+  resolveFilmBookendFrames,
   type FilmTiming,
 } from "@axmorf/studio/contracts";
 
@@ -43,7 +44,8 @@ import {
   MOTION_SAMPLE_SECONDS,
   selectDenseMotionFrames,
 } from "./motion";
-import { filmHasLegacyAudio } from "./motion-files";
+import { animaticReminder, filmHasLegacyAudio } from "./motion-files";
+import { analyzeMotionEnergy, decodeMotionEnergy } from "./motion-energy";
 
 export type ReviewFrame = Readonly<{ frame: number; reason: string }>;
 
@@ -601,6 +603,38 @@ const reviewMotion = async ({
         });
       },
     });
+  const preview = join(paths.review, "animatic.mp4");
+  if (animatic)
+    await renderFilmAnimatic({
+      rootDir,
+      compositionId: filmCompositionIds(filmId).film,
+      outputPath: preview,
+      ...spec.render,
+      timeoutMs,
+    });
+  // Sparse stills are not consecutive frames. Only a fresh continuous preview can
+  // support energy comparisons; no preview (or a stale one) remains unknown.
+  const energyUnavailable = await animaticReminder(rootDir, filmId);
+  const energy =
+    energyUnavailable === null
+      ? await decodeMotionEnergy({
+          rootDir,
+          videoPath: preview,
+          scratch,
+          startFrame: resolveFilmBookendFrames(spec).introFrames,
+          durationInFrames: timing.durationInFrames,
+        })
+      : null;
+  const energyAnalysis = analyzeMotionEnergy({
+    samples: energy?.samples ?? null,
+    durationInFrames: timing.durationInFrames,
+    sentences: timing.sentences,
+    accents: music?.onsets?.accents ?? null,
+    unavailableReason: energyUnavailable ?? undefined,
+  });
+  const energyJson = join(paths.review, "motion-energy.json");
+  if (energy)
+    await writeFile(energyJson, JSON.stringify(energy, null, 2) + "\n");
   const analysis = analyzeMotion({
     records,
     frames,
@@ -613,6 +647,8 @@ const reviewMotion = async ({
     music,
     stillWarnings,
   });
+  analysis.motionWarnings.push(...energyAnalysis.motionWarnings);
+  analysis.unknown.push(...energyAnalysis.unknown);
   const curveJson = join(paths.review, "motion-curve.json");
   const curveImage = join(paths.review, "motion-curve.png");
   await writeFile(curveJson, JSON.stringify(curve, null, 2) + "\n");
@@ -652,18 +688,9 @@ const reviewMotion = async ({
       count: range.frames.length,
     });
   }
-  const preview = join(paths.review, "animatic.mp4");
-  if (animatic)
-    await renderFilmAnimatic({
-      rootDir,
-      compositionId: filmCompositionIds(filmId).film,
-      outputPath: preview,
-      ...spec.render,
-      timeoutMs,
-    });
   return FilmMotionReviewSchema.parse({
     motion: {
-      summary: analysis.summary,
+      summary: { ...analysis.summary, motionEnergy: energyAnalysis.summary },
       boundaryChecks: analysis.boundaryChecks,
       telemetry: analysis.telemetry,
       badLines,
@@ -675,7 +702,15 @@ const reviewMotion = async ({
       },
       dense,
       denseSkipped: analysis.motionWarnings.length - ranges.length,
-      animatic: animatic ? workspacePath(rootDir, preview) : null,
+      animatic:
+        energyUnavailable === null ? workspacePath(rootDir, preview) : null,
+      energy: energy
+        ? {
+            json: workspacePath(rootDir, energyJson),
+            decodedFrames: energy.decodedFrames,
+            decodeMs: energy.decodeMs,
+          }
+        : null,
     },
     motionWarnings: analysis.motionWarnings,
   });
