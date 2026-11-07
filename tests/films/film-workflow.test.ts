@@ -621,6 +621,60 @@ test("film sfx CLI freezes a licensed plan in the registry and check rejects sta
   ]);
 });
 
+test("film:music warns only when a selected score anchor misses by more than three frames", async (context) => {
+  const rootDir = await createWorkspace(context);
+  const { runFilmMusic } = await import("../../scripts/films/music");
+  for (const [filmId, anchors, bpm, bpmRange, residuals, notes] of [
+    ["feasible-score", [0, 64], 108, [100, 120], [0, 3], []],
+    [
+      "infeasible-score",
+      [0, 80, 245],
+      120,
+      [96, 128],
+      [0, -5, -20],
+      [
+        "Section 1 misses its anchor by -5 frames; adjust the authored score anchors or widen bpmRange; keep locked picture and narration fixed.",
+        "Section 2 misses its anchor by -20 frames; adjust the authored score anchors or widen bpmRange; keep locked picture and narration fixed.",
+      ],
+    ],
+  ] as const) {
+    await writeFilm(rootDir, filmId, {
+      spec: {
+        timeline: { durationInFrames: 300 },
+        music: {
+          score: {
+            engine: "studio-v2",
+            bpm,
+            bpmRange,
+            arrangement: {
+              tonic: "C",
+              mode: "minor",
+              progression: [1, 6, 3, 7],
+              sections: anchors.map((from) => ({
+                from,
+                instruments: ["pad"],
+                density: 0.5,
+                energy: 0.5,
+              })),
+            },
+          },
+        },
+      },
+    });
+    await runFilmVoice({ rootDir, filmId, createService: fakeVoice });
+    const result = await runFilmMusic({
+      rootDir,
+      filmId,
+      masterScore: (raw) => raw,
+    });
+    assert.deepEqual(
+      result.alignment?.boundaries.map((b) => b.residualFrames),
+      residuals,
+    );
+    assert.deepEqual(result.notes ?? [], notes);
+  }
+});
+
 test("a registered track becomes the film's music on an authored beat grid", async (context) => {
   const root = await createWorkspace(context);
   const track = clickTrackWav(8);

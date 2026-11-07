@@ -8,7 +8,10 @@ import {
   FilmMusicAlignmentSchema,
 } from "@axmorf/studio/contracts";
 import { generateScore } from "../../scripts/films/score/synth-score.mjs";
-import { scoreOnsets } from "../../scripts/films/score/storyboard-score.mjs";
+import {
+  SCORE_ANCHOR_TOLERANCE_FRAMES,
+  scoreOnsets,
+} from "../../scripts/films/score/storyboard-score.mjs";
 
 const skill = ".agents/skills/axmorf-film/references";
 
@@ -24,10 +27,15 @@ test("the default music guide generates a usable score with positive sections an
   assert.ok(timeline.durationInFrames >= 900);
   assert.ok(audio.length > 44);
   const alignment = FilmMusicAlignmentSchema.parse(timeline.alignment);
-  assert.ok(alignment.boundaries.every((b) => b.residualFrames === 0));
+  assert.equal(timeline.bpm, 100.48);
+  assert.ok(
+    alignment.boundaries.every(
+      (b) => Math.abs(b.residualFrames) <= SCORE_ANCHOR_TOLERANCE_FRAMES,
+    ),
+  );
   assert.deepEqual(
     alignment.boundaries.map((b) => b.actualFrame),
-    [0, 216, 504, 576, 720],
+    [0, 215, 502, 573, 717],
   );
   assert.ok(scoreOnsets(timeline).hits.includes(576));
   assert.equal(music.underSpeechVolume, 0.145);

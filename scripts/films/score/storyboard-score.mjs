@@ -1,5 +1,8 @@
 import { STUDIO_INSTRUMENTS } from "./studio-score.mjs";
 
+// Shared by BPM feasibility and film:music's anchor-miss warnings.
+export const SCORE_ANCHOR_TOLERANCE_FRAMES = 3;
+
 const fields = (value, allowed, label) => {
   if (!value || typeof value !== "object" || Array.isArray(value))
     throw new Error(`Invalid ${label}`);
@@ -22,7 +25,7 @@ export const usesStoryboardScore = (recipe) =>
       (section) => section?.from !== undefined,
     ));
 
-/** A 0.01 BPM grid, endpoints and midpoint; squared frame error, then midpoint distance. */
+/** Prefer feasible tempos near bpm/midpoint; otherwise minimize bar-normalized residuals. */
 export const alignStoryboardSections = ({
   sections,
   fps,
@@ -41,6 +44,7 @@ export const alignStoryboardSections = ({
   )
     throw new Error("Invalid score bpmRange: use [min, max] within 50–180");
   const midpoint = (range[0] + range[1]) / 2;
+  const preferredBpm = bpm ?? midpoint;
   const hasAnchors = sections.some((section) => section.from !== undefined);
   const candidates = new Set([range[0], range[1], midpoint]);
   for (
@@ -50,6 +54,8 @@ export const alignStoryboardSections = ({
   )
     candidates.add(value / 100);
   let best;
+  let bestFeasible = false;
+  let bestNormalizedError = Infinity;
   for (const candidate of candidates) {
     const framesPerBar = (beatsPerBar * 60 * fps) / candidate;
     const starts = new Array(sections.length);
@@ -127,13 +133,28 @@ export const alignStoryboardSections = ({
       (sum, boundary) => sum + boundary.residualFrames ** 2,
       0,
     );
-    const distance = Math.abs(candidate - midpoint);
+    const feasible = boundaries.every(
+      (boundary) =>
+        Math.abs(boundary.residualFrames) <= SCORE_ANCHOR_TOLERANCE_FRAMES,
+    );
+    const normalizedError = boundaries.reduce(
+      (sum, boundary) => sum + (boundary.residualFrames / framesPerBar) ** 2,
+      0,
+    );
+    const distance = Math.abs(candidate - preferredBpm);
+    const preferable =
+      !best ||
+      distance < best.distance - 1e-9 ||
+      (Math.abs(distance - best.distance) <= 1e-9 &&
+        (error < best.error || (error === best.error && candidate < best.bpm)));
     if (
       !best ||
-      error < best.error ||
-      (error === best.error &&
-        (distance < best.distance - 1e-9 ||
-          (Math.abs(distance - best.distance) <= 1e-9 && candidate < best.bpm)))
+      (feasible && !bestFeasible) ||
+      (feasible === bestFeasible &&
+        (feasible
+          ? preferable
+          : normalizedError < bestNormalizedError ||
+            (normalizedError === bestNormalizedError && preferable)))
     ) {
       best = {
         bpm: candidate,
@@ -143,6 +164,8 @@ export const alignStoryboardSections = ({
         error,
         distance,
       };
+      bestFeasible = feasible;
+      bestNormalizedError = normalizedError;
     }
   }
   if (!best)
@@ -237,7 +260,8 @@ export const makeStoryboardTimeline = (recipe, makeLegacyTimeline) => {
     sections,
     fps,
     beatsPerBar,
-    bpm,
+    // A default BPM must not override the midpoint preference for an authored range.
+    bpm: recipe.bpmRange === undefined ? bpm : recipe.bpm,
     bpmRange: recipe.bpmRange,
     bars: recipe.bars ?? (anchored ? undefined : 8),
     durationInFrames: recipe.durationInFrames,

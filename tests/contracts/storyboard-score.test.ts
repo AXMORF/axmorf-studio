@@ -119,25 +119,140 @@ test("bars-only studio-v2 audio and timeline retain their pre-P7 checksums for e
   }
 });
 
-test("BPM search minimizes squared frame residual and breaks ties towards the midpoint", () => {
-  const timeline = rawTimeline({ ...base, bpmRange: [112, 128] });
-  assert.equal(timeline.bpm, 120);
+test("feasible BPM search prefers the midpoint instead of the upper-limit exact fit", () => {
+  // The old squared-frame-error objective selected the upper limit, 115.21 BPM.
+  const timeline = rawTimeline({
+    ...base,
+    bpm: undefined,
+    bpmRange: [112.79, 115.21],
+    arrangement: {
+      ...base.arrangement,
+      sections: [{ ...voices, from: 0 }, { ...voices, from: 62 }],
+    },
+  });
+  assert.equal(timeline.bpm, 114);
   assert.deepEqual(
     timeline.alignment.boundaries.map((item) => item.residualFrames),
-    [0, 0, 0],
+    [0, 1],
   );
-  const residual = rawTimeline({ ...base, bpmRange: [96, 112] });
-  assert.equal(residual.bpm, 111.85);
+});
+
+test("BPM search requires every anchor to be within three frames before preferring tempo", () => {
+  const timeline = rawTimeline({ ...base, bpm: 104, bpmRange: [96, 124] });
+  assert.equal(timeline.bpm, 118.28);
+  assert.deepEqual(
+    timeline.alignment.boundaries.map((item) => item.residualFrames),
+    [0, 2, 3],
+  );
+});
+
+test("feasible BPM search honors an explicit bpm ahead of midpoint and exact alignment", () => {
+  const timeline = rawTimeline({
+    ...base,
+    bpm: 108,
+    bpmRange: [100, 120],
+    arrangement: {
+      ...base.arrangement,
+      sections: [{ ...voices, from: 0 }, { ...voices, from: 64 }],
+    },
+  });
+  assert.equal(timeline.bpm, 108);
+  assert.deepEqual(
+    timeline.alignment.boundaries.map((item) => item.residualFrames),
+    [0, 3],
+  );
+});
+
+test("infeasible BPM search minimizes bar-normalized residuals rather than frame error", () => {
+  // The old objective selected 114.98 BPM: [-17, 5] has less raw squared error,
+  // but [-5, -20] at 96 BPM has less error relative to each bar's length.
+  const timeline = rawTimeline({
+    ...base,
+    bpm: 120,
+    bpmRange: [96, 128],
+    arrangement: {
+      ...base.arrangement,
+      sections: [0, 80, 245].map((from) => ({ ...voices, from })),
+    },
+  });
+  assert.equal(timeline.bpm, 96);
+  assert.deepEqual(
+    timeline.alignment.boundaries.map((item) => item.residualFrames),
+    [0, -5, -20],
+  );
+  assert.ok(
+    (5 ** 2 + 20 ** 2) / (7200 / 96) ** 2 <
+      (17 ** 2 + 5 ** 2) / (7200 / 114.98) ** 2,
+  );
+});
+
+test("equidistant feasible BPMs prefer squared residuals, then the lower BPM deterministically", () => {
+  const residual = rawTimeline({
+    ...base,
+    bpm: 110.345,
+    bpmRange: [100, 120],
+    arrangement: {
+      ...base.arrangement,
+      sections: [{ ...voices, from: 0 }, { ...voices, from: 130 }],
+    },
+  });
+  assert.equal(residual.bpm, 110.35);
   assert.deepEqual(
     residual.alignment.boundaries.map((item) => item.residualFrames),
-    [0, 9, 17],
+    [0, 0],
   );
-  const midpoint = rawTimeline({
+  const recipe = {
     ...base,
-    bpmRange: [100, 110],
+    bpm: 109.995,
+    bpmRange: [100, 120],
     arrangement: { ...base.arrangement, sections: [{ ...voices, from: 0 }] },
-  });
-  assert.equal(midpoint.bpm, 105);
+  };
+  const lower = rawTimeline(recipe);
+  assert.equal(lower.bpm, 109.99);
+  assert.deepEqual(rawTimeline(recipe), lower);
+});
+
+test("fixed-BPM storyboard audio and timeline retain their pre-selection-fix bytes for every style", () => {
+  const checksums = {
+    organic: [
+      "sha256:04f6ba838cdcc2b2e6afb58a299f542d96351789128a118bbe31eb79c0957f57",
+      "072881e8247fc800d1e8e57850e90d350481bdb2404c09f0c7c9290750ec93aa",
+    ],
+    electronic: [
+      "sha256:913a91f6bf52ffe5af2912287472afbe430c9b51b6936fe74dfaa87fc52a4310",
+      "2bb02138f4ec31898895e890ab1cfc70f0ed69744e64cb229e03f0fa9b4e6262",
+    ],
+    drive: [
+      "sha256:86c2ed25fa1e1f713fd67e41d3024e16aed4eeed5e76fda0bed53baf8a159f38",
+      "9950ce78c0e7355bdee1a9dcd4a5b1287288309c45dade17866814dfc45f175d",
+    ],
+  };
+  for (const [style, [audio, timeline]] of Object.entries(checksums)) {
+    const result = generateScore({
+      ...base,
+      style,
+      bpm: 123,
+      arrangement: {
+        ...base.arrangement,
+        sections: [
+          { ...voices, from: 0 },
+          { ...voices, bars: 1 },
+          { ...voices, from: 180 },
+        ],
+      },
+      hits: [{ frame: 151, kind: "stinger", intensity: 0.8 }],
+      breaks: [{ from: 120, to: 150, keep: ["pad"] }],
+      ending: { landFrame: 270, cadence: "resolve" },
+    });
+    assert.equal(result.timeline.audioChecksum, audio, style);
+    assert.equal(
+      createHash("sha256")
+        .update(JSON.stringify(result.timeline))
+        .digest("hex"),
+      timeline,
+      style,
+    );
+  }
 });
 
 test("mixed from/bars sections preserve fixed spans between snapped anchors", () => {

@@ -248,12 +248,15 @@ test("MusicSyncGallery score calibration: a complying event plan passes; removin
     fps: 30,
   });
   const { timeline } = generateScore(recipe);
+  assert.equal(timeline.bpm, 118.28);
   const grid = projectFilmMusicGrid({
     timeline,
     startFrame: 0,
     durationInFrames: 300,
   });
   const onsets = scoreOnsets(timeline);
+  assert.deepEqual(grid.barFrames, [0, 61, 122, 183, 243]);
+  assert.deepEqual(grid.sectionFrames, [0, 122, 243]);
   const accents = [
     ...new Set([
       ...grid.accentFrames,

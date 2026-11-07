@@ -1,3 +1,4 @@
+export declare const SCORE_ANCHOR_TOLERANCE_FRAMES = 3;
 export declare const usesStoryboardScore: (
   recipe: Record<string, unknown>,
 ) => boolean;

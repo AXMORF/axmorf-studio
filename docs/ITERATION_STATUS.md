@@ -1,5 +1,26 @@
 # Iteration Status
 
+## BPM 自动选择修正（2026-11-08，未发布）
+
+`bpmRange` 仍扫描 0.01 BPM 网格、端点与中点，先筛选所有 section 锚点残差都在 ±3 帧内的候选，
+再取最接近显式 `bpm`（未写时为范围中点）的速度；同距取残差平方和更小者，仍相同取较小 BPM。
+无可行候选时最小化 Σ(残差 / 每小节帧数)²，消除原始帧误差对快速度的偏好；可行性与 `film:music`
+警告共用 3 帧常量，警告文案不变。固定 BPM 的 bars-only 与 storyboard score 三种风格音频/timeline 哈希不变。
+
+预期示例变化：MusicSyncGallery fixture 从 119.76 → 118.28 BPM，章节从 f0/120/240 → f0/122/243，
+残差 `[0,2,3]`，小节期望为 f0/61/122/183/243；30 秒 music.md 教学谱从 100.06 → 100.48 BPM，
+章节期望由 f0/216/504/576/720 改为 f0/215/502/573/717，残差断言由全 0 改为全部在 ±3 帧内，
+精确 hit f576 不变。两份共享 music.md 同步，两个 `.claude` 入口继续引用共享 Skill；示例 `[96,116]`
+与 direction.md 讲解片范围一致。没有改合成器音色、混音、接口、依赖或 lockfile。
+
+**验证**：完整 `npm run check` 退出 0（501 项：500 通过、1 项 macOS 专属测试在 Linux 跳过、0 失败），
+含类型、lint、文档/音频检查、Web/Remotion 构建、creator 包检查和宿主 compositions。新增 6 项回归，覆盖
+上限偏差、全锚点可行性、显式 BPM、归一化回退、同距排序/确定性、固定 BPM 字节及 3 帧警告边界。
+MusicSyncGallery f150/f152 和 RhythmDirectionExample f150 still 已渲染并看图：kick 灯从 f150 改为新 onset f152，
+精确 hit 仍为 f150。新网格的真实浏览器校准各取得 20 份完整遥测：合规版 accents/landings/sounds/bars 全部 5/5，
+0 条提示；删除 f150 impact 后恰好报 1 条 f150 accent-without-visual。没有场景轨的旧规则仍为 unknown。
+证据在 `out/bpm-selection-validation/`，未更新图像快照，也未提交片源、媒体或生成投影。
+
 ## P8 节奏运行时与导演 Skill（2026-11-08，未发布）
 
 完成音乐网格驱动动效的方法与工具，不改合成器引擎、旧片源码、依赖/lockfile 或版本，不 push/publish/merge。

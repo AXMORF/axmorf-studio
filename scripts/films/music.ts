@@ -17,7 +17,11 @@ import {
   type FilmTiming,
 } from "@axmorf/studio/contracts";
 
-import { scoreOnsets, usesStoryboardScore } from "./score/storyboard-score.mjs";
+import {
+  SCORE_ANCHOR_TOLERANCE_FRAMES,
+  scoreOnsets,
+  usesStoryboardScore,
+} from "./score/storyboard-score.mjs";
 import { generateScore, master } from "./score/synth-score.mjs";
 import { writeBinaryFileAtomic } from "../shared/atomic-file";
 import {
@@ -281,7 +285,10 @@ const prepareScore = async ({
     ...(timeline.loop === false ? { loop: false } : {}),
     notes:
       alignment?.boundaries
-        .filter((boundary) => Math.abs(boundary.residualFrames) > 3)
+        .filter(
+          (boundary) =>
+            Math.abs(boundary.residualFrames) > SCORE_ANCHOR_TOLERANCE_FRAMES,
+        )
         .map(
           (boundary) =>
             `Section ${boundary.sectionIndex} misses its anchor by ${boundary.residualFrames} frames; adjust the authored score anchors or widen bpmRange; keep locked picture and narration fixed.`,
