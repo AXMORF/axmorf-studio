@@ -6,11 +6,11 @@ import {
   type FilmReviewMotion,
   type FilmReviewMotionSceneSchema,
   type FilmMotionCurve,
-  type FilmMusic,
 } from "@axmorf/studio/contracts";
 import type { z } from "zod";
 import type { FilmMotionWarningSchema } from "@axmorf/studio/contracts";
 import { meanAbsoluteDifference } from "./frame-compare";
+import { analyzeRhythmSync, type RhythmSyncMusic } from "./rhythm-sync";
 
 type Warning = z.infer<typeof FilmMotionWarningSchema>;
 // 待校准：0.5s / 0.125-scale grayscale signatures include captions and object motion.
@@ -209,7 +209,7 @@ export const analyzeMotion = ({
   readonly fps: number;
   readonly hasNarration: boolean;
   readonly legacyAudio: boolean;
-  readonly music: Pick<FilmMusic, "beatFrames" | "accentFrames"> | null;
+  readonly music: RhythmSyncMusic | null;
   readonly stillWarnings: readonly { frames: readonly [number, number] }[];
   readonly compositionSamples?: readonly {
     frame: number;
@@ -223,7 +223,9 @@ export const analyzeMotion = ({
   const telemetry = [...measured.values()].sort((a, b) => a.index - b.index);
   const missingFrames = frames.filter((_, i) => !measured.has(i));
   const complete =
-    missingFrames.length === 0 && !telemetry.some((r) => r.truncated);
+    frames.length > 0 &&
+    missingFrames.length === 0 &&
+    !telemetry.some((r) => r.truncated);
   const events = [
     ...new Map(
       telemetry.flatMap((r) => r.events).map((e) => [JSON.stringify(e), e]),
@@ -443,6 +445,15 @@ export const analyzeMotion = ({
         );
     }
   }
+  const sync = analyzeRhythmSync({
+    events,
+    complete,
+    music,
+    durationInFrames,
+    legacyAudio,
+  });
+  motionWarnings.push(...sync.motionWarnings);
+  unknown.push(...sync.unknown);
   return {
     motionWarnings,
     boundaryChecks: scenes.slice(1).map((scene) => {
@@ -461,6 +472,7 @@ export const analyzeMotion = ({
     missingFrames,
     unknown,
     summary: {
+      rhythmSync: sync.summary,
       sampledFrames: curve.samples.length,
       sceneCount: scenes.length,
       cueCount: new Set(cues.map((c) => JSON.stringify(c))).size,

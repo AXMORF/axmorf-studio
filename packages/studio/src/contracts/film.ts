@@ -595,6 +595,8 @@ export const FilmReviewMotionEventSchema = z.discriminatedUnion("type", [
       z.strictObject({
         frame: ReviewFrameSchema,
         endFrame: ReviewFrameSchema,
+        /** Actual start/end/center anchor; absent in legacy telemetry. */
+        alignmentFrame: ReviewFrameSchema.optional(),
         sfx: z.string(),
         for: z.string(),
       }),
@@ -631,6 +633,10 @@ export const FilmMotionRuleSchema = z.enum([
   "off-beat-cuts",
   "static-camera",
   "repeated-composition",
+  "accent-without-visual",
+  "visual-without-sound",
+  "sound-without-visual",
+  "bar-without-change",
 ]);
 export const FilmMotionWarningSchema = z.strictObject({
   rule: FilmMotionRuleSchema,
@@ -672,6 +678,34 @@ export const FilmMotionReviewSchema = z.strictObject({
       cameraPresets: z.array(z.string()),
       worldCameraSamples: ReviewFrameSchema,
       detectedCuts: ReviewFrameSchema,
+      rhythmSync: z
+        .strictObject({
+          accents: z
+            .strictObject({
+              total: ReviewFrameSchema,
+              matched: ReviewFrameSchema,
+            })
+            .nullable(),
+          landings: z
+            .strictObject({
+              total: ReviewFrameSchema,
+              matched: ReviewFrameSchema,
+            })
+            .nullable(),
+          sounds: z
+            .strictObject({
+              total: ReviewFrameSchema,
+              matched: ReviewFrameSchema,
+            })
+            .nullable(),
+          bars: z
+            .strictObject({
+              total: ReviewFrameSchema,
+              matched: ReviewFrameSchema,
+            })
+            .nullable(),
+        })
+        .optional(),
     }),
     boundaryChecks: z.array(
       z.strictObject({

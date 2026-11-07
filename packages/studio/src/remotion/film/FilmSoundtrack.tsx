@@ -155,6 +155,7 @@ export const FilmSoundtrack = ({
       .map((track) => ({
         frame: track.startFrame,
         endFrame: track.endFrame,
+        alignmentFrame: track.endFrame,
         sfx: track.publicPath,
         for: "Film ending",
       })),

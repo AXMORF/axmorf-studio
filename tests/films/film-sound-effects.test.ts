@@ -185,3 +185,44 @@ test("six cinematic sounds reproduce byte-for-byte and ship with complete verifi
     );
   }
 });
+
+test("planned start/end/center anchors survive playback projection and explicit cues keep their own anchor", () => {
+  for (const anchor of ["start", "center", "end"] as const) {
+    const offset = anchor === "start" ? 0 : anchor === "center" ? 10 : 20;
+    const planned = {
+      ...film,
+      sfx: {
+        schemaVersion: 1 as const,
+        filmId: film.spec.filmId,
+        inputFingerprint: `sha256:${"0".repeat(64)}`,
+        synthesizerVersion: "test",
+        effects: [
+          {
+            id: "move",
+            kind: "whoosh" as const,
+            anchor,
+            for: "evidence moves",
+            inputFingerprint: `sha256:${"0".repeat(64)}`,
+            publicPath: `public/films/${film.spec.filmId}/sfx/move.wav`,
+            checksum: `sha256:${"0".repeat(64)}`,
+            sampleRate: 48000,
+            sampleFrameCount: 32000,
+            durationInFrames: 20,
+            durationInSeconds: 20 / 30,
+            startFrame: 90,
+            endFrame: 110,
+            alignmentFrame: 90 + offset,
+          },
+        ],
+      },
+    };
+    const [implicit] = resolveFilmSoundEffects(planned);
+    assert.equal(implicit.startFrame, 90);
+    assert.equal(implicit.alignmentFrame, 90 + offset);
+    const [explicit] = resolveFilmSoundEffects(planned, [
+      { frame: 120, sfx: "plan:move", for: "explicit start" },
+    ]);
+    assert.equal(explicit.alignmentFrame, 120);
+    assert.equal(explicit.startFrame, 120);
+  }
+});

@@ -47,7 +47,7 @@ export type FilmSoundEffectsProps = Readonly<{
   cues?: readonly FilmSoundEffectCue[];
 }>;
 export type ResolvedFilmSoundEffect = SoundContributionValue &
-  Readonly<{ sfxId: string; for: string }>;
+  Readonly<{ sfxId: string; for: string; alignmentFrame: number }>;
 
 const sharedLibrary = getProducerSoundLibrary(sharedManifest)["sound-effect"];
 const roleIds: Readonly<Record<string, string>> = {
@@ -79,6 +79,7 @@ const resolveSource = (
         publicPath: entry.publicPath,
         seconds: entry.durationInSeconds,
         frames: entry.durationInFrames,
+        alignmentOffset: entry.alignmentFrame - entry.startFrame,
       };
     }
     const name = roleIds[source] ?? source;
@@ -188,6 +189,10 @@ export const resolveFilmSoundEffects = (
         for: cue.for,
         publicPath: source.publicPath,
         startFrame,
+        alignmentFrame:
+          cues === undefined && source.alignmentOffset !== undefined
+            ? startFrame + source.alignmentOffset
+            : snapped,
         endFrame: Math.min(film.durationInFrames, startFrame + length),
         volume,
         loop: false,
@@ -215,6 +220,7 @@ export const FilmSoundEffects = ({ cues }: FilmSoundEffectsProps = {}) => {
     cues: resolved.map((cue) => ({
       frame: cue.startFrame,
       endFrame: cue.endFrame,
+      alignmentFrame: cue.alignmentFrame,
       sfx: cue.sfxId,
       for: cue.for,
     })),
