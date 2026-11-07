@@ -158,6 +158,13 @@ export const resolveFilmSceneTrack = (
             frame: enter.boundaryFrame,
             sfx: scene.enter?.sfx ?? getProducerTransitionSfxRole(enter.kind),
             for: `Scene ${scene.id}: ${enter.kind}`,
+            kind:
+              enter.kind === "flash" || enter.kind === "match-scale"
+                ? ("impact" as const)
+                : enter.kind === "iris" || enter.kind === "light-leak"
+                  ? ("shimmer" as const)
+                  : ("whoosh" as const),
+            durationFrames: enter.frames,
           },
         ],
   );

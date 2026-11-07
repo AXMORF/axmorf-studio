@@ -9,6 +9,7 @@ import {
   type FilmSpec,
   type FilmTiming,
 } from "../../contracts/film";
+import { FilmSfxSchema, type FilmSfx } from "../../contracts/film-sfx";
 
 export type FilmRuntime = Readonly<{
   spec: FilmSpec;
@@ -16,6 +17,8 @@ export type FilmRuntime = Readonly<{
   timing: FilmTiming | null;
   /** Null when the film has no score or `film:music` has not run yet. */
   music: FilmMusic | null;
+  /** Null until film:sfx has generated the film's original sound effects. */
+  sfx?: FilmSfx | null;
   /** Length of the authored body; useCurrentFrame() inside Film counts from its start. */
   durationInFrames: number;
   introFrames: number;
@@ -33,6 +36,7 @@ export const resolveFilmRuntime = (input: {
   readonly spec: unknown;
   readonly timing: unknown;
   readonly music: unknown;
+  readonly sfx?: unknown;
 }): FilmRuntime => {
   const spec = FilmSpecSchema.parse(input.spec);
   const timing =
@@ -41,7 +45,11 @@ export const resolveFilmRuntime = (input: {
     input.music === null || spec.music === null
       ? null
       : FilmMusicSchema.parse(input.music);
-  for (const generated of [timing, music]) {
+  const sfx =
+    input.sfx == null || spec.sound === undefined
+      ? null
+      : FilmSfxSchema.parse(input.sfx);
+  for (const generated of [timing, music, sfx]) {
     if (generated !== null && generated.filmId !== spec.filmId) {
       throw new Error(`Generated files belong to ${generated.filmId}.`);
     }
@@ -55,6 +63,7 @@ export const resolveFilmRuntime = (input: {
     spec,
     timing,
     music,
+    sfx,
     durationInFrames,
     introFrames,
     outroFrames,
@@ -120,6 +129,8 @@ export const useFilmTiming = () => {
               barFrames: music.barFrames,
               sectionFrames: music.sectionFrames,
               accentFrames: music.accentFrames,
+              /** Synthesizer events; primary visual landings use these exact frames. */
+              onsets: music.onsets,
             },
     } as const;
   }, [spec, timing, music, durationInFrames]);

@@ -1,4 +1,5 @@
 import type { FilmSoundEffectCue } from "../../film/FilmSoundEffects";
+import type { FilmSoundEffectKind } from "../../../contracts/film-sfx";
 
 export type ProducerRecipeTiming = Readonly<{
   /** Absolute composition frames, including any enclosing Sequence offset. */
@@ -25,7 +26,13 @@ export type ProducerRecipeMeta = Readonly<{
   keyframes: Readonly<
     Record<"anticipate" | "move" | "land" | "settle", string>
   >;
-  sfxCues: readonly Readonly<{ at: "move" | "land"; role: string }>[];
+  sfxCues: readonly Readonly<{
+    at: "move" | "land";
+    role: string;
+    kind?: FilmSoundEffectKind;
+    /** Suggested duration at 30 fps; resolver cues use actual action frames. */
+    durationFrames?: number;
+  }>[];
 }>;
 export const finite = (value: number, label: string) => {
   if (!Number.isFinite(value)) throw new Error(`${label} must be finite.`);
@@ -96,11 +103,16 @@ export const recipeCues = (
   timing: ReturnType<typeof resolveProducerRecipeTiming>,
   roles: readonly ProducerRecipeMeta["sfxCues"][number][],
 ): FilmSoundEffectCue[] =>
-  roles.map(({ at, role }) => ({
+  roles.map(({ at, role, kind }) => ({
     frame: timing[at],
     sfx: role,
     for: `${id}: ${at}`,
     snap: "none",
+    kind,
+    durationFrames:
+      at === "move"
+        ? timing.land - timing.move
+        : timing.settle - timing.land + 1,
   }));
 
 const keys: ProducerRecipeMeta["keyframes"] = {
@@ -133,8 +145,8 @@ export const PRODUCER_RECIPE_CATALOG = {
     "长段正文或需要连续阅读时",
     [1.2, 3],
     [
-      { at: "move", role: "glitch-tick" },
-      { at: "land", role: "soft-impact" },
+      { at: "move", role: "glitch-tick", kind: "glitch", durationFrames: 12 },
+      { at: "land", role: "soft-impact", kind: "impact", durationFrames: 18 },
     ],
   ),
   NumberRoll: meta(
@@ -143,7 +155,7 @@ export const PRODUCER_RECIPE_CATALOG = {
     "金额、计数或量级揭示",
     "精确读数需要始终可读时",
     [0.8, 2],
-    [{ at: "land", role: "soft-impact" }],
+    [{ at: "land", role: "soft-impact", kind: "tick", durationFrames: 8 }],
   ),
   BarGrow: meta(
     "BarGrow",
@@ -151,7 +163,7 @@ export const PRODUCER_RECIPE_CATALOG = {
     "比较非负数量",
     "负数、密集时间序列",
     [1, 3],
-    [{ at: "land", role: "soft-impact" }],
+    [{ at: "land", role: "soft-impact", kind: "thud", durationFrames: 18 }],
   ),
   CameraMove: meta(
     "CameraMove",
@@ -160,8 +172,8 @@ export const PRODUCER_RECIPE_CATALOG = {
     "没有空间关系的无动机漂移",
     [1.2, 4],
     [
-      { at: "move", role: "whoosh-sweep" },
-      { at: "land", role: "soft-impact" },
+      { at: "move", role: "whoosh-sweep", kind: "whoosh", durationFrames: 30 },
+      { at: "land", role: "soft-impact", kind: "impact", durationFrames: 18 },
     ],
   ),
   ParticleField: meta(
@@ -171,8 +183,8 @@ export const PRODUCER_RECIPE_CATALOG = {
     "正文与精确数据标注",
     [1.2, 3],
     [
-      { at: "move", role: "shimmer" },
-      { at: "land", role: "soft-impact" },
+      { at: "move", role: "shimmer", kind: "shimmer", durationFrames: 30 },
+      { at: "land", role: "soft-impact", kind: "chime", durationFrames: 18 },
     ],
   ),
   ParallaxLayers: meta(
@@ -182,8 +194,8 @@ export const PRODUCER_RECIPE_CATALOG = {
     "所有层必须固定对齐的图表",
     [1.5, 4],
     [
-      { at: "move", role: "whoosh-sweep" },
-      { at: "land", role: "soft-impact" },
+      { at: "move", role: "whoosh-sweep", kind: "whoosh", durationFrames: 30 },
+      { at: "land", role: "soft-impact", kind: "impact", durationFrames: 18 },
     ],
   ),
 } as const satisfies Record<string, ProducerRecipeMeta>;

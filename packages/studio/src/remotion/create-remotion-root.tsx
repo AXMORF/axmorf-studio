@@ -5,6 +5,7 @@ import { DEFAULT_SCENE_TEMPLATE_AUDIO_PROJECTION } from "./capabilities/scene-te
 import { SceneTemplateAudioProjectionSchema } from "./capabilities/scene-templates/template-audio";
 import { AxiomStoryGallery } from "./compositions/capability-gallery/AxiomStoryGallery";
 import { SceneTrackGallery } from "./compositions/capability-gallery/SceneTrackGallery";
+import { MusicSyncGallery } from "./compositions/capability-gallery/MusicSyncGallery";
 import {
   RecipeGallery,
   RECIPE_GALLERY_IDS,
@@ -62,6 +63,15 @@ export const createRemotionRoot = (
         <Composition
           id="AxiomStoryGallery"
           component={AxiomStoryGallery}
+          durationInFrames={300}
+          fps={30}
+          width={1920}
+          height={1080}
+        />
+        <Composition
+          id="MusicSyncGallery"
+          component={MusicSyncGallery}
+          defaultProps={{ music: null, sfx: null }}
           durationInFrames={300}
           fps={30}
           width={1920}

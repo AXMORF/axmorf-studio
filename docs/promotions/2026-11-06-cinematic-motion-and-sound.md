@@ -331,3 +331,14 @@ P5 由“只读 Skill 的新 Agent”来做，是为了检验 Skill 能不能把
 - 先按 P5 的做法用 v3 片源重做声音（画面不动），只交付不发布。**画面必须与 v3 逐帧一致**：以 v3 的画面事件帧为锚，
   不改任何画面代码；交付后用 `ffmpeg -map 0:v -f framemd5` 比对新旧两版的视频流，全部帧的 md5 必须相同。把对比片和用户听审结论交给 commander，确认后再进 P6。
   做声音的是不是新 Agent，由 commander 和用户决定。
+
+### 9.6 实施记录（2026-11-07，未发布）
+
+9.1–9.4 的工具链已实现：每片原创 SFX、结构锚点/精确 hits/编曲 breaks/ending、onset 导出及本地能量 hook；
+creator CLI、缓存/一致性/许可检查、review、两份 Skill 镜像均已接入。旧 bars-only 三种风格音频与 timeline 哈希不变。
+完整 npm run check 通过（479 项，478 通过、1 项平台跳过）；10 秒 MusicSyncGallery 示例和 12 种独立 WAV 已生成，
+两次 f165 still 字节相同；章节 f0/f120/f240 在 119.76 BPM 下残差均为 0。
+预览 −21.66 LUFS / −7.21 dBTP，全素材解码非静音且真峰值低于 −1 dBFS。详见 [ITERATION_STATUS](../ITERATION_STATUS.md)。
+
+9.5 只完成工程预览与技术验证，尚未做 v3 整片声音重做、framemd5 新旧逐帧比对和用户听审；没有替换交付或发布，
+不能据此认定 P5/P7 用户验收通过或进入 P6。v3 原片 19 个源码文件与既有 SHA256 基线一致。

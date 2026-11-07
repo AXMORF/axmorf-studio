@@ -36,6 +36,7 @@ export type FilmRegistryEntry = Readonly<{
   spec: unknown;
   timing: unknown;
   music: unknown;
+  sfx?: unknown;
   film: () => FilmModule;
   cover: () => FilmModule;
 }>;

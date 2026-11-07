@@ -1,4 +1,5 @@
 import { FilmAssetSchema, type FilmAsset } from "../../contracts/film";
+import type { FilmSoundEffectKind } from "../../contracts/film-sfx";
 import type { ResourceAssetDescriptor } from "../../contracts/resource-catalog";
 import sharedManifest from "../catalog/assets.manifest.json";
 import { snapProducerFrameToBeat } from "../capabilities/motion/beat";
@@ -33,13 +34,17 @@ export type FilmSoundEffectCue = Readonly<{
   maxFrame?: number;
   volume?: number;
   for: string;
+  /** Suggestions for authoring sound.effects; playback still uses sfx. */
+  kind?: FilmSoundEffectKind;
+  durationFrames?: number;
 }> &
   (
     | Readonly<{ frame: number; endFrame?: never }>
     | Readonly<{ endFrame: number; frame?: never }>
   );
 export type FilmSoundEffectsProps = Readonly<{
-  cues: readonly FilmSoundEffectCue[];
+  /** Omit to play generated/sfx.json. An explicit array plays only those cues. */
+  cues?: readonly FilmSoundEffectCue[];
 }>;
 export type ResolvedFilmSoundEffect = SoundContributionValue &
   Readonly<{ sfxId: string; for: string }>;
@@ -51,8 +56,31 @@ const roleIds: Readonly<Record<string, string>> = {
   "signal-sweep": "whoosh-sweep",
   "impact-bloom": "soft-impact",
 };
-const resolveSource = (source: FilmSoundEffectSource) => {
+type SoundEffectFilm = Pick<
+  FilmRuntime,
+  "spec" | "timing" | "music" | "durationInFrames" | "sfx"
+>;
+const resolveSource = (
+  source: FilmSoundEffectSource,
+  film: SoundEffectFilm,
+) => {
   if (typeof source === "string") {
+    if (source.startsWith("plan:")) {
+      const id = source.slice("plan:".length);
+      const entry = film.sfx?.effects.find((effect) => effect.id === id);
+      if (!entry)
+        throw new Error(`Sound effect plan ${id} is missing; run film:sfx.`);
+      assertProducerLocalMediaPath(
+        entry.publicPath.slice("public/".length),
+        "Film sound effect plan",
+      );
+      return {
+        id: source,
+        publicPath: entry.publicPath,
+        seconds: entry.durationInSeconds,
+        frames: entry.durationInFrames,
+      };
+    }
     const name = roleIds[source] ?? source;
     const entry = sharedLibrary.find(
       ({ id }) => id === name || id === `asset.axmorf.sfx.${name}-v1`,
@@ -91,19 +119,31 @@ const resolveSource = (source: FilmSoundEffectSource) => {
 };
 
 export const resolveFilmSoundEffects = (
-  film: Pick<FilmRuntime, "spec" | "timing" | "music" | "durationInFrames">,
-  cues: readonly FilmSoundEffectCue[],
+  film: SoundEffectFilm,
+  cues?: readonly FilmSoundEffectCue[],
 ): ResolvedFilmSoundEffect[] => {
+  if (cues === undefined && film.spec.sound?.effects.length && !film.sfx)
+    throw new Error("Sound effect plan is missing; run film:sfx.");
+  const plannedCues: readonly FilmSoundEffectCue[] =
+    cues ??
+    (film.sfx?.effects ?? []).map((effect) => ({
+      frame: effect.startFrame,
+      sfx: `plan:${effect.id}`,
+      for: effect.for,
+    }));
   const seen = new Set<string>();
-  return cues.flatMap((cue) => {
+  return plannedCues.flatMap((cue) => {
     if ((cue.frame !== undefined) === (cue.endFrame !== undefined))
       throw new Error(
         "Use exactly one sound effect anchor: frame or endFrame.",
       );
-    const source = resolveSource(cue.sfx);
+    const source = resolveSource(cue.sfx, film);
     if (!Number.isFinite(source.seconds) || source.seconds <= 0)
       throw new Error("Sound effect needs measured duration.");
-    const length = Math.ceil(source.seconds * film.spec.render.fps);
+    const length =
+      "frames" in source && source.frames !== undefined
+        ? source.frames
+        : Math.ceil(source.seconds * film.spec.render.fps);
     if (!Number.isSafeInteger(length) || length <= 0)
       throw new Error("Sound effect duration is not frame-safe.");
     const endAnchored = cue.endFrame !== undefined;
@@ -167,7 +207,7 @@ export const resolveFilmSoundEffects = (
   });
 };
 
-export const FilmSoundEffects = ({ cues }: FilmSoundEffectsProps) => {
+export const FilmSoundEffects = ({ cues }: FilmSoundEffectsProps = {}) => {
   const film = useFilm();
   const resolved = resolveFilmSoundEffects(film, cues);
   useReviewMotion({

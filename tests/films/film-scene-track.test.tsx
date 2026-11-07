@@ -83,6 +83,13 @@ test("all overlap kinds center odd windows and compensate the total duration", (
       frame: 100,
       sfx: getProducerTransitionSfxRole(kind),
       for: `Scene b: ${kind}`,
+      kind:
+        kind === "match-scale"
+          ? "impact"
+          : kind === "iris"
+            ? "shimmer"
+            : "whoosh",
+      durationFrames: 9,
     });
   }
 });

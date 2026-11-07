@@ -30,7 +30,7 @@ export type FilmSoundtrackProps = Readonly<{
  * dips to `underSpeechVolume` while any sentence is spoken.
  */
 export const resolveFilmSoundtrack = (
-  { spec, timing, music, durationInFrames }: FilmRuntime,
+  { spec, timing, music, sfx, durationInFrames }: FilmRuntime,
   options: Pick<FilmSoundtrackProps, "musicDips" | "ending"> = {},
 ): SoundContributionValue[] => {
   const tracks: SoundContributionValue[] = [];
@@ -93,7 +93,7 @@ export const resolveFilmSoundtrack = (
       startFrame: music.startFrame,
       endFrame: landFrame,
       volume: music.volume,
-      loop: music.scoreDurationInFrames < length,
+      loop: music.loop !== false && music.scoreDurationInFrames < length,
       sourceDurationInSeconds: music.scoreDurationInFrames / fps,
       fadeOutFrames: Math.min(music.fadeOutFrames, length),
       ...((options.musicDips?.length ?? 0) === 0
@@ -127,9 +127,10 @@ export const resolveFilmSoundtrack = (
   }
   if (options.ending?.sfx !== undefined) {
     tracks.push(
-      ...resolveFilmSoundEffects({ spec, timing, music, durationInFrames }, [
-        { endFrame: landFrame, sfx: options.ending.sfx, for: "Film ending" },
-      ]),
+      ...resolveFilmSoundEffects(
+        { spec, timing, music, sfx, durationInFrames },
+        [{ endFrame: landFrame, sfx: options.ending.sfx, for: "Film ending" }],
+      ),
     );
   }
   return tracks;

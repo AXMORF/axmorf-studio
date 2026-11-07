@@ -245,7 +245,7 @@ test("the registry imports only generated files that exist", () => {
   assert.doesNotMatch(source, /beta\/generated/u);
   assert.match(
     source,
-    /timing: null,\s+music: null,\s+film: \(\) => import\("\.\/beta\/Film"\)/u,
+    /timing: null,\s+music: null,\s+sfx: null,\s+film: \(\) => import\("\.\/beta\/Film"\)/u,
   );
   assert.doesNotMatch(source, /readdir|import\.meta\.glob/u);
 });

@@ -37,17 +37,16 @@ Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐�
    - 有旁白时删除 `timeline.durationInFrames`，总长由实测旁白加 `tailFrames` 决定；无旁白的纯视觉片保留它。
    - `narrationStartFrame` 留给正片的开场画面；`publish` 写标题、简介和标签；用到的事实来源写进
      `bookends.sources`（标题 + 网址），会显示在片尾。
-   - 需要配乐时写 `music.score`（见 [配乐与卡点](references/music.md)）。
+   - 需要配乐时先留出 `music.score`；实测旁白、写 storyboard 后再按画面锚点编曲（见 [配乐与卡点](references/music.md)）。
 5. **生成旁白**：`npm run film:voice -- --film <filmId>`。输出每句的起止帧。修改旁白文本后重新运行；
    没改过的句子来自缓存，不会重复调用 TTS。
-6. **生成配乐**：`npm run film:music -- --film <filmId>`。输出段落起点与重音帧。旁白时长变了就重新运行。
-7. **分镜与音效计划**（必做）：先写 `src/films/<filmId>/storyboard.md`，并告知用户文件路径和画面路线。
+6. **分镜与音效计划**（必做）：先写 `src/films/<filmId>/storyboard.md`，并告知用户文件路径和画面路线。
    按 [画面手艺](references/craft.md) 划分章节，为每章设计一个连续世界与跟随因果的镜头路径；
    用 [镜头配方](references/recipes.md) 选择动作，用 [音效计划](references/sound.md) 记录可见动作的声音落点。
    **旁白里出现旧公理，或者出现新公理候选时，用 AxiomMorph 从旧公理形变到新公理候选**，这是账号母题。
    必须先读 [横屏「旧公理文字形变」示例](references/examples.md#横屏19201080旧公理文字形变)，
    在 storyboard 写清旧/新文字、对应句子 id、出现/形变/落定/阅读的帧号；不能只把两段文字分别淡入。
-   句子 id 与帧号来自旁白实测时序和音乐网格，全部计正片帧；无旁白时句子 id 写“无”。最小模板：
+   句子 id 与帧号来自旁白实测时序和画面动作计划，配乐随后锚定这些帧；全部计正片帧；无旁白时句子 id 写“无”。最小模板：
 
    ```markdown
    # 分镜与音效计划：<filmId>
@@ -68,6 +67,10 @@ Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐�
 
    改片时同步更新；animatic、审片和验收均对照这份文件核对，不能只在聊天中口述计划。
 
+7. **制作本片声音**：按 storyboard 的章节与落点写 `music.score`：sections 用 `from`，hits、breaks、ending 锚定画面事件；
+   再按可见动作逐条写 `sound.effects`（kind、durationFrames、anchor、params、for）。默认不用 `music.track` 或共享音效库，除非用户指定。
+   运行 `npm run film:music -- --film <filmId>` 和 `npm run film:sfx -- --film <filmId>`，核对段落残差、重音和实际音效起止帧。
+   旁白或计划变了就重新生成；画面的次级节奏用 `music.onsets`，连续辉光可选 `useFilmMusicEnergy()`，主落点不用频谱反推。
 8. **准备素材**（可选）：生成图片或原创 SVG 后用 `film:asset` 登记，见 [素材](references/artwork.md)。
 9. **编写** `Film.tsx` 与 `Cover.tsx`：
    - 用 `useFilmTiming()` 读取每句旁白的帧区间和音乐网格，画面变化跟着旁白语义走，关键落点对齐重音或小节线。
@@ -79,7 +82,8 @@ Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐�
      主词和副词都不得低于实测字幕字号的 70%，且不低于 `minimumReadableFontSize(width, height)`；
      使用清楚的底板和对比，在手机尺寸下可读，不能当小字装饰。全片固定在左上角安全区；与主体冲突时才换到另一个
      固定角，并在 storyboard.md 注明，不压住主体。
-   - 用 `FilmSoundEffects` 放置计划中的音效；把场景轨和配方 resolver 的 `sfxCues` 显式交给它，组件不会自动发声。
+   - 用 `<FilmSoundEffects />` 播放本片生成计划；显式 cue 可用 `sfx: "plan:<id>"` 引用。
+     场景轨和配方 resolver 的 `sfxCues` 提供 kind/时长建议，先转为本片计划，避免和计划重复播放；视觉组件不会自动发声。
    - 必须挂载 `<FilmSoundtrack />` 与 `<FilmCaptions />`（字幕放在最上层，均在场景轨之外）。
    - 按段落拆成子组件或 `scenes/*.tsx`；所有文件留在本片目录内。
 10. **先出 animatic 看节奏**（必做）：
@@ -105,6 +109,7 @@ Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐�
     内容状态标识必须用 `FilmStatusTag`；同时核对 `small-status-tag`，主词和副词都不低于字幕字号的 70%，
     看图确认底板、对比和手机可读性，写出帧号证据。这条提示不拦交付。
     对照 `storyboard.md` 核对章节、世界、镜头路径、配方落点、转场和音效，偏离计划就同步修改。
+    每条音效对应一个可见动作，音长与动作时长一致；写出动作/声音起止帧、主要落点及 onset/accent 帧号和差值。
     至少完成一轮“审片 → 修改 → 再审片”。需要看某些帧时用 `--frames 120,240,360`。
     用户想实时预览时，可运行 `npm run dev` 打开 Remotion Studio。
 12. **检查**：`npm run film:check -- --film <filmId>`。错误必须修复；警告逐条判断。
@@ -117,8 +122,9 @@ Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐�
 
 ## 修改已有的片
 
-直接修改 `film.json` 或源码，然后按需重新运行 `film:voice`、`film:music`，同步更新 `storyboard.md`，再出 animatic、审片、检查、交付。
-`film:check` 会指出旁白或配乐是否与 `film.json` 不一致。不要修改 `generated/` 下的文件。
+直接修改 `film.json` 或源码，然后按需重新运行 `film:voice`、`film:music`、`film:sfx`，同步更新 `storyboard.md`，再出 animatic、审片、检查、交付。
+`film:check` 会指出旁白、配乐或音效计划是否与 `film.json` 不一致。
+声音重做且画面锁定时，以原画面帧为锚，不改画面代码；新旧视频流 `framemd5` 必须逐帧相同。不要修改 `generated/` 下的文件。
 `npm run film:list` 列出所有片及其交付状态。
 
 ## 硬规则

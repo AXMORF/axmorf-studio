@@ -5,6 +5,7 @@ import { checkFilm } from "./check";
 import { deliverFilm } from "./deliver";
 import { deleteFilm, listFilms } from "./manage";
 import { runFilmMusic } from "./music";
+import { runFilmSfx } from "./sfx";
 import { createFilm, type FilmBookendChoice } from "./new";
 import { generateFilmRegistry } from "./registry";
 import { runFilmReview } from "./review";
@@ -21,6 +22,7 @@ const USAGE = `Usage:
   film new --film <id> --title <title> [--width <px>] [--height <px>] [--fps <n>] [--bookends workspace|both|none]
   film voice --film <id>
   film music --film <id>
+  film sfx --film <id>
   film asset --film <id> --file <absolute-path> --name <file-name> --origin generated|original|licensed --creator <who> --license <license> [--source-url <url>] [--attribution <text>]
   film review --film <id> [--frames <f1,f2,...>] [--scale <0.1-1>] [--animatic]
   film check --film <id>
@@ -127,6 +129,11 @@ export const runFilmCli = async (
     case "music": {
       const options = parseFilmOptions(rest, ["film"]);
       print(await runFilmMusic({ rootDir, filmId: options.required("film") }));
+      return;
+    }
+    case "sfx": {
+      const options = parseFilmOptions(rest, ["film"]);
+      print(await runFilmSfx({ rootDir, filmId: options.required("film") }));
       return;
     }
     case "asset": {

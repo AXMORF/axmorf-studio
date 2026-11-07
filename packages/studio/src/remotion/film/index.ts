@@ -23,3 +23,8 @@ export * from "./scene-track";
 export * from "./FilmSceneTrack";
 export * from "./FilmSoundEffects";
 export { FilmStatusTag, type FilmStatusTagProps } from "./FilmStatusTag";
+export {
+  useFilmMusicEnergy,
+  type FilmMusicEnergy,
+  type FilmMusicEnergyOptions,
+} from "./useFilmMusicEnergy";

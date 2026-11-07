@@ -35,7 +35,7 @@ t.music?.barFrames; // 另有 beatFrames、sectionFrames、accentFrames、bpm、
   `render={(sentence, progress) => ...}` 自定义字幕外观（例如逐字高亮）。默认字号竖屏约为宽度的 4.6%（1080 宽约 50px），
   长句折成两行；自定义时保持字号不低于宽度的 4%（约 43px），宁可折行也不要缩小或强制单行。
 - `FilmSoundtrack narration={false}` 或 `music={false}` 可去掉其中一轨。
-- 音效推荐用 `<FilmSoundEffects cues={cues} />`；cue、素材角色、吸附、留白和收音见 [音效轨](sound.md)。
+- 音效默认用 `<FilmSoundEffects />` 播放本片合成计划；显式播放用 `<FilmSoundEffects cues={cues} />`；cue、素材角色、吸附、留白和收音见 [音效轨](sound.md)。
 
 ## 内容状态标识
 
@@ -113,10 +113,38 @@ const track = resolveFilmSceneTrack(film, scenes);
 
 `FilmSoundEffectCue` 必有非空 `for` 与 `sfx`，并且只选 `frame` 或 `endFrame` 之一；
 可选 `snap: none | beat | bar | accent | section`、`maxShiftFrames`、`minFrame/maxFrame`、`volume`。
-`sfx: FilmSoundEffectSource` 是共享短名/资源 descriptor，或 `{asset: FilmAsset, durationInSeconds: number}`。
-字符串不能当任意素材路径。`resolveFilmSoundEffects(film, cues)` 要求 film 的 `spec/timing/music/durationInFrames`，
+`sfx: FilmSoundEffectSource` 是 `"plan:<id>"` 本片计划引用、共享短名/资源 descriptor，或 `{asset: FilmAsset, durationInSeconds: number}`。
+字符串不能当任意素材路径。`resolveFilmSoundEffects(film, cues?)` 要求 film 的 `spec/timing/music/durationInFrames`（计划引用还需要 `sfx`），
 返回 `ResolvedFilmSoundEffect[]`：音频贡献加 `sfxId/for`。`FilmSoundEffects` 在 FilmProvider 内读取 film 并播放贡献。
 完整参数语义与可运行片段见 [音效计划](sound.md)。
+
+`FilmSoundEffects` 不传 cues 时播放 `sound.effects` 生成计划；传 cues 时只播放显式项，空数组静音。
+`film:sfx` 输出本片 WAV 与 `generated/sfx.json`（指纹、PCM 样本、实际起止/对齐帧）；`film:check` 验证一致性。
+`params` 范围：pitch −36–36 半音；brightness/intensity/tail 0–1；stereo −1–1（符号决定扫动方向，0 双声道同相）；seed 0–4294967295。
+省略时 pitch=0、brightness=0.5、intensity=0.7、tail=0.5、stereo=0.35，seed 使用固定种子；时长始终由动作决定。
+计划 schema：`{id, kind, frame, durationFrames, anchor: "start"|"end"|"center", params?, for}`，详细语义见 [音效计划](sound.md)。
+
+### 音乐事件与能量
+
+`useFilmTiming().music?.onsets` 可选：`{kick, snare, clap, hat, bass, hits, sections}`，每项为正片绝对帧数组。
+它来自合成事件，已经处理 startFrame 和循环；旧 track 可无此字段。主要动作使用这些事件帧或 `accentFrames`。
+`music.alignment` 记录搜索得到的 bpm 与段落 `{sectionIndex, requestedFrame, actualFrame, residualFrames}`；残差有符号。
+
+`useFilmMusicEnergy({ bands?: 3, windowInSeconds?: number } = {})` 返回 `{low, mid, high} | null`。
+bands 固定为 3；windowInSeconds 默认 5，最小 0.5，同一次挂载不可改变。
+先运行 `film:music`；无生成配乐时调用会报错，加载中返回 null。只通过 `staticFile` 读取本片 WAV，
+内部 `useWindowedAudioData` + `visualizeAudio` 对数分频、幅度压缩及无状态平滑，按当前帧计算，乱序渲染结果相同。
+它只用于辉光/呼吸等次级运动，主要落点必须用事件帧；在正片根时钟中调用，然后把结果传给场景子组件。
+
+```tsx
+const frame = useCurrentFrame();
+const { music } = useFilmTiming();
+const energy = useFilmMusicEnergy();
+const lastKick = music?.onsets?.kick.filter((at) => at <= frame).at(-1);
+const flash =
+  lastKick === undefined ? 0 : Math.max(0, 1 - (frame - lastKick) / 6);
+// 灯在 kick 的同一帧亮起；辉光连续强度读取 energy?.low ?? 0。
+```
 
 `FilmSoundtrack` 新 props：
 

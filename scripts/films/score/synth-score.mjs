@@ -20,6 +20,8 @@ import {
   synthesizeStudioTimeline,
 } from "./studio-score.mjs";
 
+import { makeStoryboardTimeline, usesStoryboardScore } from "./storyboard-score.mjs";
+
 const SR = 48_000;
 const hash = (bytes) =>
   `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
@@ -220,7 +222,7 @@ const addAuthoredArrangement = (settings, arrangement, fpb, add) => {
   }
 };
 
-export const makeTimeline = (recipe) => {
+const makeLegacyTimeline = (recipe) => {
   const defaults = {
     fps: 30,
     bpm: 100,
@@ -360,6 +362,11 @@ export const makeTimeline = (recipe) => {
     music: music.filter((event) => event.frame < durationInFrames),
   };
 };
+
+export const makeTimeline = (recipe) =>
+  usesStoryboardScore(recipe)
+    ? makeStoryboardTimeline(recipe, makeLegacyTimeline)
+    : makeLegacyTimeline(recipe);
 
 const wav = (data) => {
   const result = Buffer.alloc(44 + data.length);

@@ -1,5 +1,57 @@
 # Iteration Status
 
+## P7 每片原创声音与帧级同步（2026-11-07，未发布）
+
+本批完成声音工具链与 10 秒工程示例；不改版本、不发布、不 push。没有重做 v3 整片声音、没有替换原交付，
+不代表 P5 用户听审或 P6 通过。v3 原 Workspace 只读，19 个片源文件 SHA256 与此前基线完全一致。
+
+- `film.json.sound.effects` 为严格 schema：唯一 id、12 种 kind、正片帧、动作时长、start/end/center anchor、
+  pitch/brightness/intensity/tail/stereo/seed 与可见用途。`film:sfx` 离线确定性合成每片 WAV，记录合成器版本、
+  内容指纹、PCM 样本时长、实际起止/对齐帧；按指纹和音频 checksum 缓存，登记原创 Apache-2.0，来源进入 publish.json。
+  `film:check` 核验计划、投影、音频、对齐和许可，过期提示重生成。删除计划后重新生成空投影，不 broad-delete 原 WAV。
+- studio-v2 支持 `sections.from` 句子 id/正片帧与 bars 混排、`bpmRange` 搜索、精确 hits、真正的编曲 breaks、
+  resolve/cut/ring ending。搜索步长 0.01 BPM，另含端点与中点，最小化整数帧残差平方和；同分取最接近范围中点者。
+  breaks 同时排除未保留乐器的干声、混响和延迟尾音。锚定配乐不循环、不挪旁白字幕；残差超过 3 帧给建议，
+  提醒锁定画面不得为卡拍移动。三种旧 bars-only 风格的音频和 timeline 哈希与修改前完全相同。
+- `generated/music.json.onsets` 导出 kick/snare/clap/hat/bass/hits/sections，时刻直接来自合成事件。
+  `<FilmSoundEffects />` 默认播放本片计划，显式 cue 支持 `plan:<id>`；review 计入计划音效。
+  配方/场景轨新增 kind/动作时长建议；旧共享角色、track、显式 cues 继续兼容。
+- `useFilmMusicEnergy()` 用现有 media-utils 4.0.489 的窗口 PCM 和 visualizeAudio，输出对数低/中/高能量；
+  只做次级辉光/呼吸，主要落点用事件帧。固定 PCM 邻域和无状态平滑消除加载顺序影响；
+  对 pinned API 拼接不连续 Range 窗口的行为显式等待，避免长音频缺中间窗口时误读后段数据。
+- 两份 Film Skill 镜像逐字一致，默认流程改为 storyboard → 锚定 score → 逐动作 effects → film:music/film:sfx →
+  onset 次级运动；除非用户指定，不选 track 或共享音效。审片要求逐条给动作/声音起止帧、onset/accent 帧号及偏移。
+  README、architecture、API、术语和 creator 命令同步。
+
+**验证**：完整 `npm run check` 通过（479 项：478 通过，Linux 跳过 1 项 macOS 测试），覆盖类型、lint、文档链接、
+音频种子、Web/Remotion 构建、creator 包检查与宿主 compositions；runtime `build:runtime`、`build:types` 通过。
+新增 36 项测试，覆盖全部音效 kind/参数/anchor、字节确定性与缓存、损坏/过期/许可、CLI→registry→check→publish、
+速度搜索/残差、hits/breaks/ending、三种风格旧哈希、onset 与合成样本起点、句子同总长变时序的 fingerprint、
+计划播放/review 计数，以及对数能量、乱序加载、20 秒长音频缺窗口。
+Remotion 保留当前依赖的既有 Zod 版本提示（4.6.7 / 建议 4.3.6）；未为消除提示改依赖或检查器。
+
+**真实预览**：`MusicSyncGallery`，1920×1080 / 30fps / 300 视频帧（10 秒；AAC 容器含 48ms 编码尾垫）。
+`[96,124]` 搜索得到 119.76 BPM，章节 f0/f120/f240 残差均 0；break f120–150 只留 pad，hit f150，解决和弦 f270。
+Kick onset 为 f150/165/180/195/210/225，灯在同一帧亮，辉光读取 low。12 种音效各有可见动作区间。
+f165 两次独立 PNG 渲染逐字节相同，已看图。fixture `film:check` 服务通过，无错误或警告；
+CLI 路由与生成 Workspace 的 npm script 在测试中覆盖，本仓库 checkout 无 Workspace marker，不伪造 marker 跑 doctor。
+
+预览目录 `/home/zzzxc/AgentWorkspace/backups/axmorf-p7-preview/`：`preview.mp4`、`music.wav`、`sfx/<kind>.wav`、
+两张 still、输入/生成 JSON、`media-validation.json`。FFmpeg 全部完整解码、非静音；预览 −21.66 LUFS / −7.21 dBTP，
+独立配乐 −14.23 LUFS / −2.66 dBTP；12 种 SFX 真峰值 −7.35 至 −5.92 dBTP，均低于 −1 dBFS。
+少于 400ms 的 tick/click/glitch 没有有效 integrated LUFS，以非静音峰值验证，不把 −∞ 响度误作静音。
+代码与验证记录在 `out/p7-validation/` 和 `out/p7-*.log`，不提交片源、媒体或生成投影。
+
+可复现入口（仓库开发用途，首次创建保留本地 fixture，已有同名片时拒绝覆盖）：
+
+```bash
+node --import tsx scripts/films/preview-sound.ts
+npx remotion render src/index.ts MusicSyncGallery out/p7-preview.mp4 --props=out/p7-validation/gallery-props.json
+```
+
+**尚未验证**：人耳音色/混音/连续听审、更多实际片型、全新包安装升级；v3 整片声音重做和新旧视频流 `framemd5` 尚未执行。
+该项仍遵守第 9.5 节：后续锁定画面代码及帧号，逐帧 md5 全相同并经用户听审后，才能继续后续验收。
+
 ## P5-v3 rc 前运行时与审片修正（2026-11-07，未发布）
 
 本批修正 mask-wipe、文字组遮挡采样与状态标识；用 v3 片源复制品复测，没有新 Agent 重做片子，

@@ -13,10 +13,13 @@
 | 片头片尾（bookends） | `film.json.bookends` 选择的系统模板（`axmorf-brand-reveal-v1` 2 秒、`axmorf-source-follow-v1` 8 秒），交付时接在正片前后，各带模板音频。 |
 | 旁白时序（FilmTiming） | `film:voice` 写入的 `generated/timing.json`；每句帧范围由实测 PCM samples 按 `ceilDiv(samples × fps, sampleRate)` 换算。 |
 | caption 预算 | 每句旁白最多 72 caption display half-units；超限由 Agent 改写或拆句，不放宽检查。 |
-| 配乐（FilmMusic） | `film:music` 按 `music.score` 确定性合成的 `music.wav` 与 `generated/music.json`（bpm、拍、小节、段落与重音帧）。 |
+| 配乐（FilmMusic） | `film:music` 按 `music.score` 确定性合成的 `music.wav` 与 `generated/music.json`（bpm、拍、小节、对齐段落/残差、重音与乐器 onset 帧）。 |
+| 本片音效计划（FilmSfx） | `sound.effects` 描述可见动作的 kind、正片帧、时长、anchor 与合成参数；`film:sfx` 生成原创 WAV 和含指纹、实测 PCM 时长、对齐帧的 `generated/sfx.json`。 |
+| onset | 合成器实际音符/击打的起始帧，按乐器导出到 `music.onsets`，用于精确次级节奏；不从频谱反推。 |
+| 音乐能量（FilmMusicEnergy） | `useFilmMusicEnergy` 逐帧读取本地配乐的对数 low/mid/high 能量，只用于连续次级运动，不能替代主要事件帧。 |
 | 场景轨（FilmSceneTrack） | 按句子 id 或正片绝对帧编排画面场景，标注章节、居中转场窗口；不挪名义边界或缩短正片总长。 |
 | 镜头配方（recipe） | AxiomMorph、NumberRoll、BarGrow、CameraMove、ParticleField、ParallaxLayers 的组件、纯 resolver 和 PRODUCER_RECIPE_CATALOG 元数据；只提供动作方法，不规定构图。 |
-| 音效轨（FilmSoundEffects） | 将带用途的 cue 按开始帧或结束帧排入正片，可在窗口内吸附音乐网格，接收配方/转场的建议 cue；不自动改变旁白字幕。 |
+| 音效轨（FilmSoundEffects） | 默认播放本片生成计划；也可将带用途的 cue（含 plan:id 引用）按开始帧或结束帧排入正片，可在窗口内吸附音乐网格，接收配方/转场的建议 cue；不自动改变旁白字幕。 |
 | 分镜与音效计划（storyboard） | Agent 写入 `src/films/<filmId>/storyboard.md` 的章节、世界、镜头路径、配方、转场、音效及句子 id/帧号；审片和改片时同步核对。 |
 | animatic | `film:review --animatic` 输出的 `review/animatic.mp4`：短边 360、原帧率、带声音的连续预览，先看节奏再精修；默认关闭，Skill 要求成片前至少看一次，不属于交付物。 |
 | 素材登记（FilmAssets） | `assets.json` 中每个媒体文件的来源、作者、许可与 checksum，由 `film:asset` 写入；`film:check` 拒绝未登记或被改动的媒体。 |

@@ -1,11 +1,12 @@
 # 配乐与卡点
 
+默认先写 storyboard 的章节和画面落点，再为本片写原创 `music.score`。除非用户指定曲目，不用 `music.track`。
 配乐有两种来源，写在 `film.json` 的 `music` 字段，二选一：
 
 - `music.score`：在本地用代码合成的原创配乐（默认做法，下面大部分内容讲它）。
 - `music.track`：一首已用 `film:asset` 登记来源与许可的音频文件，见文末 [使用授权曲目](#使用授权曲目)。
 
-写好后运行 `npm run film:voice` 和 `npm run film:music`。
+先运行 `film:voice` 得到实测时序，写 storyboard，再运行 `film:music` 和 `film:sfx`。声音跟画面走；不要为卡拍移动旁白或字幕。
 
 ```json
 "music": {
@@ -37,7 +38,66 @@
 ```
 
 `score` 不写 `fps`（使用本片 fps）。配乐只覆盖正片，片头片尾使用各自的模板音频。乐器：`kick`、`snare`、`clap`、`hat`、`bass`、`pad`、`pluck`、`lead`、`guitar`（失真强力和弦，主要给 `drive`）；
-`sections` 的小节数之和必须等于 `bars`，最多 64 小节。
+旧的 bars-only `sections` 小节数之和必须等于 `bars`，最多 64 小节。
+
+## 用画面事件锚定配乐（默认）
+
+storyboard 先定章节边界、揭示和收尾帧；`from` 用句子 id 或正片绝对帧，`hits`、`breaks`、`ending` 都对应这些事件。
+`bpmRange` 在范围内搜索小节线误差最小的速度；`film:music` 输出实际边界与残差，超过 3 帧时按提示调整范围或锚点。
+画面已锁定时保留原帧，用精确 `hit` 强调；不要把画面挪到搜索后的段落边界。
+
+```json
+{
+  "engine": "studio-v2",
+  "bpm": 104,
+  "bpmRange": [112, 128],
+  "beatsPerBar": 4,
+  "style": "electronic",
+  "seed": 17,
+  "arrangement": {
+    "tonic": "A",
+    "mode": "minor",
+    "progression": [1, 6, 3, 7],
+    "sections": [
+      {
+        "from": 0,
+        "instruments": ["pad", "pluck"],
+        "density": 0.35,
+        "energy": 0.35
+      },
+      {
+        "from": 120,
+        "instruments": ["kick", "hat", "bass", "pad"],
+        "density": 0.6,
+        "energy": 0.65
+      },
+      {
+        "from": 240,
+        "instruments": ["pad", "pluck"],
+        "density": 0.4,
+        "energy": 0.4
+      }
+    ]
+  },
+  "hits": [{ "frame": 150, "kind": "stinger", "intensity": 0.65 }],
+  "breaks": [{ "from": 120, "to": 150, "keep": ["pad"] }],
+  "ending": { "landFrame": 270, "cadence": "resolve" }
+}
+```
+
+例子用于至少 300 帧的正片；真实片的帧号从 storyboard 取，不照搬。`from` 可和旧的 `bars` 段混用（每段二选一）；锚定编曲省略总 `bars` 时自动覆盖全片，写了则必须足够长。
+速度搜索步长 0.01 BPM，另含范围端点和中点；最小化边界整数帧残差平方和，同分取更接近范围中点的速度。
+`hits.kind` 为 `stinger` / `lift` / `drop` / `swell`；它们按指定帧加入配乐，并进入 `accentFrames`。
+`breaks` 在编曲中真正停掉未保留乐器，与 `musicDips` 压低音量不同；`ending.cadence` 为 `resolve` / `cut` / `ring`，
+在落点解决、切断或留尾，不用循环收尾。锚点使用正片帧，`music.startFrame` 由生成器处理。
+旧的只用 bars 的 score 和指定 track 继续兼容。
+
+## 用音乐事件做次级运动
+
+`useFilmTiming().music.onsets` 是合成时导出的实际事件帧，含 `kick`、`snare`、`clap`、`hat`、`bass`、`hits`、`sections`。
+例如 kick 事件 f120，灯在 f120 开始闪，误差为 0 帧；无需再做音频节拍检测。旧 track 没有 onsets，必须判断字段是否存在。
+`useFilmMusicEnergy()` 返回对数刻度、平滑后的 `{ low, mid, high }`，只用于辉光、粒子呼吸等连续次级运动；
+关键动作仍用事件帧。它读取本片的本地 WAV，详见 [API](api.md)。
 
 ## 按故事编曲
 
@@ -71,7 +131,7 @@
 
 ## 使用授权曲目
 
-合成音色有上限；MV、OP 这类靠音乐撑起来的片，可以改用一首真实制作的曲子，但它必须能证明可以用：
+只有用户指定曲目或素材时使用；必须能证明可以用：
 
 1. **确认许可**：曲子来自用户本人、明确写了可再使用的许可（如 CC BY、购买的授权），或用户确认有权使用。
    曲库、平台或生成服务没写清站外使用条款时，停下来问用户，不要自行认定可以用。

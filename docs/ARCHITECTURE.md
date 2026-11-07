@@ -50,9 +50,10 @@ CLI 通过动态 import 加载 `scripts/films` 等实现并由 esbuild 打进 `d
 film:new     → src/films/<filmId>/film.json、Film.tsx、Cover.tsx、assets.json；更新 src/films/index.ts
 film:voice   → TTS（按 provider、音色与文本缓存在 .axmorf/cache/voice）→ public/films/<id>/narration.wav
                → generated/timing.json（实测 PCM samples 换算帧）
-film:music   → film.json 的 music.score（合成）或 music.track（已登记曲目）→ public/films/<id>/music.wav → generated/music.json（拍、段落、重音帧）
+film:music   → film.json 的 music.score（合成）或 music.track（已登记曲目）→ public/films/<id>/music.wav → generated/music.json（拍、对齐段落与残差、重音、乐器 onset 帧）
+film:sfx     → film.json 的 sound.effects → public/films/<id>/sfx/<effectId>.wav + generated/sfx.json（指纹、PCM 时长、对齐帧）；登记原创许可
 Agent        → src/films/<id>/storyboard.md（章节、世界、镜头路径、配方、转场、音效 cue 与句子 id/帧号）
-               → FilmSceneTrack 编排画面；配方/场景轨 resolver 的 sfxCues → FilmSoundEffects
+               → FilmSceneTrack 编排画面；配方/场景轨 resolver 的 kind/时长建议 → sound.effects → FilmSoundEffects
 film:review  → 联系表、stillWarnings、readabilityWarnings、repetitionWarnings 与测量摘要 readability（仅提示）
                → motion / motionWarnings、review/motion-curve.json 与 .png、review/dense/ 密集帧（仅提示）
                → --animatic 时输出 review/animatic.mp4（短边 360、原帧率、带声音；先看节奏再精修）
@@ -63,7 +64,10 @@ film:deliver → .axmorf/staging 中渲染正片（片头 + 正片 + 片尾）�
 
 渲染期间不调用网络、Agent、Git 或目录扫描；Remotion Root 只读生成的静态注册表。`Film.tsx` 只看到正片帧，
 片头片尾由 `FilmWithBookends` 在交付组合中接上，各自带模板音频。场景轨按名义边界居中安排转场，不挪旁白绝对时序；音效 cue 显式交给音效轨，
-配乐支持揭示前的 musicDips 与 ending 收音。`mask-wipe` 是羽化光带，可用 `tint` 调色，不改变边界时序。
+配乐支持 sections.from/bpmRange 结构锚点、精确 hits、编曲 breaks 与 ending 和声收尾；旧 bars-only 输出保持不变。
+`FilmSoundEffects` 默认播放每片计划，显式 cue 可用 plan:id；共享库保留兼容。
+次级运动使用合成事件 onsets；可选 `useFilmMusicEnergy` 只读本地 WAV，以对数能量驱动辉光，主要落点不依赖频谱检测。
+原有揭示前的 musicDips 与运行时 ending 收音保持兼容。`mask-wipe` 是羽化光带，可用 `tint` 调色，不改变边界时序。
 内容状态标识使用 `FilmStatusTag`，主副词同字号、同对比层级，有独立底板；review 用 `small-status-tag`
 提示实测字号低于实测字幕的 70%（句间用画布默认字幕字号）。
 可读性测量用可见文字矩形的命中采样提示 `text-under-foreground`，排除同一 `data-axmorf-text-group`

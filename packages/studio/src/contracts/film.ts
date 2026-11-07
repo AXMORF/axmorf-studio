@@ -1,6 +1,8 @@
 import { z } from "zod";
 
 import { createFingerprint } from "./fingerprint";
+import { FilmSoundSpecSchema, validateFilmSoundEffects } from "./film-sfx";
+import { FilmMusicOnsetsSchema, FilmMusicAlignmentSchema } from "./film-score";
 
 /**
  * Direct film contracts. A film is an ordinary Remotion source directory that
@@ -322,6 +324,7 @@ export const FilmSpecSchema = z
       .default({ narrationStartFrame: 15, tailFrames: 45 }),
     narration: z.array(FilmSentenceSchema).max(200),
     music: FilmMusicSpecSchema.nullable().default(null),
+    sound: FilmSoundSpecSchema.optional(),
     /** Omitted means no bookends; film:new fills it from the Workspace defaults. */
     bookends: FilmBookendsSchema.optional(),
     publish: z
@@ -352,6 +355,17 @@ export const FilmSpecSchema = z
         message: "A film without narration needs timeline.durationInFrames.",
       });
     }
+    if (spec.timeline.durationInFrames !== undefined) {
+      try {
+        validateFilmSoundEffects(spec, spec.timeline.durationInFrames);
+      } catch (error) {
+        context.addIssue({
+          code: "custom",
+          path: ["sound", "effects"],
+          message: (error as Error).message,
+        });
+      }
+    }
   });
 export type FilmSpec = z.infer<typeof FilmSpecSchema>;
 
@@ -371,17 +385,51 @@ export const computeFilmTimingInputFingerprint = (spec: FilmSpec) =>
     },
   });
 
+const scoreUsesSentenceAnchors = (score: FilmMusicSpec["score"]) => {
+  const arrangement = score?.arrangement;
+  if (typeof arrangement !== "object" || arrangement === null) return false;
+  const sections = (arrangement as { sections?: unknown }).sections;
+  return (
+    Array.isArray(sections) &&
+    sections.some(
+      (section: unknown) =>
+        typeof section === "object" &&
+        section !== null &&
+        "from" in section &&
+        typeof section.from === "string",
+    )
+  );
+};
+
 export const computeFilmMusicInputFingerprint = ({
   spec,
   durationInFrames,
+  sentenceFrames,
 }: {
   readonly spec: FilmSpec;
   readonly durationInFrames: number;
+  readonly sentenceFrames?: readonly {
+    readonly id: string;
+    readonly startFrame: number;
+  }[];
 }) =>
   createFingerprint({
     namespace: "film-music-input",
     version: 1,
-    value: { fps: spec.render.fps, durationInFrames, music: spec.music },
+    value: {
+      fps: spec.render.fps,
+      durationInFrames,
+      music: spec.music,
+      ...(scoreUsesSentenceAnchors(spec.music?.score)
+        ? {
+            sentenceFrames:
+              sentenceFrames?.map(({ id, startFrame }) => ({
+                id,
+                startFrame,
+              })) ?? [],
+          }
+        : {}),
+    },
   });
 
 export const FilmTimingSchema = z
@@ -436,6 +484,10 @@ export const FilmMusicSchema = z
     barFrames: z.array(NonNegativeFrameSchema),
     sectionFrames: z.array(NonNegativeFrameSchema),
     accentFrames: z.array(NonNegativeFrameSchema),
+    onsets: FilmMusicOnsetsSchema.optional(),
+    alignment: FilmMusicAlignmentSchema.optional(),
+    /** Anchored scores have an authored ending and never loop. */
+    loop: z.boolean().optional(),
     /** Present for music.track: checksum of the registered source audio. */
     trackChecksum: Sha256Schema.optional(),
   })

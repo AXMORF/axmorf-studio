@@ -1,0 +1,517 @@
+import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
+import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
+import test from "node:test";
+
+import {
+  generateScore,
+  makeTimeline,
+} from "../../scripts/films/score/synth-score.mjs";
+import { scoreOnsets } from "../../scripts/films/score/storyboard-score.mjs";
+import {
+  projectFilmMusicOnsets,
+  projectFilmMusicGrid,
+  resolveFilmScoreRecipe,
+} from "../../scripts/films/music";
+import {
+  FilmMusicSpecSchema,
+  FilmTimingSchema,
+  FilmSpecSchema,
+  computeFilmMusicInputFingerprint,
+} from "@axmorf/studio/contracts";
+
+const voices = {
+  instruments: ["kick", "snare", "clap", "hat", "bass", "pad"],
+  density: 0.7,
+  energy: 0.7,
+};
+const base = {
+  engine: "studio-v2",
+  fps: 30,
+  bpm: 120,
+  seed: 11,
+  style: "electronic",
+  beatsPerBar: 4,
+  durationInFrames: 300,
+  arrangement: {
+    tonic: "C",
+    mode: "minor",
+    progression: [1, 6, 3, 7],
+    sections: [
+      { ...voices, from: 0 },
+      { ...voices, from: 120 },
+      { ...voices, from: 240 },
+    ],
+  },
+};
+const rawTimeline = (recipe: Record<string, unknown> = base) =>
+  makeTimeline(recipe) as Record<string, unknown> & {
+    bpm: number;
+    durationInFrames: number;
+    alignment: {
+      boundaries: { actualFrame: number; residualFrames: number }[];
+    };
+    music: {
+      type: string;
+      frame: number;
+      durationInFrames: number;
+      beat?: number;
+      note: number;
+    }[];
+  };
+
+test("bars-only studio-v2 audio and timeline retain their pre-P7 checksums for every style", () => {
+  const checksums = {
+    organic: [
+      "sha256:def106158f140960dc6316b2c6354f145b859ea0c4d678e493cec3e8827529e7",
+      "e7070b5bda8421e5970f45cab2a6c5b3eb3b38860b5dc3dd1f5ee7f6a5a81194",
+    ],
+    electronic: [
+      "sha256:7ac8f1e8bbfe18085986f7e6c41961ffea50d6b7cd697410a08d499acaed8ac5",
+      "26026eccc8d595d9e545c06ab13bf9b7b0a6684140a9db7245f99aa24c5bc3bf",
+    ],
+    drive: [
+      "sha256:9f9f5c17d1c9b51f1ede85d6ba59a1d96e4cac922bb93e95b8228512dce4094a",
+      "cbc78779dd7d380e7e58b7eff9510e2234e0a26bc3ae18304bd4008b863ad5d4",
+    ],
+  };
+  for (const [style, [audio, timeline]] of Object.entries(checksums)) {
+    const result = generateScore({
+      fps: 30,
+      bpm: 120,
+      bars: 2,
+      style,
+      seed: 11,
+      engine: "studio-v2",
+      arrangement: {
+        tonic: "C",
+        mode: "minor",
+        progression: [1, 6, 3, 7],
+        sections: [
+          { bars: 1, instruments: ["pad", "pluck"], density: 0.3, energy: 0.3 },
+          {
+            bars: 1,
+            instruments: [
+              "kick",
+              "snare",
+              "clap",
+              "hat",
+              "bass",
+              "pad",
+              "lead",
+              ...(style === "drive" ? ["guitar"] : []),
+            ],
+            density: 0.85,
+            energy: 0.9,
+          },
+        ],
+      },
+    });
+    assert.equal(result.timeline.audioChecksum, audio, style);
+    assert.equal(
+      createHash("sha256")
+        .update(JSON.stringify(result.timeline))
+        .digest("hex"),
+      timeline,
+      style,
+    );
+  }
+});
+
+test("BPM search minimizes squared frame residual and breaks ties towards the midpoint", () => {
+  const timeline = rawTimeline({ ...base, bpmRange: [112, 128] });
+  assert.equal(timeline.bpm, 120);
+  assert.deepEqual(
+    timeline.alignment.boundaries.map((item) => item.residualFrames),
+    [0, 0, 0],
+  );
+  const residual = rawTimeline({ ...base, bpmRange: [96, 112] });
+  assert.equal(residual.bpm, 111.85);
+  assert.deepEqual(
+    residual.alignment.boundaries.map((item) => item.residualFrames),
+    [0, 9, 17],
+  );
+  const midpoint = rawTimeline({
+    ...base,
+    bpmRange: [100, 110],
+    arrangement: { ...base.arrangement, sections: [{ ...voices, from: 0 }] },
+  });
+  assert.equal(midpoint.bpm, 105);
+});
+
+test("mixed from/bars sections preserve fixed spans between snapped anchors", () => {
+  const timeline = rawTimeline({
+    ...base,
+    arrangement: {
+      ...base.arrangement,
+      sections: [
+        { ...voices, from: 0 },
+        { ...voices, bars: 1 },
+        { ...voices, from: 180 },
+        { ...voices, bars: 1 },
+      ],
+    },
+  });
+  assert.deepEqual(
+    (timeline.sections as { startFrame: number; bars: number }[]).map(
+      ({ startFrame, bars }) => [startFrame, bars],
+    ),
+    [
+      [0, 2],
+      [120, 1],
+      [180, 1],
+      [240, 1],
+    ],
+  );
+  const fixedLead = rawTimeline({
+    ...base,
+    arrangement: {
+      ...base.arrangement,
+      sections: [
+        { ...voices, bars: 2 },
+        { ...voices, from: 120 },
+      ],
+    },
+  });
+  assert.deepEqual(
+    fixedLead.alignment.boundaries.map((entry) => entry.actualFrame),
+    [120],
+  );
+});
+
+test("hits land off-grid at exact frames and enter the accent and onset grids", () => {
+  const hits = ["stinger", "lift", "drop", "swell"].map((kind, index) => ({
+    frame: 31 + index * 61,
+    kind,
+    intensity: 0.7,
+  }));
+  const timeline = rawTimeline({ ...base, hits });
+  for (const { frame } of hits)
+    assert.ok(
+      timeline.music.some(
+        (event) => event.frame === frame && event.beat === undefined,
+      ),
+    );
+  assert.deepEqual(
+    (timeline.accentFrames as number[]).filter((frame) =>
+      hits.some((hit) => hit.frame === frame),
+    ),
+    hits.map((hit) => hit.frame),
+  );
+  assert.deepEqual(scoreOnsets(timeline).hits, [31, 92, 153, 214]);
+  assert.deepEqual(
+    generateScore({ ...base, hits }),
+    generateScore({ ...base, hits }),
+  );
+});
+
+test("breaks remove scheduled instruments and a full break is PCM silence", () => {
+  const timeline = rawTimeline({
+    ...base,
+    breaks: [{ from: 120, to: 180, keep: ["pad"] }],
+  });
+  assert.ok(
+    timeline.music
+      .filter((event) => event.frame >= 120 && event.frame < 180)
+      .every((event) => event.type === "pad"),
+  );
+  const { audio } = generateScore({
+    ...base,
+    breaks: [{ from: 120, to: 180, keep: [] }],
+  });
+  assert.ok(
+    audio
+      .subarray(44 + (120 / 30) * 48000 * 4, 44 + (180 / 30) * 48000 * 4)
+      .every((byte) => byte === 0),
+  );
+  assert.ok(
+    audio.subarray(44, 44 + (120 / 30) * 48000 * 4).some((byte) => byte !== 0),
+  );
+});
+
+test("ending resolve adds a tonic arrival, cut silences its boundary, and ring preserves tails", () => {
+  const resolve = rawTimeline({
+    ...base,
+    ending: { landFrame: 270, cadence: "resolve" },
+  });
+  assert.deepEqual(
+    resolve.music
+      .filter((event) => event.type === "pad" && event.frame === 270)
+      .map((event) => event.note),
+    [48, 51, 55],
+  );
+  const cut = generateScore({
+    ...base,
+    ending: { landFrame: 270, cadence: "cut" },
+  });
+  const ring = generateScore({
+    ...base,
+    ending: { landFrame: 270, cadence: "ring" },
+  });
+  assert.ok(
+    cut.audio.subarray(44 + (270 / 30) * 48000 * 4).every((byte) => byte === 0),
+  );
+  assert.ok(
+    ring.audio
+      .subarray(44 + (270 / 30) * 48000 * 4, 44 + (300 / 30) * 48000 * 4)
+      .some((byte) => byte !== 0),
+  );
+  assert.notDeepEqual(cut.audio, ring.audio);
+});
+
+test("storyboard DSP does not wrap future tails to frame zero", () => {
+  const recipe = {
+    ...base,
+    arrangement: { ...base.arrangement, sections: [{ ...voices, from: 0 }] },
+    breaks: [{ from: 0, to: 240, keep: [] }],
+    hits: [{ frame: 270, kind: "stinger", intensity: 0.9 }],
+  };
+  const { audio } = generateScore(recipe);
+  assert.ok(
+    audio.subarray(44, 44 + (240 / 30) * 48000 * 4).every((byte) => byte === 0),
+  );
+});
+
+test("onsets are derived from the DSP sample starts and project with loops and offsets", () => {
+  const timeline = rawTimeline({
+    ...base,
+    bpm: 123,
+    hits: [{ frame: 151, kind: "drop", intensity: 0.7 }],
+  });
+  const onsets = scoreOnsets(timeline);
+  for (const type of ["kick", "snare", "clap", "hat", "bass"] as const) {
+    const expected = [
+      ...new Set(
+        timeline.music
+          .filter((event) => event.type === type)
+          .map((event) =>
+            Math.round(
+              (Math.round(
+                (event.beat === undefined
+                  ? event.frame / 30
+                  : (event.beat * 60) / 123) * 48000,
+              ) *
+                30) /
+                48000,
+            ),
+          ),
+      ),
+    ].sort((a, b) => a - b);
+    assert.deepEqual(onsets[type], expected);
+  }
+  const absolute = projectFilmMusicOnsets({
+    timeline,
+    startFrame: 30,
+    durationInFrames: 360,
+  });
+  assert.deepEqual(absolute.hits, [181]);
+  assert.deepEqual(
+    absolute.sections,
+    (timeline.sections as { startFrame: number }[]).map(
+      (entry) => entry.startFrame + 30,
+    ),
+  );
+  const looped = projectFilmMusicOnsets({
+    timeline: { ...timeline, loop: true },
+    startFrame: 30,
+    durationInFrames: 700,
+  });
+  assert.ok(looped.hits.includes(181 + timeline.durationInFrames));
+  const { timeline: rendered } = generateScore({
+    ...base,
+    hits: [{ frame: 151, kind: "stinger", intensity: 0.8 }],
+  });
+  assert.ok(
+    projectFilmMusicGrid({
+      timeline: rendered,
+      startFrame: 30,
+      durationInFrames: 330,
+    }).accentFrames.includes(181),
+  );
+});
+
+test("film score resolves measured sentence anchors and offsets all controls without changing timing", () => {
+  const timing = FilmTimingSchema.parse({
+    schemaVersion: 1,
+    filmId: "score-test",
+    inputFingerprint: `sha256:${"0".repeat(64)}`,
+    fps: 30,
+    narrationStartFrame: 30,
+    narrationEndFrame: 250,
+    durationInFrames: 330,
+    narration: null,
+    sentences: [
+      { id: "intro", text: "intro", startFrame: 30, endFrame: 100 },
+      { id: "reveal", text: "reveal", startFrame: 150, endFrame: 250 },
+    ],
+  });
+  const before = JSON.stringify(timing);
+  const filmScore = Object.fromEntries(
+    Object.entries(base).filter(([key]) => key !== "fps"),
+  );
+  const music = FilmMusicSpecSchema.parse({
+    startFrame: 30,
+    score: {
+      ...filmScore,
+      arrangement: {
+        ...base.arrangement,
+        sections: [
+          { ...voices, from: "intro" },
+          { ...voices, from: "reveal" },
+        ],
+      },
+      hits: [{ frame: 181, kind: "stinger", intensity: 0.8 }],
+      breaks: [{ from: 120, to: 150, keep: ["pad"] }],
+      ending: { landFrame: 300, cadence: "resolve" },
+    },
+  });
+  const local = resolveFilmScoreRecipe({ music, timing, fps: 30 });
+  assert.equal(JSON.stringify(timing), before);
+  assert.deepEqual(
+    (local.arrangement as { sections: { from: number }[] }).sections.map(
+      (section) => section.from,
+    ),
+    [0, 120],
+  );
+  assert.deepEqual(local.hits, [
+    { frame: 151, kind: "stinger", intensity: 0.8 },
+  ]);
+  assert.deepEqual(local.breaks, [{ from: 90, to: 120, keep: ["pad"] }]);
+  assert.deepEqual(local.ending, { landFrame: 270, cadence: "resolve" });
+  const spec = FilmSpecSchema.parse({
+    schemaVersion: 1,
+    filmId: "score-test",
+    render: { width: 640, height: 360, fps: 30 },
+    timeline: { durationInFrames: 330 },
+    narration: [],
+    music,
+    publish: { title: "test" },
+  });
+  assert.notEqual(
+    computeFilmMusicInputFingerprint({
+      spec,
+      durationInFrames: 330,
+      sentenceFrames: timing.sentences,
+    }),
+    computeFilmMusicInputFingerprint({
+      spec,
+      durationInFrames: 330,
+      sentenceFrames: [
+        { id: "intro", startFrame: 30 },
+        { id: "reveal", startFrame: 160 },
+      ],
+    }),
+  );
+  for (const sections of [
+    [
+      { ...voices, from: 30 },
+      { ...voices, from: 150 },
+    ],
+    [
+      { ...voices, bars: 2 },
+      { ...voices, bars: 3 },
+    ],
+  ]) {
+    const numericSpec = {
+      ...spec,
+      music: {
+        ...music,
+        score: {
+          ...music.score,
+          arrangement: { ...base.arrangement, sections },
+        },
+      },
+    };
+    assert.equal(
+      computeFilmMusicInputFingerprint({
+        spec: numericSpec,
+        durationInFrames: 330,
+      }),
+      computeFilmMusicInputFingerprint({
+        spec: numericSpec,
+        durationInFrames: 330,
+        sentenceFrames: [{ id: "reveal", startFrame: 160 }],
+      }),
+    );
+  }
+});
+
+test("invalid storyboard controls fail before synthesis", () => {
+  for (const extra of [
+    { bpmRange: [112, 96] },
+    { bpmRange: [0, 112] },
+    { bpmRange: [100] },
+    { hits: [{ frame: 300, kind: "drop", intensity: 0.5 }] },
+    { hits: [{ frame: 20, kind: "noise", intensity: 0.5 }] },
+    { hits: [{ frame: 20, kind: "drop", intensity: 2 }] },
+    { breaks: [{ from: 120, to: 100, keep: [] }] },
+    { breaks: [{ from: 10, to: 20, keep: ["alien"] }] },
+    {
+      breaks: [
+        { from: 10, to: 30, keep: [] },
+        { from: 20, to: 40, keep: [] },
+      ],
+    },
+    { hits: [{ frame: 20, kind: "drop", intensity: 0.5, extra: true }] },
+    { breaks: [{ from: 10, to: 20, keep: ["pad", "pad"] }] },
+    { breaks: [{ from: 10, to: 20, keep: ["pad"], extra: true }] },
+    { ending: { landFrame: 300, cadence: "cut" } },
+    { ending: { landFrame: 270, cadence: "fade" } },
+    { bars: 4 },
+    {
+      arrangement: {
+        ...base.arrangement,
+        sections: [{ ...voices, from: 0, bars: 2 }],
+      },
+    },
+    {
+      arrangement: {
+        ...base.arrangement,
+        sections: [
+          { ...voices, from: 0 },
+          { ...voices, from: 1 },
+        ],
+      },
+    },
+  ])
+    assert.throws(
+      () => makeTimeline({ ...base, ...extra }),
+      /score|Score|section|Section|anchor|Anchor/u,
+    );
+});
+
+test("a selective break also excludes the removed voices' delay and reverb tails", async () => {
+  const { synthesizeStudioTimeline } = await import(
+    pathToFileURL(resolve("scripts/films/score/studio-score.mjs")).href
+  );
+  const timeline = {
+    fps: 30,
+    bpm: 120,
+    seed: 11,
+    style: "electronic",
+    durationInFrames: 120,
+    musicWindowInFrames: 120,
+    loop: false,
+    breaks: [{ from: 60, to: 90, keep: ["kick"] }],
+    music: [
+      { type: "pluck", frame: 0, durationInFrames: 100, note: 60, gain: 0.7 },
+      { type: "kick", frame: 60, durationInFrames: 15, note: 36, gain: 0.8 },
+    ],
+  };
+  const actual = synthesizeStudioTimeline(timeline);
+  const onlyKept = synthesizeStudioTimeline({
+    ...timeline,
+    music: timeline.music.filter((event) => event.type === "kick"),
+  });
+  const from = (60 / 30) * 48000;
+  const to = (90 / 30) * 48000;
+  assert.deepEqual(
+    actual.left.subarray(from, to),
+    onlyKept.left.subarray(from, to),
+  );
+  assert.deepEqual(
+    actual.right.subarray(from, to),
+    onlyKept.right.subarray(from, to),
+  );
+});

@@ -2,9 +2,46 @@
 
 先在 `src/films/<filmId>/storyboard.md` 写音效计划，再编写声音：对应的句子 id、可见动作（`for`）、角色、
 开始帧或结束帧、允许移动窗口、吸附网格、音量。只给因果关键动作配声，不给每个拍点加声。
-帧全部为正片绝对帧，字幕与旁白不为踩拍改变。共享素材已登记来源与许可；本片媒体先用 `film:asset` 登记。
+帧全部为正片绝对帧，字幕与旁白不为踩拍改变。默认按本片动作合成音效，不用共享音效库，除非用户点名。
+先定 storyboard → 写锚定画面的 `music.score` → 写逐动作的 `sound.effects` → 运行 `film:music`、`film:sfx`；
+次级节奏读取 `music.onsets`。外部本片媒体仍先用 `film:asset` 登记。
 
-## Cue 与吸附
+## 每片原创音效（默认）
+
+在 `film.json` 写计划，动作多久，声音就写多久，不借现成 WAV 拉伸：
+
+```json
+"sound": {
+  "effects": [
+    { "id": "reveal-rise", "kind": "riser", "frame": 150, "durationFrames": 30,
+      "anchor": "end", "params": { "pitch": -2, "brightness": 0.6, "intensity": 0.65, "tail": 0.5, "stereo": 0.5, "seed": 17 },
+      "for": "s03：f120–150 揭示前蓄势" },
+    { "id": "evidence-hit", "kind": "impact", "frame": 150, "durationFrames": 18,
+      "anchor": "start", "for": "s03：f150 证据到达，f168 停稳" }
+  ]
+}
+```
+
+`id` 唯一，`frame` 为整数（起始帧可为 0），`durationFrames` 为正整数，完整声音窗口须在正片内。
+`anchor: start` 从 frame 起；`end` 在 frame 排他结束；`center` 将 frame 置于窗口中心。
+`pitch` 为半音偏移；`brightness` 为亮度；`intensity` 为强度；`tail` 为尾音比例；`stereo` 为声像宽度；`seed` 为确定性种子。
+kind：`riser` 上升蓄势、`impact` 冲击、`whoosh` 掠过、`tick` 轻刻度、`glitch` 碎裂、`shimmer` 闪烁余韵、
+`swell` 聚拢、`thud` 低沉落地、`paper` 纸张、`clank` 金属碰撞、`chime` 和弦提示、`click` 点击。
+参数范围和默认值见 [API](api.md)。
+
+运行 `npm run film:sfx -- --film <filmId>`，输出本片 `public/films/<id>/sfx/<effectId>.wav` 与 `generated/sfx.json`。
+内容指纹包含合成器版本、参数、fps；同输入命中缓存，变更必须重新生成。生成器登记本片原创 Apache-2.0 素材。
+`film:check` 检查计划、实测样本时长、对齐帧、文件 hash 和许可登记；不一致时重跑 `film:sfx`，不要手改 generated 文件。
+
+`<FilmSoundEffects />` 直接播放完整计划；显式 cues 则只播放传入项：
+`{ frame: 150, sfx: "plan:evidence-hit", for: "s03：证据到达" }` 复用本片生成音色和时长。
+配方/场景轨的 `sfxCues` 含建议 `kind`、`durationFrames`；先把建议转为本片计划，再播放。
+它们不自动发声；不要同时播放计划和同一份建议导致重复叠声。
+
+审片逐条写出可见动作、动作起止帧、声音起止帧、主要落点与 onset/accent 的距离；音长必须与动作时长一致。
+已有 v3 等锁定画面的声音重做，不改画面代码或旁白字幕帧；用 `framemd5` 对新旧视频流逐帧比对，全部相同才算通过。
+
+## 显式 Cue 与吸附（兼容旧片）
 
 ```tsx
 import { FilmSoundEffects } from "@axmorf/studio/remotion";
@@ -73,7 +110,7 @@ export const EvidenceSoundtrack = () => (
 没有则选正片终点；确认它不会让需要的音乐过早消失。配乐用原 `fadeOutFrames` 淡出到该落点，之后静音。
 可选 `sfx` 也以落点为结束锚点，尾音不进入品牌片尾。结尾效果需足够前置空间；不要同时在音效轨里重复放一份。
 
-## 共享音效清单
+## 共享音效清单（仅用户指定时使用）
 
 短名直接用作 `sfx`。下列原创音效均以 Apache-2.0 登记，文件在
 `assets/axmorf-shared/audio/sound-effects/axmorf-<短名>-v1.wav`；不必为使用共享素材再次登记。

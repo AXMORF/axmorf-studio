@@ -522,6 +522,105 @@ const withListChunk = (wav: Buffer) => {
   return out;
 };
 
+test("film sfx CLI freezes a licensed plan in the registry and check rejects stale or altered projections", async (context) => {
+  const { runFilmCli } = await import("../../scripts/films/cli");
+  const root = await createWorkspace(context);
+  const filmId = "planned-sound";
+  const effect = {
+    id: "arrive",
+    kind: "impact",
+    frame: 30,
+    durationFrames: 12,
+    anchor: "start",
+    for: "evidence lands at f30",
+  };
+  const paths = await writeFilm(root, filmId, {
+    spec: { sound: { effects: [effect] } },
+    film: FILM_SOURCE.replace(
+      "  FilmCaptions,",
+      "  FilmCaptions,\n  FilmSoundEffects,",
+    ).replace(
+      "      <FilmSoundtrack />",
+      "      <FilmSoundtrack />\n      <FilmSoundEffects />",
+    ),
+  });
+  await runFilmVoice({ rootDir: root, filmId, createService: fakeVoice });
+  const missing = await checkFilm({ rootDir: root, filmId });
+  assert.deepEqual(
+    missing.errors.map(({ rule }) => rule),
+    ["sfx-stale"],
+  );
+  const output: string[] = [];
+  const generate = () =>
+    runFilmCli(["sfx", "--film", filmId], {
+      rootDir: root,
+      env: {},
+      stdout: (line) => output.push(line),
+    });
+  await generate();
+  assert.equal(JSON.parse(output.at(-1)!).status, "film-sfx-ready");
+  assert.equal(JSON.parse(output.at(-1)!).generated, 1);
+  assert.deepEqual((await checkFilm({ rootDir: root, filmId })).errors, []);
+  const registry = await readFile(join(root, "src/films/index.ts"), "utf8");
+  assert.match(
+    registry,
+    /import sfx0 from "\.\/planned-sound\/generated\/sfx\.json"/u,
+  );
+  assert.match(registry, /sfx: sfx0/u);
+
+  await generate();
+  assert.equal(JSON.parse(output.at(-1)!).cached, 1);
+  const spec = JSON.parse(await readFile(paths.spec, "utf8"));
+  await writeFile(
+    paths.spec,
+    JSON.stringify({ ...spec, sound: { effects: [{ ...effect, frame: 35 }] } }),
+  );
+  const stale = await checkFilm({ rootDir: root, filmId });
+  assert.deepEqual(
+    stale.errors.map(({ rule }) => rule),
+    ["sfx-stale"],
+  );
+  assert.match(stale.errors[0]!.message, /film:sfx/u);
+  await generate();
+
+  const wavPath = join(paths.sfxDir, "arrive.wav");
+  const wav = await readFile(wavPath);
+  wav[100] ^= 0x01;
+  await writeFile(wavPath, Uint8Array.from(wav));
+  assert.deepEqual(
+    (await checkFilm({ rootDir: root, filmId })).errors.map(({ rule }) => rule),
+    ["sfx-stale"],
+  );
+  await generate();
+  const sfx = JSON.parse(await readFile(paths.sfx, "utf8"));
+  sfx.effects[0].startFrame += 1;
+  await writeFile(paths.sfx, JSON.stringify(sfx));
+  const misaligned = await checkFilm({ rootDir: root, filmId });
+  assert.deepEqual(
+    misaligned.errors.map(({ rule }) => rule),
+    ["sfx-stale"],
+  );
+  assert.match(misaligned.errors[0]!.message, /alignment/u);
+  await generate();
+  const assets = JSON.parse(await readFile(paths.assets, "utf8"));
+  assets.assets = [];
+  await writeFile(paths.assets, JSON.stringify(assets));
+  const unlicensed = await checkFilm({ rootDir: root, filmId });
+  assert.deepEqual(
+    unlicensed.errors.map(({ rule }) => rule),
+    ["sfx-stale"],
+  );
+  assert.match(unlicensed.errors[0]!.message, /license/u);
+  await generate();
+  await deliverFilm({ rootDir: root, filmId, media: fakeMedia([]) });
+  const published = FilmPublishSchema.parse(
+    JSON.parse(await readFile(join(paths.delivery, "publish.json"), "utf8")),
+  );
+  assert.deepEqual(published.attributions, [
+    "arrive: original sound effect synthesized by AXMORF Studio film-sfx-v1 (Apache-2.0)",
+  ]);
+});
+
 test("a registered track becomes the film's music on an authored beat grid", async (context) => {
   const root = await createWorkspace(context);
   const track = clickTrackWav(8);

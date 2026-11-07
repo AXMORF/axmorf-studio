@@ -2,6 +2,8 @@ import { lstat, mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 
+import { createNoise, envelope, note, sine } from "./primitives";
+
 export const SOUND_EFFECT_SAMPLE_RATE = 48_000;
 export const SOUND_EFFECT_PUBLIC_ROOT =
   "public/assets/axmorf-shared/audio/sound-effects";
@@ -44,15 +46,6 @@ type SoundEffectDefinition = (typeof soundEffectDefinitions)[number];
 export const soundEffectPublicPath = ({ name }: SoundEffectDefinition) =>
   `${SOUND_EFFECT_PUBLIC_ROOT}/axmorf-${name}-v1.wav`;
 
-const sine = (cycles: number) => Math.sin(2 * Math.PI * cycles);
-
-const envelope = (time: number, attack: number, decay: number) =>
-  time < 0 ? 0 : Math.min(1, time / attack) * Math.exp(-time / decay);
-
-const note = (time: number, frequency: number, decay: number) =>
-  envelope(time, 0.002, decay) *
-  (sine(frequency * time) + 0.12 * sine(2.01 * frequency * time));
-
 const mechanicalClick = (
   time: number,
   frequency: number,
@@ -63,16 +56,6 @@ const mechanicalClick = (
   (0.52 * sine(frequency * time) +
     0.2 * sine(2.63 * frequency * time) +
     0.65 * noise);
-
-const createNoise = () => {
-  let state = 0x41584d46;
-  return () => {
-    state ^= state << 13;
-    state ^= state >>> 17;
-    state ^= state << 5;
-    return (state >>> 0) / 0x80000000 - 1;
-  };
-};
 
 /** Offline synthesis only. Renderers consume the frozen WAV bytes from the seed. */
 export const renderSoundEffectWav = (

@@ -85,8 +85,9 @@ AXMORF 不用操作系统 allowlist 预先阻止安装。Agent 可以准备声�
 视频需求
   → film:new 建立 src/films/<film-id>/（film.json 剧本 + Film.tsx + Cover.tsx）
   → film:voice 逐句 TTS，按实测音频给出每句起止帧
-  → film:music 按编曲配方合成原创配乐，给出段落、重音与小节帧
-  → Agent 写 src/films/<film-id>/storyboard.md：章节、世界、镜头路径、配方、转场与音效 cue
+  → Agent 写 src/films/<film-id>/storyboard.md：章节、世界、镜头路径、配方、转场与音效落点
+  → film:music 按画面锚点合成本片配乐，导出段落、重音、小节和乐器 onset 帧
+  → film:sfx 按 sound.effects 合成本片原创音效，实测时长、指纹缓存并登记许可
   → Agent 用 FilmSceneTrack、镜头配方和 FilmSoundEffects 编写音画，内容状态标识用 FilmStatusTag，挂载 FilmSoundtrack / FilmCaptions
   → film:review --animatic 输出带声音预览，先看节奏
   → film:review 输出联系表与 motion / motionWarnings，对照分镜看图修改（至少一轮）
@@ -104,7 +105,7 @@ deliveries/<film-id>/publish.json
 ```
 
 `film:check` 只拦会导致渲染失败、交付不合格或许可问题的情况：TypeScript 错误、渲染时联网、CSS 动画、
-不确定的随机数与时间、未登记的媒体、跨片导入，以及与 `film.json` 不一致的旁白和配乐。审美和可读性靠
+不确定的随机数与时间、未登记的媒体、跨片导入，以及与 `film.json` 不一致的旁白、配乐和音效计划。审美和可读性靠
 Skill 中的创作方法、animatic 与看图回路；motionWarnings 仅作提示，不拦交付。修改作品就是修改源码后重新交付，上一版交付自动移到 `.axmorf/history/`。
 
 ## 常用命令
@@ -116,6 +117,7 @@ Skill 中的创作方法、animatic 与看图回路；motionWarnings 仅作提�
 | 新建一部片                         | `npm run film:new -- --film <film-id> --title "<标题>"`    |
 | 生成旁白与时序                     | `npm run film:voice -- --film <film-id>`                   |
 | 生成配乐与节拍网格                 | `npm run film:music -- --film <film-id>`                   |
+| 生成本片原创音效                   | `npm run film:sfx -- --film <film-id>`                     |
 | 登记生成图片或原创 SVG             | `npm run film:asset -- --film <film-id> --file <path> ...` |
 | 渲染审片联系表                     | `npm run film:review -- --film <film-id>`                  |
 | 先看带声音的节奏预览               | `npm run film:review -- --film <film-id> --animatic`       |

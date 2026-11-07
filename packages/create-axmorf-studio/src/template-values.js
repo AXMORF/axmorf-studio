@@ -60,6 +60,7 @@ const SCRIPTS = Object.freeze({
   "film:new": "axmorf film new",
   "film:voice": "axmorf film voice",
   "film:music": "axmorf film music",
+  "film:sfx": "axmorf film sfx",
   "film:asset": "axmorf film asset",
   "film:review": "axmorf film review",
   "film:check": "axmorf film check",

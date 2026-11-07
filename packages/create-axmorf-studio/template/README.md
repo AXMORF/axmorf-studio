@@ -46,6 +46,7 @@ rendering, and keep it set while rendering.
 | Start a film                               | `npm run film:new -- --film <film-id> --title "<title>"`    |
 | Generate narration and its timing          | `npm run film:voice -- --film <film-id>`                    |
 | Generate the score and its beat grid       | `npm run film:music -- --film <film-id>`                    |
+| Generate original per-film sound effects   | `npm run film:sfx -- --film <film-id>`                      |
 | Register a generated image or original SVG | `npm run film:asset -- --film <film-id> --file <path> ...`  |
 | Render review frames and a contact sheet   | `npm run film:review -- --film <film-id>`                   |
 | Preview pacing with sound                  | `npm run film:review -- --film <film-id> --animatic`        |

@@ -311,6 +311,7 @@ test("no-install creates a standalone, host-neutral workspace without claiming r
     "new",
     "voice",
     "music",
+    "sfx",
     "asset",
     "review",
     "check",
@@ -403,6 +404,7 @@ test("no-install creates a standalone, host-neutral workspace without claiming r
   for (const command of [
     "film:voice",
     "film:music",
+    "film:sfx",
     "film:review",
     "film:deliver",
   ]) {
