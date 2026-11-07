@@ -359,7 +359,14 @@ test("no-install creates a standalone, host-neutral workspace without claiming r
     () => lstat(join(workspace, ".agents/skills/axmorf-video")),
     { code: "ENOENT" },
   );
-  for (const reference of ["craft", "music", "artwork", "api"]) {
+  for (const reference of [
+    "direction",
+    "craft",
+    "music",
+    "sound",
+    "artwork",
+    "api",
+  ]) {
     const path = `.agents/skills/axmorf-film/references/${reference}.md`;
     assert.equal(
       await readFile(join(workspace, path), "utf8"),

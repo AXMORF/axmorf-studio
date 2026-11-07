@@ -19,7 +19,8 @@ t.music?.barFrames; // 另有 beatFrames、sectionFrames、accentFrames、bpm、
 ```
 
 `<Sequence from={t.sentence("s03").startFrame - 10}>` 里的子组件拿到的 `useCurrentFrame()` 从 0 开始；
-在 Sequence 内对齐正片帧时记得减去 `from`。
+旧组件使用本地时钟时，把事件帧减去 Sequence 的 `from`。新 rhythm hooks 则在根调用，或传 `{ frame: 正片根帧 }`；
+此时事件数组保留正片绝对帧，不要再减 `from`。
 
 ## 必须挂载
 
@@ -311,3 +312,30 @@ const cuts = selectProducerCutFrames({ grid: music!.barFrames, fromFrame: 0, toF
 - 3D：`@remotion/three` 与 `@react-three/fiber`。
 
 这些都是可选工具；只在它们表达当前画面时使用，没有使用数量要求。
+
+## 节奏驱动动效
+
+导演规则与可编译接线见 [direction.md 第 4 节](direction.md#4-三层动效核心)。均从 `@axmorf/studio/remotion` 导出。
+事件数组升序、全部计正片；hook 在 Film 根调用，Sequence 内传正片根 frame。
+
+| API                      | 签名与结果                                                                                                                            |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `lastAtOrBefore`         | `(frame, events: readonly number[]) => number`；二分，无过去事件为 -Infinity。                                                        |
+| `resolveBeatPulse`       | `(frame, events, { decayFrames = 8 }?) => number`，0..1 指数衰减。                                                                    |
+| `resolveBeatPulseEvents` | `(music, events = "kick") => readonly number[]`；kick 仅在旧 track 缺 onsets 时回退 beatFrames。                                      |
+| `useBeatPulse`           | `({ events?, decayFrames?, frame? }?) => number`；events 为 kick/beat/bar/accent 或升序帧数组，无配乐为 0。                           |
+| `resolveNarrationActive` | `(frame, sentences: readonly {startFrame, endFrame}[]) => boolean`，半开区间。                                                        |
+| `useNarrationActive`     | `({ frame? }?) => boolean`；逐句判断，句间停顿为 false。                                                                              |
+| `resolveBreathScale`     | `(pulse, narrating) => number`；讲述段 1.2%、节拍段 3.5%。                                                                            |
+| `resolveBarCamera`       | `(frame, { bars, shots, fps, config? }) => { center: readonly [number, number], zoom: number }`。                                     |
+| `useBarCamera`           | `(shots: readonly BarCameraShot[], { frame?, config? }?)`；shots 每项 `{center, zoom}`，首小节从 shots[0] 走向 shots[1]，耗尽后停住。 |
+| `barCameraShots`         | `(state, anchor) => readonly ProducerWorldShot[]`；传 ProducerWorldCamera 的 shots 和 frame=1，anchor 固定用初始机位。                |
+| `barCameraChangeFrames`  | `(bars, shots) => number[]`；仅实际不同机位的起点，持平/耗尽不算 L2。                                                                 |
+| `resolveImpact`          | `(frame, at: number \| readonly number[], fps, { preFrames = 6 }?) => {pre, hit, scale, shake}`。                                     |
+| `useImpact`              | `(at, { frame?, preFrames? }?)`；事件数组中下一次蓄力优先于上一回弹；空事件保持不动。                                                 |
+
+bar camera 默认 spring damping=18 / stiffness=120；impact damping=11 / stiffness=260 / mass=.6。
+pre 在落点前 6 帧由 0 蓄至 1，落点 hit 从 0 开始；shake 仅落点后 6 帧，确定性 random。
+新 hook 复用 review-only 遥测，上报完整事件计划；无 review provider 不产生额外画面或声音。
+`motion.summary.rhythmSync` 的 accents/landings/sounds/bars 含 total/matched，测量不足为 null。
+四条同步 warning 与 unknown 的人工回应见 [导演手册第 9 节](direction.md#9-自检看-animatic-时逐条回答写帧号)。

@@ -19,7 +19,9 @@ import {
 } from "@axmorf/studio/remotion";
 
 // Starting point only. Replace the placeholder with this film's own subjects,
-// framing, camera and motion. Keep FilmSoundtrack and FilmCaptions mounted.
+// framing, camera and motion. Read references/direction.md before authoring.
+// When adding music.score, start with volume: 0.24, underSpeechVolume: 0.145;
+// measure the final mix. Keep FilmSoundtrack and FilmCaptions mounted.
 const Film = () => {
   const frame = useCurrentFrame();
   const { spec } = useFilm();

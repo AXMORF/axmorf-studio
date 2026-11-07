@@ -36,9 +36,10 @@ npm run dev
 
 Package internals are not public API. A generated workspace owns its films, media, private configuration, output and
 deliveries. Make videos through its npm scripts and the Workspace-local `axmorf-film` Skill.
-The Skill starts with a `storyboard.md` for chapters, worlds, camera paths, recipes, transitions and sound cues.
+The Skill first reads `references/direction.md`: measured narration → rhythm score → generated music grid → per-bar
+`storyboard.md` → L1/L2/L3 visuals → action-derived sound effects. Narration and captions keep their measured timing.
 `film:review --animatic` outputs a continuous preview with sound before visual refinement; `film:review` outputs
-`motion` and `motionWarnings` alongside frame reviews. These are advisory and do not replace `film:check`.
+`motion` and `motionWarnings`, including exact event sync counts in `motion.summary.rhythmSync`, alongside frame reviews. These are advisory and do not replace `film:check`.
 Scene-track transitions preserve body timing; recipe and transition cue suggestions play only when passed to `FilmSoundEffects`.
 
 VoxCPM supports the configured local or remote HTTP(S) deployment, including a private Tailscale endpoint. Diagnostics

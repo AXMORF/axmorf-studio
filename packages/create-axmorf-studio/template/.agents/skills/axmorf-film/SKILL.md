@@ -8,7 +8,8 @@ description: 用 AXMORF Studio 制作或修改讲解短视频。Agent 直接编�
 你是这部片的导演兼动效设计师。每部片是 `src/films/<filmId>/` 下一个普通的 Remotion 工程，源码完全由你编写；
 Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐与节拍、素材许可、渲染与交付校验。
 
-画面好不好看取决于构思和反复看图修改，不取决于检查通过。开工前读 [画面手艺](references/craft.md)；
+**做片先读 [references/direction.md](references/direction.md)**，这是节奏驱动动效的导演手册，工作顺序、三层动效、混音、分镜和自检以它为准。
+画面好不好看取决于构思和反复看图修改，不取决于检查通过。构思时读 [画面手艺](references/craft.md)；
 分镜时读 [镜头配方](references/recipes.md) 与 [音效计划](references/sound.md)；
 用配乐时读 [配乐与卡点](references/music.md)；需要图片或 SVG 时读 [素材](references/artwork.md)；
 写代码时查 [运行时 API](references/api.md)，并按需读 [示例段落](references/examples.md) 借鉴镜头、光影和层级技法。
@@ -37,43 +38,30 @@ Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐�
    - 有旁白时删除 `timeline.durationInFrames`，总长由实测旁白加 `tailFrames` 决定；无旁白的纯视觉片保留它。
    - `narrationStartFrame` 留给正片的开场画面；`publish` 写标题、简介和标签；用到的事实来源写进
      `bookends.sources`（标题 + 网址），会显示在片尾。
-   - 需要配乐时先留出 `music.score`；实测旁白、写 storyboard 后再按画面锚点编曲（见 [配乐与卡点](references/music.md)）。
+   - 需要配乐时先留出 `music.score`；实测旁白后先写节奏谱、生成配乐，再按小节写 storyboard（见 [导演手册](references/direction.md#2-工作顺序不能倒过来)）。
 5. **生成旁白**：`npm run film:voice -- --film <filmId>`。输出每句的起止帧。修改旁白文本后重新运行；
    没改过的句子来自缓存，不会重复调用 TTS。
-6. **分镜与音效计划**（必做）：先写 `src/films/<filmId>/storyboard.md`，并告知用户文件路径和画面路线。
-   按 [画面手艺](references/craft.md) 划分章节，为每章设计一个连续世界与跟随因果的镜头路径；
-   用 [镜头配方](references/recipes.md) 选择动作，用 [音效计划](references/sound.md) 记录可见动作的声音落点。
-   **旁白里出现旧公理，或者出现新公理候选时，用 AxiomMorph 从旧公理形变到新公理候选**，这是账号母题。
-   必须先读 [横屏「旧公理文字形变」示例](references/examples.md#横屏19201080旧公理文字形变)，
-   在 storyboard 写清旧/新文字、对应句子 id、出现/形变/落定/阅读的帧号；不能只把两段文字分别淡入。
-   句子 id 与帧号来自旁白实测时序和画面动作计划，配乐随后锚定这些帧；全部计正片帧；无旁白时句子 id 写“无”。最小模板：
-
-   ```markdown
-   # 分镜与音效计划：<filmId>
-
-   规格：<width>×<height> / <fps> fps；正片 <N> 帧
-   主张：<观众要记住的事>
-
-   ## 章节 <chapterId>：<因果阶段>
-
-   - 句子与范围：<sentenceId> [<startFrame>, <endFrame>)
-   - 世界：<主体、空间关系、前中后景、文字安静区>
-   - 镜头路径：f<起点> <取景/中心> → f<落点> <取景/中心>，跟随<可见因果>
-   - 配方：<名称/关键参数>；anticipate/move/land/settle = <绝对帧>
-   - 入章转场：<kind/frames/边界帧/动机>；同章连续时写“无”
-   - 音效：<for/角色/frame 或 endFrame/snap/允许窗口/对应句子 id>
-   - 留白与收音：<musicDips 区间/音量、ending 落点，或无>
-   ```
-
-   改片时同步更新；animatic、审片和验收均对照这份文件核对，不能只在聊天中口述计划。
-
-7. **制作本片声音**：按 storyboard 的章节与落点写 `music.score`：sections 用 `from`，hits、breaks、ending 锚定画面事件；
-   再按可见动作逐条写 `sound.effects`（kind、durationFrames、anchor、params、for）。默认不用 `music.track` 或共享音效库，除非用户指定。
-   运行 `npm run film:music -- --film <filmId>` 和 `npm run film:sfx -- --film <filmId>`，核对段落残差、重音和实际音效起止帧。
-   旁白或计划变了就重新生成；画面的次级节奏用 `music.onsets`，连续辉光可选 `useFilmMusicEnergy()`，主落点不用频谱反推。
+6. **先写节奏谱并生成配乐**：按实测句子锚定 `music.score`，先定 sections、揭示 hits、揭示前 breaks 和 ending。
+   一部讲解片一个 BPM（96–116），hook 直接进鼓、第一小节就有重音，证据段中、揭示前收、drop 爆、结尾落。
+   显式写 `volume: 0.24`、`underSpeechVolume: 0.145` 作为混音起点；实测讲述段底层比旁白低 12–15 LU。
+   运行 `npm run film:music -- --film <filmId>`，取得 beatFrames、barFrames、sectionFrames、accentFrames 和 onsets。
+   实际字段、锚点、残差见 [配乐与卡点](references/music.md)。无配乐的片不伪造网格；无旁白的片跳过 voice，先定音乐。
+7. **按小节分镜 → 画面 → 音效**（顺序必做）：先写 `src/films/<filmId>/storyboard.md`，告知用户路径和画面路线。
+   使用 [导演手册第 8 节](references/direction.md#8-storyboardmd-写法) 的表格，每行一个小节，列帧、段落、旁白句、L2、L3 和音效，
+   并补章节世界、镜头路径、转场动机、配方起止和声音窗口；不按句子分页。
+   **旁白出现旧公理或新公理候选时，用 AxiomMorph 从旧公理形变到新公理候选**，这是账号母题。
+   先读 [横屏「旧公理文字形变」示例](references/examples.md#横屏19201080旧公理文字形变)，表中写清旧/新文字、句子 id、
+   出现/碎裂/重组/阅读帧；碎裂挂 hook 第一个重音，重组挂 drop，不能用两个独立淡入标题代替。
+   先搭 L1 每 kick 呼吸、L2 每小节构图变化、L3 每重音大动作，落点误差 0 帧，再填细节。
+   按第 9 步完成画面后，才从可见动作派生逐条 `sound.effects`，写 kind、动作长度、anchor、params 和 for，
+   运行 `npm run film:sfx -- --film <filmId>`。默认本片原创，不用 track/共享音效库，除非用户指定。
+   技法见 [镜头配方](references/recipes.md)，声音接线见 [音效轨](references/sound.md)；改片同步小节表，不能只在聊天口述。
+   旁白长度变化时重做节奏谱和 `film:music`，再更新表、画面和音效；不挪旁白或字幕踩拍。
 8. **准备素材**（可选）：生成图片或原创 SVG 后用 `film:asset` 登记，见 [素材](references/artwork.md)。
 9. **编写** `Film.tsx` 与 `Cover.tsx`：
-   - 用 `useFilmTiming()` 读取每句旁白的帧区间和音乐网格，画面变化跟着旁白语义走，关键落点对齐重音或小节线。
+   - 用 `useFilmTiming()` 读取实测旁白与配乐网格；语义决定内容，网格决定动效时钟。
+     用 `useBeatPulse` / `useNarrationActive`、`useBarCamera`、`useImpact` 搭三层动效，根组件调用以保持正片时钟，
+     按 [可编译最小示例](references/direction.md#41-用运行时接好三层动效) 接世界镜头，不在阅读文字上做呼吸。
    - 推荐用 `FilmSceneTrack` 组织章节与场景：同章默认连续、不写 `enter`，跨章才选择有动机的转场。
      配方只解决怎么动，构图和世界从剧本出发，不原样粘贴配方卡。
    - 按 storyboard 用 `AxiomMorph` 呈现旧公理到新公理候选的形变；旧公理或候选出现的句子都要有对应动作与帧号，
@@ -97,18 +85,18 @@ Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐�
     ```bash
     npm run film:review -- --film <filmId>
     ```
-    打开输出的 `contact-sheet.jpeg` 和单帧图片，按 [画面手艺](references/craft.md#审片) 逐条回答并写下帧号证据，
+    打开输出的 `contact-sheet.jpeg` 和单帧图片，按 [导演手册第 9 节](references/direction.md#9-自检看-animatic-时逐条回答写帧号) 逐条回答并写下帧号证据，
     修改后再次审片。输出里的 `stillWarnings` 列出相隔 2 秒以上却几乎没变的帧，必须改或说明理由。
     `readabilityWarnings` 提示实测字号过小、文字越界、被字幕或前景遮挡；必须为空，或逐条给出理由。
     `repetitionWarnings` 只统计没有旁白的时段，提示同一画面在开场、转场、高潮里反复出现；同样逐条修改或说明理由。
     `readability` 中的 `missingFrames`、`truncatedFrames` 不为空时，补看对应单帧，不把测量缺失当作通过。这些提示不拦截交付。
     `film:review` 输出的 `motion` / `motionWarnings` 记录运动与声音提示：motionWarnings 必须为空，或按
-    [审片](references/craft.md#审片) 对各条规则逐条说明理由与帧号；`unknown` 不是已通过。
+    [导演手册自检](references/direction.md#9-自检看-animatic-时逐条回答写帧号) 对各条规则逐条说明理由与帧号；`unknown` 不是已通过。
     `text-under-foreground` 必须逐条回应；`readability.unknown` 中命中判定不准的文字（如 pointer-events:none）
     要看图核对。`repeated-composition` 比较包含旁白的非相邻段落构图；没有场景轨的旧片保持 unknown。
     内容状态标识必须用 `FilmStatusTag`；同时核对 `small-status-tag`，主词和副词都不低于字幕字号的 70%，
     看图确认底板、对比和手机可读性，写出帧号证据。这条提示不拦交付。
-    对照 `storyboard.md` 核对章节、世界、镜头路径、配方落点、转场和音效，偏离计划就同步修改。
+    对照 `storyboard.md` 逐小节核对 L2、L3、章节世界、镜头路径、配方落点、转场和音效，偏离计划就同步修改。
     每条音效对应一个可见动作，音长与动作时长一致；写出动作/声音起止帧、主要落点及 onset/accent 帧号和差值。
     至少完成一轮“审片 → 修改 → 再审片”。需要看某些帧时用 `--frames 120,240,360`。
     用户想实时预览时，可运行 `npm run dev` 打开 Remotion Studio。

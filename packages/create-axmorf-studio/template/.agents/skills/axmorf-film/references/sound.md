@@ -1,10 +1,8 @@
 # 音效计划与音效轨
 
-先在 `src/films/<filmId>/storyboard.md` 写音效计划，再编写声音：对应的句子 id、可见动作（`for`）、角色、
-开始帧或结束帧、允许移动窗口、吸附网格、音量。只给因果关键动作配声，不给每个拍点加声。
-帧全部为正片绝对帧，字幕与旁白不为踩拍改变。默认按本片动作合成音效，不用共享音效库，除非用户点名。
-先定 storyboard → 写锚定画面的 `music.score` → 写逐动作的 `sound.effects` → 运行 `film:music`、`film:sfx`；
-次级节奏读取 `music.onsets`。外部本片媒体仍先用 `film:asset` 登记。
+工作顺序与音效设计只维护在 [导演手册第 2、6–7 节](direction.md#2-工作顺序不能倒过来)：
+旁白 → 节奏谱 → film:music → 按小节 storyboard → 画面 → 从动作派生音效 → animatic 自检。
+本页只讲 sound.effects、原始音频登记与播放 API。全部帧计正片；默认本片原创，除非用户指定曲目/共享素材。
 
 ## 每片原创音效（默认）
 
@@ -69,7 +67,7 @@ export const EvidenceSounds = () => (
 );
 ```
 
-这组帧用于 30 fps、至少 181 帧的正片；真实片中从句子/配方的时序取值。`frame` 与 `endFrame` 必须且只能写一个。
+这组帧用于 30 fps、至少 181 帧的正片；真实片从生成网格与动作计划取值。`frame` 与 `endFrame` 必须且只能写一个。
 `endFrame` 是排他的声音终点：开始帧 = 吸附后的终点 − `ceil(实测秒数 × fps)`；riser 需要足够前置空间，
 不能让它从负帧开始。普通 cue 的尾音会被裁在正片结尾，不延伸到品牌片尾。
 
@@ -106,7 +104,7 @@ export const EvidenceSoundtrack = () => (
 `musicDips` 的 `[from, to)` 为正片绝对帧，`volume` 是绝对音量，不是倍率；与基础配乐音量、旁白 ducking 取较小值，
 边沿平滑。先压低配乐留出预期，再让音效与画面到达；不改变旁白或字幕。
 
-不传 `ending` 时仍按原行为在正片结尾淡出。传了 `ending` 却省略 `landFrame`，会选正片内最后一个有效 accent，
+新片默认用 score.ending 做和声落定，见 [导演手册](direction.md#7-混音)。以下仅为兼容行为：不传 `ending` 时仍在正片结尾淡出。传了 `ending` 却省略 `landFrame`，会选正片内最后一个有效 accent，
 没有则选正片终点；确认它不会让需要的音乐过早消失。配乐用原 `fadeOutFrames` 淡出到该落点，之后静音。
 可选 `sfx` 也以落点为结束锚点，尾音不进入品牌片尾。结尾效果需足够前置空间；不要同时在音效轨里重复放一份。
 

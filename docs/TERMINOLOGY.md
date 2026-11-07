@@ -20,7 +20,7 @@
 | 场景轨（FilmSceneTrack） | 按句子 id 或正片绝对帧编排画面场景，标注章节、居中转场窗口；不挪名义边界或缩短正片总长。 |
 | 镜头配方（recipe） | AxiomMorph、NumberRoll、BarGrow、CameraMove、ParticleField、ParallaxLayers 的组件、纯 resolver 和 PRODUCER_RECIPE_CATALOG 元数据；只提供动作方法，不规定构图。 |
 | 音效轨（FilmSoundEffects） | 默认播放本片生成计划；也可将带用途的 cue（含 plan:id 引用）按开始帧或结束帧排入正片，可在窗口内吸附音乐网格，接收配方/转场的建议 cue；不自动改变旁白字幕。 |
-| 分镜与音效计划（storyboard） | Agent 写入 `src/films/<filmId>/storyboard.md` 的章节、世界、镜头路径、配方、转场、音效及句子 id/帧号；审片和改片时同步核对。 |
+| 分镜与音效计划（storyboard） | Agent 写入 `src/films/<filmId>/storyboard.md` 的逐小节 L2/L3/音效/旁白表，附章节、世界、镜头路径、配方与转场；审片和改片时同步核对。 |
 | animatic | `film:review --animatic` 输出的 `review/animatic.mp4`：短边 360、原帧率、带声音的连续预览，先看节奏再精修；默认关闭，Skill 要求成片前至少看一次，不属于交付物。 |
 | 素材登记（FilmAssets） | `assets.json` 中每个媒体文件的来源、作者、许可与 checksum，由 `film:asset` 写入；`film:check` 拒绝未登记或被改动的媒体。 |
 | 审片（review） | `film:review` 用 `<filmId>--review` 组合渲染所选帧，生成联系表、`stillWarnings`（相隔 2 秒以上且几乎不变的帧对）与 `readabilityWarnings`（实测字号、文字越界、字幕遮挡、前景遮挡）；`readability` 列出测量帧数与缺失帧。另输出运动声音摘要 `motion` 与 `motionWarnings`、变化曲线及被标记时段的密集帧。全部仅作提示，不拦截检查或交付。 |
@@ -34,3 +34,5 @@
 | doctor | `npm run doctor`：检查 Workspace 布局、运行时资源、Remotion CLI、真实浏览器渲染与 producer config，是 Workspace 是否 ready 的唯一判定。 |
 | external blocker | provider、宿主工具、沙箱、权限或认证失败；报告后停止，不加 fallback 或自动重试，用户同意后才可重试。 |
 | legacyProjectData | 升级时报告的旧 Project 链目录（`src/projects/`、`.producer-*` 等）；0.3.0 不再使用，也不自动删除。 |
+| 节奏三层（L1/L2/L3） | L1 每 kick 呼吸；L2 每小节至少一次构图变化；L3 accent/hit/section 上大动作，落点误差 0 帧。方法见 axmorf-film 的 direction.md。 |
+| rhythmSync | motion.summary 中精确事件的 accents/landings/sounds/bars total/matched 统计；诊断 ±2 帧，不是放宽导演要求；缺测为 null / unknown，不拦交付。 |

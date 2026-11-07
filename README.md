@@ -14,7 +14,7 @@ Agent 像导演兼动效设计师一样，直接用 Remotion 代码制作讲解�
 - **Agent-first**：支持 Codex、Claude Code、Cursor、Gemini CLI、GitHub Copilot，以及其他能读写文件并运行 npm 的
   Agent。
 - **直接创作**：每部片是 `src/films/<film-id>/` 下一个普通的 Remotion 工程，构图、镜头、转场和字幕样式都由
-  Agent 决定；先写分镜与音效计划，再看带声音 animatic 的节奏，最后看图精修。
+  Agent 决定；先定节奏谱与配乐，再按小节分镜、写画面和音效，看带声音 animatic 的节奏，最后看图精修。
 - **Local-first**：Workspace 和视频资产属于用户，不需要 AXMORF 云端账号。
 - **可验证交付**：完成结果固定为视频、两张封面和发布清单四个文件，不把聊天中的“完成了”当作成功。
 
@@ -85,10 +85,11 @@ AXMORF 不用操作系统 allowlist 预先阻止安装。Agent 可以准备声�
 视频需求
   → film:new 建立 src/films/<film-id>/（film.json 剧本 + Film.tsx + Cover.tsx）
   → film:voice 逐句 TTS，按实测音频给出每句起止帧
-  → Agent 写 src/films/<film-id>/storyboard.md：章节、世界、镜头路径、配方、转场与音效落点
-  → film:music 按画面锚点合成本片配乐，导出段落、重音、小节和乐器 onset 帧
-  → film:sfx 按 sound.effects 合成本片原创音效，实测时长、指纹缓存并登记许可
-  → Agent 用 FilmSceneTrack、镜头配方和 FilmSoundEffects 编写音画，内容状态标识用 FilmStatusTag，挂载 FilmSoundtrack / FilmCaptions
+  → Agent 按句子章节写 music.score 节奏谱：sections、hits、breaks、ending
+  → film:music 生成配乐与节拍网格，导出段落、重音、小节和乐器 onset 帧
+  → Agent 按小节写 storyboard.md，以 L1 kick 呼吸 / L2 小节构图 / L3 重音冲击编写画面
+  → 从可见动作派生 sound.effects，film:sfx 生成本片音效；挂载 FilmSoundEffects / FilmSoundtrack / FilmCaptions
+  → 内容状态标识用 FilmStatusTag；旁白与字幕保持实测时序
   → film:review --animatic 输出带声音预览，先看节奏
   → film:review 输出联系表与 motion / motionWarnings，对照分镜看图修改（至少一轮）
   → film:check 硬规则检查
@@ -106,7 +107,7 @@ deliveries/<film-id>/publish.json
 
 `film:check` 只拦会导致渲染失败、交付不合格或许可问题的情况：TypeScript 错误、渲染时联网、CSS 动画、
 不确定的随机数与时间、未登记的媒体、跨片导入，以及与 `film.json` 不一致的旁白、配乐和音效计划。审美和可读性靠
-Skill 中的创作方法、animatic 与看图回路；motionWarnings 仅作提示，不拦交付。修改作品就是修改源码后重新交付，上一版交付自动移到 `.axmorf/history/`。
+Skill 中的创作方法、animatic 与看图回路；motionWarnings 仅作提示，不拦交付；音画同步 total/matched 统计在 motion.summary.rhythmSync，缺测为 unknown。修改作品就是修改源码后重新交付，上一版交付自动移到 `.axmorf/history/`。
 
 ## 常用命令
 

@@ -10,7 +10,7 @@ Open this workspace in an Agent that has file access and can run npm commands, a
 ```text
 请制作一条约60秒的中文竖屏视频，解释【主题】。
 先想清楚观众要记住什么和每一段的代表画面，主体要大、画面铺满、镜头随讲解变化；配乐跟着叙事起伏，关键画面踩在重音上。
-要有旁白和字幕；先写分镜与音效计划，再用带声音的 animatic 看节奏，最后看审片联系表修改一轮，给我视频和封面。
+要有旁白和字幕；先定节奏谱与配乐，再按小节分镜、写画面和音效，用带声音的 animatic 看节奏，最后看审片联系表修改一轮，给我视频和封面。
 ```
 
 The workspace's `AGENTS.md` and the local `axmorf-film` Skill supply the method. In Claude Code the Skill is also
@@ -18,8 +18,9 @@ discoverable as `/axmorf-film`. You do not need to include internal commands
 in your request. Give any strict duration limit or orientation in the brief.
 
 The Agent writes each film as ordinary Remotion code in `src/films/<film-id>/`, generates narration and an original score,
-writes `src/films/<film-id>/storyboard.md` with chapters, worlds, camera paths, recipes, transitions and sound cues,
-then uses `FilmSceneTrack`, the six motion recipes and `FilmSoundEffects` as appropriate.
+then follows `references/direction.md` to write `src/films/<film-id>/storyboard.md` one bar at a time: L2 composition changes,
+L3 accents, sentence ids and sound cues, plus chapter worlds and camera paths. It uses rhythm hooks, `FilmSceneTrack` and
+the motion recipes for visuals, then derives sound effects from those actions and plays them with `FilmSoundEffects`.
 It watches a sound-enabled animatic for pacing before refining rendered frames and delivering. Long films may be split across subagents when your Agent supports
 them; that is optional.
 

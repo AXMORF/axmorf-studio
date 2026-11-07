@@ -1,5 +1,43 @@
 # Iteration Status
 
+## P8 节奏运行时与导演 Skill（2026-11-08，未发布）
+
+完成音乐网格驱动动效的方法与工具，不改合成器引擎、旧片源码、依赖/lockfile 或版本，不 push/publish/merge。
+声音实验室的音色升级未移植，本批不代表全新 Agent 重做整片的 P8.4 审美/听审验收。
+
+- `@axmorf/studio/remotion` 新增 `lastAtOrBefore`、`resolve/useBeatPulse`、`resolve/useNarrationActive`、
+  `resolveBreathScale`、`resolve/useBarCamera`、`barCameraShots` 与 `resolve/useImpact`。
+  L1 默认讲述段 1.2%、节拍段 3.5%；L2 小节起点 spring（18/120）走向下一机位后稳住，耗尽后停住；
+  L3 前 6 帧蓄力、落点开始 spring（11/260/.6）回弹、后 6 帧确定性 shake。机位接原生世界 center/zoom，固定视差锚点。
+  hook 在 Film 根使用，Sequence 内可传正片根 frame；旧 track 缺 onsets 时 kick 回退 beatFrames，无配乐 pulse=0。
+- review-only 遥测上报完整事件计划，稀疏采样仍保留精确落点；音效日志保留真实 start/end/center anchor，不改播放。
+  `motion.summary.rhythmSync` 统计重音/落点/声音/小节的 total/matched；新增 accent-without-visual、visual-without-sound、
+  sound-without-visual、bar-without-change。诊断容差 ±2 帧，导演 L3 要求仍为 0 帧。
+  缺配乐/精确遥测、截断或歧义保持 unknown；软提示不拦检查或交付。
+- 两份 `.agents` Skill 正文与 references 全树一致，两份 `.claude` 保留共享正文的发现 adapter 且互相一致。
+  新增 `references/direction.md`，统一音乐先行顺序、每小节 storyboard、三层动效、动作派生音效、混音、审片与反模式。
+  craft/music/sound 去除冲突与重复规则。完整 TSX 片段与 `RhythmDirectionExample.tsx` 逐字一致，由测试实际编译。
+  文档和 film:new 的配乐建议为显式 .24/.145；film:new 仍默认 music:null，schema 的旧隐式 .09 不变。
+
+**验证**：完整 `npm run check` 退出 0：495 项测试，494 通过、1 项 macOS 专属测试在 Linux 跳过、0 失败；
+包括类型、lint、文档链接/命令、种子音频、Web/Remotion 构建、creator 包检查和宿主 compositions。
+新增 16 项测试覆盖边界、衰减、回退、旁白区间、camera 越界/耗尽、impact 落点/过冲/确定性、四条同步规则、
+start/end/center 声音锚点、未知/截断/歧义与完整 Skill 同步；默认 music.md 的 30 秒 JSON 谱也实际生成，
+避免配置因不足一小节的段落而无法运行。Skill 规范验证通过；独立只读前向验证未发现 API 接线阻断。
+既有 Zod 4.6.7 / Remotion 建议 4.3.6 提示仍保留，不为消除提示改依赖。
+
+**真实浏览器校准**：用 MusicSyncGallery 的配乐网格（重音 f0/120/150/240/270，小节 f0/60/120/180/240）
+渲染新最小示例，沿用 ReviewMotionProvider/ReviewMeasure 每 15 帧采样，共 20 份完整遥测，无坏行/缺帧。
+合规版本 accents/landings/sounds/bars 全部 5/5 匹配，0 warning；删除 f150 impact 后 accents 变为 4/5，
+恰好新增 f150 的 accent-without-visual。未配置场景轨的旧规则仍为 unknown，不当作已通过。
+新示例 f150 still 已看图；它是接线示例，不是成片构图模板或声音质感验收。
+
+**旧画面回归**：MusicSyncGallery f150（含真实 music/sfx props）与 SceneTrackGallery f45 在独立 80ff22a checkout
+和当前代码渲染；Recipe-CameraMove f45 对比改动前基线。三对 PNG 均 cmp 逐字节相同。
+证据在仓库外 `/home/zzzxc/AgentWorkspace/p8-validation/`，交付说明在
+`/home/zzzxc/AgentWorkspace/2026-11-08-p8-runtime-skill-notes.md`。未做完整旧影片逐帧比对、真实人耳听审或新 Agent 成片；
+没有替换原交付。
+
 ## P7 每片原创声音与帧级同步（2026-11-07，未发布）
 
 本批完成声音工具链与 10 秒工程示例；不改版本、不发布、不 push。没有重做 v3 整片声音、没有替换原交付，

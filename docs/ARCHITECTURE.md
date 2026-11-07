@@ -51,9 +51,9 @@ film:new     → src/films/<filmId>/film.json、Film.tsx、Cover.tsx、assets.js
 film:voice   → TTS（按 provider、音色与文本缓存在 .axmorf/cache/voice）→ public/films/<id>/narration.wav
                → generated/timing.json（实测 PCM samples 换算帧）
 film:music   → film.json 的 music.score（合成）或 music.track（已登记曲目）→ public/films/<id>/music.wav → generated/music.json（拍、对齐段落与残差、重音、乐器 onset 帧）
-film:sfx     → film.json 的 sound.effects → public/films/<id>/sfx/<effectId>.wav + generated/sfx.json（指纹、PCM 时长、对齐帧）；登记原创许可
-Agent        → src/films/<id>/storyboard.md（章节、世界、镜头路径、配方、转场、音效 cue 与句子 id/帧号）
-               → FilmSceneTrack 编排画面；配方/场景轨 resolver 的 kind/时长建议 → sound.effects → FilmSoundEffects
+Agent        → src/films/<id>/storyboard.md（每小节一行：L2、L3、旁白句、音效，另补章节世界、镜头路径/配方/转场）
+               → FilmSceneTrack + rhythm hooks 编排 L1/L2/L3 画面 → 从动作派生 sound.effects
+film:sfx     → sound.effects → public/films/<id>/sfx/<effectId>.wav + generated/sfx.json（指纹、PCM 时长、对齐帧）；登记原创许可 → FilmSoundEffects
 film:review  → 联系表、stillWarnings、readabilityWarnings、repetitionWarnings 与测量摘要 readability（仅提示）
                → motion / motionWarnings、review/motion-curve.json 与 .png、review/dense/ 密集帧（仅提示）
                → --animatic 时输出 review/animatic.mp4（短边 360、原帧率、带声音；先看节奏再精修）
@@ -66,6 +66,10 @@ film:deliver → .axmorf/staging 中渲染正片（片头 + 正片 + 片尾）�
 片头片尾由 `FilmWithBookends` 在交付组合中接上，各自带模板音频。场景轨按名义边界居中安排转场，不挪旁白绝对时序；音效 cue 显式交给音效轨，
 配乐支持 sections.from/bpmRange 结构锚点、精确 hits、编曲 breaks 与 ending 和声收尾；旧 bars-only 输出保持不变。
 `FilmSoundEffects` 默认播放每片计划，显式 cue 可用 plan:id；共享库保留兼容。
+节奏制作顺序由 Skill references/direction.md 定义：旁白 → 节奏谱 → film:music → 小节分镜 → 画面 → 音效 → animatic。
+`capabilities/rhythm` 提供纯函数和 hooks：beat pulse、旁白区间、L1 缩放、bar camera 与 impact；
+机位原生使用世界 center/zoom，通过 barCameraShots 固定视差锚点接入 ProducerWorldCamera。
+所有事件计正片，在根调用 hooks；Sequence 内可显式传根 frame。旧片不主动使用新 hooks，动画输出不变。
 次级运动使用合成事件 onsets；可选 `useFilmMusicEnergy` 只读本地 WAV，以对数能量驱动辉光，主要落点不依赖频谱检测。
 原有揭示前的 musicDips 与运行时 ending 收音保持兼容。`mask-wipe` 是羽化光带，可用 `tint` 调色，不改变边界时序。
 内容状态标识使用 `FilmStatusTag`，主副词同字号、同对比层级，有独立底板；review 用 `small-status-tag`
@@ -73,7 +77,13 @@ film:deliver → .axmorf/staging 中渲染正片（片头 + 正片 + 片尾）�
 可读性测量用可见文字矩形的命中采样提示 `text-under-foreground`，排除同一 `data-axmorf-text-group`
 组件内部字形间的遮挡，保留其他组件与外部前景；不可靠命中保留 `readability.unknown`；
 运动分析以场景轨/内部候选切点的中点签名提示非相邻的 `repeated-composition`（含旁白时段，无场景轨旧片为 unknown）。
-上述 motion 字段是 `film:review` 输出，阈值待样片校准；
+新 rhythm 遥测经现有 review-only registry 传递完整计划，impact 记落点，bar camera 只记实际不同机位。
+音效遥测保留 alignmentFrame（start/end/center；旧记录只有 start），不改变播放。
+`motion.summary.rhythmSync` 的 accents/landings/sounds/bars 给出 total/matched；新四条软提示为
+accent-without-visual、visual-without-sound、sound-without-visual、bar-without-change。
+前 3 项诊断容差 ±2 帧，bar 使用半开区间且至少一次 L2+；导演 L3 仍要求 0 帧误差。
+缺配乐、遥测、采样截断或多轨歧义为 unknown；缺音效遥测或手写音频时音效匹配为 unknown，未识别 transform 须人工核对。
+上述 motion 字段是 `film:review` 输出；
 不拦 `film:check`/交付。animatic 默认关闭、Skill 要求成片前至少看一次；缺少或过期时交付命令提醒，不增加交付文件。
 
 ## 4. 写入所有权与并发
