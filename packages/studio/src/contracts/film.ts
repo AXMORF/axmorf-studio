@@ -610,6 +610,11 @@ export const FilmReviewMotionEventSchema = z.discriminatedUnion("type", [
     settle: ReviewFrameSchema,
   }),
   z.strictObject({ type: z.literal("world-camera"), moving: z.boolean() }),
+  z.strictObject({
+    type: z.literal("rhythm"),
+    kind: z.enum(["pulse", "narration", "bar-camera", "impact"]),
+    frames: z.array(ReviewFrameSchema),
+  }),
 ]);
 export type FilmReviewMotionEvent = z.infer<typeof FilmReviewMotionEventSchema>;
 export const FilmReviewMotionSchema = z.strictObject({
