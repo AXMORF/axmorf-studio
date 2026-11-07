@@ -6,6 +6,9 @@ import test from "node:test";
 
 import {
   computeFilmSfxInputFingerprint,
+  computeFilmSoundEffectFingerprint,
+  resolveFilmSoundEffectPitch,
+  createFingerprint,
   filmFrameFromSamples,
   FilmSoundEffectKindSchema,
   FilmSoundEffectSpecSchema,
@@ -221,7 +224,7 @@ test("film:sfx caches verified PCM, regenerates changed specs and detects stale 
   assert.equal(assets.assets[0].license, "Apache-2.0");
   assert.equal(
     assets.assets[0].attribution,
-    "land: original sound effect synthesized by AXMORF Studio film-sfx-v1 (Apache-2.0)",
+    "land: original sound effect synthesized by AXMORF Studio film-sfx-v2 (Apache-2.0)",
   );
   await writeJsonFile(paths.assets, { ...assets, assets: [] });
   await assert.rejects(
@@ -257,4 +260,172 @@ test("film:sfx caches verified PCM, regenerates changed specs and detects stale 
     (await readFile(join(paths.sfxDir, "land.wav"))).length > 44,
     "Removing a plan never deletes owned media implicitly",
   );
+});
+
+test("tonal SFX land on the score tonic; explicit pitches and unpitched foley stay authored", () => {
+  const key = (tonic: string) => ({
+    music: { score: { arrangement: { tonic, mode: "minor" } } },
+  });
+  for (const kind of [
+    "chime",
+    "shimmer",
+    "swell",
+    "riser",
+    "impact",
+    "thud",
+    "tick",
+  ] as const) {
+    const authored = { ...effect, kind };
+    const tuned = resolveFilmSoundEffectPitch(authored, key("D"));
+    assert.equal(typeof tuned.params?.pitch, "number");
+    assert.notDeepEqual(
+      renderFilmSoundEffectWav(tuned, 30),
+      renderFilmSoundEffectWav(authored, 30),
+    );
+    const explicit = { ...authored, params: { pitch: 0 } };
+    assert.equal(resolveFilmSoundEffectPitch(explicit, key("D")), explicit);
+    assert.equal(resolveFilmSoundEffectPitch(authored, {}), authored);
+    assert.notEqual(
+      computeFilmSoundEffectFingerprint({
+        effect: authored,
+        fps: 30,
+        spec: key("D"),
+      }),
+      computeFilmSoundEffectFingerprint({
+        effect: authored,
+        fps: 30,
+        spec: key("E"),
+      }),
+    );
+  }
+  assert.equal(
+    resolveFilmSoundEffectPitch({ ...effect, kind: "paper" }, key("D")).params,
+    undefined,
+  );
+  const chime = resolveFilmSoundEffectPitch(
+    { ...effect, kind: "chime", durationFrames: 30 },
+    key("D"),
+  );
+  const audio = renderFilmSoundEffectWav(chime, 30);
+  // Measure the actual PCM fundamental, independently of pitch resolution.
+  const power = (frequency: number) => {
+    let re = 0,
+      im = 0;
+    for (let i = 480; i < 9600; i++) {
+      const sample = audio.readInt16LE(44 + i * 4);
+      re += sample * Math.cos((2 * Math.PI * frequency * i) / 48000);
+      im += sample * Math.sin((2 * Math.PI * frequency * i) / 48000);
+    }
+    return re * re + im * im;
+  };
+  const fundamental = 440 * 2 ** ((74 - 69) / 12); // D5
+  assert.ok(power(fundamental) > power(783.991) * 100);
+});
+
+test("v1 generated films remain checkable without regeneration; explicit generation upgrades to tuned v2", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "axmorf-old-sfx-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const filmId = "old-sfx";
+  const paths = filmPaths(rootDir, filmId);
+  const authored = { ...effect, kind: "chime" as const };
+  const spec = FilmSpecSchema.parse({
+    schemaVersion: 1,
+    filmId,
+    render: { width: 640, height: 360, fps: 30 },
+    timeline: { durationInFrames: 100 },
+    narration: [],
+    music: {
+      score: {
+        engine: "studio-v2",
+        arrangement: { tonic: "D", mode: "minor" },
+      },
+    },
+    sound: { effects: [authored] },
+    publish: { title: "Old sound" },
+  });
+  await mkdir(paths.dir, { recursive: true });
+  await writeJsonFile(paths.spec, spec);
+  await writeJsonFile(
+    paths.timing,
+    buildFilmTiming({ spec, sentenceSamples: [], narration: null }),
+  );
+  const current = await runFilmSfx({ rootDir, filmId });
+  const generated = JSON.parse(await readFile(paths.sfx, "utf8"));
+  const raw = renderFilmSoundEffectWav(authored, 30);
+  const { sha256 } = await import("../../scripts/films/files");
+  const checksum = sha256(raw);
+  await writeFile(join(paths.sfxDir, "land.wav"), raw);
+  const old = {
+    ...generated,
+    synthesizerVersion: "film-sfx-v1",
+    inputFingerprint: createFingerprint({
+      namespace: "film-sfx-input",
+      version: 1,
+      value: {
+        synthesizerVersion: "film-sfx-v1",
+        fps: 30,
+        durationInFrames: 100,
+        sound: spec.sound,
+      },
+    }),
+    effects: [
+      {
+        ...generated.effects[0],
+        checksum,
+        inputFingerprint: createFingerprint({
+          namespace: "film-sfx-effect",
+          version: 1,
+          value: {
+            synthesizerVersion: "film-sfx-v1",
+            fps: 30,
+            effect: authored,
+          },
+        }),
+      },
+    ],
+  };
+  await writeJsonFile(paths.sfx, old);
+  const assets = JSON.parse(await readFile(paths.assets, "utf8"));
+  await writeJsonFile(paths.assets, {
+    ...assets,
+    assets: assets.assets.map((entry: Record<string, unknown>) => ({
+      ...entry,
+      checksum,
+      creator: "AXMORF Studio film-sfx-v1",
+      attribution: "Original v1 SFX",
+    })),
+  });
+  assert.equal(
+    (await assertFilmSfxConsistency({ rootDir, spec, durationInFrames: 100 }))!
+      .synthesizerVersion,
+    "film-sfx-v1",
+  );
+  assert.deepEqual(await readFile(join(paths.sfxDir, "land.wav")), raw);
+  await writeJsonFile(paths.sfx, { ...old, synthesizerVersion: "unsupported" });
+  await assert.rejects(
+    assertFilmSfxConsistency({ rootDir, spec, durationInFrames: 100 }),
+    /older than/u,
+  );
+  await writeJsonFile(paths.sfx, old);
+  await assert.rejects(
+    assertFilmSfxConsistency({
+      rootDir,
+      spec: {
+        ...spec,
+        sound: { effects: [{ ...authored, params: { pitch: 7 } }] },
+      },
+      durationInFrames: 100,
+    }),
+    /older than/u,
+  );
+  const upgraded = await runFilmSfx({ rootDir, filmId });
+  assert.equal(upgraded.cached, 0);
+  assert.equal(upgraded.generated, 1);
+  assert.notDeepEqual(await readFile(join(paths.sfxDir, "land.wav")), raw);
+  assert.equal(
+    (await assertFilmSfxConsistency({ rootDir, spec, durationInFrames: 100 }))!
+      .synthesizerVersion,
+    "film-sfx-v2",
+  );
+  assert.equal(current.generated, 1);
 });

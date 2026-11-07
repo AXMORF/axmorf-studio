@@ -11,12 +11,14 @@ import {
   FilmSfxSchema,
   FilmTimingSchema,
   resolveFilmSoundEffectFrames,
+  resolveFilmSoundEffectPitch,
   validateFilmSoundEffects,
   type FilmAsset,
   type FilmGeneratedSoundEffect,
   type FilmSfx,
   type FilmSoundEffectSpec,
   type FilmSpec,
+  type FilmSfxSynthesizerVersion,
 } from "@axmorf/studio/contracts";
 
 import { writeBinaryFileAtomic } from "../shared/atomic-file";
@@ -55,6 +57,7 @@ const checkEntry = ({
   entry,
   bytes,
   durationInFrames,
+  synthesizerVersion = FILM_SFX_SYNTHESIZER_VERSION,
 }: {
   readonly rootDir: string;
   readonly spec: FilmSpec;
@@ -62,6 +65,7 @@ const checkEntry = ({
   readonly entry: FilmGeneratedSoundEffect;
   readonly bytes: Buffer;
   readonly durationInFrames: number;
+  readonly synthesizerVersion?: FilmSfxSynthesizerVersion;
 }) => {
   const alignment = resolveFilmSoundEffectFrames(effect, durationInFrames);
   const measured = measureFilmSoundEffectWav(bytes);
@@ -71,7 +75,12 @@ const checkEntry = ({
     entry.for !== effect.for ||
     entry.anchor !== effect.anchor ||
     entry.inputFingerprint !==
-      computeFilmSoundEffectFingerprint({ effect, fps: spec.render.fps }) ||
+      computeFilmSoundEffectFingerprint({
+        effect,
+        fps: spec.render.fps,
+        spec,
+        synthesizerVersion,
+      }) ||
     entry.publicPath !==
       workspacePath(rootDir, effectPath(rootDir, spec.filmId, effect.id)) ||
     entry.checksum !== sha256(bytes) ||
@@ -123,9 +132,16 @@ export const assertFilmSfxConsistency = async ({
     if (
       generated === null ||
       generated.filmId !== spec.filmId ||
-      generated.synthesizerVersion !== FILM_SFX_SYNTHESIZER_VERSION ||
+      !["film-sfx-v1", FILM_SFX_SYNTHESIZER_VERSION].includes(
+        generated.synthesizerVersion,
+      ) ||
       generated.inputFingerprint !==
-        computeFilmSfxInputFingerprint({ spec, durationInFrames }) ||
+        computeFilmSfxInputFingerprint({
+          spec,
+          durationInFrames,
+          synthesizerVersion:
+            generated.synthesizerVersion as FilmSfxSynthesizerVersion,
+        }) ||
       generated.effects.length !== effects.length
     )
       throw new Error(
@@ -145,7 +161,16 @@ export const assertFilmSfxConsistency = async ({
       const bytes = await readAudio(
         effectPath(rootDir, spec.filmId, effect.id),
       );
-      checkEntry({ rootDir, spec, effect, entry, bytes, durationInFrames });
+      checkEntry({
+        rootDir,
+        spec,
+        effect,
+        entry,
+        bytes,
+        durationInFrames,
+        synthesizerVersion:
+          generated.synthesizerVersion as FilmSfxSynthesizerVersion,
+      });
       const asset =
         assets?.filmId === spec.filmId
           ? assets.assets.find(
@@ -156,7 +181,7 @@ export const assertFilmSfxConsistency = async ({
         asset?.checksum !== entry.checksum ||
         asset.origin !== "original" ||
         asset.kind !== "audio" ||
-        asset.creator !== creator ||
+        asset.creator !== `AXMORF Studio ${generated.synthesizerVersion}` ||
         asset.license !== "Apache-2.0"
       ) {
         throw new Error(
@@ -223,6 +248,7 @@ export const runFilmSfx = async ({
       const inputFingerprint = computeFilmSoundEffectFingerprint({
         effect,
         fps: spec.render.fps,
+        spec,
       });
       const prior = previous?.effects.find(
         (entry) =>
@@ -247,7 +273,12 @@ export const runFilmSfx = async ({
           bytes = null;
         }
       }
-      const audio = bytes ?? renderEffect(effect, spec.render.fps);
+      const audio =
+        bytes ??
+        renderEffect(
+          resolveFilmSoundEffectPitch(effect, spec),
+          spec.render.fps,
+        );
       const measured = measureFilmSoundEffectWav(audio);
       const entry = {
         id: effect.id,
