@@ -77,7 +77,8 @@ Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐�
      参考 [横屏「旧公理文字形变」示例](references/examples.md#横屏19201080旧公理文字形变)。
    - 「已发生 / 迹象 / 推测」等内容状态标识统一用 `FilmStatusTag`，不手写。放在场景轨之外，
      主词和副词都不得低于实测字幕字号的 70%，且不低于 `minimumReadableFontSize(width, height)`；
-     使用清楚的底板和对比，在手机尺寸下可读，不能当小字装饰。
+     使用清楚的底板和对比，在手机尺寸下可读，不能当小字装饰。全片固定在左上角安全区；与主体冲突时才换到另一个
+     固定角，并在 storyboard.md 注明，不压住主体。
    - 用 `FilmSoundEffects` 放置计划中的音效；把场景轨和配方 resolver 的 `sfxCues` 显式交给它，组件不会自动发声。
    - 必须挂载 `<FilmSoundtrack />` 与 `<FilmCaptions />`（字幕放在最上层，均在场景轨之外）。
    - 按段落拆成子组件或 `scenes/*.tsx`；所有文件留在本片目录内。

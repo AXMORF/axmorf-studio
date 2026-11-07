@@ -39,7 +39,8 @@ t.music?.barFrames; // 另有 beatFrames、sectionFrames、accentFrames、bpm、
 
 ## 内容状态标识
 
-内容状态标识统一用 `FilmStatusTag`，不手写，放在场景轨之外：
+内容状态标识统一用 `FilmStatusTag`，不手写，放在场景轨之外；默认 `position="top-left"`，全片固定同一位置，
+与主体冲突时才换另一个固定角（`top-right`/`bottom-left`/`bottom-right`）并在 storyboard.md 注明：
 
 ```tsx
 <FilmStatusTag status="self-reported" detail="机制示意" />
