@@ -11,3 +11,5 @@ description: 用 AXMORF Studio 制作或修改讲解短视频。Agent 直接编�
 做片先读共享正文的 `references/direction.md`，按其中的节奏谱 → 配乐 → 小节分镜 → 画面 → 音效顺序执行。
 
 新片使用共享 Skill 的 studio-v3 与经校准音量；v2 和既有影片保持兼容。
+
+L3 必须按 strength 分档；最强重音要有全片最大主体动作和镜头冲击，节拍段 L1/L2 幅度高于讲述段。具体幅度与自检读共享 `references/direction.md`。

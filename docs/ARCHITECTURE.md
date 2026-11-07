@@ -73,6 +73,8 @@ film-sfx-v2 将隐式音高的音效对齐到 score 主音；显式 pitch 保留
 节奏制作顺序由 Skill references/direction.md 定义：旁白 → 节奏谱 → film:music → 小节分镜 → 画面 → 音效 → animatic。
 `capabilities/rhythm` 提供纯函数和 hooks：beat pulse、旁白区间、L1 缩放、bar camera 与 impact；
 机位原生使用世界 center/zoom，通过 barCameraShots 固定视差锚点接入 ProducerWorldCamera。
+impact 返回当前重音 strength，旧包络数值不变；resolveImpactLevel 按 <.5 / [.5,.9) / ≥.9 提供单调的三档
+镜头/主体/shake/可选闪光/粒子幅度，强档主体 1.12、镜头 zoom 增量 .12、shake 16px。具体主体动作由创作者设计。
 所有事件计正片，在根调用 hooks；Sequence 内可显式传根 frame。旧片不主动使用新 hooks，动画输出不变。
 次级运动使用合成事件 onsets；可选 `useFilmMusicEnergy` 只读本地 WAV，以对数能量驱动辉光，主要落点不依赖频谱检测。
 原有揭示前的 musicDips 与运行时 ending 收音保持兼容。`mask-wipe` 是羽化光带，可用 `tint` 调色，不改变边界时序。
@@ -87,7 +89,13 @@ film-sfx-v2 将隐式音高的音效对齐到 score 主音；显式 pitch 保留
 accent-without-visual、visual-without-sound、sound-without-visual、bar-without-change。
 前 3 项诊断容差 ±2 帧，bar 使用半开区间且至少一次 L2+；导演 L3 仍要求 0 帧误差。
 缺配乐、遥测、采样截断或多轨歧义为 unknown；缺音效遥测或手写音频时音效匹配为 unknown，未识别 transform 须人工核对。
-上述 motion 字段是 `film:review` 输出；
+力度分析独立于稀疏遥测：对 fresh animatic 的正片连续全帧用 Workspace FFmpeg 解码，排除品牌片头片尾；
+160×90 灰度的相邻帧 MAD 记为 E[f]（f 与 f-1 之差），不伪造首帧能量。
+FFmpeg 用已有 trim / lossless PNG，逐张读取，单次解码上限 120 秒，不新增依赖。
+`motion.summary.motionEnergy` / `motion.energy` 给出 p95、强重音峰值、讲述/非旁白段中位数及逐帧 JSON 路径。
+`accent-underplayed` 提示 strength ≥.9 的 [f-1,f+3] 峰值低于 p95；`beat-sections-static` 提示非旁白中位数不高于讲述段。
+缺失、过期或不完整 animatic 为 unknown；缺带强度重音、缺讲述/非旁白样本时对应规则为 unknown。
+FFmpeg 失败/超时直接报告，不自动重试。上述 motion 字段是 `film:review` 输出；
 不拦 `film:check`/交付。animatic 默认关闭、Skill 要求成片前至少看一次；缺少或过期时交付命令提醒，不增加交付文件。
 
 ## 4. 写入所有权与并发

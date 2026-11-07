@@ -318,21 +318,23 @@ const cuts = selectProducerCutFrames({ grid: music!.barFrames, fromFrame: 0, toF
 导演规则与可编译接线见 [direction.md 第 4 节](direction.md#4-三层动效核心)。均从 `@axmorf/studio/remotion` 导出。
 事件数组升序、全部计正片；hook 在 Film 根调用，Sequence 内传正片根 frame。
 
-| API                      | 签名与结果                                                                                                                            |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `lastAtOrBefore`         | `(frame, events: readonly number[]) => number`；二分，无过去事件为 -Infinity。                                                        |
-| `resolveBeatPulse`       | `(frame, events, { decayFrames = 8 }?) => number`，0..1 指数衰减。                                                                    |
-| `resolveBeatPulseEvents` | `(music, events = "kick") => readonly number[]`；kick 仅在旧 track 缺 onsets 时回退 beatFrames；fill/break 返回区间起点，accent 优先读带强度事件的帧。                                      |
-| `useBeatPulse`           | `({ events?, decayFrames?, frame? }?) => number`；events 为 kick/beat/bar/accent/fill/break 或升序帧数组，无配乐为 0。                           |
-| `resolveNarrationActive` | `(frame, sentences: readonly {startFrame, endFrame}[]) => boolean`，半开区间。                                                        |
-| `useNarrationActive`     | `({ frame? }?) => boolean`；逐句判断，句间停顿为 false。                                                                              |
-| `resolveBreathScale`     | `(pulse, narrating) => number`；讲述段 1.2%、节拍段 3.5%。                                                                            |
-| `resolveBarCamera`       | `(frame, { bars, shots, fps, config? }) => { center: readonly [number, number], zoom: number }`。                                     |
-| `useBarCamera`           | `(shots: readonly BarCameraShot[], { frame?, config? }?)`；shots 每项 `{center, zoom}`，首小节从 shots[0] 走向 shots[1]，耗尽后停住。 |
-| `barCameraShots`         | `(state, anchor) => readonly ProducerWorldShot[]`；传 ProducerWorldCamera 的 shots 和 frame=1，anchor 固定用初始机位。                |
-| `barCameraChangeFrames`  | `(bars, shots) => number[]`；仅实际不同机位的起点，持平/耗尽不算 L2。                                                                 |
-| `resolveImpact`          | `(frame, at: ImpactEvents, fps, { preFrames = 6 }?) => {pre, hit, scale, shake}`。                                     |
-| `useImpact`              | `(at, { frame?, preFrames? }?)`；事件数组中下一次蓄力优先于上一回弹；空事件保持不动。                                                 |
+| API                      | 签名与结果                                                                                                                                             |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `lastAtOrBefore`         | `(frame, events: readonly number[]) => number`；二分，无过去事件为 -Infinity。                                                                         |
+| `resolveBeatPulse`       | `(frame, events, { decayFrames = 8 }?) => number`，0..1 指数衰减。                                                                                     |
+| `resolveBeatPulseEvents` | `(music, events = "kick") => readonly number[]`；kick 仅在旧 track 缺 onsets 时回退 beatFrames；fill/break 返回区间起点，accent 优先读带强度事件的帧。 |
+| `useBeatPulse`           | `({ events?, decayFrames?, frame? }?) => number`；events 为 kick/beat/bar/accent/fill/break 或升序帧数组，无配乐为 0。                                 |
+| `resolveNarrationActive` | `(frame, sentences: readonly {startFrame, endFrame}[]) => boolean`，半开区间。                                                                         |
+| `useNarrationActive`     | `({ frame? }?) => boolean`；逐句判断，句间停顿为 false。                                                                                               |
+| `resolveBreathScale`     | `(pulse, narrating) => number`；讲述段 1.2%、节拍段 3.5%。                                                                                             |
+| `resolveBarCamera`       | `(frame, { bars, shots, fps, config? }) => { center: readonly [number, number], zoom: number }`。                                                      |
+| `useBarCamera`           | `(shots: readonly BarCameraShot[], { frame?, config? }?)`；shots 每项 `{center, zoom}`，首小节从 shots[0] 走向 shots[1]，耗尽后停住。                  |
+| `barCameraShots`         | `(state, anchor) => readonly ProducerWorldShot[]`；传 ProducerWorldCamera 的 shots 和 frame=1，anchor 固定用初始机位。                                 |
+| `barCameraChangeFrames`  | `(bars, shots) => number[]`；仅实际不同机位的起点，持平/耗尽不算 L2。                                                                                  |
+| `resolveImpact`          | `(frame, at: ImpactEvents, fps, { preFrames = 6 }?) => {strength, pre, hit, scale, shake}`。                                                           |
+| `useImpact`              | `(at, { frame?, preFrames? }?)`；事件数组中下一次蓄力优先于上一回弹；空事件保持不动。                                                                  |
+
+`resolveImpactLevel(strength)` 返回三档建议 `{cameraImpulse, subjectScale, shakePixels, flashOpacity, particleCount}`；边界为 0.5 / 0.9。主体缩放为峰值倍率，强档 1.12、镜头增量 .12、shake 16px、可选闪光 .5（最多 4 帧），详见导演手册。
 
 `ImpactEvents` 为帧、升序帧数组或升序 `{frame,strength}` 数组；加权重音按 strength 缩放动作，不改变落点。
 

@@ -50,7 +50,9 @@
 | L3 重音 | `accentFrames`、`hits`、`sections` | 大事件：文字碎裂/重组、数字落定、镜头冲击、闪光、粒子爆开、转场  | 全片最大的动作只在这里                  |
 
 讲述段（有人在说话）：L1 克制，L2 照常，L3 放到句间和句尾。
-节拍段（开场、转场、揭示、结尾）：三层全放开。
+节拍段（开场、揭示前后、章节转场、结尾）：三层全放开，**L1、L2 的幅度都必须高于讲述段**。
+讲述段可以停住阅读，节拍段不能整段停住；揭示前的短 break 可以抽空蓄力，随后必须在重音上释放。
+结尾可以比 drop 收敛，但没有旁白时仍要比讲述段更动，不能用整段定格代替收尾。
 
 ### 4.1 用运行时接好三层动效
 
@@ -59,14 +61,17 @@
 代码同时保存在仓库的 `RhythmDirectionExample.tsx`，测试逐字比对并用 TypeScript 编译本段。
 
 ```tsx
-import { AbsoluteFill, useVideoConfig } from "remotion";
+import { AbsoluteFill, useCurrentFrame, useVideoConfig } from "remotion";
 import {
   barCameraShots,
   FilmCaptions,
   FilmSoundEffects,
   FilmSoundtrack,
+  lastAtOrBefore,
   ProducerWorldCamera,
   resolveBreathScale,
+  resolveImpactLevel,
+  resolveNarrationActive,
   useBarCamera,
   useBeatPulse,
   useFilmTiming,
@@ -79,71 +84,150 @@ import {
 export const RhythmDirectionExample = ({
   impactFrames,
 }: { readonly impactFrames?: readonly number[] } = {}) => {
+  const frame = useCurrentFrame();
   const { width, height } = useVideoConfig();
-  const { music } = useFilmTiming();
-  const pulse = useBeatPulse();
+  const { music, sentences } = useFilmTiming();
+  const pulse = useBeatPulse({ decayFrames: 10 });
   const narrating = useNarrationActive();
   const bars = music?.barFrames ?? [];
   const shots: readonly BarCameraShot[] = Array.from(
     { length: bars.length + 1 },
-    (_, i) => ({
-      center: [width * (0.5 + (i % 3)), height / 2],
-      zoom: 1 + (i % 2) * 0.15,
-    }),
+    (_, i) => {
+      // Fix each step's amplitude at its bar start; speech edges must not jump the camera.
+      const speaking = resolveNarrationActive(
+        bars[Math.max(0, i - 1)] ?? 0,
+        sentences,
+      );
+      return {
+        center: [
+          width * (0.5 + (i % 3) * (speaking ? 0.04 : 0.12)),
+          height / 2,
+        ],
+        zoom: 1 + (i % 2) * (speaking ? 0.025 : 0.07),
+      };
+    },
   );
   const camera = useBarCamera(shots);
-  const accents = [
-    ...new Set([
-      ...(music?.accentFrames ?? []),
-      ...(music?.sectionFrames ?? []),
-      ...(music?.onsets?.hits ?? []),
-      ...(music?.onsets?.sections ?? []),
-    ]),
-  ].sort((a, b) => a - b);
-  const impact = useImpact(impactFrames ?? accents);
+  const accents = (
+    impactFrames ??
+    [
+      ...new Set([
+        ...(music?.accentFrames ?? []),
+        ...(music?.sectionFrames ?? []),
+        ...(music?.onsets?.hits ?? []),
+        ...(music?.onsets?.sections ?? []),
+      ]),
+    ].sort((a, b) => a - b)
+  ).map((at) => ({
+    frame: at,
+    strength:
+      music?.onsets?.accents?.find((a) => a.frame === at)?.strength ?? 1,
+  }));
+  const impact = useImpact(accents);
+  const level = resolveImpactLevel(impact.strength);
+  const nextAt = accents.find((a) => a.frame > frame)?.frame ?? Infinity;
+  const anticipating = nextAt - frame <= 6;
+  const elapsed =
+    frame -
+    (anticipating
+      ? nextAt
+      : lastAtOrBefore(
+          frame,
+          accents.map((a) => a.frame),
+        ));
+  // An exact-frame strike with a 12-frame release, independent of the spring's settled value.
+  const strike = elapsed >= 0 && elapsed < 12 ? 1 - elapsed / 12 : 0;
+  const flash =
+    elapsed >= 0 && elapsed < 4 ? (1 - elapsed / 4) * level.flashOpacity : 0;
+  const anticipation =
+    anticipating && impact.strength > 0 ? impact.pre / impact.strength : 0;
+  const shake =
+    impact.strength > 0
+      ? (impact.shake / (7 * impact.strength)) * level.shakePixels
+      : 0;
   return (
-    <AbsoluteFill style={{ backgroundColor: "#0b1020" }}>
-      <ProducerWorldCamera
-        width={width}
-        height={height}
-        worldWidth={width * 3}
-        worldHeight={height}
-        shots={barCameraShots(camera, shots[0])}
-        frame={1}
-        layers={[
-          {
-            depth: 1,
-            content: (
-              <AbsoluteFill
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "space-around",
-                }}
-              >
-                {[0, 1, 2].map((i) => (
-                  <div
-                    key={i}
-                    style={{
-                      width: width * 0.6,
-                      height: height * 0.6,
-                      borderRadius: "50%",
-                      border: "10px solid #7ee3d5",
-                      opacity: 0.65 + 0.35 * pulse,
-                      transform: `translateX(${impact.shake}px) scale(${resolveBreathScale(pulse, narrating) * impact.scale})`,
-                    }}
-                  />
-                ))}
-              </AbsoluteFill>
-            ),
-          },
-        ]}
-        overlay={
-          <div style={{ color: "#f8fafc", fontSize: 64, padding: 80 }}>
-            证据 → 机制 → 结果
-          </div>
-        }
+    <AbsoluteFill style={{ backgroundColor: "#0b1020", overflow: "hidden" }}>
+      <AbsoluteFill
+        style={{
+          transform: `translate(${shake}px,${shake * 0.6}px) scale(${1 + level.cameraImpulse * strike})`,
+        }}
+      >
+        <ProducerWorldCamera
+          width={width}
+          height={height}
+          worldWidth={width * 3}
+          worldHeight={height}
+          shots={barCameraShots(camera, shots[0])}
+          frame={1}
+          layers={[
+            {
+              depth: 1,
+              content: (
+                <AbsoluteFill
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-around",
+                  }}
+                >
+                  {[0, 1, 2].map((i) => (
+                    <div
+                      key={i}
+                      style={{
+                        width: width * 0.6,
+                        height: height * 0.6,
+                        borderRadius: "50%",
+                        border: "10px solid #7ee3d5",
+                        background:
+                          "radial-gradient(circle at 35% 30%, #427d88, #102338 70%)",
+                        opacity: 0.65 + 0.35 * pulse,
+                        // L3 deforms the subject as well as overshooting its scale; reading text stays still.
+                        transform: `scale(${resolveBreathScale(pulse, narrating) * (1 + (level.subjectScale - 1) * strike - 0.04 * anticipation)}) scaleX(${1 + (level.subjectScale - 1) * strike}) scaleY(${1 - (level.subjectScale - 1) * strike})`,
+                      }}
+                    />
+                  ))}
+                </AbsoluteFill>
+              ),
+            },
+          ]}
+        />
+        {Array.from({ length: level.particleCount }, (_, i) => {
+          const angle = (i / level.particleCount) * Math.PI * 2;
+          const radius = (1 - strike) * width * 0.45;
+          return (
+            <div
+              key={i}
+              style={{
+                position: "absolute",
+                left: width / 2,
+                top: height / 2,
+                width: 12,
+                height: 12,
+                backgroundColor: "#7ee3d5",
+                opacity: strike,
+                transform: `translate(${Math.cos(angle) * radius}px,${Math.sin(angle) * radius}px) rotate(${i * 31}deg)`,
+              }}
+            />
+          );
+        })}
+      </AbsoluteFill>
+      <AbsoluteFill
+        style={{
+          backgroundColor: "white",
+          opacity: flash,
+          pointerEvents: "none",
+        }}
       />
+      <div
+        style={{
+          position: "absolute",
+          color: "#f8fafc",
+          fontSize: 64,
+          padding: 80,
+        }}
+      >
+        证据 → 机制 → 结果
+      </div>
       <FilmSoundtrack />
       <FilmSoundEffects />
       <FilmCaptions />
@@ -182,7 +266,23 @@ shots 用真实世界像素 `{ center: [x, y], zoom }`，少于小节数时停�
 ### 4.4 L3 重音：预备 → 冲击 → 回弹 → 稳住
 
 `useImpact(at)` 可直接接收 `music.onsets.accents`（按 strength 缩放包络），旧帧数组继续兼容。
-`useImpact(at)` / `resolveImpact(frame, at, fps, { preFrames: 6 })` 返回 `{ pre, hit, scale, shake }`。
+`useImpact(at)` / `resolveImpact(frame, at, fps, { preFrames: 6 })` 返回 `{ strength, pre, hit, scale, shake }`。
+`strength` 是当前窗口选中的重音强度，下一落点的蓄力优先；旧帧数组或无事件时默认 1。
+**每个 L3 都必须按 strength 分档**，用 `resolveImpactLevel(strength)` 取得建议幅度：
+
+| strength          | 镜头 zoom 冲击增量 | 主体峰值缩放 | shake 峰值 | 可选闪光透明度 | 粒子数 |
+| ----------------- | ------------------ | ------------ | ---------- | -------------- | ------ |
+| < 0.5 轻重音      | 0.02               | 1.03         | 3px        | 0              | 6      |
+| 0.5–<0.9 段落重音 | 0.05               | 1.06         | 8px        | 0              | 18     |
+| ≥ 0.9 drop / 揭示 | 0.12               | 1.12         | 16px       | 0.5            | 40     |
+
+这些是幅度预设，不是自动动作；`subjectScale` 为峰值倍率，`cameraImpulse` 为 zoom 增量，`shakePixels` 为峰值像素。
+`strength ≥ 0.9` 的重音必须是全片画面变化最大的时刻：主体过冲至少 8%、shake 12–20px，
+**至少包含主体形变、碎裂、数字落定之一，再加镜头冲击**，不能只做缩放加微抖。
+转场不能比最强重音更抢眼，除非转场本身落在最强重音上。
+上例用 strength 选档，12 帧释放的冲击包络与主体形变、粒子一起落在重音帧，闪光只持续 4 帧。
+不要把最终停在 strength 的 `hit` 直接当作持续冲击量，也不要再把预设乘一次 strength 导致重复衰减。
+以下旧包络保留兼容；仅接旧 `scale` / `shake` 不足以完成强重音：
 以下包络数值以 strength=1 为准；加权事件的 hit 回弹到 strength，scale 仍回到 1。
 at 是重音帧或升序帧数组：下一落点前 6 帧开始蓄力并优先于上一回弹，落点前 hit 恒为 0；
 落点帧 spring 从 0 开始（damping 11、stiffness 260、mass 0.6），之后过冲并回弹到 1。
@@ -252,6 +352,8 @@ shake 只在落点后的 `[at, at+6)` 出现，用 Remotion 的有种子 random�
 5. 能量曲线：hook 高 → 证据中 → 揭示前收 → 揭示爆 → 结尾落，哪一段平了？
 6. 挑 3 个重音，取前后各 0.5 秒、每 0.1 秒一帧的序列，看预备、冲击、回弹是否完整。
 7. 讲述段旁白是否始终听得清？
+8. 静音看最强的 3 个重音（按 strength 选择并写帧号）：它们是不是全片最大的动作？有没有普通转场盖过它们？
+9. 节拍段是不是比讲述段更动？分别写出开场、揭示前后、章节转场、结尾的 L1/L2 幅度与帧号，不能只回答落点对齐。
 
 ### 9.1 构图、可读性与审片报告
 
@@ -308,7 +410,20 @@ f474 侧视机柜，构图不同”）；答不出帧号就当作“否”。“
 | `sound-without-visual`  | 音效 anchor 缺画面事件，去掉孤立声音或补清楚可见动作。 |
 | `bar-without-change`    | 小节内缺 L2+，讲述段与节拍段都必须有构图变化。         |
 
-统计在 `motion.summary.rhythmSync`；缺配乐、遥测、音效记录或采样截断时对应项为 null / unknown，不能当作通过。
+另有基于连续全帧的力度提示：
+
+| 规则                   | 回应                                                                                          |
+| ---------------------- | --------------------------------------------------------------------------------------------- |
+| `accent-underplayed`   | strength ≥0.9 的重音在 [f-1,f+3] 最大运动能量低于全片 p95；核对主体动作、镜头冲击与转场层级。 |
+| `beat-sections-static` | 非旁白段运动能量中位数不高于讲述段；提高节拍段 L1/L2，给出再审帧号。                          |
+
+`motion.summary.motionEnergy` 给出 p95、各强重音峰值、讲述/节拍段中位数；`motion.energy.json` 指向逐帧数据。
+分析解码 fresh animatic 的全部正片帧，缩到 160×90 灰度，以相邻帧亮度差均值计能量；片头片尾不计入。
+复用 Workspace 的 FFmpeg，以无损灰度 PNG 逐张读取，单次解码上限 120 秒；不拿 0.5 秒稀疏采样冒充全帧。
+没有 animatic、已过期或不完整时两项为 unknown；没有带强度的重音时前一项 unknown，没有讲述段或没有节拍段时后一项 unknown。
+提示只辅助审片，不拦交付；仍需静音看最强动作，并看实际节拍段是否更动。
+
+同步统计在 `motion.summary.rhythmSync`；缺配乐、遥测、音效记录或采样截断时对应项为 null / unknown，不能当作通过。
 新规则已用 MusicSyncGallery 配乐事件表做正反校准；未识别的手写动作仍要人工审片。
 
 ## 10. 反模式（看到就改）

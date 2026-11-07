@@ -1,5 +1,36 @@
 # Iteration Status
 
+## P8 重音力度与节拍段运动（2026-11-08，未发布）
+
+`useImpact` / `resolveImpact` 暴露当前窗口选中的 `strength`，旧帧数组默认 1，原包络数值保持兼容。
+`resolveImpactLevel` 按 <.5 / [.5,.9) / ≥.9 提供三档单调幅度；强档主体峰值 1.12、镜头 zoom 增量 .12、
+shake 16px、可选闪光 .5（示例最多 4 帧）、40 粒子。单测锁住数值、边界、下一事件蓄力选择与单调性。
+
+两份共享 direction/API 与两份 Claude 发现入口按原机制同步；强重音必须有全片最大主体形变/碎裂/数字落定之一
+及镜头冲击，转场不得盖过它，节拍段 L1/L2 幅度高于讲述段。RhythmDirectionExample 同步改用强度预设，
+主体形变、镜头、粒子与短闪光在重音同帧落点；逐字同步与 TypeScript 片段编译测试通过。
+
+`film:review` 增加 `accent-underplayed` / `beat-sections-static`，仍只提示、不接交付门禁。
+从 fresh animatic 解码全部连续正片帧，排除片头片尾；160×90 灰度相邻帧 MAD，差分标在右侧帧 f，不伪造 E[0]。
+强度 ≥.9 的 [f-1,f+3] 峰值低于全片 p95 提示；非旁白中位数不高于讲述段提示。
+summary.motionEnergy / motion.energy 保存数值与逐帧 JSON 路径。缺失/过期/不完整 animatic、缺强度或缺比较组保持 unknown。
+Workspace FFmpeg 不含 rawvideo/select，使用已有 trim + 无损灰度 PNG，逐张读取、自有 scratch 清理，单次解码 120 秒上限。
+
+**校准**：v4 只读交付偏移 60 帧，2633 正片帧解码/计算 1819ms，p95=4.693455；
+强重音 f490/f2100/f2310/f2590 峰值 6.278472/4.869653/6.224306/2.443472，仅 f2590 触发力度提示；
+节拍中位数 .160903 ≤ 讲述 .240000，触发静止提示，总计 2 条、0 unknown。
+独立系统 FFmpeg + 原 NumPy 算法对照 2632 差分，最大误差 .000001797（浮点精度）。
+合规 300 帧 gallery 的 f30/f150/f270 峰值 122.312708/123.475694/117.607014，恰好全片最大三帧；
+p95=11.418556，节拍中位数 1.261875 > 讲述窗口 .626806（2.013 倍），0 新提示、0 unknown，解码/计算 326ms。
+gallery 使用明确标注的工程阅读窗口，无旁白音轨，不代表新 Agent 成片或真实旁白听审。
+
+**验证**：完整 `npm run check` 退出 0：520 项测试，519 通过、1 项 macOS 专属测试在 Linux 跳过、0 失败；
+含类型、lint、文档/音频检查、Web/Remotion 构建、creator 包和宿主 compositions。新增 11 项回归。
+Skill 规范校验通过。MusicSyncGallery f150、SceneTrackGallery f45、Recipe-CameraMove f45 三对 still 逐字节相同。
+教学示例 RhythmDirectionExample 因本次要求的分级动作与 L1/L2 调整有意变化，已看 f150 冲击和 f155 回弹真实 still。
+未改依赖/lockfile/版本、旧影片或交付，没有 push/publish/merge。工程证据在 `out/p8-impact-validation/`；
+详细说明在 `/home/zzzxc/AgentWorkspace/2026-11-08-p8-impact-notes.md`，v4 素材全程只读。
+
 ## P8 studio-v3 音色与默认流程（2026-11-08，未发布）
 
 已移植声音实验室的合成做法：分层 kick click/body、snare 噪声/音高体、开合 hat、鼓 fill、咬合 bass、调内 pad/pluck、
