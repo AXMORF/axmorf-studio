@@ -10,11 +10,11 @@ export const SynthesizedMusicTimelineSchema = z
     bpm: z.number().finite().min(50).max(180),
     beatsPerBar: z.number().int().min(2).max(7),
     bars: z.number().int().min(1).max(64),
-    /** "drive" is a studio-v2-only band style: power chords, backbeat drums and fills. */
+    /** "drive" belongs to the studio engines; the original engine omits it. */
     style: z.enum(["organic", "electronic", "drive"]),
     seed: z.number().int().min(1).max(0xffffffff),
-    /** Present only for studio-v2 scores; the original engine omits it. */
-    engine: z.literal("studio-v2").optional(),
+    /** The original engine omits this field. */
+    engine: z.enum(["studio-v2", "studio-v3"]).optional(),
     durationInFrames: z.number().int().positive().max(20_000),
     beatFrames: z.array(z.number().int().nonnegative()).max(448).readonly(),
     /** Arrangement sections in composition frames, for aligning narrative turns. */
@@ -35,7 +35,7 @@ export const SynthesizedMusicTimelineSchema = z
     /** Crash/arrival frames where a visual landing reads as on the music. */
     accentFrames: z
       .array(z.number().int().nonnegative())
-      .max(64)
+      .max(256)
       .readonly()
       .optional(),
     music: z

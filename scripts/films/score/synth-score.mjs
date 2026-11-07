@@ -20,7 +20,15 @@ import {
   synthesizeStudioTimeline,
 } from "./studio-score.mjs";
 
-import { makeStoryboardTimeline, usesStoryboardScore } from "./storyboard-score.mjs";
+import {
+  makeStoryboardTimeline,
+  usesStoryboardScore,
+} from "./storyboard-score.mjs";
+import {
+  arrangeV3Score,
+  finalizeV3Timeline,
+  synthesizeV3Timeline,
+} from "./studio-v3.mjs";
 
 const SR = 48_000;
 const hash = (bytes) =>
@@ -237,11 +245,11 @@ const makeLegacyTimeline = (recipe) => {
     "score",
   );
   const { arrangement: rawArrangement, engine, ...overrides } = recipe;
-  if (engine !== undefined && engine !== "studio-v2")
-    throw new Error('Invalid score engine: use "studio-v2"');
-  const studio = engine === "studio-v2";
+  if (engine !== undefined && !["studio-v2", "studio-v3"].includes(engine))
+    throw new Error('Invalid score engine: use "studio-v2" or "studio-v3"');
+  const studio = engine === "studio-v2" || engine === "studio-v3";
   if (studio && rawArrangement === undefined)
-    throw new Error("The studio-v2 engine requires an authored arrangement");
+    throw new Error(`The ${engine} engine requires an authored arrangement`);
   const settings = { ...defaults, ...overrides };
   for (const [key, min, max] of [
     ["fps", 1, 120],
@@ -262,7 +270,9 @@ const makeLegacyTimeline = (recipe) => {
   if (!["organic", "electronic", "drive"].includes(settings.style))
     throw new Error("Invalid score style");
   if (settings.style === "drive" && !studio)
-    throw new Error('The drive style requires engine "studio-v2"');
+    throw new Error(
+      'The drive style requires engine "studio-v2" or "studio-v3"',
+    );
   const arrangement =
     rawArrangement === undefined
       ? null
@@ -289,7 +299,7 @@ const makeLegacyTimeline = (recipe) => {
       type,
       frame: Math.round(beat * fpb),
       // studio-v2 keeps the exact onset so drums do not drift by up to half a frame.
-      ...(studio ? { beat: Number(beat.toFixed(6)) } : {}),
+      ...(engine === "studio-v2" ? { beat: Number(beat.toFixed(6)) } : {}),
       durationInFrames: Math.min(
         Math.max(1, Math.round(beats * fpb)),
         endFrame - Math.round(beat * fpb),
@@ -299,7 +309,7 @@ const makeLegacyTimeline = (recipe) => {
     });
   const marks = { sections: [], accents: [] };
   if (studio) {
-    arrangeStudioScore(
+    (engine === "studio-v3" ? arrangeV3Score : arrangeStudioScore)(
       settings,
       { ...arrangement, tonicPitchClass: pitchClasses[arrangement.tonic] },
       fpb,
@@ -363,10 +373,14 @@ const makeLegacyTimeline = (recipe) => {
   };
 };
 
-export const makeTimeline = (recipe) =>
-  usesStoryboardScore(recipe)
+export const makeTimeline = (recipe) => {
+  const timeline = usesStoryboardScore(recipe)
     ? makeStoryboardTimeline(recipe, makeLegacyTimeline)
     : makeLegacyTimeline(recipe);
+  return recipe.engine === "studio-v3"
+    ? finalizeV3Timeline(timeline, recipe)
+    : timeline;
+};
 
 const wav = (data) => {
   const result = Buffer.alloc(44 + data.length);
@@ -399,6 +413,15 @@ const studioWav = (timeline) => {
 };
 
 export const synthesizeTimeline = (timeline) => {
+  if (timeline.engine === "studio-v3") {
+    const { left, right } = synthesizeV3Timeline(timeline);
+    const pcm = Buffer.alloc(left.length * 4);
+    for (let i = 0; i < left.length; i++) {
+      pcm.writeInt16LE(Math.round(left[i] * 32767), 4 * i);
+      pcm.writeInt16LE(Math.round(right[i] * 32767), 4 * i + 2);
+    }
+    return wav(pcm);
+  }
   if (timeline.engine === "studio-v2") return studioWav(timeline);
   const count = Math.round((timeline.durationInFrames / timeline.fps) * SR);
   const left = new Float32Array(count);
@@ -467,7 +490,43 @@ export const synthesizeTimeline = (timeline) => {
   return wav(pcm);
 };
 
-export const master = (raw, directory) => {
+/** v3 must not resample: loudnorm's oversampling introduces pre-ringing across
+ * frame boundaries. Measure only, then apply a bounded gain to original PCM. */
+const masterWithExactOnsets = (raw, directory) => {
+  const source = join(directory, "raw.wav");
+  writeFileSync(source, raw);
+  const result = spawnSync(
+    "ffmpeg",
+    [
+      "-hide_banner",
+      "-nostats",
+      "-i",
+      source,
+      "-af",
+      "ebur128=peak=true",
+      "-f",
+      "null",
+      "-",
+    ],
+    { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
+  );
+  if (result.error) throw result.error;
+  if (result.status !== 0)
+    throw new Error(`FFmpeg mastering failed: ${result.stderr}`);
+  const summary = result.stderr.split("Summary:").at(-1);
+  const loudness = Number(summary.match(/I:\s+(-?[\d.]+) LUFS/u)?.[1]);
+  const truePeak = Number(summary.match(/Peak:\s+(-?[\d.]+) dBFS/u)?.[1]);
+  if (!Number.isFinite(loudness) || !Number.isFinite(truePeak))
+    throw new Error("FFmpeg did not report finite loudness and true peak.");
+  const gain = 10 ** (Math.min(-14 - loudness, -2.7 - truePeak) / 20);
+  const pcm = Buffer.alloc(raw.length - 44);
+  for (let i = 44; i < raw.length; i += 2)
+    pcm.writeInt16LE(Math.round(raw.readInt16LE(i) * gain), i - 44);
+  return wav(pcm);
+};
+
+export const master = (raw, directory, exactOnsets = false) => {
+  if (exactOnsets) return masterWithExactOnsets(raw, directory);
   const source = join(directory, "raw.wav");
   const output = join(directory, "master.wav");
   writeFileSync(source, raw);
@@ -578,7 +637,11 @@ if (
   );
   const temporary = mkdtempSync(join(tmpdir(), "axmorf-score-"));
   try {
-    result.audio = master(result.audio, temporary);
+    result.audio = master(
+      result.audio,
+      temporary,
+      result.timeline.engine === "studio-v3",
+    );
     result.timeline.audioChecksum = hash(result.audio);
   } finally {
     rmSync(temporary, { recursive: true, force: true });
@@ -607,13 +670,15 @@ if (
         mode: "synthesized",
         sourcePath: `public/assets/generated-score/${process.argv[5]}/music.wav`,
         timelinePath: `public/assets/generated-score/${process.argv[5]}/timeline.json`,
-        ...(result.timeline.engine === "studio-v2"
-          ? { volume: 0.24, underSpeechVolume: 0.09 }
-          : { volume: 0.12 }),
+        ...(result.timeline.engine === "studio-v3"
+          ? { volume: 0.64, underSpeechVolume: 0.34 }
+          : result.timeline.engine === "studio-v2"
+            ? { volume: 0.24, underSpeechVolume: 0.09 }
+            : { volume: 0.12 }),
       },
       bpm: result.timeline.bpm,
       durationInFrames: result.timeline.durationInFrames,
-      ...(result.timeline.engine === "studio-v2"
+      ...(["studio-v2", "studio-v3"].includes(result.timeline.engine)
         ? {
             sections: result.timeline.sections,
             accentFrames: result.timeline.accentFrames,

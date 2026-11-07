@@ -106,6 +106,35 @@ test("narration uses half-open sentence intervals, without treating pauses as sp
   assert.equal(resolveBreathScale(1, false), 1.035);
   assert.equal(resolveBreathScale(0, false), 1);
 });
+
+test("v3 weighted accents, fills and breaks can drive pulses and impacts", () => {
+  const accents = [
+    { frame: 36, strength: 0.5 },
+    { frame: 100, strength: 1 },
+  ];
+  const v3 = {
+    ...music,
+    onsets: {
+      ...music.onsets!,
+      accents,
+      fills: [{ from: 20, to: 30 }],
+      breaks: [{ from: 30, to: 36 }],
+    },
+  };
+  assert.deepEqual(resolveBeatPulseEvents(v3, "accent"), [36, 100]);
+  assert.deepEqual(resolveBeatPulseEvents(v3, "fill"), [20]);
+  assert.deepEqual(resolveBeatPulseEvents(v3, "break"), [30]);
+  assert.deepEqual(resolveBeatPulseEvents(music, "fill"), []);
+  const full = resolveImpact(37, 36, 30);
+  const half = resolveImpact(37, accents, 30);
+  assert.equal(half.hit, full.hit * 0.5);
+  assert.equal(half.shake, full.shake * 0.5);
+  assert.equal(half.scale, 1 + (full.scale - 1) * 0.5);
+  assert.deepEqual(
+    resolveImpact(101, accents, 30),
+    resolveImpact(101, 100, 30),
+  );
+});
 test("bar spring steps start on the bar, hold the last shot, and adapt to a stable world anchor", () => {
   const options = { shots, bars: [10, 90, 170, 250], fps: 30 };
   assert.deepEqual(resolveBarCamera(0, options), shots[0]);

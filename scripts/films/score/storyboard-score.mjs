@@ -176,8 +176,10 @@ export const alignStoryboardSections = ({
 };
 
 export const makeStoryboardTimeline = (recipe, makeLegacyTimeline) => {
-  if (recipe.engine !== "studio-v2")
-    throw new Error('Storyboard score controls require engine "studio-v2"');
+  if (!["studio-v2", "studio-v3"].includes(recipe.engine))
+    throw new Error(
+      'Storyboard score controls require engine "studio-v2" or "studio-v3"',
+    );
   fields(
     recipe,
     [
@@ -434,6 +436,33 @@ export const makeStoryboardTimeline = (recipe, makeLegacyTimeline) => {
 
 /** These frames are rounded from the same sample starts used by the DSP. */
 export const scoreOnsets = (timeline) => {
+  if (timeline.engine === "studio-v3") {
+    const audible = (frame) =>
+      timeline.accents.some((entry) => entry.frame === frame);
+    return {
+      ...Object.fromEntries(
+        ["kick", "snare", "clap", "hat", "bass"].map((type) => [
+          type,
+          unique(
+            timeline.music
+              .filter((event) => event.type === type && event.gain > 0)
+              .map((event) => event.frame),
+          ),
+        ]),
+      ),
+      hits: unique(
+        (timeline.hits ?? []).map((hit) => hit.frame).filter(audible),
+      ),
+      sections: unique(
+        (timeline.sections ?? [])
+          .map((section) => section.startFrame)
+          .filter(audible),
+      ),
+      fills: timeline.fills,
+      breaks: timeline.breaks.map(({ from, to }) => ({ from, to })),
+      accents: timeline.accents,
+    };
+  }
   const result = {
     kick: [],
     snare: [],

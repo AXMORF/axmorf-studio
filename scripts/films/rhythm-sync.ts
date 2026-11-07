@@ -94,6 +94,7 @@ export const analyzeRhythmSync = ({
   ]);
   const accents = unique([
     ...music.accentFrames,
+    ...(music.onsets?.accents?.map((event) => event.frame) ?? []),
     ...(music.sectionFrames ?? []),
     ...(music.onsets?.hits ?? []),
     ...(music.onsets?.sections ?? []),

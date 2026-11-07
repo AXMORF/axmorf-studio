@@ -1,5 +1,6 @@
 import { random, spring, type SpringConfig } from "remotion";
 import type { FilmTimingView } from "../../film/context";
+import type { FilmMusicAccent } from "../../../contracts/film-score";
 import type {
   ProducerWorldCameraState,
   ProducerWorldShot,
@@ -37,6 +38,8 @@ export type BeatPulseEvents =
   | "beat"
   | "bar"
   | "accent"
+  | "fill"
+  | "break"
   | readonly number[];
 export const resolveBeatPulseEvents = (
   music: FilmTimingView["music"],
@@ -45,6 +48,14 @@ export const resolveBeatPulseEvents = (
   if (typeof events !== "string") return events;
   if (!music) return [];
   if (events === "kick") return music.onsets?.kick ?? music.beatFrames;
+  if (events === "accent" && music.onsets?.accents)
+    return music.onsets.accents.map((event) => event.frame);
+  if (events === "fill" || events === "break")
+    return (
+      music.onsets?.[events === "fill" ? "fills" : "breaks"]?.map(
+        (event) => event.from,
+      ) ?? []
+    );
   return music[`${events}Frames`];
 };
 export const resolveNarrationActive = (
@@ -115,6 +126,16 @@ export const barCameraShots = (
 ];
 
 export type ImpactOptions = Readonly<{ preFrames?: number }>;
+export type ImpactEvents =
+  | number
+  | readonly number[]
+  | readonly FilmMusicAccent[];
+export const impactEventFrames = (at: ImpactEvents): readonly number[] =>
+  typeof at === "number"
+    ? [at]
+    : typeof at[0] === "number" || at.length === 0
+      ? (at as readonly number[])
+      : (at as readonly FilmMusicAccent[]).map((event) => event.frame);
 export type ImpactState = Readonly<{
   pre: number;
   hit: number;
@@ -124,7 +145,7 @@ export type ImpactState = Readonly<{
 /** Sorted event arrays: the next anticipation supersedes the previous rebound. */
 export const resolveImpact = (
   frame: number,
-  at: number | readonly number[],
+  at: ImpactEvents,
   fps: number,
   { preFrames = 6 }: ImpactOptions = {},
 ): ImpactState => {
@@ -132,11 +153,12 @@ export const resolveImpact = (
     throw new Error("preFrames must be positive.");
   if (!Number.isFinite(fps) || fps <= 0)
     throw new Error("fps must be positive.");
-  const events = typeof at === "number" ? [at] : at;
+  const events = impactEventFrames(at);
   const index = lastIndexAtOrBefore(frame, events);
   const next = events[index + 1];
-  const event =
-    next !== undefined && frame >= next - preFrames ? next : events[index];
+  const eventIndex =
+    next !== undefined && frame >= next - preFrames ? index + 1 : index;
+  const event = events[eventIndex];
   if (event === undefined || frame < event - preFrames)
     return { pre: 0, hit: 0, scale: 1, shake: 0 };
   const pre = Math.max(0, Math.min(1, (frame - event + preFrames) / preFrames));
@@ -149,13 +171,19 @@ export const resolveImpact = (
           fps,
           config: { damping: 11, stiffness: 260, mass: 0.6 },
         });
+  const entry = typeof at === "number" ? undefined : at[eventIndex];
+  const strength = entry && typeof entry !== "number" ? entry.strength : 1;
+  const scale = elapsed < 0 ? 1 - 0.04 * pre : 0.96 + 0.04 * hit;
   return {
-    pre,
-    hit,
-    scale: elapsed < 0 ? 1 - 0.04 * pre : 0.96 + 0.04 * hit,
+    pre: pre * strength,
+    hit: hit * strength,
+    scale: strength === 1 ? scale : 1 + (scale - 1) * strength,
     shake:
       elapsed >= 0 && elapsed < 6
-        ? (random(`impact-${event}-${frame}`) - 0.5) * 14 * (1 - elapsed / 6)
+        ? (random(`impact-${event}-${frame}`) - 0.5) *
+          14 *
+          (1 - elapsed / 6) *
+          strength
         : 0,
   };
 };

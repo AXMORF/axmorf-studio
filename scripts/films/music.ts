@@ -113,14 +113,18 @@ export const runFilmMusic = async ({
   readonly rootDir: string;
   readonly filmId: string;
   readonly renderScore?: ScoreRenderer;
-  readonly masterScore?: (raw: Buffer, directory: string) => Buffer;
+  readonly masterScore?: (
+    raw: Buffer,
+    directory: string,
+    exactOnsets?: boolean,
+  ) => Buffer;
   readonly decodeTrack?: TrackDecoder;
 }) =>
   withWorkspaceLock(rootDir, "film-music", async () => {
     const spec = await loadFilmSpec(rootDir, filmId);
     if (spec.music === null) {
       throw new Error(
-        "film.json has no music; add music.score (studio-v2) or music.track (a registered audio file) first.",
+        "film.json has no music; add music.score (studio-v3, or compatible studio-v2) or music.track (a registered audio file) first.",
       );
     }
     const timing = await loadCurrentFilmTiming(rootDir, spec);
@@ -128,7 +132,8 @@ export const runFilmMusic = async ({
     if (startFrame >= timing.durationInFrames) {
       throw new Error("music.startFrame is after the end of the film.");
     }
-    const mastered = (raw: Buffer) => masterInScratch(raw, masterScore);
+    const mastered = (raw: Buffer, exactOnsets = false) =>
+      masterInScratch(raw, masterScore, exactOnsets);
     const source =
       spec.music.track !== undefined
         ? await prepareTrack({
@@ -220,11 +225,16 @@ type PreparedMusic = {
 
 const masterInScratch = async (
   raw: Buffer,
-  masterScore: (raw: Buffer, directory: string) => Buffer,
+  masterScore: (
+    raw: Buffer,
+    directory: string,
+    exactOnsets?: boolean,
+  ) => Buffer,
+  exactOnsets = false,
 ) => {
   const scratch = await mkdtemp(join(tmpdir(), "axmorf-film-music-"));
   try {
-    return masterScore(raw, scratch);
+    return masterScore(raw, scratch, exactOnsets);
   } finally {
     await rm(scratch, { recursive: true, force: true });
   }
@@ -243,7 +253,7 @@ const prepareScore = async ({
   readonly durationInFrames: number;
   readonly timing: FilmTiming;
   readonly renderScore: ScoreRenderer;
-  readonly mastered: (raw: Buffer) => Promise<Buffer>;
+  readonly mastered: (raw: Buffer, exactOnsets?: boolean) => Promise<Buffer>;
 }): Promise<PreparedMusic> => {
   const recipe = resolveFilmScoreRecipe({
     music,
@@ -251,7 +261,7 @@ const prepareScore = async ({
     fps: spec.render.fps,
   });
   const { timeline, audio: raw } = renderScore(recipe);
-  const audio = await mastered(raw);
+  const audio = await mastered(raw, timeline.engine === "studio-v3");
   const scoreTimeline = { ...timeline, audioChecksum: sha256(audio) };
   const parsedTimeline = parseScoreTimeline(scoreTimeline);
   const alignment =
@@ -309,6 +319,8 @@ const parseScoreTimeline = (timeline: Record<string, unknown>) =>
             "breaks",
             "ending",
             "musicWindowInFrames",
+            "fills",
+            "accents",
           ].includes(key),
       ),
     ),
@@ -325,21 +337,57 @@ export const projectFilmMusicOnsets = ({
 }): FilmMusicOnsets => {
   const local = scoreOnsets(timeline);
   const cycleFrames = timeline.durationInFrames as number;
-  return Object.fromEntries(
-    Object.entries(local).map(([type, frames]) => {
-      const projected: number[] = [];
-      for (
-        let offset = startFrame;
-        offset < durationInFrames;
-        offset += cycleFrames
-      ) {
-        for (const frame of frames)
-          if (offset + frame < durationInFrames) projected.push(offset + frame);
-        if (timeline.loop === false) break;
-      }
-      return [type, [...new Set(projected)].sort((a, b) => a - b)];
-    }),
-  ) as FilmMusicOnsets;
+  const offsets: number[] = [];
+  for (
+    let offset = startFrame;
+    offset < durationInFrames;
+    offset += cycleFrames
+  ) {
+    offsets.push(offset);
+    if (timeline.loop === false) break;
+  }
+  const frames = Object.fromEntries(
+    (["kick", "snare", "clap", "hat", "bass", "hits", "sections"] as const).map(
+      (type) => {
+        const projected: number[] = [];
+        for (const offset of offsets) {
+          for (const frame of local[type])
+            if (offset + frame < durationInFrames)
+              projected.push(offset + frame);
+        }
+        return [type, [...new Set(projected)].sort((a, b) => a - b)];
+      },
+    ),
+  ) as Pick<
+    FilmMusicOnsets,
+    "kick" | "snare" | "clap" | "hat" | "bass" | "hits" | "sections"
+  >;
+  const intervals = (windows: { from: number; to: number }[]) =>
+    offsets.flatMap((offset) =>
+      windows
+        .map(({ from, to }) => ({
+          from: from + offset,
+          to: Math.min(to + offset, durationInFrames),
+        }))
+        .filter(({ from, to }) => from < to),
+    );
+  return {
+    ...frames,
+    ...(local.fills ? { fills: intervals(local.fills) } : {}),
+    ...(local.breaks ? { breaks: intervals(local.breaks) } : {}),
+    ...(local.accents
+      ? {
+          accents: offsets.flatMap((offset) =>
+            local
+              .accents!.map(({ frame, strength }) => ({
+                frame: frame + offset,
+                strength,
+              }))
+              .filter(({ frame }) => frame < durationInFrames),
+          ),
+        }
+      : {}),
+  };
 };
 
 /** Resolve storyboard anchors against measured speech without changing that clock. */

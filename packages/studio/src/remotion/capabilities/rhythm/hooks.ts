@@ -8,11 +8,13 @@ import {
   resolveBeatPulseEvents,
   resolveImpact,
   resolveNarrationActive,
+  impactEventFrames,
   type BarCameraOptions,
   type BarCameraShot,
   type BeatPulseEvents,
   type BeatPulseOptions,
   type ImpactOptions,
+  type ImpactEvents,
 } from "./resolve";
 
 /** Film-body clock. Call at Film root; inside a Sequence pass the root frame. */
@@ -62,7 +64,7 @@ export const useBarCamera = (
   return resolveBarCamera(frameOverride ?? frame, { bars, shots, fps, config });
 };
 export const useImpact = (
-  at: number | readonly number[],
+  at: ImpactEvents,
   { frame: frameOverride, preFrames }: ImpactOptions & RhythmFrameOptions = {},
 ) => {
   const frame = useCurrentFrame();
@@ -71,7 +73,7 @@ export const useImpact = (
   useReviewMotion({
     type: "rhythm",
     kind: "impact",
-    frames: typeof at === "number" ? [at] : [...at],
+    frames: [...impactEventFrames(at)],
   });
   return resolveImpact(frameOverride ?? frame, at, fps, { preFrames });
 };
