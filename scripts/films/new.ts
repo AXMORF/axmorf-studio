@@ -20,7 +20,8 @@ import {
 
 // Starting point only. Replace the placeholder with this film's own subjects,
 // framing, camera and motion. Read references/direction.md before authoring.
-// When adding music.score, start with volume: 0.24, underSpeechVolume: 0.145;
+// Reauthor the starter studio-v3 score after measuring narration. Start with
+// volume: 0.64, underSpeechVolume: 0.34;
 // measure the final mix. Keep FilmSoundtrack and FilmCaptions mounted.
 const Film = () => {
   const frame = useCurrentFrame();
@@ -162,7 +163,35 @@ export const createFilm = async ({
         durationInFrames: fps * 10,
       },
       narration: [],
-      music: null,
+      music: {
+        score: {
+          engine: "studio-v3",
+          bpm: 104,
+          bpmRange: [96, 116],
+          beatsPerBar: 4,
+          style: "electronic",
+          seed: 17,
+          arrangement: {
+            tonic: "D",
+            mode: "minor",
+            progression: [1, 6, 3, 7],
+            sections: [
+              {
+                from: 0,
+                instruments: ["kick", "snare", "hat", "bass", "pad", "pluck"],
+                density: 0.8,
+                energy: 0.85,
+              },
+            ],
+          },
+          hits: [{ frame: 0, kind: "stinger", intensity: 0.8 }],
+          breaks: [{ from: Math.round(fps * 8.8), to: fps * 9, keep: [] }],
+          ending: { landFrame: fps * 9, cadence: "resolve" },
+        },
+        volume: 0.64,
+        underSpeechVolume: 0.34,
+        fadeOutFrames: 0,
+      },
       publish: { title, description: "", tags: [] },
       bookends: { intro, outro, theme: "dark", sources: [] },
     });

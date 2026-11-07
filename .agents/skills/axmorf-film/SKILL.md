@@ -38,12 +38,12 @@ Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐�
    - 有旁白时删除 `timeline.durationInFrames`，总长由实测旁白加 `tailFrames` 决定；无旁白的纯视觉片保留它。
    - `narrationStartFrame` 留给正片的开场画面；`publish` 写标题、简介和标签；用到的事实来源写进
      `bookends.sources`（标题 + 网址），会显示在片尾。
-   - 需要配乐时先留出 `music.score`；实测旁白后先写节奏谱、生成配乐，再按小节写 storyboard（见 [导演手册](references/direction.md#2-工作顺序不能倒过来)）。
+   - `film:new` 已写入 10 秒占位 `studio-v3` 谱；按本片内容重写 `music.score`，不要沿用占位收尾帧。无配乐的片设 `music: null`；实测旁白后先写节奏谱、生成配乐，再按小节写 storyboard（见 [导演手册](references/direction.md#2-工作顺序不能倒过来)）。
 5. **生成旁白**：`npm run film:voice -- --film <filmId>`。输出每句的起止帧。修改旁白文本后重新运行；
    没改过的句子来自缓存，不会重复调用 TTS。
 6. **先写节奏谱并生成配乐**：按实测句子锚定 `music.score`，先定 sections、揭示 hits、揭示前 breaks 和 ending。
    一部讲解片一个 BPM（96–116），hook 直接进鼓、第一小节就有重音，证据段中、揭示前收、drop 爆、结尾落。
-   显式写 `volume: 0.24`、`underSpeechVolume: 0.145` 作为混音起点；实测讲述段底层比旁白低 12–15 LU。
+   新片使用 `studio-v3`；显式写 `volume: 0.64`、`underSpeechVolume: 0.34` 作为混音起点；实测讲述段底层比旁白低 12–15 LU。
    运行 `npm run film:music -- --film <filmId>`，取得 beatFrames、barFrames、sectionFrames、accentFrames 和 onsets。
    实际字段、锚点、残差见 [配乐与卡点](references/music.md)。无配乐的片不伪造网格；无旁白的片跳过 voice，先定音乐。
 7. **按小节分镜 → 画面 → 音效**（顺序必做）：先写 `src/films/<filmId>/storyboard.md`，告知用户路径和画面路线。

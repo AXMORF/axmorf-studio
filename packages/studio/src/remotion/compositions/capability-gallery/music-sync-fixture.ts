@@ -1,5 +1,5 @@
 /** Ten-second, provider-free fixture. All event frames refer to the authored body. */
-export const MUSIC_SYNC_FILM_ID = "p7-sound-gallery";
+export const MUSIC_SYNC_FILM_ID = "p8-v3-sound-gallery";
 export const MUSIC_SYNC_SPEC = {
   schemaVersion: 1,
   filmId: MUSIC_SYNC_FILM_ID,
@@ -8,7 +8,7 @@ export const MUSIC_SYNC_SPEC = {
   narration: [],
   music: {
     score: {
-      engine: "studio-v2",
+      engine: "studio-v3",
       bpm: 104,
       bpmRange: [96, 124],
       beatsPerBar: 4,

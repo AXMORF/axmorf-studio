@@ -51,7 +51,7 @@ export const prepareMusicSyncPreview = async (rootDir: string) => {
     await writeFile(paths.cover, COVER_SOURCE, { flag: "wx" });
     await writeFile(
       join(paths.dir, "storyboard.md"),
-      `# P7 original sound fixture\n\n1920×1080 / 30fps / 300 body frames; no narration or bookends.\n\n- Sections at f0/f120/f240; tempo search [96,124].\n- f120–150 arrangement break (pad only); exact reveal hit f150; harmonic resolve f270.\n- The gallery lamp flashes exactly at kick onsets; ring glow follows low energy.\n- Each sound action and its exact interval is recorded in film.json sound.effects[].for.\n- Review: compare effect start/end/alignment frames against each visible gallery action.\n- This is an engineering preview, not a replacement for the locked v3 film.\n`,
+      `# Studio-v3 original sound fixture\n\n1920×1080 / 30fps / 300 body frames; no narration or bookends.\n\n- Requested sections f0/f120/f240; tempo search [96,124] reports actual boundaries.\n- f120–150 arrangement break (pad only); exact reveal hit f150; harmonic resolve f270.\n- The gallery lamp flashes exactly at kick onsets; ring glow follows low energy.\n- Each sound action and its exact interval is recorded in film.json sound.effects[].for.\n- Review: compare effect start/end/alignment frames against each visible gallery action.\n- This is an engineering preview; existing films and deliveries are untouched.\n`,
       { flag: "wx" },
     );
   });
@@ -66,7 +66,7 @@ export const prepareMusicSyncPreview = async (rootDir: string) => {
     ),
     sfx: await readJsonFile(paths.sfx, FilmSfxSchema, "generated/sfx.json"),
   };
-  const outputDir = join(rootDir, "out/p7-validation");
+  const outputDir = join(rootDir, "out/p8-v3-validation");
   await mkdir(outputDir, { recursive: true });
   const propsPath = join(outputDir, "gallery-props.json");
   await writeJsonFile(propsPath, props);

@@ -132,3 +132,10 @@ export const EvidenceSoundtrack = () => (
 `impact-bloom` → `soft-impact`。品牌片头的 Mixkit impact 有单独许可，不把它当作上表原创短名。
 
 合成音色的质感须实际听审；技术解码通过不等于好听。若要外采，只用许可已确认并逐个登记的素材，不能下载许可不明的音频。
+
+## 调性与旧片兼容
+
+`film:sfx` 的 film-sfx-v2 会读取 score.arrangement 的 tonic/mode：chime、shimmer、swell、riser、impact、thud、tick 未写 params.pitch 时，
+把基音或滑音落点对齐到最近八度的主音（主音和谐波五度均在大小调内）。显式 pitch（含 0）完全保留；无调性与噪声拟音不变。
+旁白下仍用运行时 ducking，音效 intensity .18–.30 是与 v3 教学谱一起校准的起点。旧 film-sfx-v1 的音频、指纹和许可仍按 v1 校验，
+`film:check` 不因升级强制重生成；主动运行 film:sfx 才升级。改过计划、损坏 PCM 或缺许可仍报错。

@@ -9,3 +9,5 @@ description: 用 AXMORF Studio 制作或修改讲解短视频。Agent 直接编�
 它的 references 位于同目录的 `references/` 下。正文只维护在 `.agents/skills/axmorf-film/`，供所有 Agent 共用。
 
 做片先读共享正文的 `references/direction.md`，按其中的节奏谱 → 配乐 → 小节分镜 → 画面 → 音效顺序执行。
+
+新片使用共享 Skill 的 studio-v3 与经校准音量；v2 和既有影片保持兼容。

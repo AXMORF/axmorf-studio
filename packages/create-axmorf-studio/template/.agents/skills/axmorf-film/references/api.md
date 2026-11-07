@@ -127,7 +127,7 @@ const track = resolveFilmSceneTrack(film, scenes);
 
 ### 音乐事件与能量
 
-`useFilmTiming().music?.onsets` 可选：`{kick, snare, clap, hat, bass, hits, sections}`，每项为正片绝对帧数组。
+`useFilmTiming().music?.onsets` 可选：`{kick, snare, clap, hat, bass, hits, sections}`，基础项为正片绝对帧数组。v3 另有可选 fills/breaks `{from,to}` 区间及 accents `{frame,strength}`；accentFrames 与 accents 的 frame 一致。
 它来自合成事件，已经处理 startFrame 和循环；旧 track 可无此字段。主要动作使用这些事件帧或 `accentFrames`。
 `music.alignment` 记录搜索得到的 bpm 与段落 `{sectionIndex, requestedFrame, actualFrame, residualFrames}`；残差有符号。
 
@@ -322,8 +322,8 @@ const cuts = selectProducerCutFrames({ grid: music!.barFrames, fromFrame: 0, toF
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
 | `lastAtOrBefore`         | `(frame, events: readonly number[]) => number`；二分，无过去事件为 -Infinity。                                                        |
 | `resolveBeatPulse`       | `(frame, events, { decayFrames = 8 }?) => number`，0..1 指数衰减。                                                                    |
-| `resolveBeatPulseEvents` | `(music, events = "kick") => readonly number[]`；kick 仅在旧 track 缺 onsets 时回退 beatFrames。                                      |
-| `useBeatPulse`           | `({ events?, decayFrames?, frame? }?) => number`；events 为 kick/beat/bar/accent 或升序帧数组，无配乐为 0。                           |
+| `resolveBeatPulseEvents` | `(music, events = "kick") => readonly number[]`；kick 仅在旧 track 缺 onsets 时回退 beatFrames；fill/break 返回区间起点，accent 优先读带强度事件的帧。                                      |
+| `useBeatPulse`           | `({ events?, decayFrames?, frame? }?) => number`；events 为 kick/beat/bar/accent/fill/break 或升序帧数组，无配乐为 0。                           |
 | `resolveNarrationActive` | `(frame, sentences: readonly {startFrame, endFrame}[]) => boolean`，半开区间。                                                        |
 | `useNarrationActive`     | `({ frame? }?) => boolean`；逐句判断，句间停顿为 false。                                                                              |
 | `resolveBreathScale`     | `(pulse, narrating) => number`；讲述段 1.2%、节拍段 3.5%。                                                                            |
@@ -331,8 +331,10 @@ const cuts = selectProducerCutFrames({ grid: music!.barFrames, fromFrame: 0, toF
 | `useBarCamera`           | `(shots: readonly BarCameraShot[], { frame?, config? }?)`；shots 每项 `{center, zoom}`，首小节从 shots[0] 走向 shots[1]，耗尽后停住。 |
 | `barCameraShots`         | `(state, anchor) => readonly ProducerWorldShot[]`；传 ProducerWorldCamera 的 shots 和 frame=1，anchor 固定用初始机位。                |
 | `barCameraChangeFrames`  | `(bars, shots) => number[]`；仅实际不同机位的起点，持平/耗尽不算 L2。                                                                 |
-| `resolveImpact`          | `(frame, at: number \| readonly number[], fps, { preFrames = 6 }?) => {pre, hit, scale, shake}`。                                     |
+| `resolveImpact`          | `(frame, at: ImpactEvents, fps, { preFrames = 6 }?) => {pre, hit, scale, shake}`。                                     |
 | `useImpact`              | `(at, { frame?, preFrames? }?)`；事件数组中下一次蓄力优先于上一回弹；空事件保持不动。                                                 |
+
+`ImpactEvents` 为帧、升序帧数组或升序 `{frame,strength}` 数组；加权重音按 strength 缩放动作，不改变落点。
 
 bar camera 默认 spring damping=18 / stiffness=120；impact damping=11 / stiffness=260 / mass=.6。
 pre 在落点前 6 帧由 0 蓄至 1，落点 hit 从 0 开始；shake 仅落点后 6 帧，确定性 random。

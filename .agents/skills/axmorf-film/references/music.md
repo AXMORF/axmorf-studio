@@ -1,7 +1,7 @@
 # 配乐与卡点
 
 做片先读 [导演手册](direction.md)，顺序以第 2 节为准：实测旁白 → 节奏谱 → film:music → 按小节分镜 → 画面 → 音效。
-默认为本片写原创 music.score，只有用户指定才用已登记许可的 music.track；本页讲配置与生成 API。
+默认为本片写原创 `studio-v3` music.score；v2 与原始 bars-only 引擎保持字节兼容。只有用户指定才用已登记许可的 music.track；本页讲配置与生成 API。
 旁白与字幕使用实测时序，不为踩拍改变。
 
 ## 用旁白章节锚定节奏谱（默认）
@@ -15,7 +15,7 @@ film:music 输出实际边界与残差，超过 3 帧按提示调整范围或锚
 {
   "music": {
     "score": {
-      "engine": "studio-v2",
+      "engine": "studio-v3",
       "bpm": 104,
       "bpmRange": [96, 116],
       "beatsPerBar": 4,
@@ -91,8 +91,8 @@ film:music 输出实际边界与残差，超过 3 帧按提示调整范围或锚
       }
     },
     "startFrame": 0,
-    "volume": 0.24,
-    "underSpeechVolume": 0.145,
+    "volume": 0.64,
+    "underSpeechVolume": 0.34,
     "fadeOutFrames": 0
   }
 }
@@ -114,6 +114,9 @@ film:music 输出实际边界与残差，超过 3 帧按提示调整范围或锚
 ## 用音乐事件做次级运动
 
 `useFilmTiming().music.onsets` 是合成时导出的实际事件帧，含 `kick`、`snare`、`clap`、`hat`、`bass`、`hits`、`sections`。
+v3 还导出 `onsets.fills` / `onsets.breaks`（`{from,to}`，半开区间）及 `onsets.accents`（`{frame,strength}`，与 `accentFrames` 一致）；
+这些新增字段可选，旧文件继续可读。fill 区间是军鼓过门的编排窗口，break 区间中只保留 authored keep 的乐器及其混响；全部 keep 为空时为 PCM 数字零。
+`useBeatPulse({events:"fill"})` / `events:"break"` 读窗口起点，`useImpact(music.onsets.accents)` 读带强度重音。
 例如 kick 事件 f120，灯在 f120 开始闪，误差为 0 帧；无需再做音频节拍检测。旧 track 没有 onsets，必须判断字段是否存在。
 `useFilmMusicEnergy()` 返回对数刻度、平滑后的 `{ low, mid, high }`，只用于辉光、粒子呼吸等连续次级运动；
 关键动作仍用事件帧。它读取本片的本地 WAV，详见 [API](api.md)。
@@ -122,7 +125,7 @@ film:music 输出实际边界与残差，超过 3 帧按提示调整范围或锚
 
 统一遵循 [导演手册第 3、4、7 节](direction.md#3-节奏谱怎么写)：讲解片一个 BPM，96–116，
 hook 直接进鼓，能量 hook 高 → verse 中 → lift 收 → drop 爆 → outro 落；每小节 L2、每重音 L3（0 帧误差）。
-旁白约 -16 LUFS，讲述段底层低 12–15 LU，节拍段低 6–8 LU；显式 .24/.145 是待实测起点。
+旁白约 -16 LUFS，讲述段底层低 12–15 LU，节拍段低 6–8 LU；v3 显式 .64/.34 是经教学谱校准的起点（讲述低 14.0 LU、节拍段低 7.1/7.9 LU、混音 -3.6 dBTP）；音效 intensity .18–.30，实际新片仍须听审与实测。
 已锁定画面的声音重做保留原帧，用精确 hit 强调；不移动原画面/旁白/字幕，不改旧 schema 隐式默认。
 
 ## 使用授权曲目

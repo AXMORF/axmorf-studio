@@ -15,7 +15,7 @@
 
 1. `film:voice`：旁白实测，拿到每句起止帧。
 2. **先写节奏谱**（`music.score`）：按章节把段落锚到句子上，定好揭示用的 `hits`、揭示前的 `breaks`、结尾 `ending`。
-3. `film:music`：拿到 `beatFrames`、`barFrames`、`sectionFrames`、`accentFrames` 和 `onsets`（kick/snare/clap/hat/bass/hits/sections，字段均为帧数组）。
+3. 用默认 `studio-v3` 运行 `film:music`：拿到 `beatFrames`、`barFrames`、`sectionFrames`、`accentFrames` 和 `onsets`（kick/snare/clap/hat/bass/hits/sections 为帧数组，v3 另有 fills/breaks 区间和带强度的 accents）。
 4. **写 storyboard.md**：按小节写，不按句子写（格式见第 8 节）。
 5. 写画面：先搭三层动效（第 4 节），再填细节。
 6. 写音效：从画面动作派生（第 6 节）。
@@ -155,7 +155,7 @@ export const RhythmDirectionExample = ({
 `lastAtOrBefore(frame, events)` 对升序数组二分查找，无过去事件返回 `-Infinity`。
 `resolveBeatPulse(frame, events, { decayFrames: 8 })` 是无状态指数衰减（落点为 1，8 帧时为 exp(-3)，之后为 0）。
 `useBeatPulse()` 默认 kick；旧 track 没有 onsets 时才回退 beatFrames，有 onsets 但 kick 为空就保持安静。
-可选 events 为 `"beat"` / `"bar"` / `"accent"` / 升序帧数组；无配乐返回 0。
+可选 events 为 `"beat"` / `"bar"` / `"accent"` / `"fill"` / `"break"` / 升序帧数组；fill/break 读区间起点。无配乐返回 0。
 所有 hook 默认读当前帧；**在 Film 根调用，把结果传给场景**。如放在 Sequence 内，传 `{ frame: 根组件正片帧 }`，
 不要把本地帧和正片绝对事件混用。数组必须升序；不要在渲染时扫描文件或读取音频分析服务。
 
@@ -181,7 +181,9 @@ shots 用真实世界像素 `{ center: [x, y], zoom }`，少于小节数时停�
 
 ### 4.4 L3 重音：预备 → 冲击 → 回弹 → 稳住
 
+`useImpact(at)` 可直接接收 `music.onsets.accents`（按 strength 缩放包络），旧帧数组继续兼容。
 `useImpact(at)` / `resolveImpact(frame, at, fps, { preFrames: 6 })` 返回 `{ pre, hit, scale, shake }`。
+以下包络数值以 strength=1 为准；加权事件的 hit 回弹到 strength，scale 仍回到 1。
 at 是重音帧或升序帧数组：下一落点前 6 帧开始蓄力并优先于上一回弹，落点前 hit 恒为 0；
 落点帧 spring 从 0 开始（damping 11、stiffness 260、mass 0.6），之后过冲并回弹到 1。
 scale 在预备时从 1 后缩，落点为 0.96，再按 `0.96 + 0.04 * hit` 回弹；不要把 hit 当作“已落地”的布尔值。
@@ -218,8 +220,11 @@ shake 只在落点后的 `[at, at+6)` 出现，用 Remotion 的有种子 random�
 
 - 旁白 -16 LUFS 左右；配乐加音效的底层在讲述段比旁白低 12–15 LU，节拍段可以回到低 6–8 LU。
 - 讲述段底层若比旁白低到超过 18 LU，观众就听不出有配乐了（P7 的 B 版就是这样）。
-- 合成配乐起点推荐显式写 `volume: 0.24`、`underSpeechVolume: 0.145`；上一轮 .09 实测余量 18.6 LU，.145 为 14.9 LU。
-  这是本片起点，不是声学保证：配乐与音效叠加后实测并听审。旧片 schema 的隐式默认不变。
+- `studio-v3` 推荐显式写 `volume: 0.64`、`underSpeechVolume: 0.34`。30 秒教学谱加现有 -16 LUFS 旁白及三条原创音效实测：
+  讲述底层 -30.0 LUFS（低 14.0 LU），开场 -23.1、收尾 -23.9 LUFS（低 7.1/7.9 LU），混音 -3.6 dBTP。
+  音效 intensity 用 .18–.30；这是本片起点，不是任意谱的声学保证，配乐与音效叠加后仍须实测并听审。
+  v3 保留原 PCM 起音，用测量后的线性增益留出 true-peak 余量，不用会预振铃的二次重采样；旁白仅在 FilmSoundtrack 逐句 duck 一次。
+  v2 继续兼容且输出不变；旧片 schema 的隐式 .24/.09 和先前 v2 显式 .24/.145 均不自动迁移。
 - 揭示前的抽空要真的安静；drop 之后 1–2 小节是全片最满的地方。
 - 结尾不淡出循环，让和声在问题说完的那一拍落定。
 

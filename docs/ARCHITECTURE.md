@@ -64,7 +64,11 @@ film:deliver → .axmorf/staging 中渲染正片（片头 + 正片 + 片尾）�
 
 渲染期间不调用网络、Agent、Git 或目录扫描；Remotion Root 只读生成的静态注册表。`Film.tsx` 只看到正片帧，
 片头片尾由 `FilmWithBookends` 在交付组合中接上，各自带模板音频。场景轨按名义边界居中安排转场，不挪旁白绝对时序；音效 cue 显式交给音效轨，
+新片默认 studio-v3；分层鼓组、贝斯与和声经确定性滤波、FFT 房间卷积、RMS 总线压缩及限幅输出。
+v3 母带只测量 LUFS/true peak 后做线性增益，避免 loudnorm 重采样预振铃跨越事件帧；v2/原始母带保持字节兼容。
 配乐支持 sections.from/bpmRange 结构锚点、精确 hits、编曲 breaks 与 ending 和声收尾；旧 bars-only 输出保持不变。
+v3 onsets 可选 fills/breaks 半开区间及 accents {frame,strength}，accentFrames 与 accents 一致；旧 JSON 无新增字段仍有效。
+film-sfx-v2 将隐式音高的音效对齐到 score 主音；显式 pitch 保留。检查器按已生成音效的版本核验指纹和许可，不强制旧 v1 重生成。
 `FilmSoundEffects` 默认播放每片计划，显式 cue 可用 plan:id；共享库保留兼容。
 节奏制作顺序由 Skill references/direction.md 定义：旁白 → 节奏谱 → film:music → 小节分镜 → 画面 → 音效 → animatic。
 `capabilities/rhythm` 提供纯函数和 hooks：beat pulse、旁白区间、L1 缩放、bar camera 与 impact；

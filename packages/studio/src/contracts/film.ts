@@ -216,7 +216,7 @@ export type FilmMusicTrack = z.infer<typeof FilmMusicTrackSchema>;
 
 export const FilmMusicSpecSchema = z
   .object({
-    /** studio-v2 score recipe without fps; the film fps is injected. */
+    /** studio-v3 (or compatible studio-v2) score without fps; injected from film. */
     score: z.record(z.string(), z.unknown()).optional(),
     /** A registered, licensed audio file instead of a synthesized score. */
     track: FilmMusicTrackSchema.optional(),

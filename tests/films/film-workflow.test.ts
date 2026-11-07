@@ -617,7 +617,7 @@ test("film sfx CLI freezes a licensed plan in the registry and check rejects sta
     JSON.parse(await readFile(join(paths.delivery, "publish.json"), "utf8")),
   );
   assert.deepEqual(published.attributions, [
-    "arrive: original sound effect synthesized by AXMORF Studio film-sfx-v1 (Apache-2.0)",
+    "arrive: original sound effect synthesized by AXMORF Studio film-sfx-v2 (Apache-2.0)",
   ]);
 });
 
@@ -829,6 +829,17 @@ test("film:new can decide bookends per film without touching the Workspace defau
     const spec = JSON.parse(
       await readFile(filmPaths(root, filmId).spec, "utf8"),
     );
+    assert.equal(spec.music.score.engine, "studio-v3");
+    assert.equal(spec.music.volume, 0.64);
+    assert.equal(spec.music.underSpeechVolume, 0.34);
+    const { generateScore } =
+      await import("../../scripts/films/score/synth-score.mjs");
+    const starter = generateScore({
+      ...spec.music.score,
+      fps: spec.render.fps,
+      durationInFrames: spec.timeline.durationInFrames,
+    });
+    assert.ok(starter.audio.length > 44);
     return [spec.bookends.intro, spec.bookends.outro];
   };
   assert.deepEqual(await bookendsOf("explainer-film"), [

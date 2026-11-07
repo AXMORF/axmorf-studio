@@ -1,5 +1,32 @@
 # Iteration Status
 
+## P8 studio-v3 音色与默认流程（2026-11-08，未发布）
+
+已移植声音实验室的合成做法：分层 kick click/body、snare 噪声/音高体、开合 hat、鼓 fill、咬合 bass、调内 pad/pluck、
+短房间卷积、3:1 RMS 总线压缩和峰值限制。Gaussian PRNG、Butterworth 与 FFT 均在 JS 内确定性执行，无新增依赖。
+保留旧 v2、bars-only 和原始引擎音频/时间线哈希。sections.from/hits/breaks/ending/bpmRange 两代引擎通用。
+
+v3 onsets 新增可选 fills/breaks {from,to} 与 accents {frame,strength}，accentFrames 一致；pulse 支持 fill/break，impact 支持强度，
+rhythm-sync 识别新增重音。单测从 PCM 实测 24/30/59/120fps 起音、fill、数字零 break 和母带后起音，0 帧误差。
+原 loudnorm 会预振铃使 f30 kick 的第一非零采样落到 f29；v3 独立测量 R128 后线性缩放原 PCM，v2 母带不变。
+没有移植离线旁白侧链，仍由 FilmSoundtrack 逐句 duck 一次。
+
+film-sfx-v2 对未显式 pitch 的 chime/shimmer/swell/riser/impact/thud/tick 读取 score tonic/mode，对齐基音或滑音落点到主音。
+显式 pitch（含 0）与噪声拟音保持原样；旧 v1 指纹、PCM、许可按 v1 核验，检查不因版本升级强制重生成。
+新片脚手架和两份共享 Skill/两份发现入口改用 v3，推荐显式 .64/.34；旧 schema 隐式 .24/.09 不变。
+30 秒教学谱 + 现有 -16 LUFS 旁白 + 三条 SFX（intensity .18–.30），实测讲述低 14.0 LU、开场/收尾低 7.1/7.9 LU，
+混音 -3.6 dBTP。MusicSyncGallery 使用独立 v3 fixture id，保护既有工程预览。
+
+校准入口：`node --import tsx scripts/films/score/calibrate-v3.ts <existing-voice.wav> <timing.json> <output-dir>`。
+不调用 TTS，输入素材只读；样例是教学谱的 30 秒母带配乐，播放音量尚未乘入。主观质感仍需用户试听。
+
+**验证**：完整 `npm run check` 退出 0：509 项，508 通过、1 项 macOS 专属测试在 Linux 跳过、0 失败；
+含类型、lint、文档、音频种子、Web/Remotion 构建、creator 包和宿主 compositions。另与 29b2c3e 独立加载的引擎比较
+原始/手写原始编曲、v2 bars-only、v2 storyboard 共 10 组，原始 WAV、时间线和母带 WAV 均逐字节相同。
+真实浏览器 v3 校准各 20 份完整遥测：合规计划四项 5/5，0 条提示；移除 f150 impact 后恰好新增 1 条
+f150 accent-without-visual。没有场景轨的旧规则仍为 unknown，不作通过。工程预览和原始测量在 out/p8-v3-validation/ 与
+.axmorf/v3-calibration/；两次母带 MD5 一致，30 秒样例 MD5 为 eea849cd3dad86d6334a9b4fd79e9b8a。
+
 ## BPM 自动选择修正（2026-11-08，未发布）
 
 `bpmRange` 仍扫描 0.01 BPM 网格、端点与中点，先筛选所有 section 锚点残差都在 ±3 帧内的候选，
