@@ -760,6 +760,17 @@ export const FilmMotionReviewSchema = z.strictObject({
     ),
     denseSkipped: ReviewFrameSchema,
     animatic: z.string().nullable(),
+    "strong-accent-strip": z
+      .array(
+        z.strictObject({
+          frame: ReviewFrameSchema,
+          strength: z.number().min(0.9).max(1),
+          frames: z.array(ReviewFrameSchema).min(1),
+          image: z.string(),
+          message: z.string(),
+        }),
+      )
+      .optional(),
     energy: z
       .strictObject({
         json: z.string(),

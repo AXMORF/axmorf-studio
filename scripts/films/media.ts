@@ -223,12 +223,14 @@ export const renderContactSheet = ({
   compositionId,
   propsPath,
   outputPath,
+  timeoutMs,
   runProcess = runMediaProcess,
 }: {
   readonly rootDir: string;
   readonly compositionId: string;
   readonly propsPath: string;
   readonly outputPath: string;
+  readonly timeoutMs?: number;
   readonly runProcess?: ProcessRunner;
 }) =>
   remotion(
@@ -244,4 +246,6 @@ export const renderContactSheet = ({
     ],
     "Building the contact sheet",
     runProcess,
+    "error",
+    timeoutMs,
   );

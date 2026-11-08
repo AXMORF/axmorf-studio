@@ -46,6 +46,10 @@ import {
 } from "./motion";
 import { animaticReminder, filmHasLegacyAudio } from "./motion-files";
 import { analyzeMotionEnergy, decodeMotionEnergy } from "./motion-energy";
+import {
+  renderStrongAccentStrips,
+  STRONG_ACCENT_STRIP_CELL_WIDTH,
+} from "./strong-accent-strips";
 
 export type ReviewFrame = Readonly<{ frame: number; reason: string }>;
 
@@ -401,7 +405,7 @@ export const runFilmReview = async ({
       repetitionWarnings,
       ...readability,
       ...motion,
-      next: "Open the contact sheet and the frames; resolve or justify each readabilityWarning, repetitionWarning and motionWarning, and inspect missingFrames. Open the motion curve, dense frames and animatic (use --animatic to generate it); inspect motion.unknown and missingFrames. Check subject, framing, and changes on the listed sentences and accents.",
+      next: "Open the contact sheet and the frames; resolve or justify each readabilityWarning, repetitionWarning and motionWarning, and inspect missingFrames. Open the motion curve, dense frames and animatic (use --animatic to generate it); inspect motion.unknown and missingFrames. Check subject, framing, and changes on the listed sentences and accents. 必须逐张打开 motion['strong-accent-strip']，在 review-notes 按帧记录预备及数字/文字过程是否可见；整帧运动不能证明配方过程可见。",
     } as const;
   } finally {
     await rm(scratch, { recursive: true, force: true });
@@ -476,6 +480,7 @@ const sampleMotionFrames = async ({
   frames,
   timeoutMs,
   onImage,
+  scale = 0.125,
 }: {
   rootDir: string;
   compositionId: string;
@@ -483,6 +488,7 @@ const sampleMotionFrames = async ({
   frames: readonly number[];
   timeoutMs: number;
   onImage: (frame: number, path: string, index: number) => Promise<void>;
+  scale?: number;
 }) => {
   const records = [];
   let badLines = 0;
@@ -502,7 +508,7 @@ const sampleMotionFrames = async ({
       propsPath,
       outputDirectory: relative(rootDir, join(dir, "frames")),
       count: batch.length,
-      scale: 0.125,
+      scale,
       timeoutMs,
     });
     const parsed = extractMotionMeasurements(
@@ -688,6 +694,26 @@ const reviewMotion = async ({
       count: range.frames.length,
     });
   }
+  const strips = await renderStrongAccentStrips({
+    rootDir,
+    filmId,
+    scratch,
+    ...spec.render,
+    durationInFrames: timing.durationInFrames,
+    accents: music?.onsets?.accents ?? null,
+    timeoutMs,
+    renderFrames: async (frames, onImage) => {
+      await sampleMotionFrames({
+        rootDir,
+        compositionId,
+        scratch,
+        frames,
+        timeoutMs,
+        onImage,
+        scale: Math.min(1, STRONG_ACCENT_STRIP_CELL_WIDTH / spec.render.width),
+      });
+    },
+  });
   return FilmMotionReviewSchema.parse({
     motion: {
       summary: { ...analysis.summary, motionEnergy: energyAnalysis.summary },
@@ -704,6 +730,7 @@ const reviewMotion = async ({
       denseSkipped: analysis.motionWarnings.length - ranges.length,
       animatic:
         energyUnavailable === null ? workspacePath(rootDir, preview) : null,
+      "strong-accent-strip": strips,
       energy: energy
         ? {
             json: workspacePath(rootDir, energyJson),
