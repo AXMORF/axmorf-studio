@@ -343,3 +343,7 @@ pre 在落点前 6 帧由 0 蓄至 1，落点 hit 从 0 开始；shake 仅落点
 新 hook 复用 review-only 遥测，上报完整事件计划；无 review provider 不产生额外画面或声音。
 `motion.summary.rhythmSync` 的 accents/landings/sounds/bars 含 total/matched，测量不足为 null。
 四条同步 warning 与 unknown 的人工回应见 [导演手册第 9 节](direction.md#9-自检看-animatic-时逐条回答写帧号)。
+
+`motion.summary.motionEnergy.p99` 是强重音冲击阈值（p95 仅保留对照）；像素预备条件不能判断配方过程是否被隐藏。
+`motion["strong-accent-strip"]` 返回每个 strength ≥.9 重音的 `{frame, strength, frames, image, message}`，
+逐帧范围为正片 [f-8,f+4]。每张必须人工查看并在 `review-notes.md` 按帧号记录主体/数字/文字过程可见性；无提示也必须看。

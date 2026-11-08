@@ -112,8 +112,9 @@ deliveries/<film-id>/publish.json
 不确定的随机数与时间、未登记的媒体、跨片导入，以及与 `film.json` 不一致的旁白、配乐和音效计划。审美和可读性靠
 Skill 中的创作方法、animatic 与看图回路；motionWarnings 仅作提示，不拦交付；音画同步 total/matched 统计在 motion.summary.rhythmSync，缺测为 unknown。
 强重音力度与节拍段运动另用 fresh animatic 的连续全帧测量，统计在 `motion.summary.motionEnergy`；
-`accent-underplayed` 检查强重音预备和冲击，`beat-sections-static` 比较两类段落；
-全片没有 AxiomMorph 遥测时另提示 `axiom-morph-missing`，三者都只提示，缺少或过期的 animatic 为 unknown。修改作品就是修改源码后重新交付，上一版交付自动移到 `.axmorf/history/`。
+`accent-underplayed` 检查强重音整帧预备和 p99 冲击，`beat-sections-static` 比较两类段落；
+全片没有 AxiomMorph 遥测时另提示 `axiom-morph-missing`，三者都只提示，缺少或过期的 animatic 为 unknown。
+`motion["strong-accent-strip"]` 导出每个强重音的 [f-8,f+4] 逐帧联系表；必须人工确认配方过程可见，在 review-notes 按帧号记录。修改作品就是修改源码后重新交付，上一版交付自动移到 `.axmorf/history/`。
 
 ## 常用命令
 

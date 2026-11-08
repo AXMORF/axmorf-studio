@@ -15,3 +15,5 @@ description: 用 AXMORF Studio 制作或修改讲解短视频。Agent 直接编�
 L3 必须按 strength 分档；最强重音要有全片最大主体动作和镜头冲击，节拍段 L1/L2 幅度高于讲述段。具体幅度与自检读共享 `references/direction.md`。
 
 最强重音之前必须有至少 6 帧可见预备，不能藏起配方过程；旁白有旧公理或新公理候选时必须用 AxiomMorph，没有就说明理由。
+
+强重音冲击按 p99 审片；必须逐张看所有 `motion["strong-accent-strip"]`，在 review-notes 按帧号记录配方过程是否可见，不能用整帧像素运动代替人工确认。

@@ -92,11 +92,15 @@ accent-without-visual、visual-without-sound、sound-without-visual、bar-withou
 力度分析独立于稀疏遥测：对 fresh animatic 的正片连续全帧用 Workspace FFmpeg 解码，排除品牌片头片尾；
 160×90 灰度的相邻帧 MAD 记为 E[f]（f 与 f-1 之差），不伪造首帧能量。
 FFmpeg 用已有 trim / lossless PNG，逐张读取，单次解码上限 120 秒，不新增依赖。
-`motion.summary.motionEnergy` / `motion.energy` 给出 p95、强重音峰值、讲述/非旁白段中位数及逐帧 JSON 路径。
+`motion.summary.motionEnergy` / `motion.energy` 给出 p99（冲击判据）、p95（历史对照）、强重音峰值、讲述/非旁白段中位数及逐帧 JSON 路径。
 `accent-underplayed` 对 strength ≥.9 重音分别检查预备和冲击：[f-8,f-1] 至少 6 帧能量严格大于全片中位数 2 倍，
-且 [f-1,f+3] 峰值不低于 p95；不满足时 message 区分“缺预备”/“冲击不够”，同一重音只发一条，可同时包含两原因。
+且 [f-1,f+3] 峰值不低于 p99；不满足时 message 区分“缺预备”/“冲击不够”，同一重音只发一条，可同时包含两原因。
 summary 另含 median、anticipationThreshold 与各重音 anticipationFrames。窗口/帧数/倍率有注释常量；
-全画面能量可能来自其他物体或镜头，不等同于主体过程可见，仍需看图。
+全画面预备像素条件只检查整帧运动，可能来自其他物体或镜头，不等同于主体过程可见。
+`motion["strong-accent-strip"]` 为每个 strength ≥.9 重音导出正片 [f-8,f+4] 的逐帧联系表，记录 frame/strength/frames/image/message；
+与是否触发提示无关，无 animatic 时也从片源渲染；借用现有 contact-sheet Still 和 48 帧分批 review renderer，重叠区间只渲染一次。
+每格标明正片帧号，每张三列、480px 单格，图片和 metadata 只留在 ignored 的 review/public，缺帧报错，不伪造联系表。
+Skill 强制逐张人工确认预备与数字/文字过程可见，并在 review-notes 按帧记录结论；该人工要求不变成交付 gate。
 `beat-sections-static` 提示非旁白中位数不高于讲述段。
 `axiom-morph-missing` 在完整遥测中完全缺 AxiomMorph 时提醒一次，任一时段有该配方遥测就不提醒；
 缺失/截断且未发现母题时保持 unknown，不猜测旁白关键词。Skill 的旧公理/新公理候选必须用 AxiomMorph 要求不变。

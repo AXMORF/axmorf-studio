@@ -88,6 +88,8 @@ Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐�
     ```
     打开输出的 `contact-sheet.jpeg` 和单帧图片，按 [导演手册第 9 节](references/direction.md#9-自检看-animatic-时逐条回答写帧号) 逐条回答并写下帧号证据，
     修改后再次审片。输出里的 `stillWarnings` 列出相隔 2 秒以上却几乎没变的帧，必须改或说明理由。
+    **每个 strength ≥0.9 重音都必须逐张打开 `motion["strong-accent-strip"]` 的连续小图**，确认预备至少 6 帧可见，
+    数字/文字变化过程没有被藏起来只露出终值；在 `review-notes.md` 按帧号记录结论与小图路径。像素预备或 p99 通过不替代这项人工检查。
     `readabilityWarnings` 提示实测字号过小、文字越界、被字幕或前景遮挡；必须为空，或逐条给出理由。
     `repetitionWarnings` 只统计没有旁白的时段，提示同一画面在开场、转场、高潮里反复出现；同样逐条修改或说明理由。
     `readability` 中的 `missingFrames`、`truncatedFrames` 不为空时，补看对应单帧，不把测量缺失当作通过。这些提示不拦截交付。

@@ -1,5 +1,32 @@
 # Iteration Status
 
+## P8 p99 判据与强重音连续小图（2026-11-08，未发布）
+
+按方案负责人修订，强重音冲击门槛改为线性 p99：要进入全片（含转场）最大动作之列。
+MOTION_ENERGY_ACCENT_PERCENTILE=.99 有注释和回归；summary.motionEnergy.p99 为判据，p95 保留作旧报告对照。
+像素预备仍按 [f-8,f-1] 至少 6 帧严格 > 全片中位数 2 倍，只检查整帧运动；message 和 Skill 明确不能据此判断具体配方过程是否被隐藏。
+
+`film:review` 新增 `motion["strong-accent-strip"]`：每个 strength ≥.9 重音返回 frame/strength/frames/image/message，
+无论有无告警，均导出 [f-8,f+4] 正片逐帧联系表（边界截断）。复用原 contact-sheet Still 与现有分批 review renderer，
+不借稀疏采样、36 格联系表或 6fps 预算代替；重叠帧只渲染一次，缺帧报错，无 animatic 时仍能从当前片源导出。
+两份共享 Skill/方向/API 与两份发现入口同步：每张必须人工逐格确认预备、数字/文字过程可见，在 review-notes 按帧号记录结论；
+p99/像素预备通过也不能跳过。AxiomMorph 必须规则及缺席提醒未改，以上仍不拦交付。
+
+**校准**：v4 2632 个正片差分，p99=21.706276、p95=4.693455；f490/f2100/f2310/f2590 峰值为
+6.278472/4.869653/6.224306/2.443472，四个均报“冲击不够”，另有 beat-sections-static，共 5 条、0 unknown。
+gallery p99=32.286433，f30/f150/f270 峰值 124.747361/125.405625/119.236389，预备 6/8/6，能量提示 0、unknown 0。
+v4 四张、gallery 三张强重音小图均已逐张看图；f490 的 f482–487 仍“约22亿”，f488 才切出近终值 $21,024，
+f489 $21,036，f490 $21,038，确认金额过程只有两帧提前可见，不能把像素预备 8/8 当作过程可见。
+抽图解码 v4 3172ms、gallery 862ms。图在 `out/films/v4-strong-accent-calibration/review/strong-accent-strips/f490.jpeg`，
+全部逐格结论与路径在 `out/p8-impact-validation/p99-review-notes.md`，数值在 p99-v4-results.json / p99-gallery-results.json。
+此修订已按正式决定解决上一阶段的验收矛盾，下面原 p95 阶段的待决状态仅为历史记录。
+
+**验证**：完整 `npm run check` 退出 0：530 项测试，529 通过、1 项 macOS 专属测试在 Linux 跳过、0 失败；
+类型、lint、文档/音频、Web/Remotion 构建、creator 包和宿主 compositions 全通过。新增 p99 与连续小图 5 项回归。
+43 项定向测试、5 项 Skill 编译/同步测试与 Skill 规范验证通过。三个既有 still（MusicSyncGallery f150、SceneTrackGallery f45、
+Recipe-CameraMove f45）再次与初始基线逐字节相同；本轮没有改任何 Remotion 视觉源码或既有交付。
+未安装依赖、未改 lockfile/版本/node_modules、未 push/publish/merge。详细交付说明末尾的“判据修订”记录数值、路径及人工结论。
+
 ## P8 追加预备动作与母题提醒（2026-11-08，未发布）
 
 `accent-underplayed` 对 strength ≥.9 增加预备判据：[f-8,f-1] 至少 6 帧能量严格 > 全片中位数 2 倍；
