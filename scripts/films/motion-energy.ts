@@ -13,9 +13,10 @@ export const MOTION_ENERGY_WIDTH = 160;
 export const MOTION_ENERGY_HEIGHT = 90;
 // A single decode must finish within two minutes; fail visibly, without a retry.
 export const MOTION_ENERGY_TIMEOUT_MS = 120_000;
-// Strong accents must reach at least the film's linearly interpolated p95.
+// Strong accents belong among the film's largest actions, including transitions.
+// v4's p95 (~4.69) let weak reveals pass; linear p99 (~22) reflects that hierarchy.
 export const MOTION_ENERGY_STRONG_ACCENT = 0.9;
-export const MOTION_ENERGY_ACCENT_PERCENTILE = 0.95;
+export const MOTION_ENERGY_ACCENT_PERCENTILE = 0.99;
 // Inclusive landing window. This diagnoses magnitude, not the exact-sync requirement.
 export const MOTION_ENERGY_WINDOW_BEFORE = 1;
 export const MOTION_ENERGY_WINDOW_AFTER = 3;
@@ -181,14 +182,14 @@ export const analyzeMotionEnergy = ({
       });
     return { motionWarnings, unknown, summary: null };
   }
-  const p95 = motionEnergyQuantile(
-    samples.map((s) => s.difference),
+  const differences = samples.map((s) => s.difference);
+  // Retain p95 as a descriptive comparison for earlier reports, never as the gate.
+  const p95 = motionEnergyQuantile(differences, 0.95)!;
+  const p99 = motionEnergyQuantile(
+    differences,
     MOTION_ENERGY_ACCENT_PERCENTILE,
   )!;
-  const median = motionEnergyQuantile(
-    samples.map((s) => s.difference),
-    0.5,
-  )!;
+  const median = motionEnergyQuantile(differences, 0.5)!;
   const anticipationThreshold =
     median * MOTION_ENERGY_ANTICIPATION_MEDIAN_MULTIPLIER;
   const strongAccents =
@@ -222,16 +223,16 @@ export const analyzeMotionEnergy = ({
               .filter((s) => s.difference > anticipationThreshold).length;
             const missingAnticipation =
               anticipationFrames < MOTION_ENERGY_ANTICIPATION_MIN_FRAMES;
-            const weakImpact = peak < p95;
+            const weakImpact = peak < p99;
             const reasons = [
               ...(missingAnticipation
                 ? [
-                    `缺预备：[f-8,f-1] 仅 ${anticipationFrames} 帧能量 > ${anticipationThreshold.toFixed(3)}（全片中位数 ${median.toFixed(3)} × ${MOTION_ENERGY_ANTICIPATION_MEDIAN_MULTIPLIER}），至少需要 ${MOTION_ENERGY_ANTICIPATION_MIN_FRAMES} 帧可见预备`,
+                    `缺预备：[f-8,f-1] 仅 ${anticipationFrames} 帧能量 > ${anticipationThreshold.toFixed(3)}（全片中位数 ${median.toFixed(3)} × ${MOTION_ENERGY_ANTICIPATION_MEDIAN_MULTIPLIER}），至少需要 ${MOTION_ENERGY_ANTICIPATION_MIN_FRAMES} 帧整帧运动`,
                   ]
                 : []),
               ...(weakImpact
                 ? [
-                    `冲击不够：[f-1,f+3] 峰值 ${peak.toFixed(3)} < 全片 p95 ${p95.toFixed(3)}`,
+                    `冲击不够：[f-1,f+3] 峰值 ${peak.toFixed(3)} < 全片 p99 ${p99.toFixed(3)}`,
                   ]
                 : []),
             ];
@@ -248,7 +249,7 @@ export const analyzeMotionEnergy = ({
                   ),
                   weakImpact ? to : Math.max(0, accent.frame - 1),
                 ],
-                message: `强重音 f${accent.frame}（strength ${accent.strength}）：${reasons.join("；")}。核对主体可见性、动作与镜头冲击。`,
+                message: `强重音 f${accent.frame}（strength ${accent.strength}）：${reasons.join("；")}。像素预备条件仅检查整帧运动，无法判断配方过程是否被隐藏；逐张查看 strong-accent-strip，在 review-notes 按帧记录主体过程是否可见。`,
               });
             return { ...accent, peak, anticipationFrames };
           });
@@ -287,6 +288,7 @@ export const analyzeMotionEnergy = ({
     summary: {
       sampledFrames: samples.length,
       p95,
+      p99,
       median,
       anticipationThreshold,
       strongAccents,

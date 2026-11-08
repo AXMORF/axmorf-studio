@@ -685,6 +685,7 @@ export const FilmMotionReviewSchema = z.strictObject({
         .strictObject({
           sampledFrames: ReviewFrameSchema,
           p95: z.number().nonnegative(),
+          p99: z.number().nonnegative().optional(),
           median: z.number().nonnegative().optional(),
           anticipationThreshold: z.number().nonnegative().optional(),
           strongAccents: z

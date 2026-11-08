@@ -16,6 +16,7 @@ import {
   MOTION_ENERGY_ANTICIPATION_MIN_FRAMES,
   MOTION_ENERGY_ANTICIPATION_MEDIAN_MULTIPLIER,
   MOTION_ENERGY_ANTICIPATION_WINDOW,
+  MOTION_ENERGY_ACCENT_PERCENTILE,
 } from "../../scripts/films/motion-energy";
 
 const size = MOTION_ENERGY_WIDTH * MOTION_ENERGY_HEIGHT;
@@ -55,9 +56,34 @@ test("motion energy is consecutive 160x90 luma MAD with no fictitious first samp
 
 test("percentiles match NumPy linear interpolation, including even medians", () => {
   assert.equal(motionEnergyQuantile([0, 10], 0.95), 9.5);
+  assert.equal(motionEnergyQuantile([0, 10], 0.99), 9.9);
   assert.equal(motionEnergyQuantile([1, 5, 3, 9], 0.5), 4);
   assert.equal(motionEnergyQuantile([2], 0.95), 2);
   assert.equal(motionEnergyQuantile([], 0.95), null);
+});
+
+test("strong accents must reach p99 rather than the weaker p95, including transition spikes", () => {
+  assert.equal(MOTION_ENERGY_ACCENT_PERCENTILE, 0.99);
+  const values: number[] = Array(200).fill(1);
+  for (let i = 0; i < 8; i++) values[i] = 20;
+  values[199] = 100;
+  for (let frame = 72; frame <= 77; frame++) values[frame - 1] = 3;
+  values[79] = 10;
+  const result = analyze(values);
+  assert.ok(Math.abs(result.summary!.p95 - 3.35) < 1e-9);
+  assert.equal(result.summary?.p99, 20);
+  const warning = result.motionWarnings.find(
+    (w) => w.rule === "accent-underplayed",
+  )!;
+  assert.match(warning.message, /冲击不够.*p99/u);
+  assert.doesNotMatch(warning.message, /缺预备/u);
+  assert.match(warning.message, /无法判断配方过程是否被隐藏/u);
+  assert.match(warning.message, /strong-accent-strip.*review-notes/u);
+  values[79] = 20; // Equality with p99 passes.
+  assert.equal(
+    analyze(values).motionWarnings.some((w) => w.rule === "accent-underplayed"),
+    false,
+  );
 });
 
 test("strong-accent threshold is inclusive .9; peaks use exactly [f-1,f+3]", () => {
@@ -138,7 +164,7 @@ test("preparation requires six frames strictly above 2x median inside [f-8,f-1]"
   for (const frame of [72, 79]) {
     const bad = [...prepared];
     bad[frame - 1] = 2; // Equality is insufficient.
-    bad[70] = 100; // f71 lies outside the preparation window.
+    bad[70] = 3; // f71 lies outside the preparation window.
     const result = analyze(bad);
     const warning = result.motionWarnings.find(
       (w) => w.rule === "accent-underplayed",
