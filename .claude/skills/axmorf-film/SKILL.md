@@ -33,3 +33,5 @@ L3 必须按 strength 分档；最强重音要有全片最大主体动作和镜�
 讲述段持续极小、连续、非匀速桌面手持微移，全程非文字线稿 boil，每拍一个轮换物件反应；“停住阅读”只针对正在阅读的文字，自检连续超过 1 秒整帧不动的地方。
 
 每镜头主信息由画出来的物件、生图剪纸或图解承载；文字卡只放数字、原话与短标签，不能单独撑镜头。标注可选 data-axmorf-object-kind="illustration|diagram|prop|card"（默认 prop），按共享正文解释类型，回应 text-card-only 的连续采样帧段。
+
+纸面风格在本片 film.json 显式写 bookends.theme="light"，storyboard 风格声明写明主题并与正片一致；字段与例子见共享纸面配方，film:new 不改。

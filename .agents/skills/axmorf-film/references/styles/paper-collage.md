@@ -28,6 +28,28 @@ Noto CJK 的许可为 SIL Open Font License 1.1，本机包的许可声明在 `/
 标题要有手写感；没有许可清楚且已安装的中文手写字体，就用 Noto 加轻微旋转贴在纸条上。正文标签写在纸条/便利贴上，
 旋转不超过 3°，对比与手机可读性照常核对；阅读时固定，不让文字随线稿 boil。
 
+## 片头片尾主题
+
+纸面风格的片头、片尾默认选 **light**，与浅纸正片一致。storyboard 开头的风格声明必须写明 `bookends: light`；
+用户明确指定其他主题时记录主题和内容理由，仍须核对片头、正片、来源页和品牌片尾的一致性。
+当前 `film.json` 的 `bookends.theme` 只接受 `"dark"`、`"light"`，同时控制片头和片尾，不支持分开设置。
+省略 theme 的合同默认值是 dark，`film:new` 脚手架也仍写 dark；建好纸面片后主动在本片改成 light，不改 Workspace 默认或脚手架。
+保留既有 intro/outro 与 sources，下面是字段位置示例：
+
+```json
+{
+  "bookends": {
+    "intro": "axmorf-brand-reveal-v1",
+    "outro": "axmorf-source-follow-v1",
+    "theme": "light",
+    "sources": []
+  }
+}
+```
+
+有来源时照实填入 sources；不要复制空数组抹掉已有来源。只有用户明确不要品牌片头片尾时才把相应 intro/outro 设为 null。
+审片时同时检查片头、来源页和最终品牌帧，不能只看正片联系表。
+
 ## 桌面镜头与转场
 
 像在桌面上俯拍一张大拼贴，用 `ProducerWorldCamera` 沿纸面证据的因果移动，先写纸片坐标再设计镜头。

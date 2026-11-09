@@ -31,6 +31,7 @@ Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐�
    `film:new` 按 Workspace 配置写入 `bookends`：系统会在正片前后自动接上品牌片头（2 秒）和片尾（8 秒，先列出
    `bookends.sources` 里的参考来源，再显示品牌）。不要在正片里再做品牌开场或结尾；只有用户明确不要时才把
    `intro`/`outro` 设为 `null`。`Film.tsx` 里的帧号只计正片，交付时长 = 片头 + 正片 + 片尾。
+   纸面风格在建片后把本片 `bookends.theme` 明确改为 `"light"`，在 storyboard 风格声明中写明主题并与正片一致，详见纸面配方。
    没有旁白、由音乐驱动的片（MV、OP、纯视觉短片）在构思时先问用户要不要品牌片头片尾：不要就建片时加
    `--bookends none`，要但 Workspace 默认没开就加 `--bookends both`。这只决定本片，不改 Workspace 默认；有旁白的片照旧。
 4. **写剧本** `src/films/<filmId>/film.json`：
