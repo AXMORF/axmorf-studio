@@ -1,16 +1,62 @@
+import {
+  pickRhythmResponse,
+  useBoilSeed,
+  useRhythmResponse,
+} from "@axmorf/studio/remotion";
 import { AbsoluteFill, interpolate, random, useCurrentFrame } from "remotion";
 
 const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
 const INK = "#45403a";
+const RESPONSES = ["paper-lift", "stamp", "pen-circle"] as const;
+const PLAN = [0, 60, 120].map((frame, bar) => ({
+  frame,
+  kind: pickRhythmResponse(bar, RESPONSES, { seed: 3 }),
+}));
+const at = (kind: (typeof RESPONSES)[number]) =>
+  PLAN.find((event) => event.kind === kind)!.frame;
 
 /** Paper desk: receipt, pen and approval stamp; labels stay on a stable plane. */
 export const PaperCollageExample = () => {
   const frame = useCurrentFrame();
-  const drawing = Math.floor(frame / 3);
+  const drawing = useBoilSeed({ frame: Math.min(frame, 57), stepFrames: 3 });
+  useRhythmResponse({
+    object: "胶带固定的用电纸账单",
+    kind: "paper-lift",
+    frames: [at("paper-lift")],
+  });
+  useRhythmResponse({
+    object: "账单手绘边线",
+    kind: "line-boil",
+    frames: Array.from({ length: 20 }, (_, i) => i * 3),
+  });
+  useRhythmResponse({
+    object: "表示已核对的实物印章",
+    kind: "stamp",
+    frames: [at("stamp")],
+  });
+  useRhythmResponse({
+    object: "红笔圈出换算后的金额",
+    kind: "pen-circle",
+    frames: [at("pen-circle")],
+  });
   const wobble = (random(`receipt-outline-${drawing}`) - 0.5) * 2;
-  const lift = frame < 16 ? Math.sin((frame / 16) * Math.PI) * 5 : 0;
-  const stamp = interpolate(frame, [54, 60, 64, 70], [-55, 4, -3, 0], clamp);
-  const circle = interpolate(frame, [120, 136], [0, 1], clamp);
+  const liftFrame = frame - at("paper-lift");
+  const lift =
+    liftFrame >= 0 && liftFrame < 16
+      ? Math.sin((liftFrame / 16) * Math.PI) * 5
+      : 0;
+  const stamp = interpolate(
+    frame,
+    [at("stamp") - 6, at("stamp"), at("stamp") + 4, at("stamp") + 10],
+    [-55, 4, -3, 0],
+    clamp,
+  );
+  const circle = interpolate(
+    frame,
+    [at("pen-circle"), at("pen-circle") + 16],
+    [0, 1],
+    clamp,
+  );
   return (
     <AbsoluteFill style={{ background: "#f5edda" }}>
       <svg width="100%" height="100%" viewBox="0 0 960 540">
@@ -134,16 +180,16 @@ export const PaperCollageExample = () => {
             strokeDashoffset={650 * (1 - circle)}
           />
         </g>
-        <g data-axmorf-object="核对金额的红笔" transform="rotate(-12 695 225)">
+        <g data-axmorf-object="核对金额的红笔" transform="rotate(-12 695 180)">
           <path
-            d="M550 211H790L819 225L790 239H550Z"
+            d="M550 166H790L819 180L790 194H550Z"
             fill="#b34d3c"
             stroke="#fffaf0"
             strokeWidth={6}
             filter="url(#paper-shadow)"
           />
           <path
-            d="M557 214H788L809 225L788 236H557ZM789 215L791 235"
+            d="M557 169H788L809 180L788 191H557ZM789 170L791 190"
             fill="none"
             stroke={INK}
             strokeWidth={2}
@@ -151,8 +197,8 @@ export const PaperCollageExample = () => {
         </g>
         <g
           data-axmorf-object="表示已核对的实物印章"
-          opacity={frame >= 54 ? 1 : 0}
-          transform={`translate(0 ${stamp}) translate(0 ${frame >= 60 && frame < 64 ? 5 : 0})`}
+          opacity={frame >= at("stamp") - 6 ? 1 : 0}
+          transform={`translate(0 ${stamp}) translate(697 391) scale(${frame >= at("stamp") && frame < at("stamp") + 4 ? "1.04 .9" : "1 1"}) translate(-697 -391)`}
         >
           <path
             d="M663 343V318Q663 289 697 289Q731 289 731 318V343ZM632 348H761V391H632Z"

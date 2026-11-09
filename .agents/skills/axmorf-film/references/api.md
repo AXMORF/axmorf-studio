@@ -247,6 +247,15 @@ const { width, height } = useVideoConfig();
 
 其他镜头工具：`ProducerCamera2D`、`ProducerCamera3D`、`ProducerLayeredStage`、`ProducerFocusPull`。
 
+## 节奏反应
+
+`pickRhythmResponse(barIndex, responses, {seed?})` 返回确定性轮换的kind或空词库的null；去重后不足2种无法轮换时抛错。
+`resolveBoilSeed(frame, {fps?, stepFrames?, beats?})` 返回描边索引；默认fps30、步长round(fps/12)，beats传入时仅按其拍点切换，空网格不动。
+`useBoilSeed({stepFrames?, beats?, frame?})` 取composition fps，支持正片frame覆盖。
+`useRhythmResponse({object, kind, frames, scope?})` 上报物件动作；scope默认object，全局效果用global；预留global-light/global-scale/breath-scale不会被当作物件动作。
+`useBreathScale(options?)` 返回与resolveBreathScale一致的补充全局缩放并上报global-scale，旧纯函数行为/像素不变。
+都从 rhythm 公共入口导出，按 [导演手册](direction.md#42-l1-反应词库与轮换) 组织章节轮换。审片只提示，不拦交付。
+
 ## 运动
 
 - `snapProducerFrameToBeat(frame, grid, { maxShiftFrames, minFrame, maxFrame })`：把落点吸附到最近的拍，超出窗口时保留原帧。

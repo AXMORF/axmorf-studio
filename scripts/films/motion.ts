@@ -10,6 +10,7 @@ import {
 import type { z } from "zod";
 import type { FilmMotionWarningSchema } from "@axmorf/studio/contracts";
 import { meanAbsoluteDifference } from "./frame-compare";
+import { analyzeBeatResponses } from "./beat-response";
 import { analyzeRhythmSync, type RhythmSyncMusic } from "./rhythm-sync";
 
 type Warning = z.infer<typeof FilmMotionWarningSchema>;
@@ -452,6 +453,14 @@ export const analyzeMotion = ({
     durationInFrames,
     legacyAudio,
   });
+  const responses = analyzeBeatResponses({
+    events,
+    complete,
+    music,
+    durationInFrames,
+  });
+  motionWarnings.push(...responses.motionWarnings);
+  unknown.push(...responses.unknown);
   motionWarnings.push(...sync.motionWarnings);
   unknown.push(...sync.unknown);
   return {
@@ -473,6 +482,7 @@ export const analyzeMotion = ({
     unknown,
     summary: {
       rhythmSync: sync.summary,
+      beatResponses: responses.summary,
       sampledFrames: curve.samples.length,
       sceneCount: scenes.length,
       cueCount: new Set(cues.map((c) => JSON.stringify(c))).size,

@@ -119,6 +119,9 @@ Skill 中的创作方法、animatic 与看图回路；motionWarnings 仅作提�
 `graphicWarnings` 提示主体包围盒重叠 >15%、同帧主体超过 3 个、未标注图形包围盒面积总和 >10%；
 用原生元素的 `data-axmorf-object` 说明物体含义，可选角色 subject/relation/background。`graphics.frames` 列出逐帧标注，
 辅助静音描述；转场照报，`graphics.unknown` 不算通过。复用审片采样，仅提示、不拦交付，不自动选择影片风格。
+用户或 Workspace 指定纸面拼贴/手绘线稿时，Skill 提供对应配方、已安装字体回退和可编译 gallery。
+节拍反应落在具体物件上，每章至少三类、相邻小节轮换；`beat-response-monotone` 与 `motion.summary.beatResponses`
+区分物件动作和 global 光闪/缩放，缺遥测为 unknown，仅提示。轮换、boil seed 与上报 API 从 rhythm 导出。
 `motion["strong-accent-strip"]` 导出每个强重音的 [f-8,f+4] 逐帧联系表；必须人工确认配方过程可见，在 review-notes 按帧号记录。修改作品就是修改源码后重新交付，上一版交付自动移到 `.axmorf/history/`。
 
 ## 常用命令

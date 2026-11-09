@@ -82,6 +82,10 @@ film-sfx-v2 将隐式音高的音效对齐到 score 主音；显式 pitch 保留
 机位原生使用世界 center/zoom，通过 barCameraShots 固定视差锚点接入 ProducerWorldCamera。
 impact 返回当前重音 strength，旧包络数值不变；resolveImpactLevel 按 <.5 / [.5,.9) / ≥.9 提供单调的三档
 镜头/主体/shake/可选闪光/粒子幅度，强档主体 1.12、镜头 zoom 增量 .12、shake 16px。具体主体动作由创作者设计。
+rhythm 另导出pickRhythmResponse（确定性不相邻重复的动作循环）、resolveBoilSeed/useBoilSeed（按绘制步长或拍点换seed）、
+useRhythmResponse（object/kind/frames/scope遥测）和可选useBreathScale（明确上报global-scale）。旧纯函数和旧像素输出不变。
+审片按连续chapter/scene或score sections统计物件动作，少于3类/只有global触发beat-response-monotone；
+缺上报、边界、完整测量为unknown，不从旧pulse猜测主体动作。summary.beatResponses列出物件、kind和globalKind，仅作提示。
 所有事件计正片，在根调用 hooks；Sequence 内可显式传根 frame。旧片不主动使用新 hooks，动画输出不变。
 次级运动使用合成事件 onsets；可选 `useFilmMusicEnergy` 只读本地 WAV，以对数能量驱动辉光，主要落点不依赖频谱检测。
 原有揭示前的 musicDips 与运行时 ending 收音保持兼容。`mask-wipe` 是羽化光带，可用 `tint` 调色，不改变边界时序。

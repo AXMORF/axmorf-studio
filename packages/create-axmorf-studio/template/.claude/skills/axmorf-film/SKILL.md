@@ -25,3 +25,5 @@ L3 必须按 strength 分档；最强重音要有全片最大主体动作和镜�
 `data-axmorf-object`，关系与可辨认背景分别用 relation/background 角色；具体规则、静音描述测试与图形提示读共享正文。
 
 用户或 Workspace 指定风格时读共享正文的对应配方；纸面拼贴 / 手绘线稿见 `references/styles/paper-collage.md`。示例配色不是默认值。
+
+每章至少3种物件节拍反应，相邻小节主动作轮换；光闪和背景缩放仅作补充，文字阅读时固定。用共享节奏API上报物件/kind/frames，回应 beat-response-monotone；未上报为unknown。

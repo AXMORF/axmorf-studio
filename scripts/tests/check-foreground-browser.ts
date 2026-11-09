@@ -539,3 +539,99 @@ test("semantic graphics in a real host browser", async (context) => {
     await browser.close({ silent: true });
   }
 });
+
+test("paper collage and global-only gallery calibrate response telemetry without changing graphics hints", async (context) => {
+  const { bundle } = await import("@remotion/bundler");
+  const { getCompositions, renderStill } = await import("@remotion/renderer");
+  const { analyzeMotion, extractMotionMeasurements } =
+    await import("../films/motion");
+  const { analyzeReviewReadability } = await import("../films/readability");
+  const scratch = await mkdtemp(join(tmpdir(), "paper-response-browser-"));
+  const serveUrl = await bundle({
+    entryPoint: resolve("tests/fixtures/beat-response-root.tsx"),
+    publicDir: resolve("public"),
+    webpackOverride: (config) => ({
+      ...config,
+      resolve: {
+        ...config.resolve,
+        alias: {
+          ...config.resolve?.alias,
+          "@axmorf/studio/remotion": resolve("packages/studio/src/remotion.ts"),
+        },
+      },
+    }),
+  });
+  const browser = await openBrowser("chrome", {
+    browserExecutable: process.env.AXMORF_BROWSER_EXECUTABLE?.trim(),
+  });
+  try {
+    const compositions = await getCompositions(serveUrl, {
+      puppeteerInstance: browser,
+    });
+    for (const composition of compositions)
+      await context.test(composition.id, async () => {
+        for (const frame of composition.id === "Varied"
+          ? [0, 54, 60, 64, 70, 128, 179]
+          : [0]) {
+          const logs: string[] = [];
+          await renderStill({
+            serveUrl,
+            composition,
+            frame,
+            output: join(scratch, `${composition.id}-${frame}.png`),
+            imageFormat: "png",
+            puppeteerInstance: browser,
+            logLevel: "error",
+            onBrowserLog: (log) => logs.push(log.text),
+          });
+          const output = logs.join("\n");
+          const parsed = extractMotionMeasurements(output);
+          assert.equal(parsed.badLines, 0);
+          const motion = analyzeMotion({
+            records: parsed.records,
+            frames: [frame],
+            curve: {
+              fps: 30,
+              sampleSeconds: 0.5,
+              samples: [],
+              seconds: [],
+              cuts: [],
+            },
+            durationInFrames: 180,
+            fps: 30,
+            hasNarration: false,
+            legacyAudio: false,
+            music: null,
+            stillWarnings: [],
+          });
+          const responseWarnings = motion.motionWarnings.filter(
+            (w) => w.rule === "beat-response-monotone",
+          );
+          assert.equal(
+            responseWarnings.length,
+            composition.id === "Varied" ? 0 : 1,
+          );
+          assert.equal(
+            motion.unknown.filter((u) => u.rule === "beat-response-monotone")
+              .length,
+            0,
+          );
+          assert.equal(
+            motion.summary.beatResponses?.[0].kinds.length,
+            composition.id === "Varied" ? 4 : 0,
+          );
+          const graphics = analyzeReviewReadability({
+            output,
+            frames: [frame],
+            width: 960,
+            height: 540,
+          });
+          assert.deepEqual(graphics.graphics.unknown, []);
+          assert.deepEqual(graphics.graphicWarnings, []);
+        }
+      });
+  } finally {
+    await browser.close({ silent: true });
+    await rm(scratch, { recursive: true, force: true });
+  }
+});

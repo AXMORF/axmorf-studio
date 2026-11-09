@@ -658,6 +658,13 @@ export const FilmReviewMotionEventSchema = z.discriminatedUnion("type", [
     land: ReviewFrameSchema,
     settle: ReviewFrameSchema,
   }),
+  z.strictObject({
+    type: z.literal("rhythm-response"),
+    object: z.string().trim().min(1).max(160),
+    kind: z.string().trim().min(1).max(80),
+    scope: z.enum(["object", "global"]),
+    frames: z.array(ReviewFrameSchema),
+  }),
   z.strictObject({ type: z.literal("world-camera"), moving: z.boolean() }),
   z.strictObject({
     type: z.literal("rhythm"),
@@ -686,6 +693,7 @@ export const FilmMotionRuleSchema = z.enum([
   "bar-without-change",
   "accent-underplayed",
   "beat-sections-static",
+  "beat-response-monotone",
   "axiom-morph-missing", // Legacy reports only; no longer emitted.
 ]);
 export const FilmMotionWarningSchema = z.strictObject({
@@ -750,6 +758,19 @@ export const FilmMotionReviewSchema = z.strictObject({
           beatFrames: ReviewFrameSchema,
           beatMedian: z.number().nonnegative().nullable(),
         })
+        .nullable()
+        .optional(),
+      beatResponses: z
+        .array(
+          z.strictObject({
+            chapter: z.string(),
+            startFrame: ReviewFrameSchema,
+            endFrame: ReviewFrameSchema,
+            kinds: z.array(z.string()),
+            objects: z.array(z.string()),
+            globalKinds: z.array(z.string()),
+          }),
+        )
         .nullable()
         .optional(),
       rhythmSync: z

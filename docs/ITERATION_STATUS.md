@@ -1,5 +1,17 @@
 # Iteration Status
 
+## P9 D/E 纸面风格与物件节奏反应（2026-11-10，未发布）
+
+纸面拼贴/手绘线稿配方已加入四份Skill入口与creator镜像；米白/牛皮纸/笔记纸按内容选，固定seed纸纹，白边投影与深灰手绘线，
+仅主色+强调色。已查本机中文字体，未发现手写字体，示例用Noto CJK纸条回退；不使用科技舞台或无含义装饰。
+PaperCollageExample的账单/笔/印章均标注语义；图形三条提示在f0/54/60/64/70/128/179均为0，最大3主体。
+
+通用rhythm导出pickRhythmResponse、resolveBoilSeed/useBoilSeed、useRhythmResponse与可选useBreathScale。
+章节要求至少三类物件动作，相邻小节主动作轮换，文字阅读时固定；global光闪/缩放不计入物件种类，旧纯函数兼容不变。
+beat-response-monotone只提示，summary.beatResponses列出章节物件与kind，缺遥测/边界/测量保留unknown。
+真实gallery正例4类物件动作、0单调提示；global-only反例0类物件动作、1条提示，相关unknown均为0。
+定向46测试、36宿主测试、6项Skill编译/同步与实际film:check示例通过；完整check在D/E/F完成后统一执行。
+
 ## P9 图形语义与风格规则（2026-11-10，未发布）
 
 四份 Skill 同步：storyboard 开头声明风格、配色、参考方向及内容理由，不默认深色科技风；

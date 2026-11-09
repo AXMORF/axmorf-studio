@@ -18,6 +18,7 @@ import {
   resolveNarrationActive,
   resolveProducerWorldCamera,
   useBarCamera,
+  useBreathScale,
   useBeatPulse,
   useImpact,
   useNarrationActive,
@@ -297,6 +298,7 @@ test("hooks preserve no-music behavior and accept the film-root frame inside seq
   const Probe = () => {
     assert.equal(useBeatPulse({ events: [10], frame: 10 }), 0);
     assert.equal(useNarrationActive({ frame: 10 }), false);
+    assert.equal(useBreathScale({ frame: 10 }), 1);
     assert.deepEqual(useBarCamera(shots, { frame: 100 }), shots[0]);
     assert.deepEqual(
       useImpact([100, 220], { frame: 101 }),

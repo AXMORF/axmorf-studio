@@ -28,6 +28,7 @@
 | 图形语义审片 | `graphicWarnings` 提示不同 subject 的可见包围盒重叠 >15%、主体超过 3 个、未标注绘制边界面积之和 >10%；`data-axmorf-object` 表示物体含义，角色 subject/relation/background。`graphics.frames` 列逐帧标注供静音描述，缺测为 unknown；转场照报，仅提示不拦交付。 |
 | `low-contrast-text` | `readabilityWarnings` 提示：对已有审片帧的文字矩形做 4×2 实像素网格估计，任一格文字/背景 WCAG 对比度低于 3:1 即提示文字、帧号、最差位置和比值；转场/同组形变照报，像素或颜色缺失为 unknown，耗时见 `readability.contrast.analysisMs`，不拦交付。 |
 | `text-under-foreground` | `readabilityWarnings` 提示：非字幕可见文字矩形按 20×7 点浏览器真实绘制顺序测量，任一有效 opacity ≥0.3 的非字幕前景命中即提示并列帧号；排除同一最近 `data-axmorf-text-group` 内部字形互遮与 clipping 裁掉的无字区域。临时启用 pointer-events 命中并在截图前恢复，不可靠定位保留 `readability.unknown`；转场照报并标注，不拦交付。 |
+| `beat-response-monotone` | 按章节/scene或score section统计具名物件的rhythm-response；物件kind少于3类或只有global光闪/缩放就提示。summary.beatResponses列出物件、kind、globalKinds；无上报或缺测为unknown，不拦交付。 |
 | `repeated-composition` | `motionWarnings` 提示：用单一完整场景轨的边界及内部候选切点分段，取各段中点的 64×64 灰度签名，非相邻段的 MAD <12 时提示中点帧号（包含有旁白时段）；无场景轨旧片、日志或签名缺失时为 unknown。阈值待校准，不作语义判断或交付门禁。 |
 | 交付（delivery） | `deliveries/<filmId>/` 下恰好四个文件：`video.mp4`、`cover-4x3.png`、`cover-3x4.png`、`publish.json`，全部复验后才替换上一版。 |
 | 历史交付 | 被新交付替换的旧交付，按其 `deliveredAt` 存于 `.axmorf/history/<filmId>/`。 |

@@ -1,10 +1,12 @@
-import { useCurrentFrame } from "remotion";
+import { useCurrentFrame, useVideoConfig } from "remotion";
 import { useFilmTiming } from "../../film/context";
 import { useReviewMotion } from "../../film/review-motion";
+import { resolveBoilSeed, type BoilSeedOptions } from "./response";
 import {
   barCameraChangeFrames,
   resolveBarCamera,
   resolveBeatPulse,
+  resolveBreathScale,
   resolveBeatPulseEvents,
   resolveImpact,
   resolveNarrationActive,
@@ -76,4 +78,56 @@ export const useImpact = (
     frames: [...impactEventFrames(at)],
   });
   return resolveImpact(frameOverride ?? frame, at, fps, { preFrames });
+};
+
+export const useBoilSeed = ({
+  frame: frameOverride,
+  ...options
+}: Omit<BoilSeedOptions, "fps"> & RhythmFrameOptions = {}) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  return resolveBoilSeed(frameOverride ?? frame, { ...options, fps });
+};
+
+/** Report the actual object's action schedule, not every sampled animation frame.
+ * Global scale/light can never be relabeled as object variety by changing a name. */
+export const useRhythmResponse = ({
+  object,
+  kind,
+  frames,
+  scope = "object",
+}: Readonly<{
+  object: string;
+  kind: string;
+  frames: readonly number[];
+  scope?: "object" | "global";
+}>) => {
+  useReviewMotion({
+    type: "rhythm-response",
+    object,
+    kind,
+    frames: [...frames],
+    scope:
+      object === "global" ||
+      ["global-light", "global-scale", "breath-scale"].includes(kind)
+        ? "global"
+        : scope,
+  });
+};
+
+/** Optional global breathing, explicitly identified for review. For a paper lift
+ * report the named paper with useRhythmResponse instead of using this wrapper. */
+export const useBreathScale = (
+  options: BeatPulseOptions &
+    RhythmFrameOptions &
+    Readonly<{ events?: BeatPulseEvents }> = {},
+) => {
+  const pulse = useBeatPulse(options);
+  const { music } = useFilmTiming();
+  useRhythmResponse({
+    object: "global",
+    kind: "global-scale",
+    frames: resolveBeatPulseEvents(music, options.events),
+  });
+  return resolveBreathScale(pulse);
 };

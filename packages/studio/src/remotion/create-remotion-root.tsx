@@ -3,6 +3,7 @@ import { Composition, Folder } from "remotion";
 
 import { DEFAULT_SCENE_TEMPLATE_AUDIO_PROJECTION } from "./capabilities/scene-templates/registry";
 import { SceneTemplateAudioProjectionSchema } from "./capabilities/scene-templates/template-audio";
+import { BeatResponseGallery } from "./compositions/capability-gallery/BeatResponseGallery";
 import { PaperCollageExample } from "./compositions/capability-gallery/PaperCollageExample";
 import { GraphicReviewGallery } from "./compositions/capability-gallery/GraphicReviewGallery";
 import { EditorialInvoiceExample } from "./compositions/capability-gallery/EditorialInvoiceExample";
@@ -81,6 +82,26 @@ export const createRemotionRoot = (
           width={1920}
           height={1080}
         />
+        <Folder name="BeatResponses">
+          <Composition
+            id="BeatResponse-Varied"
+            component={BeatResponseGallery}
+            defaultProps={{ globalOnly: false }}
+            durationInFrames={180}
+            fps={30}
+            width={960}
+            height={540}
+          />
+          <Composition
+            id="BeatResponse-GlobalOnly"
+            component={BeatResponseGallery}
+            defaultProps={{ globalOnly: true }}
+            durationInFrames={180}
+            fps={30}
+            width={960}
+            height={540}
+          />
+        </Folder>
         <Folder name="GraphicReview">
           <Composition
             id="GraphicReview-Compliant"
