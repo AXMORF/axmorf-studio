@@ -9,8 +9,8 @@ registerRoot(() => (
       defaultProps={{ globalOnly: false }}
       durationInFrames={180}
       fps={30}
-      width={960}
-      height={540}
+      width={1920}
+      height={1080}
     />
     <Composition
       id="GlobalOnly"

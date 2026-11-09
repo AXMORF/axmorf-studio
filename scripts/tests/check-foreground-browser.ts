@@ -571,7 +571,7 @@ test("paper collage and global-only gallery calibrate response telemetry without
     for (const composition of compositions)
       await context.test(composition.id, async () => {
         for (const frame of composition.id === "Varied"
-          ? [0, 54, 60, 64, 70, 128, 179]
+          ? [0, 2, 5, 30, 39, 45, 48, 58, 90, 100, 114, 140, 153, 170, 179]
           : [0]) {
           const logs: string[] = [];
           await renderStill({
@@ -618,16 +618,26 @@ test("paper collage and global-only gallery calibrate response telemetry without
           );
           assert.equal(
             motion.summary.beatResponses?.[0].kinds.length,
-            composition.id === "Varied" ? 4 : 0,
+            composition.id === "Varied" ? 5 : 0,
           );
+          const image = await readReviewFramePixels({
+            rootDir: process.cwd(),
+            imagePath: join(scratch, `${composition.id}-${frame}.png`),
+            pixelsPath: join(scratch, `${composition.id}-${frame}-rgb.png`),
+          });
           const graphics = analyzeReviewReadability({
             output,
             frames: [frame],
-            width: 960,
-            height: 540,
+            width: composition.width,
+            height: composition.height,
+            contrastFrames: new Map([[0, { image }]]),
           });
           assert.deepEqual(graphics.graphics.unknown, []);
           assert.deepEqual(graphics.graphicWarnings, []);
+          assert.deepEqual(graphics.readability.missingFrames, []);
+          assert.deepEqual(graphics.readability.truncatedFrames, []);
+          assert.deepEqual(graphics.readability.unknown, []);
+          assert.deepEqual(graphics.readabilityWarnings, []);
         }
       });
   } finally {
