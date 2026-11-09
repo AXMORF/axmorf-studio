@@ -131,7 +131,7 @@ export const EvidenceSoundtrack = () => (
 兼容角色别名：`soft-whoosh` → `whoosh-short`，`directional-whoosh` / `signal-sweep` → `whoosh-sweep`，
 `impact-bloom` → `soft-impact`。品牌片头的 Mixkit impact 有单独许可，不把它当作上表原创短名。
 
-合成音色的质感须实际听审；技术解码通过不等于好听。若要外采，只用许可已确认并逐个登记的素材，不能下载许可不明的音频。
+合成音色的质感须由用户在手机或 Mac 上实际听审（本机不启动播放器）；技术解码通过不等于好听。若要外采，只用许可已确认并逐个登记的素材，不能下载许可不明的音频。
 
 ## 调性与旧片兼容
 

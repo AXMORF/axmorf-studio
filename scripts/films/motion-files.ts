@@ -31,7 +31,7 @@ export const animaticReminder = async (rootDir: string, filmId: string) => {
   const animatic = join(paths.review, "animatic.mp4");
   const command = `film:review -- --film ${paths.id} --animatic`;
   if (!(await exists(animatic)))
-    return `Animatic is missing; run ${command} and watch/listen before delivery (advisory only).`;
+    return `Animatic is missing; run ${command} and hand review/animatic.mp4 to a person to watch and listen on a phone or Mac before delivery; do not open a player on this host (advisory only).`;
   const preview = (await stat(animatic)).mtimeMs;
   const inputs = [
     ...(await filesWithin(paths.dir)),
@@ -42,6 +42,6 @@ export const animaticReminder = async (rootDir: string, filmId: string) => {
   ];
   for (const path of inputs)
     if ((await stat(path)).mtimeMs > preview)
-      return `Animatic is older than current film inputs; run ${command} and watch/listen again (advisory only).`;
+      return `Animatic is older than current film inputs; run ${command} again and hand review/animatic.mp4 to a person to watch and listen on a phone or Mac; do not open a player on this host (advisory only).`;
   return null;
 };

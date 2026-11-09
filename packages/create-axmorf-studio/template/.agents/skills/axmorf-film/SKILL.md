@@ -84,9 +84,10 @@ Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐�
     ```bash
     npm run film:review -- --film <filmId> --animatic
     ```
-    播放输出的 `review/animatic.mp4`，对照 `storyboard.md` 看镜头路径、因果推进、转场和停留，实际听音效与音乐落点；
-    节奏对了再精修画面。它是短边 360、原帧率、带声音的连续预览，不属于交付四件套。默认 review 不生成它，
-    成片前至少看一次；修改节奏后重新生成并复看。无法实际播放或听音时如实报告未验证，不能以联系表代替。
+    命令只生成 `review/animatic.mp4`：短边 360、原帧率、带声音的连续预览，不属于交付四件套，默认 review 不生成。
+    **本机不要启动任何播放器**（ffplay、VLC、mpv、浏览器等），也不要用 xdg-open、gio open 或自动播放打开它；在报告里写出它的路径，请用户在手机或 Mac 上连续看、听。
+    你自己对照 `storyboard.md`，用联系表、强重音连续小图和音频测量核对镜头路径、因果推进、转场、停留和落点；
+    节奏对了再精修画面，修改节奏后重新生成。实际观看与听感一律如实记为未验证，联系表不能代替。
 11. **看图迭代**（必做）：
     ```bash
     npm run film:review -- --film <filmId>
@@ -155,3 +156,7 @@ Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐�
   或直接编辑 `private/producer.config.json` 的 `renderDefaults.renderTimeoutMinutes`，然后重新交付。
 - 命令报告 “Another Workspace operation is already active” 时，等待正在运行的命令结束；不要手动删除锁文件。
 - 删除一部片只用 `npm run film:delete -- --film <filmId> --confirm-delete`，并且只在用户明确要求时执行。
+- 环境限制：不要在本机启动任何 GUI 视频或音频播放器（ffplay、VLC、mpv、mplayer、Totem、浏览器播放等），
+  也不要用 xdg-open、gio open 或自动播放绕过；部分主机上播放器会触发显卡故障。只做渲染、抽帧、
+  禁用硬件加速的软件解码（ffmpeg `-hwaccel none`）和音频测量，观看交给用户在手机或 Mac 上完成。
+  执行被拒绝时不要提权、复制二进制、换播放器或修改权限与显示后端，如实报告未验证即可。
