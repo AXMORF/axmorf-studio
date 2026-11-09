@@ -792,6 +792,27 @@ test("a registered track becomes the film's music on an authored beat grid", asy
     (await checkFilm({ rootDir: root, filmId: "track-film" })).errors,
     [],
   );
+  assert.deepEqual(await readFile(paths.musicWav), track);
+  const { applyFilmMusicMixProfile } =
+    await import("../../scripts/films/music-mix");
+  spec.music.mixProfile = "voiceover";
+  await writeFile(paths.spec, JSON.stringify(spec));
+  assert.ok(
+    (await checkFilm({ rootDir: root, filmId: "track-film" })).errors.some(
+      (e) => e.rule === "music-stale",
+    ),
+  );
+  await runFilmMusic({
+    ...options,
+    masterScore: (raw) => {
+      assert.deepEqual(raw, applyFilmMusicMixProfile(track, "voiceover"));
+      return raw;
+    },
+  });
+  assert.deepEqual(
+    (await checkFilm({ rootDir: root, filmId: "track-film" })).errors,
+    [],
+  );
   // Re-registering different audio under the same name makes the music stale.
   await register(`sha256:${"0".repeat(64)}`);
   assert.deepEqual(
@@ -872,7 +893,8 @@ test("film:new can decide bookends per film without touching the Workspace defau
     );
     assert.equal(spec.music.score.engine, "studio-v3");
     assert.equal(spec.music.volume, 0.64);
-    assert.equal(spec.music.underSpeechVolume, 0.34);
+    assert.equal(spec.music.underSpeechVolume, 0.6);
+    assert.equal(spec.music.mixProfile, "voiceover");
     const { generateScore } =
       await import("../../scripts/films/score/synth-score.mjs");
     const starter = generateScore({
@@ -907,4 +929,82 @@ test("the tempo suggestion keeps fast songs at full speed", async () => {
   const { bpm } = estimateTrackTempo(samples, sampleRate);
   // A suggestion within one BPM; the author writes the exact value.
   assert.ok(Math.abs(bpm - 172) <= 1, `expected about 172 BPM, got ${bpm}`);
+});
+
+test("v2/v3 omitted profile preserves score bytes; voiceover processes once before mastering and invalidates fingerprint", async (context) => {
+  const rootDir = await createWorkspace(context);
+  const { runFilmMusic, resolveFilmScoreRecipe } =
+    await import("../../scripts/films/music");
+  const { applyFilmMusicMixProfile } =
+    await import("../../scripts/films/music-mix");
+  const { generateScore } =
+    await import("../../scripts/films/score/synth-score.mjs");
+  const { FilmSpecSchema } = await import("@axmorf/studio/contracts");
+  for (const engine of ["studio-v2", "studio-v3"]) {
+    const filmId = `profile-${engine}`;
+    const paths = await writeFilm(rootDir, filmId, {
+      spec: {
+        timeline: { durationInFrames: 90 },
+        music: {
+          score: {
+            engine,
+            bpm: 100,
+            arrangement: {
+              tonic: "C",
+              mode: "minor",
+              progression: [1, 6, 3, 7],
+              sections: [
+                {
+                  from: 0,
+                  instruments: ["kick", "pad"],
+                  density: 0.5,
+                  energy: 0.5,
+                },
+              ],
+            },
+          },
+        },
+      },
+    });
+    await runFilmVoice({ rootDir, filmId, createService: fakeVoice });
+    const spec = JSON.parse(await readFile(paths.spec, "utf8"));
+    const timing = FilmTimingSchema.parse(
+      JSON.parse(await readFile(paths.timing, "utf8")),
+    );
+    const parsed = FilmSpecSchema.parse(spec);
+    const raw = generateScore(
+      resolveFilmScoreRecipe({ music: parsed.music!, timing, fps: 30 }),
+    ).audio;
+    let calls = 0;
+    await runFilmMusic({
+      rootDir,
+      filmId,
+      masterScore: (input) => {
+        calls++;
+        assert.deepEqual(input, raw);
+        return input;
+      },
+    });
+    assert.equal(calls, 1);
+    assert.deepEqual(await readFile(paths.musicWav), raw);
+    spec.music.mixProfile = "voiceover";
+    await writeFile(paths.spec, JSON.stringify(spec));
+    assert.ok(
+      (await checkFilm({ rootDir, filmId })).errors.some(
+        (e) => e.rule === "music-stale",
+      ),
+    );
+    calls = 0;
+    await runFilmMusic({
+      rootDir,
+      filmId,
+      masterScore: (input) => {
+        calls++;
+        assert.deepEqual(input, applyFilmMusicMixProfile(raw, "voiceover"));
+        return input;
+      },
+    });
+    assert.equal(calls, 1);
+    assert.deepEqual((await checkFilm({ rootDir, filmId })).errors, []);
+  }
 });

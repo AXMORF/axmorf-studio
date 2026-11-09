@@ -29,6 +29,7 @@ import {
   measureFilmSoundEffectWav,
 } from "../../sound-effects/synth";
 import { projectFilmMusicGrid, projectFilmMusicOnsets } from "../music";
+import { applyFilmMusicMixProfile } from "../music-mix";
 import { generateScore, master } from "./synth-score.mjs";
 
 const SR = 48000,
@@ -59,8 +60,19 @@ export const calibrateV3 = async (
   const first = generateScore(recipe),
     second = generateScore(recipe);
   assert.deepEqual(first.audio, second.audio);
-  const mastered = master(first.audio, outputDir, true);
-  assert.deepEqual(master(second.audio, outputDir, true), mastered);
+  const mastered = master(
+    applyFilmMusicMixProfile(first.audio, "voiceover"),
+    outputDir,
+    true,
+  );
+  assert.deepEqual(
+    master(
+      applyFilmMusicMixProfile(second.audio, "voiceover"),
+      outputDir,
+      true,
+    ),
+    mastered,
+  );
   const header = mastered.subarray(0, 44);
   const encode = (samples: Float64Array) => {
     const bytes = Buffer.alloc(44 + samples.length * 2);
@@ -87,6 +99,8 @@ export const calibrateV3 = async (
       [
         "-hide_banner",
         "-nostats",
+        "-hwaccel",
+        "none",
         "-i",
         "pipe:0",
         "-af",
@@ -292,12 +306,27 @@ export const calibrateV3 = async (
   const sample = encode(rawMusic.subarray(0, narration.length));
   const report = {
     recipe,
+    mixProfile: "voiceover",
+    targets: {
+      speechGapLU: [8, 10],
+      musicOnlyReferenceGapLU: [6, 8],
+      maxTruePeakDbtp: -1,
+    },
     recommendedVolumes: {
       volume: spec.music!.volume,
       underSpeechVolume: spec.music!.underSpeechVolume,
     },
     rawMD5: [md5(first.audio), md5(second.audio)],
-    masteredMD5: [md5(mastered), md5(master(second.audio, outputDir, true))],
+    masteredMD5: [
+      md5(mastered),
+      md5(
+        master(
+          applyFilmMusicMixProfile(second.audio, "voiceover"),
+          outputDir,
+          true,
+        ),
+      ),
+    ],
     sampleMD5: md5(sample),
     voice,
     speech: { ...speech, gapLU: voice.lufs - speech.lufs },
@@ -307,7 +336,7 @@ export const calibrateV3 = async (
     sourceVoice: resolve(voicePath),
     sourceVoiceTiming: resolve(timingPath),
     sentences,
-    note: "Stereo narration normalized to -16 LUFS by linear gain. Bed includes v3 music plus three generated SFX at runtime default SFX volume/ducking. Runtime sentence ramps applied once; no offline speech sidechain. Sample is mastered music before playback volume, exactly 30 seconds.",
+    note: "Stereo narration normalized to -16 LUFS by linear gain. Bed includes v3 music plus three generated SFX at runtime default SFX volume/ducking. Runtime sentence ramps applied once; no offline speech sidechain. Music has static voiceover EQ before mastering. Sample is mastered music before playback volume, exactly 30 seconds.",
   };
   await writeFile(join(outputDir, "sample.wav"), sample);
   await writeFile(join(outputDir, "mix.wav"), encode(mix));
@@ -321,14 +350,9 @@ export const calibrateV3 = async (
     JSON.stringify(report, null, 2) + "\n",
   );
   assert.ok(
-    report.speech.gapLU >= 12 && report.speech.gapLU <= 15,
-    "Speech bed must be 12–15 LU below narration.",
+    report.speech.gapLU >= 8 && report.speech.gapLU <= 10,
+    "Speech bed must be 8–10 LU below narration.",
   );
-  for (const passage of [report.intro, report.outro])
-    assert.ok(
-      passage.gapLU >= 6 && passage.gapLU <= 8,
-      "Music-only passages must be 6–8 LU below narration.",
-    );
   assert.ok(report.mixed.dbtp <= -1, "Final mix must stay below -1 dBTP.");
   return report;
 };

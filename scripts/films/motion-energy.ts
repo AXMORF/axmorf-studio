@@ -269,18 +269,16 @@ export const analyzeMotionEnergy = ({
   }
   const speechMedian = motionEnergyQuantile(speech, 0.5);
   const beatMedian = motionEnergyQuantile(beats, 0.5);
-  if (speechMedian === null || beatMedian === null)
+  if (beatMedian === null)
     unknown.push({
       rule: "beat-sections-static",
-      reason:
-        "Requires both narration and non-narration body frames for a median comparison.",
+      reason: "Requires non-narration body frames for a median measurement.",
     });
-  // Strictly more motion between sentences: equality is also underplayed.
-  else if (beatMedian <= speechMedian)
+  else if (beatMedian === 0)
     motionWarnings.push({
       rule: "beat-sections-static",
       frames: [0, durationInFrames - 1],
-      message: `Non-narration median ${beatMedian.toFixed(3)} is not above narration median ${speechMedian.toFixed(3)}; increase L1/L2 in beat sections.`,
+      message: "非旁白时段中位数为0，请核对是否有意停留。",
     });
   return {
     motionWarnings,

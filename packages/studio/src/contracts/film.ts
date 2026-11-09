@@ -235,6 +235,7 @@ export const FilmMusicSpecSchema = z
     volume: VolumeSchema.default(0.24),
     /** Music volume while narration is speaking. */
     underSpeechVolume: VolumeSchema.default(0.09),
+    mixProfile: z.literal("voiceover").optional(),
     fadeOutFrames: NonNegativeFrameSchema.default(45),
   })
   .strict()
@@ -650,7 +651,7 @@ export const FilmMotionRuleSchema = z.enum([
   "bar-without-change",
   "accent-underplayed",
   "beat-sections-static",
-  "axiom-morph-missing",
+  "axiom-morph-missing", // Legacy reports only; no longer emitted.
 ]);
 export const FilmMotionWarningSchema = z.strictObject({
   rule: FilmMotionRuleSchema,

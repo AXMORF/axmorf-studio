@@ -116,10 +116,15 @@ summary 另含 median、anticipationThreshold 与各重音 anticipationFrames。
 与是否触发提示无关，无 animatic 时也从片源渲染；借用现有 contact-sheet Still 和 48 帧分批 review renderer，重叠区间只渲染一次。
 每格标明正片帧号，每张三列、480px 单格，图片和 metadata 只留在 ignored 的 review/public，缺帧报错，不伪造联系表。
 Skill 强制逐张人工确认预备与数字/文字过程可见，并在 review-notes 按帧记录结论；该人工要求不变成交付 gate。
-`beat-sections-static` 提示非旁白中位数不高于讲述段。
-`axiom-morph-missing` 在完整遥测中完全缺 AxiomMorph 时提醒一次，任一时段有该配方遥测就不提醒；
-缺失/截断且未发现母题时保持 unknown，不猜测旁白关键词。Skill 的旧公理/新公理候选必须用 AxiomMorph 要求不变。
-缺失、过期或不完整 animatic 为 unknown；缺带强度重音、缺讲述/非旁白样本时对应规则为 unknown。
+`beat-sections-static` 只在完整样本的非旁白中位数为 0 时提示核对有意停留；保留讲述/非旁白两类中位数，不比较大小，纯音乐可测。
+`axiom-morph-missing` 仅保留 legacy 报告枚举，分析器不再发出 warning 或 unknown；AxiomMorph 是可选的通用文字形变。
+缺失、过期或不完整 animatic 为 unknown；缺带强度重音或缺非旁白样本时对应规则为 unknown。
+口播语义先决定事件，现有 score.hits.frame 用句子 id 或经人工/外部确认的绝对帧与画面对齐；只有句级 timing，不伪造逐字时间。
+规律 kick/bar 维持底层节奏，不挪旁白字幕；背景/非阅读主体 L1 默认均为 .035*pulse，镜头不因口播全面减幅，阅读文字独立稳定。
+FilmMusicSpec 可选 mixProfile="voiceover"，在 score/track 共用的源母带入口前做整轨静态 RBJ EQ（2kHz、Q=2/3、-6dB），不改采样数/事件帧。
+左右独立状态；双声道数字零保持零并清空状态，最近整数舍入后显式 s16 饱和。省略 profile 完全旁路，旧默认 .24/.09 不变。
+完整 music spec 已进入指纹；不新增 timing 字段或播放路径 EQ，FilmSoundtrack 仍仅逐句 duck 一次。
+新片口播起点 .64/.60 + voiceover，逐片实测底层低 8–10 LU、混音 ≤-1dBTP，不保证任意编曲达标；无旁白片去掉 profile。
 FFmpeg 失败/超时直接报告，不自动重试。上述 motion 字段是 `film:review` 输出；
 不拦 `film:check`/交付。animatic 默认关闭、Skill 要求成片前至少看一次；缺少或过期时交付命令提醒，不增加交付文件。
 

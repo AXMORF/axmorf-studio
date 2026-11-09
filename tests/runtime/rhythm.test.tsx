@@ -104,9 +104,10 @@ test("narration uses half-open sentence intervals, without treating pauses as sp
   for (const frame of [10, 19, 30, 39])
     assert.equal(resolveNarrationActive(frame, sentences), true);
   assert.equal(resolveNarrationActive(10, []), false);
-  assert.equal(resolveBreathScale(1, true), 1.012);
+  assert.equal(resolveBreathScale(1, true), 1.035);
   assert.equal(resolveBreathScale(1, false), 1.035);
   assert.equal(resolveBreathScale(0, false), 1);
+  assert.equal(resolveBreathScale(1), 1.035);
 });
 
 test("v3 weighted accents, fills and breaks can drive pulses and impacts", () => {

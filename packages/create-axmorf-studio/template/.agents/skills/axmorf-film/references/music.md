@@ -7,7 +7,8 @@
 ## 用旁白章节锚定节奏谱（默认）
 
 sections.from 用句子 id 或正片绝对帧，hits 是揭示、breaks 是揭示前抽空、ending 是收尾。
-先决定叙事落点再生成音乐；画面尚未编写，之后只从已生成的网格选动作帧。
+先用口播语义决定事件，再让精确 hit 与画面落点对齐；规律 kick/bar 维持底层节奏，不挪旁白字幕强塞固定拍点。
+句首短语用 sentence id；句中关键词只有经人工或外部确认的绝对帧才称词级精度，否则只称句级，不按字数均分。
 bpmRange 先找所有章节锚点误差都在 3 帧以内的速度，再取最接近显式 bpm 的速度；没写 bpm 时取最接近区间中点者。
 film:music 输出实际边界与残差，超过 3 帧按提示调整范围或锚点。
 
@@ -92,7 +93,8 @@ film:music 输出实际边界与残差，超过 3 帧按提示调整范围或锚
     },
     "startFrame": 0,
     "volume": 0.64,
-    "underSpeechVolume": 0.34,
+    "underSpeechVolume": 0.60,
+    "mixProfile": "voiceover",
     "fadeOutFrames": 0
   }
 }
@@ -125,7 +127,13 @@ v3 还导出 `onsets.fills` / `onsets.breaks`（`{from,to}`，半开区间）及
 
 统一遵循 [导演手册第 3、4、7 节](direction.md#3-节奏谱怎么写)：讲解片一个 BPM，96–116，
 hook 直接进鼓，能量 hook 高 → verse 中 → lift 收 → drop 爆 → outro 落；每小节 L2、每重音 L3（0 帧误差）。
-旁白约 -16 LUFS，讲述段底层低 12–15 LU，节拍段低 6–8 LU；v3 显式 .64/.34 是经教学谱校准的起点（讲述低 14.0 LU、节拍段低 7.1/7.9 LU、混音 -3.6 dBTP）；音效 intensity .18–.30，实际新片仍须实测，并由用户在手机或 Mac 上听审。
+旁白约 -16 LUFS，讲述段底层（配乐 + SFX，实际逐句 duck 后）目标低 8–10 LU；节拍段低 6–8 LU 可作参考，混音 true peak ≤ -1 dBTP。
+新 studio-v3 口播片显式 .64/.60 和 `mixProfile: "voiceover"` 是教学谱校准起点（同 fixture：voice -16.0 LUFS，speech bed -25.2 LUFS/差 9.2 LU，开场/收尾差 7.3/8.1 LU，mix -1.7 dBTP），不保证任意片均达到目标；音效 intensity .18–.30，真实片仍须测量并由用户听审。
+`voiceover` 是整条配乐的静态频谱预留：48kHz stereo s16 PCM 在源母带化前进行因果 RBJ peaking EQ（2000Hz、Q=2/3、-6dB），左右独立状态，相同系数。
+两声道同时为数字零时保持零并清空滤波状态；四舍五入至最近整数并显式饱和到 s16，非有限输出报错，不改采样数或事件帧。
+这不是声纹、ASR 或动态侧链；短循环也不依赖句间位置。FilmSoundtrack 仍仅一次逐句音量 ducking，生成后和播放时不再 EQ。
+省略 profile 保持旧 PCM、音量默认 .24/.09 和指纹语义；纯音乐不默认使用 profile，film:new 建片后无旁白时去掉它。
+频响公式见 [W3C Audio EQ Cookbook](https://www.w3.org/TR/audio-eq-cookbook/)。
 已锁定画面的声音重做保留原帧，用精确 hit 强调；不移动原画面/旁白/字幕，不改旧 schema 隐式默认。
 
 ## 使用授权曲目

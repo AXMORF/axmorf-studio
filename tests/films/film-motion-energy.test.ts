@@ -196,31 +196,32 @@ test("one accent warning distinguishes missing preparation, weak impact, or both
   assert.deepEqual(weak.frames, [79, 83]);
 });
 
-test("beat vs speech uses half-open sentence windows and warns on equal medians", () => {
-  const result = analyze([0.1, 0.8, 0.8, 0.1], {
-    sentences: [{ startFrame: 2, endFrame: 4 }],
-    accents: [],
-  });
-  assert.equal(result.summary?.speechMedian, 0.8);
-  assert.equal(result.summary?.beatMedian, 0.1);
-  assert.deepEqual(
-    result.motionWarnings.map((w) => w.rule),
-    ["beat-sections-static"],
-  );
-  assert.equal(
-    analyze([1, 1, 1, 1], {
+test("half-open speech windows retain both medians without ranking speech below beats", () => {
+  for (const values of [
+    [0.1, 0.8, 0.8, 0.1],
+    [1, 1, 1, 1],
+    [2, 0.1, 0.1, 2],
+  ]) {
+    const result = analyze(values, {
       sentences: [{ startFrame: 2, endFrame: 4 }],
       accents: [],
-    }).motionWarnings[0].rule,
-    "beat-sections-static",
-  );
-  assert.deepEqual(
-    analyze([2, 0.1, 0.1, 2], {
-      sentences: [{ startFrame: 2, endFrame: 4 }],
-      accents: [],
-    }).motionWarnings,
-    [],
-  );
+    });
+    assert.equal(result.summary?.speechMedian, values[1]);
+    assert.equal(result.summary?.beatMedian, values[0]);
+    assert.deepEqual(result.motionWarnings, []);
+  }
+});
+
+test("only a zero non-narration median warns, including music-only films", () => {
+  for (const sentences of [[], [{ startFrame: 2, endFrame: 4 }]]) {
+    const result = analyze([0, 0, 0, 0], { sentences, accents: [] });
+    assert.deepEqual(
+      result.motionWarnings.map((w) => w.rule),
+      ["beat-sections-static"],
+    );
+    assert.match(result.motionWarnings[0].message, /非旁白时段中位数为0/u);
+    assert.deepEqual(result.unknown, []);
+  }
 });
 
 test("missing, incomplete, or sparse animatic frames keep both rules unknown", () => {
@@ -264,9 +265,9 @@ test("legacy strength metadata and absent speech/beat groups remain independentl
     analyze([1, 2, 3], { accents: null, sentences: [] }).unknown.map(
       (u) => u.rule,
     ),
-    ["accent-underplayed", "beat-sections-static"],
+    ["accent-underplayed"],
   );
-  for (const sentences of [[], [{ startFrame: 0, endFrame: 4 }]]) {
+  for (const sentences of [[{ startFrame: 0, endFrame: 4 }]]) {
     const result = analyze([1, 2, 3], { accents: [], sentences });
     assert.deepEqual(result.motionWarnings, []);
     assert.deepEqual(

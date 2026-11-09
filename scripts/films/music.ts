@@ -44,6 +44,8 @@ import {
   type TrackDecoder,
 } from "./music-track";
 
+import { applyFilmMusicMixProfile } from "./music-mix";
+
 export type ScoreRenderer = (recipe: Record<string, unknown>) => {
   readonly timeline: Record<string, unknown> & { durationInFrames: number };
   readonly audio: Buffer;
@@ -133,7 +135,11 @@ export const runFilmMusic = async ({
       throw new Error("music.startFrame is after the end of the film.");
     }
     const mastered = (raw: Buffer, exactOnsets = false) =>
-      masterInScratch(raw, masterScore, exactOnsets);
+      masterInScratch(
+        applyFilmMusicMixProfile(raw, spec.music!.mixProfile),
+        masterScore,
+        exactOnsets,
+      );
     const source =
       spec.music.track !== undefined
         ? await prepareTrack({

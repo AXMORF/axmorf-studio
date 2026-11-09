@@ -8,7 +8,6 @@ import {
   ProducerWorldCamera,
   resolveBreathScale,
   resolveImpactLevel,
-  resolveNarrationActive,
   useBarCamera,
   useBeatPulse,
   useFilmTiming,
@@ -23,26 +22,16 @@ export const RhythmDirectionExample = ({
 }: { readonly impactFrames?: readonly number[] } = {}) => {
   const frame = useCurrentFrame();
   const { width, height } = useVideoConfig();
-  const { music, sentences } = useFilmTiming();
+  const { music } = useFilmTiming();
   const pulse = useBeatPulse({ decayFrames: 10 });
   const narrating = useNarrationActive();
   const bars = music?.barFrames ?? [];
   const shots: readonly BarCameraShot[] = Array.from(
     { length: bars.length + 1 },
-    (_, i) => {
-      // Fix each step's amplitude at its bar start; speech edges must not jump the camera.
-      const speaking = resolveNarrationActive(
-        bars[Math.max(0, i - 1)] ?? 0,
-        sentences,
-      );
-      return {
-        center: [
-          width * (0.5 + (i % 3) * (speaking ? 0.04 : 0.12)),
-          height / 2,
-        ],
-        zoom: 1 + (i % 2) * (speaking ? 0.025 : 0.07),
-      };
-    },
+    (_, i) => ({
+      center: [width * (0.5 + (i % 3) * 0.08), height / 2],
+      zoom: 1 + (i % 2) * 0.045,
+    }),
   );
   const camera = useBarCamera(shots);
   const accents = (

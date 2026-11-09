@@ -326,7 +326,7 @@ const cuts = selectProducerCutFrames({ grid: music!.barFrames, fromFrame: 0, toF
 | `useBeatPulse`           | `({ events?, decayFrames?, frame? }?) => number`；events 为 kick/beat/bar/accent/fill/break 或升序帧数组，无配乐为 0。                                 |
 | `resolveNarrationActive` | `(frame, sentences: readonly {startFrame, endFrame}[]) => boolean`，半开区间。                                                                         |
 | `useNarrationActive`     | `({ frame? }?) => boolean`；逐句判断，句间停顿为 false。                                                                                               |
-| `resolveBreathScale`     | `(pulse, narrating) => number`；讲述段 1.2%、节拍段 3.5%。                                                                                             |
+| `resolveBreathScale`     | `(pulse, narrating?) => number`；背景/非阅读主体均为 3.5%，第二参数只保留兼容。                                                                                             |
 | `resolveBarCamera`       | `(frame, { bars, shots, fps, config? }) => { center: readonly [number, number], zoom: number }`。                                                      |
 | `useBarCamera`           | `(shots: readonly BarCameraShot[], { frame?, config? }?)`；shots 每项 `{center, zoom}`，首小节从 shots[0] 走向 shots[1]，耗尽后停住。                  |
 | `barCameraShots`         | `(state, anchor) => readonly ProducerWorldShot[]`；传 ProducerWorldCamera 的 shots 和 frame=1，anchor 固定用初始机位。                                 |

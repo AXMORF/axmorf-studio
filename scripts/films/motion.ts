@@ -248,23 +248,6 @@ export const analyzeMotion = ({
     message: string,
   ) => motionWarnings.push({ rule, frames: [from, to], message });
 
-  // Presence anywhere in the film is enough; do not infer narration semantics
-  // from keywords or confuse missing/truncated measurements with a missing motif.
-  if (!recipes.some((recipe) => recipe.id === "AxiomMorph")) {
-    if (complete)
-      warn(
-        "axiom-morph-missing",
-        0,
-        durationInFrames - 1,
-        "账号母题：旁白有旧公理或新公理候选时用 AxiomMorph；没有就说明理由。",
-      );
-    else
-      addUnknown(
-        "axiom-morph-missing",
-        "Motion telemetry is missing or truncated; cannot determine whether the film uses AxiomMorph.",
-      );
-  }
-
   if (!scenes.length || !complete)
     addUnknown(
       "repeated-composition",

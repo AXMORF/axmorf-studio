@@ -191,3 +191,7 @@ credentials、voice profile 内容或用户作品数据。
 
 生成 Workspace 的 creator 先串行准备固定版本浏览器，doctor 真实执行小图渲染后才报告 ready。
 直连下载受阻时可用 `AXMORF_BROWSER_EXECUTABLE` 指定宿主已安装的兼容 Chrome/Chromium 绝对路径；创建、doctor 与渲染阶段需保持该环境变量，真实小图验证仍执行。
+
+口播配乐与节奏：新片使用可选 `mixProfile: "voiceover"` 静态频谱预留，实际底层目标比旁白低 8–10 LU；旧片省略 profile 保持兼容。
+语义事件用精确 hit 与画面同步，背景/非阅读主体不因口播全面减幅，阅读文字独立稳定；AxiomMorph 为可选通用效果。
+详见 [导演手册](.agents/skills/axmorf-film/references/direction.md) 与 [当前进度](docs/promotions/2026-11-09-voiceover-progress.md)。

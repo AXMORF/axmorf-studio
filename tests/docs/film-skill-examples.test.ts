@@ -40,7 +40,8 @@ test("the default music guide generates a usable score with positive sections an
   assert.ok(scoreOnsets(timeline).hits.includes(576));
   assert.equal(music.score?.engine, "studio-v3");
   assert.equal(music.volume, 0.64);
-  assert.equal(music.underSpeechVolume, 0.34);
+  assert.equal(music.underSpeechVolume, 0.6);
+  assert.equal(music.mixProfile, "voiceover");
 });
 
 test("landscape Skill example stays identical to the compiled gallery source", async () => {

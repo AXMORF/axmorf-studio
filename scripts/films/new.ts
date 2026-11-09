@@ -21,7 +21,7 @@ import {
 // Starting point only. Replace the placeholder with this film's own subjects,
 // framing, camera and motion. Read references/direction.md before authoring.
 // Reauthor the starter studio-v3 score after measuring narration. Start with
-// volume: 0.64, underSpeechVolume: 0.34;
+// volume: 0.64, underSpeechVolume: 0.60;
 // measure the final mix. Keep FilmSoundtrack and FilmCaptions mounted.
 const Film = () => {
   const frame = useCurrentFrame();
@@ -189,7 +189,8 @@ export const createFilm = async ({
           ending: { landFrame: fps * 9, cadence: "resolve" },
         },
         volume: 0.64,
-        underSpeechVolume: 0.34,
+        underSpeechVolume: 0.6,
+        mixProfile: "voiceover",
         fadeOutFrames: 0,
       },
       publish: { title, description: "", tags: [] },

@@ -19,7 +19,7 @@
 
 ## AxiomMorph：文字形变
 
-- 什么时候用：旧公理被证据打破、文字重组。
+- 什么时候用：短文字的对照、重组或拆解；可选通用效果，不是品牌叙事或影片不变量。
 - 什么时候避开：长段正文或需要连续阅读时。
 - 建议时长：1.2–3 秒，按本片 fps 换算帧，保留停稳阅读时间。
 - 关键参数：`mode: assemble | scatter | shatter | reform`；`text`、`nextText`、`fontFamily/fontSize/fontWeight`、`seed`、`spread`、`fragments`（4/8/12/16）。resolver 的 text/nextText 接收 `measureAxiomText` 布局，组件接收字符串。共有字按次序匹配移动，其他旧字碎裂、新字聚合。

@@ -62,9 +62,11 @@ export const resolveNarrationActive = (
   frame: number,
   sentences: readonly Readonly<{ startFrame: number; endFrame: number }>[],
 ) => sentences.some((s) => frame >= s.startFrame && frame < s.endFrame);
-/** L1 defaults: 1.2% during speech, 3.5% between sentences. Never apply to reading text. */
-export const resolveBreathScale = (pulse: number, narrating: boolean) =>
-  1 + (narrating ? 0.012 : 0.035) * Math.max(0, Math.min(1, pulse));
+/** L1 for backgrounds/non-reading subjects. The speech argument is retained for compatibility. */
+export const resolveBreathScale = (pulse: number, narrating?: boolean) => {
+  void narrating;
+  return 1 + 0.035 * Math.max(0, Math.min(1, pulse));
+};
 
 export type BarCameraShot = ProducerWorldCameraState;
 export type BarCameraOptions = Readonly<{

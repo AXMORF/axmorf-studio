@@ -229,7 +229,7 @@ test("recipe land, transitions and end/center sound anchors use the intended fra
     !result.motionWarnings.some((w) => w.rule !== "bar-without-change"),
   );
 });
-test("MusicSyncGallery plan passes rhythm sync, reminds about its absent motif, and detects missing f150", () => {
+test("MusicSyncGallery plan passes rhythm sync without a required motif and detects missing f150", () => {
   const spec = FilmSpecSchema.parse(MUSIC_SYNC_SPEC);
   const timing = FilmTimingSchema.parse({
     schemaVersion: 1,
@@ -306,7 +306,7 @@ test("MusicSyncGallery plan passes rhythm sync, reminds about its absent motif, 
     });
   assert.deepEqual(
     run(planned).motionWarnings.map((w) => w.rule),
-    ["axiom-morph-missing"],
+    [],
   );
   const broken = planned.map((e) =>
     e.type === "rhythm" && e.kind === "impact"
@@ -315,7 +315,7 @@ test("MusicSyncGallery plan passes rhythm sync, reminds about its absent motif, 
   );
   assert.deepEqual(
     run(broken).motionWarnings.map((w) => w.rule),
-    ["axiom-morph-missing", "accent-without-visual", "sound-without-visual"],
+    ["accent-without-visual", "sound-without-visual"],
   );
   assert.ok(
     run(broken).motionWarnings.some(

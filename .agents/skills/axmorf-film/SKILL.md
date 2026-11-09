@@ -39,7 +39,7 @@ Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐�
    - `narrationStartFrame` 留给正片的开场画面；`publish` 写标题、简介和标签；用到的事实来源写进
      `bookends.sources`（标题 + 网址），会显示在片尾。
    - `film:new` 已写入 10 秒占位 `studio-v3` 谱；按本片内容重写 `music.score`，不要沿用占位收尾帧。无配乐的片设 `music: null`；实测旁白后先写节奏谱、生成配乐，再按小节写 storyboard（见 [导演手册](references/direction.md#2-工作顺序不能倒过来)）。
-5. **生成旁白**：`npm run film:voice -- --film <filmId>`。输出每句的起止帧。修改旁白文本后重新运行；
+5. **生成旁白**：`npm run film:voice -- --film <filmId>`。输出每句的起止帧，不提供逐字时间。短语从句首开始可用句子 id；句中关键词需人工/外部确认绝对帧，否则只称句级，不按字数均分推算。修改旁白文本后重新运行；
    相同 provider/音色执行指纹、语速和文本的句子在 `.axmorf/cache/voice/` 命中时不会重复调用 TTS。
    `generated/timing.json.inputFingerprint` 仅描述剧本/时序输入，不含 provider 或音色，不是 TTS 缓存键。
    跨 Workspace 要保留同一个 take：一起复制匹配的 `film.json`、`generated/timing.json` 与
@@ -48,15 +48,13 @@ Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐�
    配置相同 provider、音色素材、生成参数与语速；不要把混合、停顿、母带处理后的 narration.wav 当作逐句缓存。
 6. **先写节奏谱并生成配乐**：按实测句子锚定 `music.score`，先定 sections、揭示 hits、揭示前 breaks 和 ending。
    一部讲解片一个 BPM（96–116），hook 直接进鼓、第一小节就有重音，证据段中、揭示前收、drop 爆、结尾落。
-   新片使用 `studio-v3`；显式写 `volume: 0.64`、`underSpeechVolume: 0.34` 作为混音起点；实测讲述段底层比旁白低 12–15 LU。
+   新片使用 `studio-v3`；显式写 `volume: 0.64`、`underSpeechVolume: 0.60`、`mixProfile: "voiceover"` 作为口播混音起点；实测讲述段底层比旁白低 8–10 LU。无旁白片去掉 voiceover profile。
    运行 `npm run film:music -- --film <filmId>`，取得 beatFrames、barFrames、sectionFrames、accentFrames 和 onsets。
    实际字段、锚点、残差见 [配乐与卡点](references/music.md)。无配乐的片不伪造网格；无旁白的片跳过 voice，先定音乐。
 7. **按小节分镜 → 画面 → 音效**（顺序必做）：先写 `src/films/<filmId>/storyboard.md`，告知用户路径和画面路线。
    使用 [导演手册第 8 节](references/direction.md#8-storyboardmd-写法) 的表格，每行一个小节，列帧、段落、旁白句、L2、L3 和音效，
    并补章节世界、镜头路径、转场动机、配方起止和声音窗口；不按句子分页。
-   **旁白出现旧公理或新公理候选时，必须用 AxiomMorph 从旧公理形变到新公理候选**，这是账号母题。
-   先读 [横屏「旧公理文字形变」示例](references/examples.md#横屏19201080旧公理文字形变)，表中写清旧/新文字、句子 id、
-   出现/碎裂/重组/阅读帧；碎裂挂 hook 第一个重音，重组挂 drop，不能用两个独立淡入标题代替。
+   由内容语义选择图解和效果；`AxiomMorph` 是可选的通用文字对照、重组或拆解，不是品牌要求。
    先搭 L1 每 kick 呼吸、L2 每小节构图变化、L3 每重音大动作，落点误差 0 帧，再填细节。
    strength ≥0.9 的重音之前必须有至少 6 帧可见预备；不能把配方过程藏起来只露出终值，详见导演手册。
    按第 9 步完成画面后，才从可见动作派生逐条 `sound.effects`，写 kind、动作长度、anchor、params 和 for，
@@ -65,13 +63,11 @@ Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐�
    旁白长度变化时重做节奏谱和 `film:music`，再更新表、画面和音效；不挪旁白或字幕踩拍。
 8. **准备素材**（可选）：生成图片或原创 SVG 后用 `film:asset` 登记，见 [素材](references/artwork.md)。
 9. **编写** `Film.tsx` 与 `Cover.tsx`：
-   - 用 `useFilmTiming()` 读取实测旁白与配乐网格；语义决定内容，网格决定动效时钟。
+   - 用 `useFilmTiming()` 读取实测旁白与配乐网格；口播语义先决定事件，音乐精确 hit 与画面落点对齐；规律 kick/bar 维持底层节奏。
      用 `useBeatPulse` / `useNarrationActive`、`useBarCamera`、`useImpact` 搭三层动效，根组件调用以保持正片时钟，
      按 [可编译最小示例](references/direction.md#41-用运行时接好三层动效) 接世界镜头，不在阅读文字上做呼吸。
    - 推荐用 `FilmSceneTrack` 组织章节与场景：同章默认连续、不写 `enter`，跨章才选择有动机的转场。
      配方只解决怎么动，构图和世界从剧本出发，不原样粘贴配方卡。
-   - 旁白有旧公理或新公理候选时，必须按 storyboard 用 `AxiomMorph` 呈现形变；旧公理或候选出现的句子都要有对应动作与帧号，
-     参考 [横屏「旧公理文字形变」示例](references/examples.md#横屏19201080旧公理文字形变)。
    - 「已发生 / 迹象 / 推测」等内容状态标识统一用 `FilmStatusTag`，不手写。放在场景轨之外，
      主词和副词都不得低于实测字幕字号的 70%，且不低于 `minimumReadableFontSize(width, height)`；
      使用清楚的底板和对比，在手机尺寸下可读，不能当小字装饰。全片固定在左上角安全区；与主体冲突时才换到另一个
@@ -105,7 +101,6 @@ Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐�
     底板、描边、阴影以实际像素为准，转场窗口与同组形变不免检；颜色或像素缺失为 unknown。
     `text-under-foreground` 必须逐条回应；`readability.unknown` 中无法定位绘制位置的文字（如 display:contents）
     要看图核对。`repeated-composition` 比较包含旁白的非相邻段落构图；没有场景轨的旧片保持 unknown。
-    `axiom-morph-missing` 提醒全片缺母题遥测；有旧公理/新公理候选必须用 AxiomMorph，没有就说明理由，不把提醒当自动语义判断。
     内容状态标识必须用 `FilmStatusTag`；同时核对 `small-status-tag`，主词和副词都不低于字幕字号的 70%，
     看图确认底板、对比和手机可读性，写出帧号证据。这条提示不拦交付。
     对照 `storyboard.md` 逐小节核对 L2、L3、章节世界、镜头路径、配方落点、转场和音效，偏离计划就同步修改。
