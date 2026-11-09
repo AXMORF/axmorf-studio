@@ -64,7 +64,7 @@ Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐�
    运行 `npm run film:sfx -- --film <filmId>`。默认本片原创，不用 track/共享音效库，除非用户指定。
    技法见 [镜头配方](references/recipes.md)，声音接线见 [音效轨](references/sound.md)；改片同步小节表，不能只在聊天口述。
    旁白长度变化时重做节奏谱和 `film:music`，再更新表、画面和音效；不挪旁白或字幕踩拍。
-8. **准备素材**（可选）：生成图片或原创 SVG 后用 `film:asset` 登记，见 [素材](references/artwork.md)。
+8. **准备素材**：纸面风格的关键人物/手/实物必须用宿主实际可用的生图工具生成单主体剪纸，抠像、代码合成、`film:asset --origin generated` 登记，见 [素材](references/artwork.md)。统一风格提示词及各主体提示词写入 storyboard；工具不可用就停下列出缺失主体，不用代码画人物/实物凑数。精确图解、数字、线条、印章印迹、红笔痕迹仍可用 SVG；其他风格按需备料。
 9. **编写** `Film.tsx` 与 `Cover.tsx`：
    - 每个图形主体（包括文字卡片）在实际 DOM/SVG 元素（或包住该物体的组）上加 `data-axmorf-object="它代表什么"`；
      可选 `data-axmorf-object-role="subject|relation|background"`，默认 `subject`。同一物体的零件放在同一标注组下，

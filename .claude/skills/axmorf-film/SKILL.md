@@ -35,3 +35,5 @@ L3 必须按 strength 分档；最强重音要有全片最大主体动作和镜�
 每镜头主信息由画出来的物件、生图剪纸或图解承载；文字卡只放数字、原话与短标签，不能单独撑镜头。标注可选 data-axmorf-object-kind="illustration|diagram|prop|card"（默认 prop），按共享正文解释类型，回应 text-card-only 的连续采样帧段。
 
 纸面风格在本片 film.json 显式写 bookends.theme="light"，storyboard 风格声明写明主题并与正片一致；字段与例子见共享纸面配方，film:new 不改。
+
+纸面关键人物、手与实物必须用宿主实际可用生图工具做单主体剪纸；storyboard 写统一风格及每个主体提示词。抠像后由代码加白边/投影/纸纹，按共享 artwork.md 用 film:asset --origin generated 登记；精确图解/数字/线条/印章印迹/红笔仍用 SVG。工具不可用时停下报告缺失主体，不用代码画人物和实物补数。
