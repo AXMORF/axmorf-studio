@@ -17,6 +17,9 @@ import {
   MOTION_ENERGY_ANTICIPATION_MEDIAN_MULTIPLIER,
   MOTION_ENERGY_ANTICIPATION_WINDOW,
   MOTION_ENERGY_ACCENT_PERCENTILE,
+  NARRATION_STATIC_MEDIAN_THRESHOLD,
+  NARRATION_STATIC_FRAME_THRESHOLD,
+  NARRATION_STATIC_MAX_RUN_FRAMES,
 } from "../../scripts/films/motion-energy";
 
 const size = MOTION_ENERGY_WIDTH * MOTION_ENERGY_HEIGHT;
@@ -208,7 +211,10 @@ test("half-open speech windows retain both medians without ranking speech below 
     });
     assert.equal(result.summary?.speechMedian, values[1]);
     assert.equal(result.summary?.beatMedian, values[0]);
-    assert.deepEqual(result.motionWarnings, []);
+    assert.deepEqual(
+      result.motionWarnings.filter((w) => w.rule !== "narration-static"),
+      [],
+    );
   }
 });
 
@@ -217,14 +223,19 @@ test("only a zero non-narration median warns, including music-only films", () =>
     const result = analyze([0, 0, 0, 0], { sentences, accents: [] });
     assert.deepEqual(
       result.motionWarnings.map((w) => w.rule),
-      ["beat-sections-static"],
+      sentences.length
+        ? ["narration-static", "beat-sections-static"]
+        : ["beat-sections-static"],
     );
-    assert.match(result.motionWarnings[0].message, /非旁白时段中位数为0/u);
-    assert.deepEqual(result.unknown, []);
+    assert.match(result.motionWarnings.at(-1)!.message, /非旁白时段中位数为0/u);
+    assert.deepEqual(
+      result.unknown.map((u) => u.rule),
+      sentences.length ? [] : ["narration-static"],
+    );
   }
 });
 
-test("missing, incomplete, or sparse animatic frames keep both rules unknown", () => {
+test("missing, incomplete, or sparse animatic frames keep all pixel rules unknown", () => {
   for (const input of [
     null,
     [],
@@ -245,7 +256,7 @@ test("missing, incomplete, or sparse animatic frames keep both rules unknown", (
     assert.equal(result.summary, null);
     assert.deepEqual(
       result.unknown.map((u) => u.rule),
-      ["accent-underplayed", "beat-sections-static"],
+      ["accent-underplayed", "beat-sections-static", "narration-static"],
     );
   }
   assert.match(
@@ -265,7 +276,7 @@ test("legacy strength metadata and absent speech/beat groups remain independentl
     analyze([1, 2, 3], { accents: null, sentences: [] }).unknown.map(
       (u) => u.rule,
     ),
-    ["accent-underplayed"],
+    ["accent-underplayed", "narration-static"],
   );
   for (const sentences of [[{ startFrame: 0, endFrame: 4 }]]) {
     const result = analyze([1, 2, 3], { accents: [], sentences });
@@ -275,6 +286,71 @@ test("legacy strength metadata and absent speech/beat groups remain independentl
       ["beat-sections-static"],
     );
   }
+});
+
+test("narration-static warns independently for median below .2 or a near-still run above 30 frames", () => {
+  assert.equal(NARRATION_STATIC_MEDIAN_THRESHOLD, 0.2);
+  assert.equal(NARRATION_STATIC_FRAME_THRESHOLD, 0.15);
+  assert.equal(NARRATION_STATIC_MAX_RUN_FRAMES, 30);
+  const options = {
+    sentences: [{ startFrame: 1, endFrame: 101 }],
+    accents: [],
+  };
+  const warnings = (values: number[]) =>
+    analyze(values, options).motionWarnings.filter(
+      (w) => w.rule === "narration-static",
+    );
+  // Low median is enough even with no individually near-still frames.
+  assert.equal(warnings(Array(100).fill(0.199)).length, 1);
+  assert.equal(warnings(Array(100).fill(0.2)).length, 0);
+  assert.equal(warnings(Array(100).fill(0.15)).length, 1);
+  const values: number[] = Array(100).fill(1);
+  for (let f = 20; f < 50; f++) values[f - 1] = 0.149;
+  assert.equal(warnings(values).length, 0); // Exactly 30 frames is allowed.
+  values[49] = 0.149;
+  const result = analyze(values, options);
+  assert.equal(result.summary?.speechMedian, 1);
+  assert.deepEqual(result.summary?.longestSpeechStillRun, {
+    startFrame: 20,
+    endFrame: 50,
+    frames: 31,
+  });
+  assert.deepEqual(warnings(values)[0].frames, [20, 50]);
+  assert.match(warnings(values)[0].message, /f20–f50.*31 帧/u);
+  values[30] = 0.15; // Equality resets the run.
+  assert.equal(warnings(values).length, 0);
+});
+
+test("narration still runs reset across gaps, exclude half-open ends and never count silent freezes", () => {
+  const result = analyze(Array(120).fill(0), {
+    sentences: [
+      { startFrame: 10, endFrame: 40 },
+      { startFrame: 41, endFrame: 71 },
+    ],
+    accents: [],
+  });
+  assert.equal(result.summary?.speechFrames, 60);
+  assert.equal(result.summary?.speechStillFrames, 60);
+  assert.deepEqual(result.summary?.longestSpeechStillRun, {
+    startFrame: 10,
+    endFrame: 39,
+    frames: 30,
+  });
+  const contiguous = analyze(Array(120).fill(0), {
+    sentences: [
+      { startFrame: 10, endFrame: 40 },
+      { startFrame: 40, endFrame: 71 },
+    ],
+    accents: [],
+  });
+  assert.equal(contiguous.summary?.longestSpeechStillRun?.frames, 61);
+  const silent = analyze(Array(120).fill(0), { sentences: [], accents: [] });
+  assert.equal(silent.summary?.longestSpeechStillRun, null);
+  assert.equal(
+    silent.motionWarnings.some((w) => w.rule === "narration-static"),
+    false,
+  );
+  assert.ok(silent.unknown.some((u) => u.rule === "narration-static"));
 });
 
 // Same simple grayscale PNG fixture as the frame signature tests; no new image dependency.
@@ -322,6 +398,7 @@ test("decoder uses Workspace FFmpeg, frame-exact body trim, lossless PNG, and 12
         args[args.indexOf("-vf") + 1],
         "trim=start_frame=60:end_frame=63,scale=160:90,format=gray",
       );
+      assert.equal(args[args.indexOf("-hwaccel") + 1], "none");
       assert.equal(args[args.indexOf("-vsync") + 1], "0");
       assert.equal(args[args.indexOf("-c:v") + 1], "png");
       assert.equal(options?.timeoutMs, MOTION_ENERGY_TIMEOUT_MS);

@@ -27,6 +27,13 @@ export const MOTION_ENERGY_ANTICIPATION_WINDOW = 8;
 export const MOTION_ENERGY_ANTICIPATION_MIN_FRAMES = 6;
 export const MOTION_ENERGY_ANTICIPATION_MEDIAN_MULTIPLIER = 2;
 
+// Narration needs visible life even while reading text stays stable (0..255 luma MAD).
+export const NARRATION_STATIC_MEDIAN_THRESHOLD = 0.2;
+// Below this per-frame energy is near-still; exactly 0.15 is not near-still.
+export const NARRATION_STATIC_FRAME_THRESHOLD = 0.15;
+// More than 30 consecutive near-still narration frames warns; gaps reset the run.
+export const NARRATION_STATIC_MAX_RUN_FRAMES = 30;
+
 export type MotionEnergySample = Readonly<{
   frame: number;
   difference: number;
@@ -89,6 +96,8 @@ export const decodeMotionEnergy = async ({
         "-v",
         "error",
         "-nostdin",
+        "-hwaccel",
+        "none",
         "-i",
         videoPath,
         "-map",
@@ -173,7 +182,11 @@ export const analyzeMotionEnergy = ({
     !samples.length ||
     samples.some((sample, i) => sample.frame !== i + 1)
   ) {
-    for (const rule of ["accent-underplayed", "beat-sections-static"] as const)
+    for (const rule of [
+      "accent-underplayed",
+      "beat-sections-static",
+      "narration-static",
+    ] as const)
       unknown.push({
         rule,
         reason:
@@ -261,14 +274,57 @@ export const analyzeMotionEnergy = ({
     });
   const speech: number[] = [],
     beats: number[] = [];
+  let speechStillFrames = 0;
+  let runStart: number | null = null;
+  let longestSpeechStillRun: {
+    startFrame: number;
+    endFrame: number;
+    frames: number;
+  } | null = null;
   for (const sample of samples) {
     const narrating = sentences.some(
       (s) => sample.frame >= s.startFrame && sample.frame < s.endFrame,
     );
     (narrating ? speech : beats).push(sample.difference);
+    if (narrating && sample.difference < NARRATION_STATIC_FRAME_THRESHOLD) {
+      speechStillFrames++;
+      runStart ??= sample.frame;
+      const length = sample.frame - runStart + 1;
+      if (length > (longestSpeechStillRun?.frames ?? 0))
+        longestSpeechStillRun = {
+          startFrame: runStart,
+          endFrame: sample.frame,
+          frames: length,
+        };
+    } else runStart = null;
   }
   const speechMedian = motionEnergyQuantile(speech, 0.5);
   const beatMedian = motionEnergyQuantile(beats, 0.5);
+  if (speechMedian === null)
+    unknown.push({
+      rule: "narration-static",
+      reason:
+        "Requires narration body frames for a median and near-still run measurement.",
+    });
+  else if (
+    speechMedian < NARRATION_STATIC_MEDIAN_THRESHOLD ||
+    (longestSpeechStillRun?.frames ?? 0) > NARRATION_STATIC_MAX_RUN_FRAMES
+  ) {
+    const longest = longestSpeechStillRun;
+    motionWarnings.push({
+      rule: "narration-static",
+      frames: longest
+        ? [longest.startFrame, longest.endFrame]
+        : [
+            Math.max(1, Math.min(...sentences.map((s) => s.startFrame))),
+            Math.min(
+              durationInFrames,
+              Math.max(...sentences.map((s) => s.endFrame)),
+            ) - 1,
+          ],
+      message: `讲述段能量中位数 ${speechMedian.toFixed(3)}（阈值 <${NARRATION_STATIC_MEDIAN_THRESHOLD}）；最长近静止段${longest ? ` f${longest.startFrame}–f${longest.endFrame}，连续 ${longest.frames} 帧` : "无"}（能量 <${NARRATION_STATIC_FRAME_THRESHOLD}，阈值 >${NARRATION_STATIC_MAX_RUN_FRAMES} 帧）。只稳定正在阅读的文字，保留桌面微移、非文字线稿 boil 和轮换物件反应；核对实际画面。`,
+    });
+  }
   if (beatMedian === null)
     unknown.push({
       rule: "beat-sections-static",
@@ -292,6 +348,8 @@ export const analyzeMotionEnergy = ({
       strongAccents,
       speechFrames: speech.length,
       speechMedian,
+      speechStillFrames,
+      longestSpeechStillRun,
       beatFrames: beats.length,
       beatMedian,
     },

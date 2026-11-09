@@ -27,3 +27,5 @@ L3 必须按 strength 分档；最强重音要有全片最大主体动作和镜�
 用户或 Workspace 指定风格时读共享正文的对应配方；纸面拼贴 / 手绘线稿见 `references/styles/paper-collage.md`。示例配色不是默认值。
 
 每章至少3种物件节拍反应，相邻小节主动作轮换；光闪和背景缩放仅作补充，文字阅读时固定。用共享节奏API上报物件/kind/frames，回应 beat-response-monotone；未上报为unknown。
+
+回应 narration-static 的讲述段能量与最长静止起止帧；没有可用 animatic 为 unknown，只提示不拦交付。

@@ -693,6 +693,7 @@ export const FilmMotionRuleSchema = z.enum([
   "bar-without-change",
   "accent-underplayed",
   "beat-sections-static",
+  "narration-static",
   "beat-response-monotone",
   "axiom-morph-missing", // Legacy reports only; no longer emitted.
 ]);
@@ -755,6 +756,15 @@ export const FilmMotionReviewSchema = z.strictObject({
             .nullable(),
           speechFrames: ReviewFrameSchema,
           speechMedian: z.number().nonnegative().nullable(),
+          speechStillFrames: ReviewFrameSchema.optional(),
+          longestSpeechStillRun: z
+            .strictObject({
+              startFrame: ReviewFrameSchema,
+              endFrame: ReviewFrameSchema,
+              frames: ReviewFrameSchema,
+            })
+            .nullable()
+            .optional(),
           beatFrames: ReviewFrameSchema,
           beatMedian: z.number().nonnegative().nullable(),
         })
