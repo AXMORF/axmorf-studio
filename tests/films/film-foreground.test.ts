@@ -3,8 +3,8 @@ import test from "node:test";
 
 import { foregroundSampler } from "../../packages/studio/src/remotion/film/review-measure";
 
-// Minimal hit-test DOM: exercise the sampler itself, including candidates skipped
-// by elementsFromPoint. No browser or layout approximation is needed here.
+// Deterministic DOM for grouping, missing text anchors and override cleanup.
+// Real SVG geometry and paint order are covered by check-foreground-browser.ts.
 class ElementFixture {
   parentElement: ElementFixture | null = null;
   children: ElementFixture[] = [];
@@ -17,6 +17,16 @@ class ElementFixture {
     pointerEvents: "auto",
     backgroundImage: "none",
     backgroundColor: "transparent",
+    clipPath: "none",
+    getPropertyValue: (name: string): string =>
+      name === "pointer-events" ? this.style.pointerEvents : "",
+    getPropertyPriority: () => "",
+    setProperty: (name: string, value: string) => {
+      if (name === "pointer-events") this.style.pointerEvents = value;
+    },
+    removeProperty: (name: string) => {
+      if (name === "pointer-events") this.style.pointerEvents = "auto";
+    },
   };
   tagName = "SPAN";
   childNodes = [{ nodeType: 3, textContent: "字" }];
@@ -47,7 +57,7 @@ class ElementFixture {
   }
 }
 
-test("foreground ignores glyphs only within the same nearest text-group, retaining external coverage and uncertainty", () => {
+test("foreground ignores glyphs only within the same nearest text-group, retaining external coverage, native pointer hit tests and clipped target uncertainty", () => {
   const originals = new Map<string, PropertyDescriptor | undefined>();
   const set = (name: string, value: unknown) => {
     originals.set(name, Object.getOwnPropertyDescriptor(globalThis, name));
@@ -72,6 +82,7 @@ test("foreground ignores glyphs only within the same nearest text-group, retaini
   let stack = [shard, glyph, group, root];
   try {
     set("SVGElement", class {});
+    set("HTMLElement", ElementFixture);
     set("Node", { TEXT_NODE: 3 });
     set("getComputedStyle", (element: ElementFixture) => element.style);
     set("window", { innerWidth: 100, innerHeight: 60 });
@@ -81,25 +92,40 @@ test("foreground ignores glyphs only within the same nearest text-group, retaini
         glyph as unknown as Element,
         [glyph.getBoundingClientRect() as DOMRect],
       );
-    assert.deepEqual(sample(), { samples: 30, covered: 0, unknown: 0 });
+    assert.deepEqual(sample(), { samples: 140, covered: 0, unknown: 0 });
     // An external foreground behind an ignored shard must still be detected.
     for (const front of [external, otherGlyph, nestedGlyph]) {
       stack = [shard, front, glyph, group, root];
-      assert.deepEqual(sample(), { samples: 30, covered: 30, unknown: 0 });
+      assert.deepEqual(sample(), { samples: 140, covered: 140, unknown: 0 });
     }
     stack = [glyph, group, root];
     shard.style.pointerEvents = "none";
-    assert.deepEqual(sample(), { samples: 30, covered: 0, unknown: 0 });
+    assert.deepEqual(sample(), { samples: 140, covered: 0, unknown: 0 });
     external.style.pointerEvents = "none";
-    assert.deepEqual(sample(), { samples: 30, covered: 0, unknown: 30 });
+    stack = [external, glyph, group, root];
+    assert.deepEqual(sample(), { samples: 140, covered: 140, unknown: 0 });
+    assert.equal(
+      external.style.pointerEvents,
+      "none",
+      "pointer style must be restored",
+    );
     external.style.opacity = "0";
     glyph.style.pointerEvents = "none";
-    assert.deepEqual(sample(), { samples: 30, covered: 0, unknown: 30 });
+    assert.deepEqual(sample(), { samples: 140, covered: 0, unknown: 0 });
+    assert.equal(glyph.style.pointerEvents, "none");
+    // A clipped-away glyph is not painted at the sample. Its shared ancestor
+    // cannot be used as an anchor behind an unrelated background.
+    stack = [external, group, root];
+    external.style.opacity = "1";
+    assert.deepEqual(sample(), { samples: 140, covered: 0, unknown: 140 });
+    glyph.style.clipPath = "polygon(0 0, 10% 0, 10% 100%, 0 100%)";
+    assert.equal(sample(), undefined);
+    glyph.style.clipPath = "none";
     glyph.style.pointerEvents = "auto";
     group.group = false;
     shard.style.pointerEvents = "auto";
     stack = [shard, glyph, group, root];
-    assert.deepEqual(sample(), { samples: 30, covered: 30, unknown: 0 });
+    assert.deepEqual(sample(), { samples: 140, covered: 140, unknown: 0 });
   } finally {
     for (const [name, descriptor] of originals) {
       if (descriptor) Object.defineProperty(globalThis, name, descriptor);

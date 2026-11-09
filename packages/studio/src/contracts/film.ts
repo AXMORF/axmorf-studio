@@ -86,11 +86,10 @@ export const minimumCaptionFontSize = (width: number, height: number) =>
 
 export const FILM_REVIEW_MEASUREMENT_MARKER = "AXMORF_REVIEW_MEASUREMENT";
 export const FILM_REVIEW_MAX_TEXTS = 120;
-// 待校准：前景提示使用可见文字矩形内的 10×3 个命中采样点。
-export const FILM_REVIEW_FOREGROUND_COLUMNS = 10;
-export const FILM_REVIEW_FOREGROUND_ROWS = 3;
+// Conservative review hints: dense edge coverage, with any confirmed hit reported.
+export const FILM_REVIEW_FOREGROUND_COLUMNS = 20;
+export const FILM_REVIEW_FOREGROUND_ROWS = 7;
 export const FILM_REVIEW_FOREGROUND_OPACITY = 0.3;
-export const FILM_REVIEW_FOREGROUND_COVERAGE = 0.2;
 export const FilmReviewForegroundSchema = z
   .strictObject({
     samples: z.number().int().positive(),
@@ -114,6 +113,8 @@ export const FilmReviewMeasurementSchema = z.strictObject({
   frame: z.number().int().nonnegative(),
   width: z.number().int().positive(),
   height: z.number().int().positive(),
+  /** Body frame is inside a FilmSceneTrack overlay or overlap window. */
+  transitionWindow: z.boolean().optional(),
   /** Actual rendered caption size, or the canvas default between sentences. */
   captionFontSize: z.number().positive().optional(),
   texts: z

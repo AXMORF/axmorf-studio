@@ -1,5 +1,26 @@
 # Iteration Status
 
+## P6 发布前运行时修复（2026-11-09，未发布）
+
+- studio-v3 的 resolve ending accent 以常量导出 strength=.6（段落档），保留原合成事件/增益；cut/ring 不自动生成结尾 accent。
+  真实 v4/v5 重跑 film:music 后 WAV 逐字节不变，music.json 仅 f2590/f2600 强度 1→.6；两份导演手册同步。
+- 前景检测使用 20×7 原生命中，临时启用 pointer-events 后同步恢复，按 SVG/HTML 真实绘制顺序判断；
+  任一确认命中即提示，unknown 不抵消。修复 AxiomMorph clipping 缺席时把共享祖先当作文字位置、误认背景为前景的问题。
+  同组碎字仍排除，不同组件仍能互遮；overlay/overlap 内命中保留，message 标注「转场窗口内」。
+- 真实 Chromium 全扫 v5 正片 f0–2621：2622 份测量，0 缺失/截断/坏行/错误；35 条前景提示全部在转场窗口内
+  （147 个文字×帧、59 个不同帧），非转场提示 0，f2318 的「变／便」提示 0。5955 个文字×帧定位不完整记录保留 unknown。
+  指定两处的芯片/纸张实际绘在文字后方，按用户后续「只报警真正绘在文字上方」要求不伪造前后层级；
+  v4 f472–487 另检出两个标签文字框相交的 8.57% 前景采样，前景为「采样参数量」，不是芯片。
+- film:voice 保留 provider/音色/语速/文本的单句 PCM 缓存契约；timing.inputFingerprint 只证明剧本/时序匹配。
+  两份 Skill 与 architecture 明确整片 take 迁移后 film:check、跳过 film:voice；逐句编辑还需迁移 .axmorf/cache/voice。
+  回归覆盖复制整片输出仍调用当前 voice service、迁移单句缓存命中与 voiceId 变化 miss，不调用真实 TTS。
+
+真实宿主遮挡回归接入 check:host：14 项（含父测试）覆盖 SVG/HTML/层级/细边/两种原样布局/合规阅读卡/分组/clipping。
+最终 packages:build 与完整 npm run check 退出 0：主测试 532 通过、1 项 macOS 专属跳过，宿主回归 14 通过，合计 546 通过、1 跳过、0 失败。
+类型、lint、链接、音频、Web/Remotion 构建、creator 包与宿主 compositions 均通过；5 张既有示例 PNG 与 8 张影片抽检 JPEG 逐字节不变。
+详细交付说明与逐帧证据索引在 `/home/zzzxc/AgentWorkspace/2026-11-09-p6-prefix-notes.md`（本地，不随 npm 分发）。
+没有依赖、lockfile 或版本修改，没有 push/publish/merge，原 v4/v5 只读。
+
 ## P8 p99 判据与强重音连续小图（2026-11-08，未发布）
 
 按方案负责人修订，强重音冲击门槛改为线性 p99：要进入全片（含转场）最大动作之列。

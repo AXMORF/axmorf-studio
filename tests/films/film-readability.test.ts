@@ -379,7 +379,7 @@ test("captions shrunk to fit one line are flagged once; default-size captions ar
   );
 });
 
-test("foreground coverage includes the 20% boundary, skips captions, and retains unknown hit tests", () => {
+test("foreground reports any confirmed coverage even with uncertain samples, skips captions and retains unknown tests", () => {
   const result = analyze([
     text({
       snippet: "covered",
@@ -403,7 +403,10 @@ test("foreground coverage includes the 20% boundary, skips captions, and retains
   ]);
   assert.deepEqual(
     result.readabilityWarnings.map((w) => [w.rule, w.snippet]),
-    [["text-under-foreground", "covered"]],
+    ["covered", "below", "pointer-events:none"].map((snippet) => [
+      "text-under-foreground",
+      snippet,
+    ]),
   );
   assert.equal(
     result.readabilityWarnings[0].measurements[0].foregroundCoverageRatio,
@@ -417,7 +420,7 @@ test("foreground coverage includes the 20% boundary, skips captions, and retains
   assert.equal(foregroundCoverage({ samples: 30, covered: 0, unknown: 0 }), 0);
   assert.equal(
     foregroundCoverage({ samples: 30, covered: 6, unknown: 1 }),
-    null,
+    0.2,
   );
   assert.equal(foregroundCoverage(), null);
 });
@@ -542,4 +545,25 @@ test("status hints use canvas caption default between sentences and stay separat
       ["small-text", "tiny-tag"],
     ],
   );
+});
+
+test("foreground messages mark only frames inside overlay/overlap windows and preserve legacy records", () => {
+  const texts = [
+    text({ foreground: { samples: 140, covered: 1, unknown: 0 } }),
+  ];
+  const result = analyzeReviewReadability({
+    output: [
+      line(record({ texts })),
+      line(record({ index: 1, frame: 20, texts, transitionWindow: true })),
+      line(record({ index: 2, frame: 21, texts, transitionWindow: true })),
+    ].join("\n"),
+    frames: [10, 20, 21],
+    width: 1080,
+    height: 1920,
+  });
+  const warning = result.readabilityWarnings[0];
+  assert.deepEqual(warning.frames, [10, 20, 21]);
+  assert.match(warning.message, /转场窗口内：frames 20, 21/u);
+  assert.equal(warning.measurements[0].transitionWindow, undefined);
+  assert.equal(warning.measurements[1].transitionWindow, true);
 });

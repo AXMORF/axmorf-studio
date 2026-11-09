@@ -34,12 +34,23 @@ const effectiveOpacity = (element: Element) => {
 // Hit testing sees transparent layout boxes too. Only painted leaves/backgrounds
 // can cover text; svg/g viewport boxes and unpainted HTML wrappers cannot.
 const painted = (element: Element) => {
-  if (element instanceof SVGElement)
+  if (element instanceof SVGElement) {
+    if (element instanceof SVGImageElement) return true;
+    if (
+      !(
+        element instanceof SVGGeometryElement ||
+        element instanceof SVGTextContentElement
+      )
+    )
+      return false;
+    const style = getComputedStyle(element);
     return (
-      element instanceof SVGGeometryElement ||
-      element instanceof SVGTextContentElement ||
-      element instanceof SVGImageElement
+      (style.fill !== "none" && Number(style.fillOpacity) > 0) ||
+      (style.stroke !== "none" &&
+        Number(style.strokeOpacity) > 0 &&
+        Number.parseFloat(style.strokeWidth) > 0)
     );
+  }
   const style = getComputedStyle(element);
   return (
     style.backgroundImage !== "none" ||
@@ -66,83 +77,94 @@ export const foregroundSampler = (root: Element) => {
       opacityCache.set(element, effectiveOpacity(element));
     return opacityCache.get(element)!;
   };
-  // elementsFromPoint skips pointer-events:none. Conservatively mark overlapping
-  // samples unknown, rather than pretending such painted content is absent.
-  const skipped = [...root.querySelectorAll("*")]
+  // Temporarily enable native hit testing without changing paint or stacking.
+  // This also covers inherited pointer-events:none and preserves SVG geometry.
+  const skipped = [root, ...root.querySelectorAll("*")]
+    .filter((element) => getComputedStyle(element).pointerEvents === "none")
     .filter(
-      (element) =>
-        getComputedStyle(element).pointerEvents === "none" &&
-        !element.closest("[data-axmorf-captions]") &&
-        painted(element) &&
-        opacity(element) >= FILM_REVIEW_FOREGROUND_OPACITY,
-    )
-    .map((element) => ({ element, rect: element.getBoundingClientRect() }));
+      (element): element is HTMLElement | SVGElement =>
+        element instanceof HTMLElement || element instanceof SVGElement,
+    );
   return (
     element: Element,
     rects: readonly DOMRect[],
   ): FilmReviewForeground | undefined => {
+    const restore = skipped.map((element) => ({
+      element,
+      value: element.style.getPropertyValue("pointer-events"),
+      priority: element.style.getPropertyPriority("pointer-events"),
+    }));
+    for (const { element } of restore)
+      element.style.setProperty("pointer-events", "auto", "important");
+    const clippedGroup =
+      element.closest("[data-axmorf-text-group]") !== null &&
+      getComputedStyle(element).clipPath !== "none";
     let samples = 0,
       covered = 0,
       unknown = 0;
-    const viewport = root.getBoundingClientRect();
-    for (const rect of rects) {
-      const left = Math.max(rect.left, viewport.left, 0);
-      const top = Math.max(rect.top, viewport.top, 0);
-      const right = Math.min(rect.right, viewport.right, window.innerWidth);
-      const bottom = Math.min(rect.bottom, viewport.bottom, window.innerHeight);
-      if (right <= left || bottom <= top) continue;
-      for (let row = 0; row < FILM_REVIEW_FOREGROUND_ROWS; row++) {
-        for (
-          let column = 0;
-          column < FILM_REVIEW_FOREGROUND_COLUMNS;
-          column++
-        ) {
-          const x =
-            left +
-            ((column + 0.5) * (right - left)) / FILM_REVIEW_FOREGROUND_COLUMNS;
-          const y =
-            top + ((row + 0.5) * (bottom - top)) / FILM_REVIEW_FOREGROUND_ROWS;
-          samples++;
-          if (
-            getComputedStyle(element).pointerEvents === "none" ||
-            skipped.some(
-              ({ element: other, rect }) =>
-                !related(element, other) &&
-                !sameTextGroup(element, other) &&
-                x >= rect.left &&
-                x <= rect.right &&
-                y >= rect.top &&
-                y <= rect.bottom,
-            )
+    try {
+      const viewport = root.getBoundingClientRect();
+      for (const rect of rects) {
+        const left = Math.max(rect.left, viewport.left, 0);
+        const top = Math.max(rect.top, viewport.top, 0);
+        const right = Math.min(rect.right, viewport.right, window.innerWidth);
+        const bottom = Math.min(
+          rect.bottom,
+          viewport.bottom,
+          window.innerHeight,
+        );
+        if (right <= left || bottom <= top) continue;
+        for (let row = 0; row < FILM_REVIEW_FOREGROUND_ROWS; row++) {
+          for (
+            let column = 0;
+            column < FILM_REVIEW_FOREGROUND_COLUMNS;
+            column++
           ) {
-            unknown++;
-            continue;
-          }
-          const stack = document.elementsFromPoint(x, y);
-          if (
-            !stack.some(
-              (hit) =>
-                related(element, hit) && root.contains(hit) && hit !== root,
+            const x =
+              left +
+              ((column + 0.5) * (right - left)) /
+                FILM_REVIEW_FOREGROUND_COLUMNS;
+            const y =
+              top +
+              ((row + 0.5) * (bottom - top)) / FILM_REVIEW_FOREGROUND_ROWS;
+            const stack = document.elementsFromPoint(x, y);
+            // A shared ancestor is not the text's paint position. In particular,
+            // clipped AxiomMorph shards can miss the hit test entirely; treating
+            // their ancestor as text falsely puts background graphics in front.
+            const textIndex = stack.findIndex((hit) => element.contains(hit));
+            // Range rectangles include the whole glyph, including clipped-out
+            // shard regions where there is no text to cover.
+            if (textIndex < 0 && clippedGroup) continue;
+            samples++;
+            if (textIndex < 0) {
+              unknown++;
+              continue;
+            }
+            if (
+              stack
+                .slice(0, textIndex)
+                .some(
+                  (hit) =>
+                    root.contains(hit) &&
+                    !related(element, hit) &&
+                    !hit.closest("[data-axmorf-captions]") &&
+                    !sameTextGroup(element, hit) &&
+                    painted(hit) &&
+                    opacity(hit) >= FILM_REVIEW_FOREGROUND_OPACITY,
+                )
             )
-          ) {
-            unknown++;
-            continue;
+              covered++;
           }
-          const topmost = stack.find(
-            (hit) =>
-              root.contains(hit) &&
-              !hit.closest("[data-axmorf-captions]") &&
-              (related(element, hit) ||
-                (!sameTextGroup(element, hit) &&
-                  painted(hit) &&
-                  opacity(hit) >= FILM_REVIEW_FOREGROUND_OPACITY)),
-          );
-          if (!topmost) unknown++;
-          else if (!related(element, topmost)) covered++;
         }
       }
+      return samples ? { samples, covered, unknown } : undefined;
+    } finally {
+      // Measurement is synchronous. Restore before Remotion captures the frame.
+      for (const { element, value, priority } of restore) {
+        if (value) element.style.setProperty("pointer-events", value, priority);
+        else element.style.removeProperty("pointer-events");
+      }
     }
-    return samples ? { samples, covered, unknown } : undefined;
   };
 };
 
@@ -303,7 +325,23 @@ export const ReviewMeasure = ({
           );
         if (readability)
           console.warn(
-            `${FILM_REVIEW_MEASUREMENT_MARKER} ${JSON.stringify({ ...record, ...measure(root.current, width, height) })}`,
+            `${FILM_REVIEW_MEASUREMENT_MARKER} ${JSON.stringify({
+              ...record,
+              ...(motion &&
+              [...motion.events.values()].some(
+                (event) =>
+                  event.type === "scene-track" &&
+                  event.scenes.some(
+                    ({ enter }) =>
+                      enter !== null &&
+                      frame >= enter.startFrame &&
+                      frame < enter.endFrame,
+                  ),
+              )
+                ? { transitionWindow: true }
+                : {}),
+              ...measure(root.current, width, height),
+            })}`,
           );
       } catch (error) {
         if (!cancelled)

@@ -87,8 +87,12 @@ impact 返回当前重音 strength，旧包络数值不变；resolveImpactLevel 
 原有揭示前的 musicDips 与运行时 ending 收音保持兼容。`mask-wipe` 是羽化光带，可用 `tint` 调色，不改变边界时序。
 内容状态标识使用 `FilmStatusTag`，主副词同字号、同对比层级，有独立底板；review 用 `small-status-tag`
 提示实测字号低于实测字幕的 70%（句间用画布默认字幕字号）。
-可读性测量用可见文字矩形的命中采样提示 `text-under-foreground`，排除同一 `data-axmorf-text-group`
-组件内部字形间的遮挡，保留其他组件与外部前景；不可靠命中保留 `readability.unknown`；
+可读性测量在可见文字矩形内用 20×7 个浏览器原生命中采样，按真实绘制顺序提示 `text-under-foreground`；
+同步临时启用 pointer-events 命中并在截图前恢复，因此 SVG/HTML 的 pointer-events:none 不再隐藏真实前景。
+排除同一 `data-axmorf-text-group` 的内部字形互遮与 clip-path 裁掉的无文字区域，不把共享祖先当作文字的绘制位置；
+不同组件与外部前景仍检测。任何确认命中都提示，不被其他 unknown 采样抵消；不可靠定位保留 `readability.unknown`。
+review measurement 的可选 transitionWindow 标记来自场景轨精确的 overlay/overlap 半开窗口，提示 message 注明「转场窗口内」。
+主体绘于文字后方的构图重叠不属于前景遮挡，仍需人工检查背景对比度与阅读区域。
 运动分析以场景轨/内部候选切点的中点签名提示非相邻的 `repeated-composition`（含旁白时段，无场景轨旧片为 unknown）。
 新 rhythm 遥测经现有 review-only registry 传递完整计划，impact 记落点，bar camera 只记实际不同机位。
 音效遥测保留 alignmentFrame（start/end/center；旧记录只有 start），不改变播放。

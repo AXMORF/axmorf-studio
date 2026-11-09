@@ -100,7 +100,7 @@ Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐�
     `readability` 中的 `missingFrames`、`truncatedFrames` 不为空时，补看对应单帧，不把测量缺失当作通过。这些提示不拦截交付。
     `film:review` 输出的 `motion` / `motionWarnings` 记录运动与声音提示：motionWarnings 必须为空，或按
     [导演手册自检](references/direction.md#9-自检看-animatic-时逐条回答写帧号) 对各条规则逐条说明理由与帧号；`unknown` 不是已通过。
-    `text-under-foreground` 必须逐条回应；`readability.unknown` 中命中判定不准的文字（如 pointer-events:none）
+    `text-under-foreground` 必须逐条回应；`readability.unknown` 中无法定位绘制位置的文字（如 display:contents）
     要看图核对。`repeated-composition` 比较包含旁白的非相邻段落构图；没有场景轨的旧片保持 unknown。
     `axiom-morph-missing` 提醒全片缺母题遥测；有旧公理/新公理候选必须用 AxiomMorph，没有就说明理由，不把提醒当自动语义判断。
     内容状态标识必须用 `FilmStatusTag`；同时核对 `small-status-tag`，主词和副词都不低于字幕字号的 70%，

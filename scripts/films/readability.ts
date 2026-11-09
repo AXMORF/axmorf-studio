@@ -6,7 +6,6 @@ import {
   minimumCaptionFontSize,
   resolveFilmCaptionFontSize,
   minimumReadableFontSize,
-  FILM_REVIEW_FOREGROUND_COVERAGE,
   type FilmReviewForeground,
   type FilmReviewMeasurement,
   type FilmReviewRect,
@@ -49,6 +48,7 @@ type Measurement = {
   outsidePixels?: number;
   captionOverlapRatio?: number;
   foregroundCoverageRatio?: number;
+  transitionWindow?: boolean;
 };
 export type ReadabilityWarning = {
   rule: Rule;
@@ -58,11 +58,9 @@ export type ReadabilityWarning = {
   message: string;
 };
 
-/** Any uncertain sample keeps this measurement unknown (hints must not guess). */
+/** A lower bound: uncertain samples never erase confirmed foreground hits. */
 export const foregroundCoverage = (foreground?: FilmReviewForeground) =>
-  !foreground || foreground.unknown > 0
-    ? null
-    : foreground.covered / foreground.samples;
+  foreground ? foreground.covered / foreground.samples : null;
 
 const intersectionArea = (a: FilmReviewRect, b: FilmReviewRect) =>
   Math.max(0, Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x)) *
@@ -142,7 +140,12 @@ export const analyzeReviewReadability = ({
           minimumFontSize: minimumCaption,
         });
       if (caption || intersectionArea(rect, frameRect) === 0) continue;
-      const measurement = { frame: record.frame, fontSize, rect };
+      const measurement = {
+        frame: record.frame,
+        fontSize,
+        rect,
+        ...(record.transitionWindow ? { transitionWindow: true } : {}),
+      };
       const minimumStatusTag =
         (record.captionFontSize ?? resolveFilmCaptionFontSize(width, height)) *
         0.7;
@@ -152,15 +155,15 @@ export const analyzeReviewReadability = ({
           minimumFontSize: minimumStatusTag,
         });
       const foregroundCoverageRatio = foregroundCoverage(foreground);
-      if (foregroundCoverageRatio === null)
+      if (foregroundCoverageRatio === null || foreground!.unknown > 0)
         unknown.push({
           rule: "text-under-foreground",
           frame: record.frame,
           snippet,
           reason:
-            "Hit testing is unavailable or uncertain (for example pointer-events:none); inspect the frame.",
+            "The text paint position is unavailable (for example clipping or display:contents); inspect the frame.",
         });
-      else if (foregroundCoverageRatio >= FILM_REVIEW_FOREGROUND_COVERAGE)
+      if (foregroundCoverageRatio !== null && foregroundCoverageRatio > 0)
         add("text-under-foreground", snippet, {
           ...measurement,
           foregroundCoverageRatio,
@@ -242,6 +245,15 @@ export const analyzeReviewReadability = ({
               ) * 100,
             );
             message = `${subject} has ${percent}% of visible text samples under foreground elements on frames ${frameList}; move the foreground away from reading text.`;
+            const transitionFrames = [
+              ...new Set(
+                measurements
+                  .filter((value) => value.transitionWindow)
+                  .map((value) => value.frame),
+              ),
+            ];
+            if (transitionFrames.length)
+              message += ` 转场窗口内：frames ${transitionFrames.join(", ")}；请人工核对。`;
             break;
           }
           case "text-under-captions": {

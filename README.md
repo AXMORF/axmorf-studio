@@ -173,7 +173,7 @@ npm run check:static
 `packages:build` 提供模板编译所需的公共包类型导出。涉及 Chromium 或 Remotion 时，再运行：
 
 ```bash
-npm run compositions
+npm run check:host # compositions 与真实 SVG/HTML 遮挡回归
 npm run check
 ```
 
