@@ -55,8 +55,8 @@ Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐�
    运行 `npm run film:music -- --film <filmId>`，取得 beatFrames、barFrames、sectionFrames、accentFrames 和 onsets。
    实际字段、锚点、残差见 [配乐与卡点](references/music.md)。无配乐的片不伪造网格；无旁白的片跳过 voice，先定音乐。
 7. **按小节分镜 → 画面 → 音效**（顺序必做）：先写 `src/films/<filmId>/storyboard.md`，告知用户路径和画面路线。
-   使用 [导演手册第 8 节](references/direction.md#8-storyboardmd-写法) 的表格，每行一个小节，列帧、段落、旁白句、图形元素 → 代表、L2、L3 和音效，
-   并补章节世界、镜头路径、转场动机、配方起止和声音窗口；不按句子分页。
+   使用 [导演手册第 8 节](references/direction.md#8-storyboardmd-写法) 的表格，每行一个小节，列帧、段落、旁白句、图形元素 → 代表、桌面动作、L2、L3 和音效，
+   并补章节世界、镜头路径、转场动机、配方起止和声音窗口；每镜头写一个看得见的真实桌面动作动词，只有“卡片出现然后停住”不合格，手也用生图剪纸。写出入画→动作→收手、anticipate/land 和音效锚点；不按句子分页。
    由内容语义选择图解和效果；`AxiomMorph` 是可选的通用文字对照、重组或拆解，不是品牌要求。
    先搭 L1 具体物件细节反应、L2 每小节轮换物件动作并推进构图、L3 每重音大动作，落点误差 0 帧，再填细节。
    strength ≥0.9 的重音之前必须有至少 6 帧可见预备；不能把配方过程藏起来只露出终值，详见导演手册。

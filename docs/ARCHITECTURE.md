@@ -102,10 +102,13 @@ review measurement 的可选 transitionWindow 标记来自场景轨精确的 ove
 message 与 measurements 保留文字、帧号、最差格、比值及转场/同组形变标注；像素/颜色不可用或空网格列入 readability.unknown，已确认低对比不被其他 unknown 抵消。
 readability.contrast 给出 threshold、measuredTexts、analysisMs（软件解码已有图片与分析总耗时），不额外解码整片，也不改变画面或交付门禁。
 图形测量同样只在 readability 已有采样帧执行，无额外渲染。原生 DOM/SVG 的 `data-axmorf-object` 标明含义，
-可选 `data-axmorf-object-role` 为 subject（默认）/relation/background；按实际绘制图形（不含文字）的边界汇总物体，
+可选 `data-axmorf-object-role` 为 subject（默认）/relation/background；
+`data-axmorf-object-kind` 为 illustration/diagram/prop/card（缺省 prop，旧遥测兼容）；按实际绘制图形（不含文字）的边界汇总物体，
 裁切到画布及 overflow/inset 区域，复杂 clip/mask 保留 unknown。`graphics.frames` 逐帧列标注、角色、祖先和包围盒。
 `graphicWarnings` 提示不同标注且互非祖先后代的 subject 包围盒交叠超过较小者 15%、同帧 subject 超过 3 个、
 无标注绘制元素包围盒面积总和超过画面 10%。后者是边界面积之和，不是像素覆盖率，可大于 100%。
+`text-card-only` 提示可见 subject 非空且全为 card 的连续命中采样段，给出 frames/sampledFrames；不推断未采样帧，
+非卡/空主体及缺失、unknown、截断测量断段。kind 只表达作者分类，不自动识别插画或卡片语义。
 排除零透明度、不可见、文字组、字幕、FilmStatusTag、全帧背景板、SVG 定义与场景轨转场覆盖层；
 覆盖层只添加内部 className，不改组件接口或画面。转场窗口内仍报并标注；缺测/错误/截断为 `graphics.unknown`。
 图形清单不证明标注的语义正确，也不按遮挡顺序重建像素轮廓；作者须逐镜头静音描述并回应提示。全部不进入 check/deliver 门禁。
@@ -118,7 +121,7 @@ accent-without-visual、visual-without-sound、sound-without-visual、bar-withou
 缺配乐、遥测、采样截断或多轨歧义为 unknown；缺音效遥测或手写音频时音效匹配为 unknown，未识别 transform 须人工核对。
 力度分析独立于稀疏遥测：对 fresh animatic 的正片连续全帧用 Workspace FFmpeg 解码，排除品牌片头片尾；
 160×90 灰度的相邻帧 MAD 记为 E[f]（f 与 f-1 之差），不伪造首帧能量。
-FFmpeg 用已有 trim / lossless PNG，逐张读取，单次解码上限 120 秒，不新增依赖。
+FFmpeg 显式 -hwaccel none，用已有 trim / lossless PNG，逐张读取，单次解码上限 120 秒，不新增依赖。
 `motion.summary.motionEnergy` / `motion.energy` 给出 p99（冲击判据）、p95（历史对照）、强重音峰值、讲述/非旁白段中位数及逐帧 JSON 路径。
 `accent-underplayed` 对 strength ≥.9 重音分别检查预备和冲击：[f-8,f-1] 至少 6 帧能量严格大于全片中位数 2 倍，
 且 [f-1,f+3] 峰值不低于 p99；不满足时 message 区分“缺预备”/“冲击不够”，同一重音只发一条，可同时包含两原因。
@@ -129,6 +132,9 @@ summary 另含 median、anticipationThreshold 与各重音 anticipationFrames。
 每格标明正片帧号，每张三列、480px 单格，图片和 metadata 只留在 ignored 的 review/public，缺帧报错，不伪造联系表。
 Skill 强制逐张人工确认预备与数字/文字过程可见，并在 review-notes 按帧记录结论；该人工要求不变成交付 gate。
 `beat-sections-static` 只在完整样本的非旁白中位数为 0 时提示核对有意停留；保留讲述/非旁白两类中位数，不比较大小，纯音乐可测。
+`narration-static` 复用同一批全帧能量，讲述段中位数 <0.2 或能量 <0.15 连续超过 30 帧时提示（均有注释常量）。
+旁白为 [startFrame,endFrame)，静默间隙重置连续计数；summary 记录 speechStillFrames 和 longestSpeechStillRun（含首尾和帧数）。
+没有可用 animatic 或没有讲述样本为 unknown；只提示，不改变 film:check 或交付。
 `axiom-morph-missing` 仅保留 legacy 报告枚举，分析器不再发出 warning 或 unknown；AxiomMorph 是可选的通用文字形变。
 缺失、过期或不完整 animatic 为 unknown；缺带强度重音或缺非旁白样本时对应规则为 unknown。
 口播语义先决定事件，现有 score.hits.frame 用句子 id 或经人工/外部确认的绝对帧与画面对齐；只有句级 timing，不伪造逐字时间。

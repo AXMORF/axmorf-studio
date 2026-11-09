@@ -112,15 +112,18 @@ deliveries/<film-id>/publish.json
 不确定的随机数与时间、未登记的媒体、跨片导入，以及与 `film.json` 不一致的旁白、配乐和音效计划。审美和可读性靠
 Skill 中的创作方法、animatic 与看图回路；motionWarnings 仅作提示，不拦交付；音画同步 total/matched 统计在 motion.summary.rhythmSync，缺测为 unknown。
 强重音力度与节拍段运动另用 fresh animatic 的连续全帧测量，统计在 `motion.summary.motionEnergy`；
-`accent-underplayed` 检查强重音整帧预备和 p99 冲击，`beat-sections-static` 比较两类段落；
-全片没有 AxiomMorph 遥测时另提示 `axiom-morph-missing`，三者都只提示，缺少或过期的 animatic 为 unknown。
+`accent-underplayed` 检查强重音整帧预备和 p99 冲击，`beat-sections-static` 提示非旁白中位数为零；
+`narration-static` 提示讲述段中位数 <0.2 或近静止（能量 <0.15）连续超过 30 帧，报告最长段起止帧。
+三者都只提示，缺少或过期的 animatic 为 unknown；AxiomMorph 为可选效果，不要求使用。
 `readabilityWarnings` 的 `low-contrast-text` 提示局部文字/背景对比低于 3:1，列出帧号、最差网格位置和比值；
 转场与同组形变照常提示，像素或颜色不可用保留 unknown，仅审片、不拦交付。耗时见 `readability.contrast.analysisMs`。
 `graphicWarnings` 提示主体包围盒重叠 >15%、同帧主体超过 3 个、未标注图形包围盒面积总和 >10%；
-用原生元素的 `data-axmorf-object` 说明物体含义，可选角色 subject/relation/background。`graphics.frames` 列出逐帧标注，
+用原生元素的 `data-axmorf-object` 说明物体含义，可选角色 subject/relation/background，kind 可为 illustration/diagram/prop/card（默认 prop）。
+`text-card-only` 提示可见 subject 全是文字卡片的连续命中采样段，列出起止及实际采样帧，不推断未采样帧。`graphics.frames` 列出逐帧标注，
 辅助静音描述；转场照报，`graphics.unknown` 不算通过。复用审片采样，仅提示、不拦交付，不自动选择影片风格。
 用户或 Workspace 指定纸面拼贴/手绘线稿时，Skill 提供对应配方、已安装字体回退和可编译 gallery。
-节拍反应落在具体物件上，每章至少三类、相邻小节轮换；`beat-response-monotone` 与 `motion.summary.beatResponses`
+纸面关键人物/实物由宿主生图剪纸准备，工具不可用停下；bookends 显式 light，每镜头写真实桌面动作。
+讲述段只保护阅读文字，持续桌面微移、非文字线稿 boil、每拍轮换物件反应，每章至少三类、相邻小节主动作轮换；`beat-response-monotone` 与 `motion.summary.beatResponses`
 区分物件动作和 global 光闪/缩放，缺遥测为 unknown，仅提示。轮换、boil seed 与上报 API 从 rhythm 导出。
 纸面动作可用 film:sfx 的 stamp（压章）、tape（撕贴胶带）、pen（笔划），继续复用统一参数与动作锚点；旧12类PCM不变。
 `motion["strong-accent-strip"]` 导出每个强重音的 [f-8,f+4] 逐帧联系表；必须人工确认配方过程可见，在 review-notes 按帧号记录。修改作品就是修改源码后重新交付，上一版交付自动移到 `.axmorf/history/`。

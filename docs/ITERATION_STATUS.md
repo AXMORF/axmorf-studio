@@ -1,5 +1,28 @@
 # Iteration Status
 
+## P10 讲述段像素运动与图解主体（2026-11-10，未发布）
+
+新增 `narration-static`，复用 animatic 正片 160×90 灰度相邻帧 MAD：讲述段中位数 <0.2，或能量 <0.15
+连续超过 30 帧即提示，报告最长段起止帧和帧数；静默间隙断段，无可用 animatic/讲述样本为 unknown，仅提示不拦交付。
+指定校准存在冲突，未擅改判据：v7 中位数 0.013611、最长 f146–199（54 帧），命中；v5 中位数 0.531806，
+但末句 f2480–2533 也近静止 54 帧，仍命中。因此“v5 不报”未满足，需明确修订判据或验收预期，不能宣称全项验收通过。
+
+新增可选 object-kind=illustration/diagram/prop/card（默认 prop，旧遥测兼容）。`text-card-only` 提示可见 subject
+全为 card 的连续命中采样段，给出 frames/sampledFrames，不推断未采样帧；缺失/unknown/截断及非卡/空主体断段。
+新 TextCardReview gallery 的图解+金额卡正例 0 提示，两卡反例 f0–29（采样 0,10,20,29）1 条提示，真实 Chromium 验证。
+PaperCollageExample 只补类型标注，f0–38 印章入场前如实命中；7 个旧示例 27 张 PNG 与 47a1036 基线逐字节一致。
+
+四份 Skill 入口和正文镜像同步：只稳定正在阅读的文字，讲述段持续非匀速桌面微移、全程非文字 boil、每拍轮换物件反应；
+自检超过 1 秒整帧不动。每镜头 storyboard 增「桌面动作」，只有卡片出现后停住不合格；纸面 bookends 显式 light。
+关键人物/手/实物用实际可用宿主生图剪纸；统一/逐主体提示词写入 storyboard，缺工具停下，不用代码凑人物/实物。
+完整抠像/登记/代码白边投影纸纹流程已补齐，保留精确 SVG 图解；现有 sprite/drawing 辅助及 FFmpeg 透明度验证通过。
+现有 frame API 足够排手入画→动作→收手的 anticipate/land，不新增可选 resolver 或依赖；本任务未调用生图、未制作 v8。
+
+完整 `npm run check` 退出 0：主测试 577 通过、1 macOS 专属跳过，宿主 37 通过；合计 614 通过、1 跳过、0 失败。
+类型、lint、文档链接、音频投影、Web/Remotion 构建、creator 包检查与 compositions 均通过。
+进度与说明在 `/home/zzzxc/AgentWorkspace/p10-PROGRESS.md`、`/home/zzzxc/AgentWorkspace/2026-11-10-p10-notes.md`；
+证据在 `/tmp/axmorf-p10-evidence/`。未安装依赖、未改 lockfile、未推送/发布/合并，已有作品文件只读，未启动播放器。
+
 ## P9 F 纸面拟音（2026-11-10，未发布）
 
 film:sfx新增stamp（短低频压按+纸面闷响）、tape（胶带噼啪调制滤波噪声）、pen（笔触调制带通摩擦噪声）。
