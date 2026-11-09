@@ -62,6 +62,13 @@ film:deliver → .axmorf/staging 中渲染正片（片头 + 正片 + 片尾）�
                → 替换 deliveries/<id>/，旧交付移到 .axmorf/history/<id>/<deliveredAt>
 ```
 
+`film:voice` 的缓存单位是母带处理前的单句 canonical PCM，位于 `.axmorf/cache/voice/<key>.wav`；
+key 由 providerAttemptFingerprint、speechRate 和文本计算。`timing.inputFingerprint` 只含 fps、timeline 和 narration，
+用于判断时序是否对应剧本，不证明当前 provider/音色相同；生成的 timing/narration 不作 TTS 缓存。
+复用完整 take 时连同匹配的 film.json、timing.json、narration.wav 一起迁移、保留 filmId/相对路径，用 film:check
+校验指纹与音频 checksum，跳过 film:voice；逐句续做还需迁移缓存并配置相同 provider/音色执行参数和语速。
+缓存不是旁白来源认证机制，也不位于 private 目录。
+
 渲染期间不调用网络、Agent、Git 或目录扫描；Remotion Root 只读生成的静态注册表。`Film.tsx` 只看到正片帧，
 片头片尾由 `FilmWithBookends` 在交付组合中接上，各自带模板音频。场景轨按名义边界居中安排转场，不挪旁白绝对时序；音效 cue 显式交给音效轨，
 新片默认 studio-v3；分层鼓组、贝斯与和声经确定性滤波、FFT 房间卷积、RMS 总线压缩及限幅输出。

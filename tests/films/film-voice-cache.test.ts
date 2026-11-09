@@ -1,10 +1,13 @@
 import assert from "node:assert/strict";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { cp, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { writeProducerConfig } from "../../scripts/config/producer-config";
+import {
+  readProducerConfig,
+  writeProducerConfig,
+} from "../../scripts/config/producer-config";
 import { createFilmVoiceService } from "../../scripts/films/voice";
 import { createEdgeTtsChunkGenerator } from "../../scripts/narration/adapters/edge-tts-client";
 import { encodeCanonicalPcmWav } from "../../scripts/narration/domain/pcm-wav";
@@ -94,4 +97,51 @@ test("film cache hits bypass Edge pacing, diagnostics and provider requests", as
   assert.deepEqual(starts, [0, 10_000]);
   assert.deepEqual(waits, [10_000]);
   assert.equal(events.length, 4);
+
+  const transferredRoot = await mkdtemp(
+    join(tmpdir(), "axmorf-transferred-cache-"),
+  );
+  context.after(() => rm(transferredRoot, { recursive: true, force: true }));
+  await cp(
+    join(rootDir, ".axmorf/cache/voice"),
+    join(transferredRoot, ".axmorf/cache/voice"),
+    { recursive: true },
+  );
+  const transferred = await createFilmVoiceService({
+    rootDir: transferredRoot,
+    env: { RSP_PRODUCER_CONFIG: configPath },
+    createGenerator: () => async () => {
+      throw new Error("Migrated sentence cache must bypass TTS");
+    },
+  });
+  assert.deepEqual(await transferred.speak(sentence), first);
+
+  const config = await readProducerConfig({ configPath });
+  await writeProducerConfig({
+    configPath,
+    value: {
+      ...config,
+      tts: {
+        ...config.tts,
+        providers: config.tts.providers.map((provider) =>
+          provider.kind === "edge-tts"
+            ? {
+                ...provider,
+                voiceProfiles: provider.voiceProfiles.map((profile) => ({
+                  ...profile,
+                  voiceId: "zh-CN-YunxiNeural",
+                })),
+              }
+            : provider,
+        ),
+      },
+    },
+  });
+  const changedVoice = await createService();
+  await changedVoice.speak(sentence);
+  assert.equal(
+    starts.length,
+    3,
+    "Changing the voice must miss the cache even with identical text/timing inputs",
+  );
 });

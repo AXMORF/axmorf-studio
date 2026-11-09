@@ -40,7 +40,12 @@ Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐�
      `bookends.sources`（标题 + 网址），会显示在片尾。
    - `film:new` 已写入 10 秒占位 `studio-v3` 谱；按本片内容重写 `music.score`，不要沿用占位收尾帧。无配乐的片设 `music: null`；实测旁白后先写节奏谱、生成配乐，再按小节写 storyboard（见 [导演手册](references/direction.md#2-工作顺序不能倒过来)）。
 5. **生成旁白**：`npm run film:voice -- --film <filmId>`。输出每句的起止帧。修改旁白文本后重新运行；
-   没改过的句子来自缓存，不会重复调用 TTS。
+   相同 provider/音色执行指纹、语速和文本的句子在 `.axmorf/cache/voice/` 命中时不会重复调用 TTS。
+   `generated/timing.json.inputFingerprint` 仅描述剧本/时序输入，不含 provider 或音色，不是 TTS 缓存键。
+   跨 Workspace 要保留同一个 take：一起复制匹配的 `film.json`、`generated/timing.json` 与
+   `public/films/<filmId>/narration.wav`（保持 filmId 和相对路径），直接运行 `film:check` 验证输入指纹和音频 checksum，
+   不再运行 `film:voice`。要在新 Workspace 编辑旁白并复用未改句子，还需迁移 `.axmorf/cache/voice/`，
+   配置相同 provider、音色素材、生成参数与语速；不要把混合、停顿、母带处理后的 narration.wav 当作逐句缓存。
 6. **先写节奏谱并生成配乐**：按实测句子锚定 `music.score`，先定 sections、揭示 hits、揭示前 breaks 和 ending。
    一部讲解片一个 BPM（96–116），hook 直接进鼓、第一小节就有重音，证据段中、揭示前收、drop 爆、结尾落。
    新片使用 `studio-v3`；显式写 `volume: 0.64`、`underSpeechVolume: 0.34` 作为混音起点；实测讲述段底层比旁白低 12–15 LU。

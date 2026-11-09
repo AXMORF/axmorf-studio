@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import {
+  copyFile,
   mkdir,
   mkdtemp,
   readFile,
@@ -100,6 +101,46 @@ const silentSpeech = (seconds: number) =>
 const fakeVoice = async () => ({
   speak: async ({ text }: { text: string }) => silentSpeech(text.length / 4),
   master: async (wav: Buffer) => wav,
+});
+
+test("copied generated timing and narration are outputs, not the provider-specific sentence cache", async (context) => {
+  const spec = {
+    timeline: { narrationStartFrame: 0, tailFrames: 30 },
+    narration: [{ id: "a", text: "同一份剧本。" }],
+  };
+  const source = await createWorkspace(context);
+  const sourcePaths = await writeFilm(source, "copied-voice", { spec });
+  await runFilmVoice({
+    rootDir: source,
+    filmId: "copied-voice",
+    createService: fakeVoice,
+  });
+  const target = await createWorkspace(context);
+  const targetPaths = await writeFilm(target, "copied-voice", { spec });
+  await mkdir(targetPaths.publicDir, { recursive: true });
+  await copyFile(sourcePaths.timing, targetPaths.timing);
+  await copyFile(sourcePaths.narrationWav, targetPaths.narrationWav);
+  const before = JSON.parse(await readFile(targetPaths.timing, "utf8"));
+  let calls = 0;
+  await runFilmVoice({
+    rootDir: target,
+    filmId: "copied-voice",
+    createService: async () => ({
+      speak: async () => {
+        calls++;
+        return silentSpeech(1);
+      },
+      master: async (wav) => wav,
+    }),
+  });
+  const after = JSON.parse(await readFile(targetPaths.timing, "utf8"));
+  assert.equal(
+    calls,
+    1,
+    "film:voice must use the current voice service, not silently retain an old take",
+  );
+  assert.equal(before.inputFingerprint, after.inputFingerprint);
+  assert.notEqual(before.narration.checksum, after.narration.checksum);
 });
 
 test("voice measures each sentence, writes narration and timing, and registers the film", async (context) => {
