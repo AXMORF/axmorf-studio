@@ -1,3 +1,4 @@
+import { measureReviewGraphics } from "../../packages/studio/src/remotion/film/review-graphics";
 import {
   foregroundSampler,
   measureReviewText,
@@ -29,5 +30,19 @@ export const measureReadabilityFixture = (html: string) => {
     document.getElementById("root") as HTMLDivElement,
     600,
     300,
+  );
+};
+
+export const measureGraphicsFixture = (
+  html: string,
+  width = 600,
+  height = 300,
+) => {
+  document.body.style.margin = "0";
+  document.body.innerHTML = `<div id="root" style="position:absolute;inset:0;width:${width}px;height:${height}px">${html}</div>`;
+  return measureReviewGraphics(
+    document.getElementById("root") as HTMLDivElement,
+    width,
+    height,
   );
 };

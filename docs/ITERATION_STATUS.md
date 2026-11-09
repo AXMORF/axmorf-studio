@@ -1,5 +1,25 @@
 # Iteration Status
 
+## P9 图形语义与风格规则（2026-11-10，未发布）
+
+四份 Skill 同步：storyboard 开头声明风格、配色、参考方向及内容理由，不默认深色科技风；
+每镜头逐项写「图形元素 → 代表」，最多 3 个非文字主体，环境分层可指认，关系线须对应旁白；按帧记录静音描述测试。
+示例换成暖白编辑插画（电表/账单）与夜间观测（月亮/望远镜），均声明配色只是示例；旧 gallery 视觉保留。
+
+`film:review` 的 `graphicWarnings`/`graphics` 复用已有 readability 采样，只提示不拦交付。
+按 DOM/SVG `data-axmorf-object` 与 subject/relation/background 角色汇总可见绘制边界，
+提示不同 subject 重叠 >15%、同帧 subject >3、未标注绘制边界面积和 >10%；列出逐帧可见标注，转场照报并注明。
+零透明度、文字、系统标识、全帧背景板与转场覆盖层排除；缺失、失败、复杂裁切与截断保留 unknown。
+面积采用包围盒之和，可超过 100%，不是像素覆盖率或自动语义/美学判定；仍需人工静音描述。
+
+真实 gallery 正例三项均为 0，反例重叠 60.95%、4 个主体、未标注面积 15.625%，恰好报三项，无图形 unknown。
+v6 只读副本复用默认与既有审片帧的并集 78 帧，78 帧均提示 unlabeled-graphic，图形 unknown/缺失/坏行均为 0；
+原目录 21 个片源文件及 172 个公共素材文件哈希未变。证据见本地 `out/p9/` 与
+`/home/zzzxc/AgentWorkspace/2026-11-10-p9-graphics-notes.md`。
+完整 `npm run check` 退出 0：主测试 557 通过、1 macOS 专属跳过，宿主 33 通过；合计 590 通过、1 跳过、0 失败。
+packages:build、packages:typecheck、Skill 格式验证通过；旧 12 个 system composition 的 46 张 PNG 与 fb2d96a 原始源码渲染逐字节一致。
+未安装依赖、未改 lockfile/版本或 v6 原片，未 push/publish/merge；没有选定作品最终风格。
+
 ## 口播规则修正（2026-11-09，v6 已交付待审阅，未发布）
 
 本条取代下文历史记录中强制品牌母题、12–15 LU、讲述段全面减幅、非旁白运动必须高于口播的要求。P6 冻结，未修改其判据。

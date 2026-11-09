@@ -13,6 +13,7 @@ import {
   type FilmReviewRect,
 } from "../../contracts/film";
 
+import { measureReviewGraphics } from "./review-graphics";
 import { resolveFilmCaptionFontSize } from "./FilmCaptions";
 import { useReviewMotionRegistry } from "./review-motion";
 
@@ -370,6 +371,7 @@ export const ReviewMeasure = ({
                 ? { transitionWindow: true }
                 : {}),
               ...measureReviewText(root.current, width, height),
+              graphics: measureReviewGraphics(root.current, width, height),
             })}`,
           );
       } catch (error) {

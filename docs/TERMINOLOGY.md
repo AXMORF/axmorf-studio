@@ -25,6 +25,7 @@
 | 素材登记（FilmAssets） | `assets.json` 中每个媒体文件的来源、作者、许可与 checksum，由 `film:asset` 写入；`film:check` 拒绝未登记或被改动的媒体。 |
 | 审片（review） | `film:review` 用 `<filmId>--review` 组合渲染所选帧，生成联系表、`stillWarnings`（相隔 2 秒以上且几乎不变的帧对）与 `readabilityWarnings`（实测字号、文字越界、字幕遮挡、前景遮挡、局部低对比）；`readability` 列出测量帧数与缺失帧。另输出运动声音摘要 `motion` 与 `motionWarnings`、变化曲线及被标记时段的密集帧。全部仅作提示，不拦截检查或交付。 |
 | 状态标识（FilmStatusTag） | 统一的内容状态组件，支持已发生、迹象、推测、候选、社区观点、作者自报及自定义文本；主副词同字号、同颜色，配独立底板。`small-status-tag` 提示实测字号低于实测字幕的 70%，句间用画布默认字幕字号，仅审片提示。 |
+| 图形语义审片 | `graphicWarnings` 提示不同 subject 的可见包围盒重叠 >15%、主体超过 3 个、未标注绘制边界面积之和 >10%；`data-axmorf-object` 表示物体含义，角色 subject/relation/background。`graphics.frames` 列逐帧标注供静音描述，缺测为 unknown；转场照报，仅提示不拦交付。 |
 | `low-contrast-text` | `readabilityWarnings` 提示：对已有审片帧的文字矩形做 4×2 实像素网格估计，任一格文字/背景 WCAG 对比度低于 3:1 即提示文字、帧号、最差位置和比值；转场/同组形变照报，像素或颜色缺失为 unknown，耗时见 `readability.contrast.analysisMs`，不拦交付。 |
 | `text-under-foreground` | `readabilityWarnings` 提示：非字幕可见文字矩形按 20×7 点浏览器真实绘制顺序测量，任一有效 opacity ≥0.3 的非字幕前景命中即提示并列帧号；排除同一最近 `data-axmorf-text-group` 内部字形互遮与 clipping 裁掉的无字区域。临时启用 pointer-events 命中并在截图前恢复，不可靠定位保留 `readability.unknown`；转场照报并标注，不拦交付。 |
 | `repeated-composition` | `motionWarnings` 提示：用单一完整场景轨的边界及内部候选切点分段，取各段中点的 64×64 灰度签名，非相邻段的 MAD <12 时提示中点帧号（包含有旁白时段）；无场景轨旧片、日志或签名缺失时为 unknown。阈值待校准，不作语义判断或交付门禁。 |

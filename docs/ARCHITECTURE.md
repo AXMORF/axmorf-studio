@@ -54,7 +54,7 @@ film:music   → film.json 的 music.score（合成）或 music.track（已登�
 Agent        → src/films/<id>/storyboard.md（每小节一行：L2、L3、旁白句、音效，另补章节世界、镜头路径/配方/转场）
                → FilmSceneTrack + rhythm hooks 编排 L1/L2/L3 画面 → 从动作派生 sound.effects
 film:sfx     → sound.effects → public/films/<id>/sfx/<effectId>.wav + generated/sfx.json（指纹、PCM 时长、对齐帧）；登记原创许可 → FilmSoundEffects
-film:review  → 联系表、stillWarnings、readabilityWarnings、repetitionWarnings 与测量摘要 readability（仅提示）
+film:review  → 联系表、stillWarnings、readabilityWarnings、graphicWarnings、repetitionWarnings 与测量摘要 readability/graphics（仅提示）
                → motion / motionWarnings、review/motion-curve.json 与 .png、review/dense/ 密集帧（仅提示）
                → --animatic 时输出 review/animatic.mp4（短边 360、原帧率、带声音；先看节奏再精修）
 film:check   → TypeScript、网络调用、CSS 动画、随机数与时间、未登记媒体、跨片 import、必须挂载的组件、过期时序
@@ -97,6 +97,14 @@ review measurement 的可选 transitionWindow 标记来自场景轨精确的 ove
 不足 20% 的剩余背景用近文字色区域估计，避免滤掉同色背景而被少量亮边误导。描边、阴影、底板参与实渲染像素，不按 CSS 直接豁免。
 message 与 measurements 保留文字、帧号、最差格、比值及转场/同组形变标注；像素/颜色不可用或空网格列入 readability.unknown，已确认低对比不被其他 unknown 抵消。
 readability.contrast 给出 threshold、measuredTexts、analysisMs（软件解码已有图片与分析总耗时），不额外解码整片，也不改变画面或交付门禁。
+图形测量同样只在 readability 已有采样帧执行，无额外渲染。原生 DOM/SVG 的 `data-axmorf-object` 标明含义，
+可选 `data-axmorf-object-role` 为 subject（默认）/relation/background；按实际绘制图形（不含文字）的边界汇总物体，
+裁切到画布及 overflow/inset 区域，复杂 clip/mask 保留 unknown。`graphics.frames` 逐帧列标注、角色、祖先和包围盒。
+`graphicWarnings` 提示不同标注且互非祖先后代的 subject 包围盒交叠超过较小者 15%、同帧 subject 超过 3 个、
+无标注绘制元素包围盒面积总和超过画面 10%。后者是边界面积之和，不是像素覆盖率，可大于 100%。
+排除零透明度、不可见、文字组、字幕、FilmStatusTag、全帧背景板、SVG 定义与场景轨转场覆盖层；
+覆盖层只添加内部 className，不改组件接口或画面。转场窗口内仍报并标注；缺测/错误/截断为 `graphics.unknown`。
+图形清单不证明标注的语义正确，也不按遮挡顺序重建像素轮廓；作者须逐镜头静音描述并回应提示。全部不进入 check/deliver 门禁。
 运动分析以场景轨/内部候选切点的中点签名提示非相邻的 `repeated-composition`（含旁白时段，无场景轨旧片为 unknown）。
 新 rhythm 遥测经现有 review-only registry 传递完整计划，impact 记落点，bar camera 只记实际不同机位。
 音效遥测保留 alignmentFrame（start/end/center；旧记录只有 start），不改变播放。

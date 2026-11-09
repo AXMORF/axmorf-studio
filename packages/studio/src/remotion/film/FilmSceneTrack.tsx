@@ -69,7 +69,13 @@ const SceneOverlay = ({
   const p = frame / Math.max(1, sceneTransition.frames - 1);
   const envelope = Math.sin(Math.PI * p);
   if (sceneTransition.kind === "light-leak")
-    return <LightLeak durationInFrames={sceneTransition.frames} seed={17} />;
+    return (
+      <LightLeak
+        className="axmorf-review-overlay"
+        durationInFrames={sceneTransition.frames}
+        seed={17}
+      />
+    );
   if (sceneTransition.kind === "mask-wipe") {
     const bandWidth = width * 0.8;
     const center = -bandWidth + p * (width + bandWidth * 2);
@@ -80,6 +86,7 @@ const SceneOverlay = ({
         height={height}
         viewBox={`0 0 ${width} ${height}`}
         aria-hidden="true"
+        className="axmorf-review-overlay"
         style={{ opacity: envelope }}
       >
         <defs>
@@ -122,6 +129,7 @@ const SceneOverlay = ({
   if (sceneTransition.kind === "whip-blur")
     return (
       <AbsoluteFill
+        className="axmorf-review-overlay"
         style={{
           backdropFilter: `blur(${envelope * 22}px)`,
           background: `linear-gradient(100deg, transparent, rgba(225,246,255,${envelope * 0.9}), transparent)`,
@@ -130,7 +138,10 @@ const SceneOverlay = ({
       />
     );
   return (
-    <AbsoluteFill style={{ backgroundColor: "white", opacity: envelope }} />
+    <AbsoluteFill
+      className="axmorf-review-overlay"
+      style={{ backgroundColor: "white", opacity: envelope }}
+    />
   );
 };
 

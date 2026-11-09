@@ -116,6 +116,9 @@ Skill 中的创作方法、animatic 与看图回路；motionWarnings 仅作提�
 全片没有 AxiomMorph 遥测时另提示 `axiom-morph-missing`，三者都只提示，缺少或过期的 animatic 为 unknown。
 `readabilityWarnings` 的 `low-contrast-text` 提示局部文字/背景对比低于 3:1，列出帧号、最差网格位置和比值；
 转场与同组形变照常提示，像素或颜色不可用保留 unknown，仅审片、不拦交付。耗时见 `readability.contrast.analysisMs`。
+`graphicWarnings` 提示主体包围盒重叠 >15%、同帧主体超过 3 个、未标注图形包围盒面积总和 >10%；
+用原生元素的 `data-axmorf-object` 说明物体含义，可选角色 subject/relation/background。`graphics.frames` 列出逐帧标注，
+辅助静音描述；转场照报，`graphics.unknown` 不算通过。复用审片采样，仅提示、不拦交付，不自动选择影片风格。
 `motion["strong-accent-strip"]` 导出每个强重音的 [f-8,f+4] 逐帧联系表；必须人工确认配方过程可见，在 review-notes 按帧号记录。修改作品就是修改源码后重新交付，上一版交付自动移到 `.axmorf/history/`。
 
 ## 常用命令

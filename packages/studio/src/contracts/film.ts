@@ -107,6 +107,31 @@ export const FilmReviewRectSchema = z.strictObject({
 });
 export type FilmReviewRect = z.infer<typeof FilmReviewRectSchema>;
 
+// Bound telemetry to keep review's existing console transport small. Partial
+// measurements remain unknown; this cap is not a film authoring limit.
+export const FILM_REVIEW_MAX_OBJECTS = 120;
+export const FilmReviewGraphicsSchema = z.strictObject({
+  objects: z
+    .array(
+      z.strictObject({
+        id: z.number().int().nonnegative(),
+        label: z.string().min(1).max(160),
+        role: z.enum(["subject", "relation", "background"]),
+        ancestors: z
+          .array(z.number().int().nonnegative())
+          .max(FILM_REVIEW_MAX_OBJECTS),
+        rect: FilmReviewRectSchema,
+      }),
+    )
+    .max(FILM_REVIEW_MAX_OBJECTS),
+  /** Sum of clipped painted-element bounding-box areas, not a silhouette union. */
+  unlabeledArea: z.number().nonnegative(),
+  unlabeledCount: z.number().int().nonnegative(),
+  truncated: z.boolean(),
+  unknown: z.array(z.string().min(1).max(240)).max(20),
+});
+export type FilmReviewGraphics = z.infer<typeof FilmReviewGraphicsSchema>;
+
 /** Internal review telemetry; no DOM or Node dependencies. */
 export const FilmReviewMeasurementSchema = z.strictObject({
   index: z.number().int().nonnegative(),
@@ -140,6 +165,8 @@ export const FilmReviewMeasurementSchema = z.strictObject({
       }),
     )
     .max(FILM_REVIEW_MAX_TEXTS),
+  /** Optional for older telemetry; absence is unknown, never a clean frame. */
+  graphics: FilmReviewGraphicsSchema.optional(),
   truncated: z.boolean(),
   error: z.string().min(1).max(1_000).optional(),
 });

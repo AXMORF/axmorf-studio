@@ -11,6 +11,8 @@ import {
   type FilmReviewRect,
 } from "@axmorf/studio/contracts";
 
+import { analyzeReviewGraphics } from "./graphics";
+
 import {
   contrastCellPosition,
   LOW_TEXT_CONTRAST_RATIO,
@@ -241,6 +243,12 @@ export const analyzeReviewReadability = ({
   }
   const successful = [...measured.values()].filter((record) => !record.error);
   return {
+    ...analyzeReviewGraphics({
+      records: [...measured.values()],
+      frames,
+      width,
+      height,
+    }),
     readabilityWarnings: [...warnings.values()].map(
       (warning): ReadabilityWarning => {
         const frames = warning.frames.sort((a, b) => a - b);

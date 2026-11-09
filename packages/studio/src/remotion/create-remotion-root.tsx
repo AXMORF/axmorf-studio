@@ -3,6 +3,7 @@ import { Composition, Folder } from "remotion";
 
 import { DEFAULT_SCENE_TEMPLATE_AUDIO_PROJECTION } from "./capabilities/scene-templates/registry";
 import { SceneTemplateAudioProjectionSchema } from "./capabilities/scene-templates/template-audio";
+import { GraphicReviewGallery } from "./compositions/capability-gallery/GraphicReviewGallery";
 import { EditorialInvoiceExample } from "./compositions/capability-gallery/EditorialInvoiceExample";
 import { NightObservationExample } from "./compositions/capability-gallery/NightObservationExample";
 import { AxiomStoryGallery } from "./compositions/capability-gallery/AxiomStoryGallery";
@@ -79,6 +80,26 @@ export const createRemotionRoot = (
           width={1920}
           height={1080}
         />
+        <Folder name="GraphicReview">
+          <Composition
+            id="GraphicReview-Compliant"
+            component={GraphicReviewGallery}
+            defaultProps={{ invalid: false }}
+            durationInFrames={30}
+            fps={30}
+            width={960}
+            height={540}
+          />
+          <Composition
+            id="GraphicReview-Counterexample"
+            component={GraphicReviewGallery}
+            defaultProps={{ invalid: true }}
+            durationInFrames={30}
+            fps={30}
+            width={960}
+            height={540}
+          />
+        </Folder>
         <Folder name="StyleExamples">
           <Composition
             id="EditorialInvoiceExample"

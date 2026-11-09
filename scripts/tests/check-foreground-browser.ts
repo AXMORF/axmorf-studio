@@ -274,3 +274,268 @@ test("contrast telemetry and actual rendered pixels in a real host browser", asy
     await rm(scratch, { recursive: true, force: true });
   }
 });
+
+test("semantic graphics in a real host browser", async (context) => {
+  const { analyzeReviewGraphics } = await import("../films/graphics");
+  const { createElement } = await import("react");
+  const { renderToStaticMarkup } = await import("react-dom/server");
+  const { GraphicReviewArtwork } =
+    await import("../../packages/studio/src/remotion/compositions/capability-gallery/GraphicReviewGallery");
+  type GraphicsFixture =
+    typeof import("../../tests/fixtures/foreground-browser").measureGraphicsFixture;
+  const bundle = await build({
+    entryPoints: [resolve("tests/fixtures/foreground-browser.ts")],
+    bundle: true,
+    write: false,
+    format: "iife",
+    globalName: "axmorfGraphicsTest",
+    platform: "browser",
+  });
+  const browser = await openBrowser("chrome", {
+    browserExecutable: process.env.AXMORF_BROWSER_EXECUTABLE?.trim(),
+  });
+  const box = (attrs = "", style = "") =>
+    `<div ${attrs} style="position:absolute;left:80px;top:70px;width:200px;height:150px;background:tan;${style}"></div>`;
+  try {
+    const page = await browser.newPage({
+      context: () => null,
+      logLevel: "error",
+      indent: false,
+      pageIndex: 0,
+      onBrowserLog: null,
+      onLog: () => {},
+    });
+    await page.setViewport({ width: 960, height: 540, deviceScaleFactor: 1 });
+    await page.evaluate(bundle.outputFiles[0].text);
+    const measure = async (html: string, width = 600, height = 300) =>
+      (await page.evaluate(
+        `axmorfGraphicsTest.measureGraphicsFixture(${JSON.stringify(html)},${width},${height})`,
+      )) as ReturnType<GraphicsFixture>;
+    await context.test(
+      "gallery calibration: compliant has no hints; counterexample reports all three",
+      async () => {
+        for (const invalid of [false, true]) {
+          const html = renderToStaticMarkup(
+            createElement(GraphicReviewArtwork, { invalid }),
+          );
+          const graphics = await measure(html, 960, 540);
+          const result = analyzeReviewGraphics({
+            records: [
+              {
+                index: 0,
+                frame: 10,
+                width: 960,
+                height: 540,
+                texts: [],
+                truncated: false,
+                graphics,
+              },
+            ],
+            frames: [10],
+            width: 960,
+            height: 540,
+          });
+          assert.deepEqual(result.graphics.unknown, []);
+          assert.deepEqual(
+            result.graphicWarnings.map((w) => w.rule).sort(),
+            invalid
+              ? ["graphic-overlap", "too-many-subjects", "unlabeled-graphic"]
+              : [],
+          );
+          assert.equal(
+            graphics.objects.filter((o) => o.role === "subject").length,
+            invalid ? 4 : 2,
+          );
+        }
+      },
+    );
+    await context.test(
+      "group bounds use painted geometry, not full-frame SVG/HTML wrappers or text",
+      async () => {
+        const graphics = await measure(
+          `<div data-axmorf-object="电表" style="position:absolute;inset:0"><svg width="600" height="300"><g><rect x="100" y="50" width="80" height="90" fill="tan"/></g><text x="10" y="240">outside label</text></svg></div>`,
+        );
+        assert.deepEqual(graphics.objects[0].rect, {
+          x: 100,
+          y: 50,
+          width: 80,
+          height: 90,
+        });
+        assert.equal(graphics.unlabeledArea, 0);
+      },
+    );
+    await context.test(
+      "opacity zero, hidden ancestors, display none, offscreen and transparent paint are omitted",
+      async () => {
+        for (const style of [
+          "opacity:0",
+          "display:none",
+          "visibility:hidden",
+          "left:700px",
+          "background:rgba(0,0,0,0)",
+        ])
+          assert.equal(
+            (await measure(box('data-axmorf-object="hidden"', style))).objects
+              .length,
+            0,
+            style,
+          );
+        const graphics = await measure(
+          `<div style="opacity:0">${box('data-axmorf-object="hidden"')}</div><svg width="600" height="300"><rect width="200" height="200" fill="transparent"/><rect width="200" height="200" fill-opacity="0"/></svg>`,
+        );
+        assert.equal(graphics.objects.length, 0);
+        assert.equal(graphics.unlabeledArea, 0);
+        assert.equal(
+          (await measure(box('data-axmorf-object="faint"', "opacity:.01")))
+            .objects.length,
+          1,
+        );
+      },
+    );
+    await context.test(
+      "viewport, overflow and inset clipping bound only the visible portion",
+      async () => {
+        const partial = await measure(
+          box('data-axmorf-object="cropped"', "left:-50px;top:-20px"),
+        );
+        assert.deepEqual(partial.objects[0].rect, {
+          x: 0,
+          y: 0,
+          width: 150,
+          height: 130,
+        });
+        const overflow = await measure(
+          `<div style="position:absolute;left:100px;top:100px;width:40px;height:50px;overflow:hidden">${box('data-axmorf-object="hidden"')}</div>`,
+        );
+        assert.equal(overflow.objects.length, 0);
+        const clip = await measure(
+          box('data-axmorf-object="clipped"', "clip-path:inset(0 50% 0 0)"),
+        );
+        assert.deepEqual(clip.objects[0].rect, {
+          x: 80,
+          y: 70,
+          width: 100,
+          height: 150,
+        });
+        const scaled = await measure(
+          box(
+            'data-axmorf-object="scaled"',
+            "transform:scale(2);transform-origin:0 0;clip-path:inset(25px 50px)",
+          ),
+        );
+        assert.deepEqual(scaled.objects[0].rect, {
+          x: 180,
+          y: 120,
+          width: 200,
+          height: 180,
+        });
+        assert.equal(
+          (
+            await measure(
+              box('data-axmorf-object="hidden"', "clip-path:inset(100%)"),
+            )
+          ).objects.length,
+          0,
+        );
+      },
+    );
+    await context.test(
+      "nested annotations retain ancestry; relation and background roles stay distinct",
+      async () => {
+        const graphics = await measure(
+          `<div data-axmorf-object="电表">${box('data-axmorf-object="指针"')}<svg width="600" height="300"><line data-axmorf-object="用量换算" data-axmorf-object-role="relation" x1="300" y1="100" x2="500" y2="100" stroke="red" stroke-width="6"/></svg></div>${box('data-axmorf-object="木桌" data-axmorf-object-role="background"')}`,
+        );
+        const parent = graphics.objects.find((o) => o.label === "电表")!;
+        assert.ok(
+          graphics.objects
+            .find((o) => o.label === "指针")!
+            .ancestors.includes(parent.id),
+        );
+        assert.equal(
+          graphics.objects.find((o) => o.label === "用量换算")!.role,
+          "relation",
+        );
+        assert.ok(
+          graphics.objects.find((o) => o.label === "用量换算")!.rect.height > 0,
+          "SVG stroke has visible area even for a horizontal line",
+        );
+        assert.equal(
+          graphics.objects.find((o) => o.label === "木桌")!.role,
+          "background",
+        );
+      },
+    );
+    await context.test(
+      "unlabeled SVG paint and HTML backgrounds/borders count; text, system tags, full backgrounds, defs and overlays do not",
+      async () => {
+        const excluded = `<div style="position:absolute;inset:0;background:navy"></div><svg width="600" height="300"><defs><path d="M0 0H300V300H0Z"/></defs><rect width="600" height="300" fill="navy"/><text x="20" y="80" font-size="40">文字</text></svg>`;
+        const system = [
+          "data-axmorf-captions",
+          "data-axmorf-status-tag",
+          "data-axmorf-text-group",
+        ]
+          .map((attr) => `<div ${attr}>${box()}</div>`)
+          .join("");
+        assert.equal(
+          (
+            await measure(
+              excluded +
+                system +
+                `<div class="axmorf-review-overlay">${box()}</div>`,
+            )
+          ).unlabeledArea,
+          0,
+        );
+        assert.equal((await measure(box())).unlabeledArea, 30_000);
+        assert.ok(
+          (await measure(box("", "background:none;border:5px solid red")))
+            .unlabeledArea > 30_000,
+        );
+        const path = await measure(
+          '<svg width="600" height="300"><path d="M10 10H210V110H10Z" fill="tan"/></svg>',
+        );
+        assert.equal(path.unlabeledArea, 20_000);
+      },
+    );
+    await context.test(
+      "invalid, complex clipped and truncated measurements remain unknown",
+      async () => {
+        const invalid = await measure(box('data-axmorf-object=""'));
+        assert.ok(invalid.unknown.length);
+        assert.equal(invalid.unlabeledArea, 30_000);
+        const clip = await measure(
+          box('data-axmorf-object="masked"', "clip-path:circle(40%)"),
+        );
+        assert.ok(clip.unknown.length);
+        const many = await measure(
+          Array.from({ length: 121 }, (_, i) =>
+            box(`data-axmorf-object="${i}"`),
+          ).join(""),
+        );
+        assert.equal(many.truncated, true);
+        assert.equal(many.objects.length, 120);
+      },
+    );
+    await context.test(
+      "measurement and data annotations leave actual still pixels unchanged",
+      async () => {
+        const html = renderToStaticMarkup(
+          createElement(GraphicReviewArtwork, { invalid: false }),
+        );
+        await measure(html, 960, 540);
+        const before = await page
+          ._client()
+          .send("Page.captureScreenshot", { format: "png" });
+        await page.evaluate(
+          `document.querySelectorAll('[data-axmorf-object]').forEach(node => { node.removeAttribute('data-axmorf-object'); node.removeAttribute('data-axmorf-object-role'); });`,
+        );
+        const after = await page
+          ._client()
+          .send("Page.captureScreenshot", { format: "png" });
+        assert.equal(before.value.data, after.value.data);
+      },
+    );
+  } finally {
+    await browser.close({ silent: true });
+  }
+});
