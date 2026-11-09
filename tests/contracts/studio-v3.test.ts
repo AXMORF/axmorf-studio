@@ -82,6 +82,37 @@ test("v3 renders identical WAV bytes across runs, varies with seed and exports c
   assert.ok(absolute.fills!.every(({ from, to }) => from >= 30 && to <= 195));
 });
 
+test("ending cadence strengths preserve the approved PCM for resolve, cut and ring", () => {
+  // Captured before the visual-strength correction: changes must not create a new take.
+  const checksums = {
+    resolve: "36c6baeaa53642c1bdac43233a5663ce321a9a141d5102268feb7eef74a15452",
+    cut: "02c74bea6e4f85d27d3f4668896bd13a609030e1db5777c439b0f19f18b67c9f",
+    ring: "7270b06e9f823e45cf5f4084e554b49f919949553ad19af4bd6842171d1623e8",
+  };
+  for (const cadence of ["resolve", "cut", "ring"] as const) {
+    const { audio, timeline } = generateScore({
+      ...recipe,
+      ending: { ...recipe.ending, cadence },
+    });
+    assert.equal(
+      createHash("sha256").update(audio).digest("hex"),
+      checksums[cadence],
+    );
+    const accents = scoreOnsets(timeline).accents!;
+    assert.deepEqual(
+      accents.filter(({ frame }) => frame === recipe.ending.landFrame),
+      cadence === "resolve" ? [{ frame: 162, strength: 0.6 }] : [],
+    );
+    assert.deepEqual(
+      accents.filter(({ frame }) => frame < 162),
+      [
+        { frame: 0, strength: 0.85 },
+        { frame: 110, strength: 1 },
+      ],
+    );
+  }
+});
+
 const firstSoundingSample = (audio: Buffer) => {
   for (let sample = 0; 44 + sample * 4 < audio.length; sample++)
     if (

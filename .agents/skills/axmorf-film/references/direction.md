@@ -277,6 +277,9 @@ shots 用真实世界像素 `{ center: [x, y], zoom }`，少于小节数时停�
 | 0.5–<0.9 段落重音 | 0.05               | 1.06         | 8px        | 0              | 18     |
 | ≥ 0.9 drop / 揭示 | 0.12               | 1.12         | 16px       | 0.5            | 40     |
 
+结尾 `ending.cadence: "resolve"` 的 accent 固定为 strength 0.6，属于段落档：去掉鼓、落定、收住，不按最强重音的冲击与预备要求处理。
+这只改变事件强度，不改变合成音频；`cut` / `ring` 不自动生成结尾 accent，显式 hits 仍使用各自的 intensity。
+
 这些是幅度预设，不是自动动作；`subjectScale` 为峰值倍率，`cameraImpulse` 为 zoom 增量，`shakePixels` 为峰值像素。
 `strength ≥ 0.9` 的重音必须是全片画面变化最大的时刻：主体过冲至少 8%、shake 12–20px，
 **至少包含主体形变、碎裂、数字落定之一，再加镜头冲击**，不能只做缩放加微抖。

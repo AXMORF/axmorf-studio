@@ -1,5 +1,8 @@
 // Sample-free studio-v3: layered drums, interlocking bass, tonal harmony and a
 // short procedural room. Ported from the approved P8 lab; no speech sidechain.
+// A resolving cadence is a paragraph landing, not a drop. This is visual
+// event metadata only; keep the existing synthesis gains and PCM unchanged.
+const RESOLVE_ENDING_ACCENT_STRENGTH = 0.6;
 const SR = 48000;
 const TAU = 2 * Math.PI;
 const sine = (x) => Math.sin(TAU * x);
@@ -200,7 +203,11 @@ export const finalizeV3Timeline = (timeline, recipe) => {
     ...timeline,
     music,
     fills,
-    accents,
+    accents: accents.map((event) =>
+      timeline.ending?.cadence === "resolve" && event.frame === end
+        ? { ...event, strength: RESOLVE_ENDING_ACCENT_STRENGTH }
+        : event,
+    ),
     accentFrames: accents.map((entry) => entry.frame),
     breaks,
     loop: false,
