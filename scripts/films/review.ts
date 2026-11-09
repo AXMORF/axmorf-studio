@@ -24,7 +24,11 @@ import {
   readOptionalJsonFile,
   workspacePath,
 } from "./files";
-import { meanAbsoluteDifference, readFrameSignature } from "./frame-compare";
+import {
+  meanAbsoluteDifference,
+  readFrameSignature,
+  readReviewFramePixels,
+} from "./frame-compare";
 import {
   renderFilmAnimatic,
   renderMotionCurve,
@@ -34,6 +38,7 @@ import {
 import { loadCurrentFilmTiming } from "./music";
 import { readWorkspaceRenderTimeoutMs } from "./render-timeout";
 import { analyzeReviewReadability } from "./readability";
+import type { ContrastFrame } from "./text-contrast";
 
 import {
   analyzeMotion,
@@ -303,12 +308,6 @@ export const runFilmReview = async ({
       scale,
       timeoutMs,
     });
-    const readability = analyzeReviewReadability({
-      output: `${renderOutput.stdout}\n${renderOutput.stderr}`,
-      frames: selected.map(({ frame }) => frame),
-      width: spec.render.width,
-      height: spec.render.height,
-    });
     const rendered = (await readdir(join(scratch, "frames")))
       .filter((name) => name.startsWith("review-"))
       .sort(
@@ -320,6 +319,33 @@ export const runFilmReview = async ({
         `Expected ${selected.length} review frames, got ${rendered.length}.`,
       );
     }
+    const contrastStart = performance.now();
+    const contrastFrames = new Map<number, ContrastFrame>();
+    for (const [index, name] of rendered.entries()) {
+      try {
+        contrastFrames.set(index, {
+          image: await readReviewFramePixels({
+            rootDir,
+            imagePath: join(scratch, "frames", name),
+            pixelsPath: join(scratch, `contrast-${index}.png`),
+          }),
+        });
+      } catch (error) {
+        // Pixel failure is unknown, never a pass or an automatic retry.
+        contrastFrames.set(index, {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+    const readability = analyzeReviewReadability({
+      output: `${renderOutput.stdout}\n${renderOutput.stderr}`,
+      frames: selected.map(({ frame }) => frame),
+      width: spec.render.width,
+      height: spec.render.height,
+      contrastFrames,
+      contrastMs: performance.now() - contrastStart,
+    });
+    contrastFrames.clear();
     // The sheet Still loads frames through staticFile(), so they also go under public/.
     const sheetFrames = join(paths.publicDir, "review");
     await rm(sheetFrames, { recursive: true, force: true });

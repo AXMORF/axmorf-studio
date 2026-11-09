@@ -1,5 +1,24 @@
 # Iteration Status
 
+## P6 局部文字对比提示（2026-11-09，未发布）
+
+`film:review` 新增 `low-contrast-text`：复用已有审片 JPEG 与文字 rect/computed RGBA/textGroup，
+4×2 网格估计背景亮度，任一格 WCAG 对比低于 3:1 就提示文字、正片帧、最差位置与比值。
+同组碎字和转场命中照报并标注；描边/阴影/底板以实际像素为准，像素/颜色不可用保留 unknown。
+`readability.contrast` 记录阈值、测量文字数与像素解码/分析耗时；只分析已有帧图，不额外解码整片，不进入 check/deliver 门禁。
+四份 Skill 入口及两份 direction/craft 自检同步，要求文字不跨明暗交界、深色字不放深背景。
+
+v5 复制品全片范围采样 43 帧（原审片 36 帧 + 7 个定点回归帧）、625 个文字块×帧，按 snippet 合并 27 条、86 份低对比测量；
+其中 1 条含转场（1 份）、14 条同组形变（63 份），不代表逐帧穷举。新增规则 unknown=0，原前景定位 unknown=102 保留。
+「训练账单」f165/f180/f190/f200 全部命中，f190 右上格 1.447:1；像素解码与分析 12498ms。
+gallery 的 5 个稳定阅读帧零提示；AxiomMorph f40 的 8 条淡化碎字、SceneTrack f60 的 1 条光带转场、
+AxiomStory f190 的 1 条淡入标签已看图并逐条解释。7 张既有示例 PNG 前后逐字节不变。
+原 v5 只读，18 个源码/文档/JSON 和 60 个非审片媒体与复制品一致；没有依赖、lockfile、版本或影片变更。
+
+完整 `npm run check` 退出 0：主测试 543 通过、1 macOS 专属跳过，宿主回归 24 通过，合计 567 通过、1 跳过、0 失败；
+另通过 studio 包类型检查。说明及前 10 条帧/比值、全量 JSON 索引在
+`/home/zzzxc/AgentWorkspace/2026-11-09-contrast-notes.md`（本地产物）。未安装、发布、push 或 merge。
+
 ## P6 发布前运行时修复（2026-11-09，未发布）
 
 - studio-v3 的 resolve ending accent 以常量导出 strength=.6（段落档），保留原合成事件/增益；cut/ring 不自动生成结尾 accent。

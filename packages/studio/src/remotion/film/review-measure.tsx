@@ -180,7 +180,7 @@ const captionBlock = (element: Element, marker: Element) => {
   return block;
 };
 
-const measure = (
+export const measureReviewText = (
   root: HTMLDivElement,
   width: number,
   height: number,
@@ -201,6 +201,11 @@ const measure = (
     height: rect.height / scale,
   });
   const foreground = foregroundSampler(root);
+  // Normalize computed CSS/SVG colors through the browser, including color().
+  // This detached canvas never changes the rendered frame.
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = 1;
+  const colors = canvas.getContext("2d", { willReadFrequently: true });
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
   const texts: FilmReviewMeasurement["texts"] = [];
   let truncated = false;
@@ -222,7 +227,23 @@ const measure = (
     const top = Math.min(...rects.map((rect) => rect.top));
     const right = Math.max(...rects.map((rect) => rect.right));
     const bottom = Math.max(...rects.map((rect) => rect.bottom));
-    const fontSize = Number.parseFloat(getComputedStyle(element).fontSize);
+    const style = getComputedStyle(element);
+    const fontSize = Number.parseFloat(style.fontSize);
+    let color: FilmReviewMeasurement["texts"][number]["color"];
+    const fill =
+      element instanceof SVGElement ? style.fill : style.webkitTextFillColor;
+    if (colors && CSS.supports("color", fill)) {
+      colors.clearRect(0, 0, 1, 1);
+      colors.fillStyle = fill;
+      colors.fillRect(0, 0, 1, 1);
+      const [r, g, b, a] = colors.getImageData(0, 0, 1, 1).data;
+      const alpha =
+        (a / 255) *
+        effectiveOpacity(element) *
+        (element instanceof SVGElement ? Number(style.fillOpacity) : 1);
+      if (alpha > 0) color = [r, g, b, Math.min(1, alpha)];
+    }
+    const textGroup = element.closest("[data-axmorf-text-group]");
     let transformScale = 1;
     if (element instanceof SVGGraphicsElement) {
       const matrix = element.getScreenCTM();
@@ -252,6 +273,14 @@ const measure = (
         : {}),
       ...(marker ? {} : { foreground: foreground(element, rects) }),
       fontSize: fontSize * transformScale,
+      ...(color ? { color } : {}),
+      ...(textGroup
+        ? {
+            textGroup: (
+              textGroup.getAttribute("data-axmorf-text-group") || "text-group"
+            ).slice(0, 80),
+          }
+        : {}),
       rect: rectOf({ left, top, width: right - left, height: bottom - top }),
       ...(block && block.width > 0 && block.height > 0
         ? { captionRect: rectOf(block) }
@@ -340,7 +369,7 @@ export const ReviewMeasure = ({
               )
                 ? { transitionWindow: true }
                 : {}),
-              ...measure(root.current, width, height),
+              ...measureReviewText(root.current, width, height),
             })}`,
           );
       } catch (error) {

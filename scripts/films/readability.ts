@@ -11,6 +11,14 @@ import {
   type FilmReviewRect,
 } from "@axmorf/studio/contracts";
 
+import {
+  contrastCellPosition,
+  LOW_TEXT_CONTRAST_RATIO,
+  measureTextContrast,
+  type ContrastCell,
+  type ContrastFrame,
+} from "./text-contrast";
+
 /** Remotion may prepend a colored [Tab …, source:line] tag to each line. */
 export const extractReviewMeasurements = (output: string) => {
   const records: FilmReviewMeasurement[] = [];
@@ -39,7 +47,8 @@ type Rule =
   | "small-status-tag"
   | "text-outside-frame"
   | "text-under-captions"
-  | "text-under-foreground";
+  | "text-under-foreground"
+  | "low-contrast-text";
 type Measurement = {
   frame: number;
   fontSize: number;
@@ -49,6 +58,8 @@ type Measurement = {
   captionOverlapRatio?: number;
   foregroundCoverageRatio?: number;
   transitionWindow?: boolean;
+  textGroup?: string;
+  contrast?: ContrastCell;
 };
 export type ReadabilityWarning = {
   rule: Rule;
@@ -72,11 +83,16 @@ export const analyzeReviewReadability = ({
   frames,
   width,
   height,
+  contrastFrames,
+  contrastMs = 0,
 }: {
   readonly output: string;
   readonly frames: readonly number[];
   readonly width: number;
   readonly height: number;
+  /** Same review indices as telemetry, decoded from existing sampled stills. */
+  readonly contrastFrames?: ReadonlyMap<number, ContrastFrame>;
+  readonly contrastMs?: number;
 }) => {
   const { records, badLines } = extractReviewMeasurements(output);
   const measured = new Map<number, FilmReviewMeasurement>();
@@ -91,11 +107,13 @@ export const analyzeReviewReadability = ({
       measured.set(record.index, record);
   }
   const unknown: {
-    rule: "text-under-foreground";
+    rule: "text-under-foreground" | "low-contrast-text";
     frame: number;
     snippet: string;
     reason: string;
   }[] = [];
+  let contrastTexts = 0;
+  const contrastStart = performance.now();
   const warnings = new Map<string, Omit<ReadabilityWarning, "message">>();
   const add = (rule: Rule, snippet: string, measurement: Measurement) => {
     const key = `${rule}:${snippet}`;
@@ -123,14 +141,16 @@ export const analyzeReviewReadability = ({
     const captions = record.texts
       .filter((text) => text.caption && text.captionRect)
       .map((text) => text.captionRect!);
-    for (const {
-      caption,
-      statusTag,
-      snippet,
-      fontSize,
-      rect,
-      foreground,
-    } of record.texts) {
+    for (const text of record.texts) {
+      const {
+        caption,
+        statusTag,
+        snippet,
+        fontSize,
+        rect,
+        foreground,
+        textGroup,
+      } = text;
       // One warning for all caption lines: the cause is the caption style, not a sentence.
       if (caption && fontSize < minimumCaption)
         add("small-caption", "captions", {
@@ -139,13 +159,40 @@ export const analyzeReviewReadability = ({
           rect,
           minimumFontSize: minimumCaption,
         });
-      if (caption || intersectionArea(rect, frameRect) === 0) continue;
+      if (intersectionArea(rect, frameRect) === 0) continue;
       const measurement = {
         frame: record.frame,
         fontSize,
         rect,
         ...(record.transitionWindow ? { transitionWindow: true } : {}),
+        ...(textGroup ? { textGroup } : {}),
       };
+      const pixels = contrastFrames?.get(record.index);
+      const contrast =
+        pixels && "image" in pixels
+          ? measureTextContrast({ text, image: pixels.image, width, height })
+          : {
+              unknown:
+                pixels && "error" in pixels
+                  ? pixels.error
+                  : "Rendered review pixels are unavailable.",
+            };
+      if (contrast.unknown)
+        unknown.push({
+          rule: "low-contrast-text",
+          frame: record.frame,
+          snippet,
+          reason: contrast.unknown,
+        });
+      if (contrast.worst) {
+        contrastTexts++;
+        if (contrast.worst.contrastRatio < LOW_TEXT_CONTRAST_RATIO)
+          add("low-contrast-text", snippet, {
+            ...measurement,
+            contrast: contrast.worst,
+          });
+      }
+      if (caption) continue;
       const minimumStatusTag =
         (record.captionFontSize ?? resolveFilmCaptionFontSize(width, height)) *
         0.7;
@@ -256,6 +303,28 @@ export const analyzeReviewReadability = ({
               message += ` 转场窗口内：frames ${transitionFrames.join(", ")}；请人工核对。`;
             break;
           }
+          case "low-contrast-text": {
+            message = `${subject} has local text/background contrast below ${LOW_TEXT_CONTRAST_RATIO}:1; avoid similar colors or crossing light/dark boundaries. `;
+            message += measurements
+              .map(
+                (value) =>
+                  `f${value.frame} ${contrastCellPosition(value.contrast!)} ${value.contrast!.contrastRatio.toFixed(2)}:1`,
+              )
+              .join("; ");
+            const transitionFrames = [
+              ...new Set(
+                measurements
+                  .filter((value) => value.transitionWindow)
+                  .map((value) => value.frame),
+              ),
+            ];
+            if (transitionFrames.length)
+              message += ` 转场窗口内：frames ${transitionFrames.join(", ")}；请人工核对。`;
+            const grouped = measurements.filter((value) => value.textGroup);
+            if (grouped.length)
+              message += ` 同组形变（${[...new Set(grouped.map((value) => value.textGroup))].join(", ")}）：frames ${[...new Set(grouped.map((value) => value.frame))].join(", ")}；不跳过碎字，请看图核对。`;
+            break;
+          }
           case "text-under-captions": {
             const overlapPercent = Math.round(
               Math.max(
@@ -271,6 +340,11 @@ export const analyzeReviewReadability = ({
     ),
     readability: {
       unknown,
+      contrast: {
+        threshold: LOW_TEXT_CONTRAST_RATIO,
+        measuredTexts: contrastTexts,
+        analysisMs: Math.round(contrastMs + performance.now() - contrastStart),
+      },
       measuredFrames: successful.length,
       missingFrames: frames.filter(
         (_, index) =>

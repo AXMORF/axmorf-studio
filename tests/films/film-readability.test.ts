@@ -414,7 +414,9 @@ test("foreground reports any confirmed coverage even with uncertain samples, ski
   );
   assert.match(result.readabilityWarnings[0].message, /20%.*frames 10/);
   assert.deepEqual(
-    result.readability.unknown.map((u) => u.snippet),
+    result.readability.unknown
+      .filter((u) => u.rule === "text-under-foreground")
+      .map((u) => u.snippet),
     ["pointer-events:none", "legacy"],
   );
   assert.equal(foregroundCoverage({ samples: 30, covered: 0, unknown: 0 }), 0);

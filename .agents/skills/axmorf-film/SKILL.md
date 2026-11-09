@@ -95,11 +95,13 @@ Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐�
     修改后再次审片。输出里的 `stillWarnings` 列出相隔 2 秒以上却几乎没变的帧，必须改或说明理由。
     **每个 strength ≥0.9 重音都必须逐张打开 `motion["strong-accent-strip"]` 的连续小图**，确认预备至少 6 帧可见，
     数字/文字变化过程没有被藏起来只露出终值；在 `review-notes.md` 按帧号记录结论与小图路径。像素预备或 p99 通过不替代这项人工检查。
-    `readabilityWarnings` 提示实测字号过小、文字越界、被字幕或前景遮挡；必须为空，或逐条给出理由。
+    `readabilityWarnings` 提示实测字号过小、文字越界、被字幕或前景遮挡、局部低对比；必须为空，或逐条给出理由。
     `repetitionWarnings` 只统计没有旁白的时段，提示同一画面在开场、转场、高潮里反复出现；同样逐条修改或说明理由。
     `readability` 中的 `missingFrames`、`truncatedFrames` 不为空时，补看对应单帧，不把测量缺失当作通过。这些提示不拦截交付。
     `film:review` 输出的 `motion` / `motionWarnings` 记录运动与声音提示：motionWarnings 必须为空，或按
     [导演手册自检](references/direction.md#9-自检看-animatic-时逐条回答写帧号) 对各条规则逐条说明理由与帧号；`unknown` 不是已通过。
+    `low-contrast-text` 必须逐条回应帧号、最差网格位置与比值；文字不要横跨明暗交界，深色字不要放在深色背景上。
+    底板、描边、阴影以实际像素为准，转场窗口与同组形变不免检；颜色或像素缺失为 unknown。
     `text-under-foreground` 必须逐条回应；`readability.unknown` 中无法定位绘制位置的文字（如 display:contents）
     要看图核对。`repeated-composition` 比较包含旁白的非相邻段落构图；没有场景轨的旧片保持 unknown。
     `axiom-morph-missing` 提醒全片缺母题遥测；有旧公理/新公理候选必须用 AxiomMorph，没有就说明理由，不把提醒当自动语义判断。

@@ -92,7 +92,11 @@ impact 返回当前重音 strength，旧包络数值不变；resolveImpactLevel 
 排除同一 `data-axmorf-text-group` 的内部字形互遮与 clip-path 裁掉的无文字区域，不把共享祖先当作文字的绘制位置；
 不同组件与外部前景仍检测。任何确认命中都提示，不被其他 unknown 采样抵消；不可靠定位保留 `readability.unknown`。
 review measurement 的可选 transitionWindow 标记来自场景轨精确的 overlay/overlap 半开窗口，提示 message 注明「转场窗口内」。
-主体绘于文字后方的构图重叠不属于前景遮挡，仍需人工检查背景对比度与阅读区域。
+主体绘于文字后方的构图重叠不属于前景遮挡。`low-contrast-text` 复用同批已有 JPEG 和文字 rect/computed RGBA/textGroup，
+按 4×2 网格排除近文字色像素，计算局部背景平均 WCAG 亮度与文字色对比（含 alpha）；任一格低于 3:1 即提示。
+不足 20% 的剩余背景用近文字色区域估计，避免滤掉同色背景而被少量亮边误导。描边、阴影、底板参与实渲染像素，不按 CSS 直接豁免。
+message 与 measurements 保留文字、帧号、最差格、比值及转场/同组形变标注；像素/颜色不可用或空网格列入 readability.unknown，已确认低对比不被其他 unknown 抵消。
+readability.contrast 给出 threshold、measuredTexts、analysisMs（软件解码已有图片与分析总耗时），不额外解码整片，也不改变画面或交付门禁。
 运动分析以场景轨/内部候选切点的中点签名提示非相邻的 `repeated-composition`（含旁白时段，无场景轨旧片为 unknown）。
 新 rhythm 遥测经现有 review-only registry 传递完整计划，impact 记落点，bar camera 只记实际不同机位。
 音效遥测保留 alignmentFrame（start/end/center；旧记录只有 start），不改变播放。

@@ -127,6 +127,16 @@ export const FilmReviewMeasurementSchema = z.strictObject({
         rect: FilmReviewRectSchema,
         captionRect: FilmReviewRectSchema.optional(),
         foreground: FilmReviewForegroundSchema.optional(),
+        /** Computed sRGB fill, including fill/ancestor alpha. Absent if unmeasurable. */
+        color: z
+          .tuple([
+            z.number().int().min(0).max(255),
+            z.number().int().min(0).max(255),
+            z.number().int().min(0).max(255),
+            z.number().min(0).max(1),
+          ])
+          .optional(),
+        textGroup: z.string().min(1).max(80).optional(),
       }),
     )
     .max(FILM_REVIEW_MAX_TEXTS),
