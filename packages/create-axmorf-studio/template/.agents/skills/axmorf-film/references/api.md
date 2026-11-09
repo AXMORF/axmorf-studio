@@ -243,7 +243,7 @@ const { width, height } = useVideoConfig();
 `center` 是世界像素，`zoom` 1–6，中心会被限制在世界范围内不露边。每层都按 `worldWidth × worldHeight` 绘制；
 `depth` 大于 1 的前景层移动得比世界更远，内容要画到世界右边（或下边）之外，否则会露出硬边。
 `resolveProducerPathPoint(points, progress)` 按长度求折线上的点，可以让镜头或光点沿路径匀速前进；
-完整示范见 [示例段落](examples.md#竖屏讲解主题镜头在大场景里跟着过程走)。
+世界镜头接线见 [导演手册](direction.md#41-用运行时接好三层动效)；可辨认物体的美术示例见 [示例段落](examples.md)。
 
 其他镜头工具：`ProducerCamera2D`、`ProducerCamera3D`、`ProducerLayeredStage`、`ProducerFocusPull`。
 

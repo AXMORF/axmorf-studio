@@ -20,6 +20,7 @@ Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐�
 1. **确认环境**：首次在这个 Workspace 制作时运行 `npm run doctor`，全部通过再继续。失败时报告 blocker，
    不修改 `node_modules`、依赖版本或检查器。
 2. **构思**：先想清楚观众看完要记住什么、每一段的代表画面（主体、取景、光影、变化），再写剧本。
+   在 storyboard 开头声明风格、配色、参考方向及内容理由；不默认用深色科技风，选择它时说明本片为什么需要。
    把构思简要告诉用户：主题、时长、画面路线、配乐风格。
 3. **建片**：
    ```bash
@@ -52,7 +53,7 @@ Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐�
    运行 `npm run film:music -- --film <filmId>`，取得 beatFrames、barFrames、sectionFrames、accentFrames 和 onsets。
    实际字段、锚点、残差见 [配乐与卡点](references/music.md)。无配乐的片不伪造网格；无旁白的片跳过 voice，先定音乐。
 7. **按小节分镜 → 画面 → 音效**（顺序必做）：先写 `src/films/<filmId>/storyboard.md`，告知用户路径和画面路线。
-   使用 [导演手册第 8 节](references/direction.md#8-storyboardmd-写法) 的表格，每行一个小节，列帧、段落、旁白句、L2、L3 和音效，
+   使用 [导演手册第 8 节](references/direction.md#8-storyboardmd-写法) 的表格，每行一个小节，列帧、段落、旁白句、图形元素 → 代表、L2、L3 和音效，
    并补章节世界、镜头路径、转场动机、配方起止和声音窗口；不按句子分页。
    由内容语义选择图解和效果；`AxiomMorph` 是可选的通用文字对照、重组或拆解，不是品牌要求。
    先搭 L1 每 kick 呼吸、L2 每小节构图变化、L3 每重音大动作，落点误差 0 帧，再填细节。
@@ -63,6 +64,11 @@ Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐�
    旁白长度变化时重做节奏谱和 `film:music`，再更新表、画面和音效；不挪旁白或字幕踩拍。
 8. **准备素材**（可选）：生成图片或原创 SVG 后用 `film:asset` 登记，见 [素材](references/artwork.md)。
 9. **编写** `Film.tsx` 与 `Cover.tsx`：
+   - 每个非文字图形主体在实际 DOM/SVG 元素（或包住该物体的组）上加 `data-axmorf-object="它代表什么"`；
+     可选 `data-axmorf-object-role="subject|relation|background"`，默认 `subject`。同一物体的零件放在同一标注组下，
+     不把多个独立主体包成一个标注来躲数量/重叠提示。连接线/箭头用 `relation`，标明旁白中的具体关系；
+     可辨认的环境用 `background`，不能用它掩盖主体。不要给 React 组件传不接收的属性，包在原生元素上即可。
+     同时可见的非文字主体最多 3 个；说不出代表什么的图形不画，不用无意义交叉或重叠填空。
    - 用 `useFilmTiming()` 读取实测旁白与配乐网格；口播语义先决定事件，音乐精确 hit 与画面落点对齐；规律 kick/bar 维持底层节奏。
      用 `useBeatPulse` / `useNarrationActive`、`useBarCamera`、`useImpact` 搭三层动效，根组件调用以保持正片时钟，
      按 [可编译最小示例](references/direction.md#41-用运行时接好三层动效) 接世界镜头，不在阅读文字上做呼吸。
@@ -92,6 +98,9 @@ Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐�
     修改后再次审片。输出里的 `stillWarnings` 列出相隔 2 秒以上却几乎没变的帧，必须改或说明理由。
     **每个 strength ≥0.9 重音都必须逐张打开 `motion["strong-accent-strip"]` 的连续小图**，确认预备至少 6 帧可见，
     数字/文字变化过程没有被藏起来只露出终值；在 `review-notes.md` 按帧号记录结论与小图路径。像素预备或 p99 通过不替代这项人工检查。
+    逐镜头做静音描述测试：画面有什么、各代表什么、关系对应哪句旁白；写不出来就改，按帧号写入 `review-notes.md`。
+    `graphicWarnings` 的 `graphic-overlap`、`too-many-subjects`、`unlabeled-graphic` 逐条修改或说明内容理由；
+    对照 `graphics.frames` 的标注清单，`graphics.unknown` 不算通过。这些均只提示，不拦交付。
     `readabilityWarnings` 提示实测字号过小、文字越界、被字幕或前景遮挡、局部低对比；必须为空，或逐条给出理由。
     `repetitionWarnings` 只统计没有旁白的时段，提示同一画面在开场、转场、高潮里反复出现；同样逐条修改或说明理由。
     `readability` 中的 `missingFrames`、`truncatedFrames` 不为空时，补看对应单帧，不把测量缺失当作通过。这些提示不拦截交付。

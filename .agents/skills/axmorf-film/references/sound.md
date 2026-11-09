@@ -86,7 +86,7 @@ export const EvidenceSounds = () => (
 `resolveFilmSceneTrack(film, scenes).sfxCues` 和六个配方 resolver 的 `sfxCues` 都可直接展开到 `cues`。
 它们只是建议，不会随视觉组件自动播放；按计划选择、改 `for`、窗口和吸附，再显式交给 `FilmSoundEffects`。
 配方 cue 已是正片绝对帧，不要再加场景起点。配方内若用本地时钟，则先统一回正片时钟（见 [API](api.md#镜头配方)）。
-转场 `enter.sfx: false` 关闭该条建议，也可用 `sfx` 覆盖默认角色。完整接线见 [横屏示例](examples.md#横屏19201080旧公理文字形变)。
+转场 `enter.sfx: false` 关闭该条建议，也可用 `sfx` 覆盖默认角色。配方 cue 接线见 [文字形变配方](recipes.md#axiommorph文字形变)，场景轨字段见 [API](api.md#场景轨)。
 
 ## 揭示前留白与结尾收音
 

@@ -3,6 +3,8 @@ import { Composition, Folder } from "remotion";
 
 import { DEFAULT_SCENE_TEMPLATE_AUDIO_PROJECTION } from "./capabilities/scene-templates/registry";
 import { SceneTemplateAudioProjectionSchema } from "./capabilities/scene-templates/template-audio";
+import { EditorialInvoiceExample } from "./compositions/capability-gallery/EditorialInvoiceExample";
+import { NightObservationExample } from "./compositions/capability-gallery/NightObservationExample";
 import { AxiomStoryGallery } from "./compositions/capability-gallery/AxiomStoryGallery";
 import { SceneTrackGallery } from "./compositions/capability-gallery/SceneTrackGallery";
 import { MusicSyncGallery } from "./compositions/capability-gallery/MusicSyncGallery";
@@ -77,6 +79,24 @@ export const createRemotionRoot = (
           width={1920}
           height={1080}
         />
+        <Folder name="StyleExamples">
+          <Composition
+            id="EditorialInvoiceExample"
+            component={EditorialInvoiceExample}
+            durationInFrames={120}
+            fps={30}
+            width={1920}
+            height={1080}
+          />
+          <Composition
+            id="NightObservationExample"
+            component={NightObservationExample}
+            durationInFrames={120}
+            fps={30}
+            width={1080}
+            height={1920}
+          />
+        </Folder>
         <Folder name="Recipes">
           {RECIPE_GALLERY_IDS.map((recipe) => (
             <Composition

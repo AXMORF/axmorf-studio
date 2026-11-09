@@ -292,7 +292,7 @@ test("static small-text uses the shared review threshold and preserves its messa
 
 test("the Skill's example segments pass film:check inside a film", async (context) => {
   const guides = [
-    { path: "references/examples.md", segments: 4 },
+    { path: "references/examples.md", segments: 2 },
     { path: "references/styles/anime-op.md", segments: 1 },
   ];
   const examples: string[] = [];
@@ -309,23 +309,18 @@ test("the Skill's example segments pass film:check inside a film", async (contex
   }
   const root = await createWorkspace(context);
   for (const [index, example] of examples.entries()) {
-    const segment = example.match(/export const (\w+Segment)/u)?.[1];
-    const rootExample = example.includes("export const AxiomStoryExample");
-    assert.ok(
-      segment || rootExample,
-      `example ${index} exports a segment or root`,
-    );
+    const component = example.match(
+      /export const (\w+(?:Segment|Example))/u,
+    )?.[1];
+    assert.ok(component, `example ${index} exports a segment or example`);
+    const segment = component.endsWith("Segment");
     const filmId = `example-film-${index}`;
     await writeFilm(root, filmId, {
-      spec: rootExample
-        ? {
-            render: { width: 1920, height: 1080, fps: 30 },
-            timeline: { durationInFrames: 300 },
-          }
-        : {},
-      film: rootExample
-        ? `${example}\nexport default AxiomStoryExample;\n`
-        : `${example}
+      spec:
+        component === "EditorialInvoiceExample"
+          ? { render: { width: 1920, height: 1080, fps: 30 } }
+          : {},
+      film: `${example}
 // Aliased so examples may import the same names themselves.
 import { AbsoluteFill as ExampleFill, Sequence as ExampleSequence } from "remotion";
 import {
@@ -339,7 +334,7 @@ const Film = () => {
   return (
     <ExampleFill>
       <ExampleSequence durationInFrames={durationInFrames}>
-        <${segment} durationInFrames={durationInFrames} />
+        <${component}${segment ? " durationInFrames={durationInFrames}" : ""} />
       </ExampleSequence>
       <ExampleSoundtrack />
       <ExampleCaptions />

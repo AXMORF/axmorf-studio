@@ -44,38 +44,36 @@ test("the default music guide generates a usable score with positive sections an
   assert.equal(music.mixProfile, "voiceover");
 });
 
-test("landscape Skill example stays identical to the compiled gallery source", async () => {
+test("both style examples stay identical to the compiled gallery sources", async () => {
   const source = await readFile(`${skill}/examples.md`, "utf8");
-  assert.equal(
-    await readFile(
-      `packages/create-axmorf-studio/template/${skill}/examples.md`,
-      "utf8",
-    ),
-    source,
-    "New Workspaces must receive the same landscape example as the repository.",
-  );
-  const example = source.match(/```tsx\n([\s\S]*?)```/u)?.[1];
-  const gallery = await readFile(
-    "packages/studio/src/remotion/compositions/capability-gallery/AxiomStoryExample.tsx",
-    "utf8",
-  );
-  assert.equal(
-    example?.replace(
-      'from "@axmorf/studio/remotion"',
-      'from "../../../remotion"',
-    ),
-    gallery,
-  );
+  const snippets = [...source.matchAll(/```tsx\n([\s\S]*?)```/gu)];
+  const names = ["EditorialInvoiceExample", "NightObservationExample"];
+  assert.equal(snippets.length, names.length);
+  for (const [index, name] of names.entries())
+    assert.equal(
+      snippets[index][1],
+      await readFile(
+        `packages/studio/src/remotion/compositions/capability-gallery/${name}.tsx`,
+        "utf8",
+      ),
+    );
 });
 
-test("all recipe cards and direction snippets compile against the public runtime API", async () => {
+test("all recipe cards, direction and style examples compile against the public runtime API", async () => {
   const recipes = await readFile(`${skill}/recipes.md`, "utf8");
   const direction = await readFile(`${skill}/direction.md`, "utf8");
   const recipeSnippets = [...recipes.matchAll(/```tsx\n([\s\S]*?)```/gu)];
   const directionSnippets = [...direction.matchAll(/```tsx\n([\s\S]*?)```/gu)];
   assert.equal(recipeSnippets.length, 6);
   assert.equal(directionSnippets.length, 1);
-  const snippets = [...recipeSnippets, ...directionSnippets];
+  const examples = await readFile(`${skill}/examples.md`, "utf8");
+  const exampleSnippets = [...examples.matchAll(/```tsx\n([\s\S]*?)```/gu)];
+  assert.equal(exampleSnippets.length, 2);
+  const snippets = [
+    ...recipeSnippets,
+    ...directionSnippets,
+    ...exampleSnippets,
+  ];
   const files = new Map(
     snippets.map((match, i) => [
       path.resolve(`tests/docs/__recipe-card-${i}.tsx`),
