@@ -69,7 +69,11 @@ test("all recipe cards, direction and style examples compile against the public 
   const examples = await readFile(`${skill}/examples.md`, "utf8");
   const exampleSnippets = [...examples.matchAll(/```tsx\n([\s\S]*?)```/gu)];
   assert.equal(exampleSnippets.length, 2);
+  const paper = await readFile(`${skill}/styles/paper-collage.md`, "utf8");
+  const paperSnippets = [...paper.matchAll(/```tsx\n([\s\S]*?)```/gu)];
+  assert.equal(paperSnippets.length, 1);
   const snippets = [
+    ...paperSnippets,
     ...recipeSnippets,
     ...directionSnippets,
     ...exampleSnippets,
@@ -110,6 +114,17 @@ test("all recipe cards, direction and style examples compile against the public 
       getCanonicalFileName: (name) => name,
       getNewLine: () => "\n",
     }),
+  );
+});
+
+test("paper collage recipe stays identical to its compiled gallery example", async () => {
+  const paper = await readFile(`${skill}/styles/paper-collage.md`, "utf8");
+  assert.equal(
+    paper.match(/```tsx\n([\s\S]*?)```/u)?.[1],
+    await readFile(
+      "packages/studio/src/remotion/compositions/capability-gallery/PaperCollageExample.tsx",
+      "utf8",
+    ),
   );
 });
 

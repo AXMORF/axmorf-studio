@@ -13,7 +13,8 @@ Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐�
 分镜时读 [镜头配方](references/recipes.md) 与 [音效计划](references/sound.md)；
 用配乐时读 [配乐与卡点](references/music.md)；需要图片或 SVG 时读 [素材](references/artwork.md)；
 写代码时查 [运行时 API](references/api.md)，并按需读 [示例段落](references/examples.md) 借鉴镜头、光影和层级技法。
-用户点名或认可某种风格时，读 `references/styles/` 下对应的配方，例如 [动漫 OP](references/styles/anime-op.md)。
+用户或 Workspace 指定了风格时，读 `references/styles/` 下对应的配方，例如 [纸面拼贴 / 手绘线稿](references/styles/paper-collage.md) 或 [动漫 OP](references/styles/anime-op.md)。
+示例里的配色不是默认值，按内容和已选风格重新选色。
 
 ## 流程
 

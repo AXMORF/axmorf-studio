@@ -3,6 +3,7 @@ import { Composition, Folder } from "remotion";
 
 import { DEFAULT_SCENE_TEMPLATE_AUDIO_PROJECTION } from "./capabilities/scene-templates/registry";
 import { SceneTemplateAudioProjectionSchema } from "./capabilities/scene-templates/template-audio";
+import { PaperCollageExample } from "./compositions/capability-gallery/PaperCollageExample";
 import { GraphicReviewGallery } from "./compositions/capability-gallery/GraphicReviewGallery";
 import { EditorialInvoiceExample } from "./compositions/capability-gallery/EditorialInvoiceExample";
 import { NightObservationExample } from "./compositions/capability-gallery/NightObservationExample";
@@ -101,6 +102,14 @@ export const createRemotionRoot = (
           />
         </Folder>
         <Folder name="StyleExamples">
+          <Composition
+            id="PaperCollageExample"
+            component={PaperCollageExample}
+            durationInFrames={180}
+            fps={30}
+            width={960}
+            height={540}
+          />
           <Composition
             id="EditorialInvoiceExample"
             component={EditorialInvoiceExample}

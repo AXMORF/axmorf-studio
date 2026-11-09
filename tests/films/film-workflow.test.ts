@@ -294,6 +294,7 @@ test("the Skill's example segments pass film:check inside a film", async (contex
   const guides = [
     { path: "references/examples.md", segments: 2 },
     { path: "references/styles/anime-op.md", segments: 1 },
+    { path: "references/styles/paper-collage.md", segments: 1 },
   ];
   const examples: string[] = [];
   for (const guide of guides) {
