@@ -18,6 +18,17 @@
 - 贴纸、胶带、图钉、印章、红笔圈画、便利贴都可以用，但要说得出它表示什么；例如胶带固定账单，印章表示核对完成，红笔圈出旁白正在解释的费用。无含义的道具不放。
 - 实物主体同帧最多 3 个；关系和背景用正确角色标注，不把零件逐个算主体，也不把多件物体打包以躲数量/重叠提示。
 
+### 生图调用、实际尺寸与绿幕提示词
+
+1. 通过 Cindy 宿主 `mcp__cindy__media` 调用生图：先 `list_models`（capability=image.generate）选本次可用模型，
+   再 `prepare`，按返回的参数说明和 invocation_id 调 `request`；有 provider_id 时原样传递。
+   返回 `cindy-media://` 地址后，用 `resolve_local_path` 取得本地文件；不要猜路径或把受管地址直接当 film:asset 的文件路径。
+2. 拿到图以后**先核对实际尺寸，再抠像**；请求 1024×1024 也可能实际返回 1536×1024，不要把请求尺寸写进裁格或 SpriteSheet。
+   用 [artwork 的宿主 media 流程与 ffprobe 命令](../artwork.md#cindy-宿主-media-调用) 核对宽高，然后按完整绿幕流程检查、抠像，
+   将透明 PNG 的本地路径交给 `film:asset --origin generated` 登记。
+3. 绿幕提示词示例：`single paper-cutout style illustration of …, flat colors, on a plain pure green (#00FF00) background, no text`。
+   把省略号换成实际主体，接本片统一画风和姿态；背景要纯色，精确文字留给 SVG 层。全片统一一种画风。
+
 ## 色与字
 
 纸色 + 1 个主色 + 1 个强调色（如红笔色），墨线用深灰，不用纯黑。禁止深蓝底、青色发光、科技网格、等距平台和 glow。

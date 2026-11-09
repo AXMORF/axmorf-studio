@@ -13,15 +13,36 @@
 工具不可用或缺少关键主体时停下来，报告缺哪些主体；provider/授权失败不自动重试或换工具。
 精确图解、数字、线条、印章印迹、红笔痕迹继续用 SVG；非关键点缀的原创 SVG 不能替代缺失的主画面。
 
+### Cindy 宿主 media 调用
+
+在 Cindy 中通过宿主 `mcp__cindy__media` 生图；Codex 任务同样可以使用，不要仅因运行在 Codex 就认定没有生图工具：
+
+1. `action: "list_models", capability: "image.generate"`：查询本次实际可用模型，选择返回的 model_id；有 provider_id 时原样保留。
+2. `action: "prepare"`：传所选 model_id、capability 及返回的 provider_id，读取生成参数说明和 invocation_id。
+3. `action: "request"`：用 prepare 返回的 invocation_id，严格按其说明组装 body；不猜模型参数或请求结构。
+   若返回 pending，按返回的轮询说明完成任务，不重复提交同一次生成；失败仍按 Skill 故障规则停下报告。
+4. 返回 `cindy-media://` 受管地址后，以 `action: "resolve_local_path", url: <返回的地址>` 取得本地文件路径，不自行猜路径。
+   先核对**文件实际宽高**、检查图片，再按下节抠像；把抠像后的本地 PNG 交给 `film:asset --origin generated` 登记。
+
+请求尺寸不保证等于返回尺寸：已有实测请求 1024×1024，返回却是 1536×1024。构图、抠像、动作表裁格和 sheetWidth/sheetHeight
+都以返回文件实测值为准，不照抄请求值。拿到本地文件后可用现有 ffprobe 核对：
+
+```bash
+ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=s=x:p=0 /absolute/path/subject-green.png
+```
+
+绿幕提示词起点：`single paper-cutout style illustration of …, flat colors, on a plain pure green (#00FF00) background, no text`。
+把省略号替换为实际主体，再接 storyboard 的统一画风、姿态、留边和光向约束。
+
 ## 单主体生图剪纸：从绿幕到登记
 
 适用于纸面配方的关键人物和实物。开工前在 storyboard 开头写一段**统一风格提示词**（同一种画风、笔触、配色、俯拍角度、光向），
 再逐个写主体提示词、用途、动作和文件名；所有素材沿用该风格。完整提示词例子见 [纸面配方](styles/paper-collage.md#papercollageexample-的主体提示词示例)。
 
-1. 调用宿主实际可用的生图工具生成单个主体，例如「剪下来的插画纸片，一只俯视的右手」。单主体居中、四周留边、不裁切，
+1. 按上面的 [宿主 media 调用](#cindy-宿主-media-调用) 用 list_models → prepare → request 生成单个主体，例如「剪下来的插画纸片，一只俯视的右手」；返回地址后用 resolve_local_path 取得本地文件。单主体居中、四周留边、不裁切，
    背景为均匀纯色 `#00FF00`，没有背景纹理、地面、投影和道具，不把文字或金额烧进图。主体避免键色；有绿色的主体选另一种纯色键并调整去溢色方式。
    白边、纸纹、投影留给代码统一处理。所有调用在素材准备阶段完成，渲染阶段不联网。
-2. 检查原图并取左上角**实际**背景键色；下面仅以确认为 `#00FF00` 为例。用宿主现有 FFmpeg 抠成透明 PNG，不安装新运行时：
+2. 拿到原图后**先用上节 ffprobe 命令核对实际宽高，再抠像**，不使用请求尺寸代替实测值。检查原图并取左上角**实际**背景键色；下面仅以确认为 `#00FF00` 为例。用宿主现有 FFmpeg 抠成透明 PNG，不安装新运行时：
 
    ```bash
    ffmpeg -hwaccel none -i subject-green.png \
@@ -54,7 +75,7 @@
 
 1. 提示词写明「2×2 网格，四格从左到右、从上到下是同一动作的第 1–4 帧；背景是均匀的 #00FF00 绿色，没有阴影和地面；
    格子之间没有分隔线」。纸片、花瓣一类粒子用 3×2 的精灵图，同样的绿幕规则。
-2. 用宿主的 ffmpeg 抠成透明 PNG（取左上角的绿色作为键值）：
+2. 同样通过 media 的 list_models → prepare → request 生成，返回地址经 resolve_local_path 取得动作表本地文件；先用上节 ffprobe 命令核对实际宽高和网格，再用宿主的 ffmpeg 抠成透明 PNG（取左上角的绿色作为键值）：
    `ffmpeg -hwaccel none -i sheet.png -vf "colorkey=0x<绿色>:0.32:0.06,despill=type=green:mix=0.6:expand=0.1,format=rgba" sheet-keyed.png`，
    放大看边缘没有绿边后再用 `film:asset` 登记（`--origin generated`，`--creator` 写生图工具并注明已抠像）。
 3. 两个辅助均从 `@axmorf/studio/remotion` 导入。代码里用 `ProducerSpriteSheet` 显示某一格（src、columns=2、rows=2、cell、sheetWidth/sheetHeight 为整张图实测像素），用 `resolveProducerDrawing(frame, 4, timing)` 决定当前是哪一格：按拍
