@@ -31,8 +31,10 @@ export const MOTION_ENERGY_ANTICIPATION_MEDIAN_MULTIPLIER = 2;
 export const NARRATION_STATIC_MEDIAN_THRESHOLD = 0.2;
 // Below this per-frame energy is near-still; exactly 0.15 is not near-still.
 export const NARRATION_STATIC_FRAME_THRESHOLD = 0.15;
-// More than 30 consecutive near-still narration frames warns; gaps reset the run.
-export const NARRATION_STATIC_MAX_RUN_FRAMES = 30;
+// More than half of narration frames near-still warns. Run length alone cannot separate
+// a deliberate closing hold from frozen narration (v5 and v7 both peak at 54 frames),
+// so the longest run is reported for review only.
+export const NARRATION_STATIC_MAX_STILL_RATIO = 0.5;
 
 export type MotionEnergySample = Readonly<{
   frame: number;
@@ -304,11 +306,11 @@ export const analyzeMotionEnergy = ({
     unknown.push({
       rule: "narration-static",
       reason:
-        "Requires narration body frames for a median and near-still run measurement.",
+        "Requires narration body frames for a median and near-still ratio measurement.",
     });
   else if (
     speechMedian < NARRATION_STATIC_MEDIAN_THRESHOLD ||
-    (longestSpeechStillRun?.frames ?? 0) > NARRATION_STATIC_MAX_RUN_FRAMES
+    speechStillFrames / speech.length > NARRATION_STATIC_MAX_STILL_RATIO
   ) {
     const longest = longestSpeechStillRun;
     motionWarnings.push({
@@ -322,7 +324,7 @@ export const analyzeMotionEnergy = ({
               Math.max(...sentences.map((s) => s.endFrame)),
             ) - 1,
           ],
-      message: `讲述段能量中位数 ${speechMedian.toFixed(3)}（阈值 <${NARRATION_STATIC_MEDIAN_THRESHOLD}）；最长近静止段${longest ? ` f${longest.startFrame}–f${longest.endFrame}，连续 ${longest.frames} 帧` : "无"}（能量 <${NARRATION_STATIC_FRAME_THRESHOLD}，阈值 >${NARRATION_STATIC_MAX_RUN_FRAMES} 帧）。只稳定正在阅读的文字，保留桌面微移、非文字线稿 boil 和轮换物件反应；核对实际画面。`,
+      message: `讲述段能量中位数 ${speechMedian.toFixed(3)}（阈值 <${NARRATION_STATIC_MEDIAN_THRESHOLD}）；最长近静止段${longest ? ` f${longest.startFrame}–f${longest.endFrame}，连续 ${longest.frames} 帧` : "无"}；近静止帧占比 ${((speechStillFrames / speech.length) * 100).toFixed(1)}%（能量 <${NARRATION_STATIC_FRAME_THRESHOLD}，阈值 >${NARRATION_STATIC_MAX_STILL_RATIO * 100}%）。只稳定正在阅读的文字，保留桌面微移、非文字线稿 boil 和轮换物件反应；核对实际画面。`,
     });
   }
   if (beatMedian === null)

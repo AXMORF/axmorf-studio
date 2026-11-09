@@ -19,7 +19,7 @@ import {
   MOTION_ENERGY_ACCENT_PERCENTILE,
   NARRATION_STATIC_MEDIAN_THRESHOLD,
   NARRATION_STATIC_FRAME_THRESHOLD,
-  NARRATION_STATIC_MAX_RUN_FRAMES,
+  NARRATION_STATIC_MAX_STILL_RATIO,
 } from "../../scripts/films/motion-energy";
 
 const size = MOTION_ENERGY_WIDTH * MOTION_ENERGY_HEIGHT;
@@ -288,10 +288,10 @@ test("legacy strength metadata and absent speech/beat groups remain independentl
   }
 });
 
-test("narration-static warns independently for median below .2 or a near-still run above 30 frames", () => {
+test("narration-static warns independently for median below .2 or more than half near-still frames", () => {
   assert.equal(NARRATION_STATIC_MEDIAN_THRESHOLD, 0.2);
   assert.equal(NARRATION_STATIC_FRAME_THRESHOLD, 0.15);
-  assert.equal(NARRATION_STATIC_MAX_RUN_FRAMES, 30);
+  assert.equal(NARRATION_STATIC_MAX_STILL_RATIO, 0.5);
   const options = {
     sentences: [{ startFrame: 1, endFrame: 101 }],
     accents: [],
@@ -304,21 +304,29 @@ test("narration-static warns independently for median below .2 or a near-still r
   assert.equal(warnings(Array(100).fill(0.199)).length, 1);
   assert.equal(warnings(Array(100).fill(0.2)).length, 0);
   assert.equal(warnings(Array(100).fill(0.15)).length, 1);
-  const values: number[] = Array(100).fill(1);
-  for (let f = 20; f < 50; f++) values[f - 1] = 0.149;
-  assert.equal(warnings(values).length, 0); // Exactly 30 frames is allowed.
-  values[49] = 0.149;
-  const result = analyze(values, options);
-  assert.equal(result.summary?.speechMedian, 1);
-  assert.deepEqual(result.summary?.longestSpeechStillRun, {
+  // A long deliberate hold inside lively narration is reported, not warned.
+  const hold: number[] = Array(100).fill(1);
+  for (let f = 20; f < 75; f++) hold[f - 1] = 0.149;
+  const holdResult = analyze(hold, options);
+  assert.equal(holdResult.summary?.speechMedian, 0.149);
+  // 55/100 near-still frames exceed half even though the median also drops.
+  assert.equal(warnings(hold).length, 1);
+  assert.match(warnings(hold)[0].message, /55\.0%/u);
+  // Exactly half near-still with a lively median stays quiet; one more frame warns.
+  const half: number[] = Array(100).fill(1);
+  for (let f = 0; f < 50; f++) half[f * 2] = 0.149;
+  assert.equal(analyze(half, options).summary?.speechMedian, 0.5745);
+  assert.equal(warnings(half).length, 0);
+  half[1] = 0.149;
+  assert.equal(warnings(half).length, 1);
+  const run: number[] = Array(100).fill(1);
+  for (let f = 20; f < 61; f++) run[f - 1] = 0.149;
+  assert.equal(warnings(run).length, 0); // 41-frame hold, 41% still: info only.
+  assert.deepEqual(analyze(run, options).summary?.longestSpeechStillRun, {
     startFrame: 20,
-    endFrame: 50,
-    frames: 31,
+    endFrame: 60,
+    frames: 41,
   });
-  assert.deepEqual(warnings(values)[0].frames, [20, 50]);
-  assert.match(warnings(values)[0].message, /f20–f50.*31 帧/u);
-  values[30] = 0.15; // Equality resets the run.
-  assert.equal(warnings(values).length, 0);
 });
 
 test("narration still runs reset across gaps, exclude half-open ends and never count silent freezes", () => {

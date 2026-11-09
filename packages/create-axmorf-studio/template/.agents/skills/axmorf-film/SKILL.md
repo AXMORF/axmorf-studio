@@ -117,7 +117,7 @@ Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐�
     要看图核对。`repeated-composition` 比较包含旁白的非相邻段落构图；没有场景轨的旧片保持 unknown。
     内容状态标识必须用 `FilmStatusTag`；同时核对 `small-status-tag`，主词和副词都不低于字幕字号的 70%，
     看图确认底板、对比和手机可读性，写出帧号证据。这条提示不拦交付。
-    `narration-static` 复用 animatic 全帧能量，提示讲述段中位数 <0.2 或近静止（<0.15）连续超过 30 帧；回应最长静止段起止帧。没有可用 animatic 为 unknown，只提示不拦交付。
+    `narration-static` 复用 animatic 全帧能量，提示讲述段中位数 <0.2 或近静止（<0.15）帧占讲述段一半以上；最长静止段起止帧只作参考，逐段核对是否为有意停留。没有可用 animatic 为 unknown，只提示不拦交付。
     讲述段持续极小、非匀速桌面手持微移，全程非文字线稿 boil，每拍一个轮换物件反应；“停住阅读”只保护正在阅读的文字。自检连续超过 1 秒整帧不动的段落。
     每章至少3种物件节拍反应、相邻小节主反应不同；核对 `beat-response-monotone` 与 `motion.summary.beatResponses`，无上报为unknown。光闪/背景缩放仅作补充。
     对照 `storyboard.md` 逐小节核对 L2、L3、章节世界、镜头路径、配方落点、转场和音效，偏离计划就同步修改。
