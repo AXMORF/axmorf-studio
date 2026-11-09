@@ -5,6 +5,7 @@ import { DEFAULT_SCENE_TEMPLATE_AUDIO_PROJECTION } from "./capabilities/scene-te
 import { SceneTemplateAudioProjectionSchema } from "./capabilities/scene-templates/template-audio";
 import { BeatResponseGallery } from "./compositions/capability-gallery/BeatResponseGallery";
 import { PaperCollageExample } from "./compositions/capability-gallery/PaperCollageExample";
+import { TextCardReviewGallery } from "./compositions/capability-gallery/TextCardReviewGallery";
 import { GraphicReviewGallery } from "./compositions/capability-gallery/GraphicReviewGallery";
 import { EditorialInvoiceExample } from "./compositions/capability-gallery/EditorialInvoiceExample";
 import { NightObservationExample } from "./compositions/capability-gallery/NightObservationExample";
@@ -116,6 +117,26 @@ export const createRemotionRoot = (
             id="GraphicReview-Counterexample"
             component={GraphicReviewGallery}
             defaultProps={{ invalid: true }}
+            durationInFrames={30}
+            fps={30}
+            width={960}
+            height={540}
+          />
+        </Folder>
+        <Folder name="TextCardReview">
+          <Composition
+            id="TextCardReview-Diagram"
+            component={TextCardReviewGallery}
+            defaultProps={{ cardOnly: false }}
+            durationInFrames={30}
+            fps={30}
+            width={960}
+            height={540}
+          />
+          <Composition
+            id="TextCardReview-CardOnly"
+            component={TextCardReviewGallery}
+            defaultProps={{ cardOnly: true }}
             durationInFrames={30}
             fps={30}
             width={960}

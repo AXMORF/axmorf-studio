@@ -212,13 +212,15 @@ export const measureReviewGraphics = (
     .entries()) {
     const label = node.getAttribute("data-axmorf-object")!.trim();
     const role = node.getAttribute("data-axmorf-object-role") ?? "subject";
+    const kind = node.getAttribute("data-axmorf-object-kind") ?? "prop";
     if (
       !label ||
       label.length > 160 ||
-      !["subject", "relation", "background"].includes(role)
+      !["subject", "relation", "background"].includes(role) ||
+      !["illustration", "diagram", "prop", "card"].includes(kind)
     ) {
       note(
-        "Invalid graphic annotation: use a meaning (1–160 characters) and subject/relation/background role.",
+        "Invalid graphic annotation: use a meaning (1–160 characters) subject/relation/background role, and illustration/diagram/prop/card kind.",
       );
       continue;
     }
@@ -226,6 +228,7 @@ export const measureReviewGraphics = (
       id,
       label,
       role: role as "subject" | "relation" | "background",
+      kind: kind as "illustration" | "diagram" | "prop" | "card",
       ancestors: [],
     });
   }

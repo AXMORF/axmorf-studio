@@ -65,10 +65,12 @@ Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐�
    旁白长度变化时重做节奏谱和 `film:music`，再更新表、画面和音效；不挪旁白或字幕踩拍。
 8. **准备素材**（可选）：生成图片或原创 SVG 后用 `film:asset` 登记，见 [素材](references/artwork.md)。
 9. **编写** `Film.tsx` 与 `Cover.tsx`：
-   - 每个非文字图形主体在实际 DOM/SVG 元素（或包住该物体的组）上加 `data-axmorf-object="它代表什么"`；
+   - 每个图形主体（包括文字卡片）在实际 DOM/SVG 元素（或包住该物体的组）上加 `data-axmorf-object="它代表什么"`；
      可选 `data-axmorf-object-role="subject|relation|background"`，默认 `subject`。同一物体的零件放在同一标注组下，
      不把多个独立主体包成一个标注来躲数量/重叠提示。连接线/箭头用 `relation`，标明旁白中的具体关系；
      可辨认的环境用 `background`，不能用它掩盖主体。不要给 React 组件传不接收的属性，包在原生元素上即可。
+     可选 `data-axmorf-object-kind="illustration|diagram|prop|card"`（默认 prop），含义与方法见导演手册第 8 节。
+     每镜头主信息由画出来的物件、生图剪纸或图解承载；文字卡片只放数字、原话和短标签，不能单独构成主体。
      同时可见的非文字主体最多 3 个；说不出代表什么的图形不画，不用无意义交叉或重叠填空。
    - 用 `useFilmTiming()` 读取实测旁白与配乐网格；口播语义先决定事件，音乐精确 hit 与画面落点对齐；规律 kick/bar 维持底层节奏。
      用 `useBeatPulse` / `useNarrationActive`、`useBarCamera`、`useImpact` 搭三层动效，根组件调用以保持正片时钟，
@@ -102,6 +104,7 @@ Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐�
     逐镜头做静音描述测试：画面有什么、各代表什么、关系对应哪句旁白；写不出来就改，按帧号写入 `review-notes.md`。
     `graphicWarnings` 的 `graphic-overlap`、`too-many-subjects`、`unlabeled-graphic` 逐条修改或说明内容理由；
     对照 `graphics.frames` 的标注清单，`graphics.unknown` 不算通过。这些均只提示，不拦交付。
+    `text-card-only` 提示连续采样段的可见 subject 全为 card；查看 `frames`/`sampledFrames`，用图解或插画承载主信息。无 kind 的旧记录默认 prop，不代表已核对语义。
     `readabilityWarnings` 提示实测字号过小、文字越界、被字幕或前景遮挡、局部低对比；必须为空，或逐条给出理由。
     `repetitionWarnings` 只统计没有旁白的时段，提示同一画面在开场、转场、高潮里反复出现；同样逐条修改或说明理由。
     `readability` 中的 `missingFrames`、`truncatedFrames` 不为空时，补看对应单帧，不把测量缺失当作通过。这些提示不拦截交付。

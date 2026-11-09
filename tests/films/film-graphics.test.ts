@@ -16,6 +16,7 @@ const object = (
   id,
   label: `object-${id}`,
   role: "subject",
+  kind: "prop",
   ancestors: [],
   rect: { x: 0, y: 0, width: 100, height: 100 },
   ...overrides,
@@ -220,6 +221,7 @@ test("graphics telemetry accepts older records and rejects invalid roles, ids, l
     graphics({ objects: [object(0, { label: "" })] }),
     graphics({ objects: [object(0, { label: "x".repeat(161) })] }),
     graphics({ objects: [object(0, { role: "invalid" as "subject" })] }),
+    graphics({ objects: [object(0, { kind: "invalid" as "card" })] }),
     graphics({ objects: Array.from({ length: 121 }, (_, i) => object(i)) }),
     graphics({ unlabeledArea: Infinity }),
   ])
@@ -228,4 +230,81 @@ test("graphics telemetry accepts older records and rejects invalid roles, ids, l
         .success,
       false,
     );
+});
+
+test("text-card-only groups consecutive matching samples, resets on missing/unknown frames and accepts legacy prop kinds", () => {
+  const cards = [
+    object(0, { kind: "card" }),
+    object(1, { role: "background" }),
+    object(2, { role: "relation" }),
+  ];
+  const frames = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90];
+  const kinds = [
+    cards,
+    cards,
+    [],
+    cards,
+    cards,
+    cards,
+    cards,
+    [object(0)],
+    cards,
+    cards,
+  ];
+  const records = frames.map((frame, index) =>
+    record({
+      index,
+      frame,
+      graphics:
+        index === 4
+          ? undefined
+          : graphics({ objects: kinds[index], truncated: index === 6 }),
+      transitionWindow: index === 1,
+    }),
+  );
+  const result = analyze(records, frames);
+  const warnings = result.graphicWarnings.filter(
+    (w) => w.rule === "text-card-only",
+  );
+  assert.deepEqual(
+    warnings.map((w) => w.frames),
+    [
+      [0, 10],
+      [30, 30],
+      [50, 50],
+      [80, 90],
+    ],
+  );
+  assert.deepEqual(warnings[0].sampledFrames, [0, 10]);
+  assert.equal(warnings[0].transitionWindow, true);
+  assert.match(
+    warnings[0].message,
+    /连续命中采样段.*不推定未采样帧.*转场窗口/u,
+  );
+  assert.ok(result.graphics.unknown.some((u) => u.frame === 40));
+  assert.ok(result.graphics.unknown.some((u) => u.frame === 60));
+  for (const kind of ["illustration", "diagram", "prop"] as const) {
+    assert.equal(
+      analyze([
+        record({
+          graphics: graphics({ objects: [...cards, object(3, { kind })] }),
+        }),
+      ]).graphicWarnings.some((w) => w.rule === "text-card-only"),
+      false,
+    );
+  }
+  const legacy = JSON.parse(
+    JSON.stringify(record({ graphics: graphics({ objects: [object(0)] }) })),
+  );
+  delete legacy.graphics.objects[0].kind;
+  assert.equal(
+    FilmReviewMeasurementSchema.parse(legacy).graphics?.objects[0].kind,
+    "prop",
+  );
+  assert.equal(analyze([legacy]).graphicWarnings.length, 0);
+  const uncertain = analyze([
+    record({ graphics: graphics({ objects: cards, unknown: ["masked art"] }) }),
+  ]);
+  assert.equal(uncertain.graphicWarnings.length, 0);
+  assert.equal(uncertain.graphics.unknown.length, 1);
 });

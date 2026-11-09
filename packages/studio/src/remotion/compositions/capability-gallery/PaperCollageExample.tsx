@@ -367,6 +367,7 @@ export const PaperCollageExample = () => {
         </g>
         <g
           data-axmorf-object="用电读数换算费用的撕边账单"
+          data-axmorf-object-kind="card"
           transform="rotate(-2 635 640)"
         >
           <g transform={`translate(0 ${-lift})`}>
@@ -479,6 +480,7 @@ export const PaperCollageExample = () => {
         </g>
         <g
           data-axmorf-object="提醒先核对读数再算费用的便利贴"
+          data-axmorf-object-kind="card"
           transform="rotate(2.5 1450 535)"
         >
           <path
@@ -536,6 +538,7 @@ export const PaperCollageExample = () => {
         </g>
         <g
           data-axmorf-object="压按回弹的核对章是左侧印泥的来源"
+          data-axmorf-object-kind="prop"
           opacity={frame >= at("stamp") - 6 ? 1 : 0}
           transform={`translate(0 ${press}) translate(1450 981) scale(${2 - squash} ${squash}) translate(-1450 -981) rotate(-2 1450 900)`}
         >

@@ -117,6 +117,10 @@ export const FilmReviewGraphicsSchema = z.strictObject({
         id: z.number().int().nonnegative(),
         label: z.string().min(1).max(160),
         role: z.enum(["subject", "relation", "background"]),
+        // Legacy telemetry and annotations without kind remain ordinary props.
+        kind: z
+          .enum(["illustration", "diagram", "prop", "card"])
+          .default("prop"),
         ancestors: z
           .array(z.number().int().nonnegative())
           .max(FILM_REVIEW_MAX_OBJECTS),

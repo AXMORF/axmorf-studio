@@ -14,8 +14,15 @@ export const MAX_GRAPHIC_SUBJECTS = 3;
 
 type ObjectMeasurement = FilmReviewGraphics["objects"][number];
 export type GraphicWarning = {
-  rule: "graphic-overlap" | "too-many-subjects" | "unlabeled-graphic";
+  rule:
+    | "graphic-overlap"
+    | "too-many-subjects"
+    | "unlabeled-graphic"
+    | "text-card-only";
   frame: number;
+  /** Inclusive bounds of consecutive matching samples, not unsampled-frame proof. */
+  frames?: [number, number];
+  sampledFrames?: number[];
   objects: ObjectMeasurement[];
   transitionWindow: boolean;
   overlapRatio?: number;
@@ -52,10 +59,34 @@ export const analyzeReviewGraphics = ({
     unlabeledCount: number;
     unlabeledAreaRatio: number;
   }[] = [];
-  for (const [index, frame] of frames.entries()) {
+  let cardRun: {
+    frames: number[];
+    objects: ObjectMeasurement[];
+    transitionWindow: boolean;
+  } | null = null;
+  const finishCardRun = () => {
+    if (!cardRun) return;
+    const first = cardRun.frames[0];
+    const last = cardRun.frames.at(-1)!;
+    graphicWarnings.push({
+      rule: "text-card-only",
+      frame: first,
+      frames: [first, last],
+      sampledFrames: cardRun.frames,
+      objects: cardRun.objects,
+      transitionWindow: cardRun.transitionWindow,
+      message: `f${first}–f${last}：连续命中采样段的可见 subject 全部为 card（采样帧 ${cardRun.frames.join(", ")}，不推定未采样帧）。每镜头主信息须由插画、图解或有意义的实物承载；文字卡片只放数字、原话和短标签。${cardRun.transitionWindow ? " 转场窗口内；请人工核对。" : ""}`,
+    });
+    cardRun = null;
+  };
+  // Preserve telemetry indices while reporting ranges chronologically.
+  for (const [index, frame] of [...frames.entries()].sort(
+    (a, b) => a[1] - b[1],
+  )) {
     const record = byIndex.get(index);
     const graphics = record?.graphics;
     if (!record || record.error || !graphics) {
+      finishCardRun();
       unknown.push({
         frame,
         reason:
@@ -75,6 +106,16 @@ export const analyzeReviewGraphics = ({
     const subjects = graphics.objects.filter(
       (object) => object.role === "subject",
     );
+    const cardOnly =
+      !graphics.truncated &&
+      graphics.unknown.length === 0 &&
+      subjects.length > 0 &&
+      subjects.every((object) => object.kind === "card");
+    if (cardOnly) {
+      cardRun ??= { frames: [], objects: subjects, transitionWindow: false };
+      cardRun.frames.push(frame);
+      cardRun.transitionWindow ||= transitionWindow;
+    } else finishCardRun();
     const unlabeledAreaRatio = graphics.unlabeledArea / (width * height);
     measured.push({
       frame,
@@ -124,6 +165,7 @@ export const analyzeReviewGraphics = ({
         message: `f${frame}：未标注图形包围盒面积总和占画面 ${(unlabeledAreaRatio * 100).toFixed(1)}%（阈值 >10%）；说不出代表什么的图形不画；能说出来就加 data-axmorf-object。${suffix}`,
       });
   }
+  finishCardRun();
   return {
     graphicWarnings,
     graphics: {

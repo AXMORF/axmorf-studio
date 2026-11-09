@@ -350,6 +350,80 @@ test("semantic graphics in a real host browser", async (context) => {
       },
     );
     await context.test(
+      "text-card gallery calibrates measured kinds, visible subjects and consecutive sample ranges",
+      async () => {
+        const { TextCardReviewArtwork } =
+          await import("../../packages/studio/src/remotion/compositions/capability-gallery/TextCardReviewGallery");
+        for (const cardOnly of [false, true]) {
+          const graphics = await measure(
+            renderToStaticMarkup(
+              createElement(TextCardReviewArtwork, { cardOnly }),
+            ),
+            960,
+            540,
+          );
+          const frames = [0, 10, 20, 29];
+          const result = analyzeReviewGraphics({
+            records: frames.map((frame, index) => ({
+              index,
+              frame,
+              width: 960,
+              height: 540,
+              texts: [],
+              truncated: false,
+              graphics,
+            })),
+            frames,
+            width: 960,
+            height: 540,
+          });
+          assert.deepEqual(result.graphics.unknown, []);
+          assert.deepEqual(
+            result.graphicWarnings.map((w) => w.rule),
+            cardOnly ? ["text-card-only"] : [],
+          );
+          if (cardOnly) {
+            assert.deepEqual(result.graphicWarnings[0].frames, [0, 29]);
+            assert.deepEqual(result.graphicWarnings[0].sampledFrames, frames);
+          }
+          const hidden = await measure(
+            renderToStaticMarkup(
+              createElement(TextCardReviewArtwork, { cardOnly: true }),
+            ) +
+              box(
+                'data-axmorf-object="hidden diagram" data-axmorf-object-kind="diagram"',
+                "opacity:0",
+              ),
+            960,
+            540,
+          );
+          assert.ok(
+            hidden.objects
+              .filter((o) => o.role === "subject")
+              .every((o) => o.kind === "card"),
+          );
+        }
+        const legacy = await measure(box('data-axmorf-object="legacy prop"'));
+        assert.equal(legacy.objects[0].kind, "prop");
+        for (const kind of ["illustration", "diagram", "prop", "card"])
+          assert.equal(
+            (
+              await measure(
+                box(
+                  `data-axmorf-object="kind" data-axmorf-object-kind="${kind}"`,
+                ),
+              )
+            ).objects[0].kind,
+            kind,
+          );
+        const invalid = await measure(
+          box('data-axmorf-object="invalid" data-axmorf-object-kind="other"'),
+        );
+        assert.ok(invalid.unknown.length);
+        assert.equal(invalid.objects.length, 0);
+      },
+    );
+    await context.test(
       "group bounds use painted geometry, not full-frame SVG/HTML wrappers or text",
       async () => {
         const graphics = await measure(
@@ -527,7 +601,7 @@ test("semantic graphics in a real host browser", async (context) => {
           ._client()
           .send("Page.captureScreenshot", { format: "png" });
         await page.evaluate(
-          `document.querySelectorAll('[data-axmorf-object]').forEach(node => { node.removeAttribute('data-axmorf-object'); node.removeAttribute('data-axmorf-object-role'); });`,
+          `document.querySelectorAll('[data-axmorf-object]').forEach(node => { node.removeAttribute('data-axmorf-object'); node.removeAttribute('data-axmorf-object-role'); node.removeAttribute('data-axmorf-object-kind'); });`,
         );
         const after = await page
           ._client()
@@ -540,7 +614,7 @@ test("semantic graphics in a real host browser", async (context) => {
   }
 });
 
-test("paper collage and global-only gallery calibrate response telemetry without changing graphics hints", async (context) => {
+test("paper collage and global-only gallery calibrate response telemetry and card-only samples", async (context) => {
   const { bundle } = await import("@remotion/bundler");
   const { getCompositions, renderStill } = await import("@remotion/renderer");
   const { analyzeMotion, extractMotionMeasurements } =
@@ -633,7 +707,10 @@ test("paper collage and global-only gallery calibrate response telemetry without
             contrastFrames: new Map([[0, { image }]]),
           });
           assert.deepEqual(graphics.graphics.unknown, []);
-          assert.deepEqual(graphics.graphicWarnings, []);
+          assert.deepEqual(
+            graphics.graphicWarnings.map((w) => w.rule),
+            composition.id === "Varied" && frame < 39 ? ["text-card-only"] : [],
+          );
           assert.deepEqual(graphics.readability.missingFrames, []);
           assert.deepEqual(graphics.readability.truncatedFrames, []);
           assert.deepEqual(graphics.readability.unknown, []);

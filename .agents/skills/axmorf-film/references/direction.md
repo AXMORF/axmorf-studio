@@ -378,8 +378,21 @@ storyboard 开头先写规格、正片总帧、主张，以及**风格、配色�
 每个镜头逐项列出**全部图形元素及其代表**，包括环境和关系；说不出代表什么就不画。
 连接线、虚线、箭头只用于表达旁白提到的关系，写明关系种类和对应句子；不能当装饰填空。
 同一时刻非文字主体最多 3 个，图形之间不做无意义的交叉或重叠；同一物体的零件属于该物体，不能把多个主体合并标注来规避。
-每个非文字主体用原生 DOM/SVG 元素或物体组标注 `data-axmorf-object="它代表什么"`，
+每个可见主体（包括文字卡片）用原生 DOM/SVG 元素或物体组标注 `data-axmorf-object="它代表什么"`，
 角色可选 `data-axmorf-object-role="subject|relation|background"`（默认 subject）。关系和可辨认的背景也标注，各层须能指认。
+
+**图解优先**：每个镜头的主信息由画出来的物件、生图剪纸或图解承载；文字卡片只放数字、原话和短标签，不能单独构成镜头主体。
+在同一个原生元素上加可选 `data-axmorf-object-kind="illustration|diagram|prop|card"`，缺省为 prop，和 role 独立：
+
+| kind | 含义与标注 |
+| --- | --- |
+| illustration | 承载主信息的人物/实物插画或生图剪纸；在实际图片的包裹组上标注。 |
+| diagram | 精确关系、结构、数量或机制图解；标在整个图解组上，关系线可另标 role=relation。 |
+| prop | 有内容含义的实物/道具，例如核对章；旧标注未写 kind 时也按此解释。不能把文字卡片冒充 prop。 |
+| card | 以文字为信息的纸条、面板、便利贴或数字卡，标在包含底纸和文字的组上；即使有纸纹、白边、线框也仍是 card。 |
+
+例如 `<g data-axmorf-object="最终金额短标签" data-axmorf-object-kind="card">`；同一物件不重复拆标。
+role=background 只给可辨认环境，不能用来藏主信息卡；kind 不替代角色与主体预算。
 
 表后按章节补世界关系、前中后景、文字安静区、镜头起止/中心/尺度、
 配方 anticipate/move/land/settle、跨章转场种类/窗口/动机、音效动作/声音起止与 anchor、许可、留白和收尾。
@@ -462,7 +475,11 @@ FilmSceneTrack 的 overlay/overlap 时段照常检测，message 标注「转场�
 message 列出文字、正片帧、最差网格的位置与比值，并标注转场窗口及同组形变；不因底板、描边、阴影跳过。
 采样不足、颜色或像素不可用时保留 `readability.unknown`；耗时见 `readability.contrast.analysisMs`。这是局部估计而非完整可读性判定，仍须人工看图。
 
-图形审片复用已有采样帧，不额外渲染。`graphics.frames` 按帧列出可见 `data-axmorf-object` 及角色和包围盒，辅助静音描述。
+图形审片复用已有采样帧，不额外渲染。
+`text-card-only`：某采样帧可见 subject 非空且全为 card 时提示，按连续命中的采样段给出 `frames`（含起止）和 `sampledFrames`。
+只断言列出的采样帧，不推定未采样帧；遇非 card 主体、空主体、缺失、unknown 或截断测量即断段。无 kind 的旧记录默认 prop。
+在 gallery 的 `TextCardReview-Diagram` 校准正例（数量图解 + 金额卡，0 提示），`TextCardReview-CardOnly` 校准反例（两张文字卡，提示采样段）；均只提示不拦交付。
+`graphics.frames` 按帧列出可见 `data-axmorf-object` 及角色、kind 和包围盒，辅助静音描述。
 `graphic-overlap`：不同标注、互不为祖先后代的 subject 可见包围盒交叠超过较小者 15%；relation 不参与。
 `too-many-subjects`：同帧可见 subject 超过 3 个。`unlabeled-graphic`：未处于标注组内的可见绘制图形面积总和超过画面 10%。
 文字、字幕、FilmStatusTag、整帧背景和场景轨转场覆盖层不计；透明度为 0 或不可见元素不计。

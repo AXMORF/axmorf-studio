@@ -3,6 +3,9 @@
 用户或 Workspace 指定这种风格时读，在 [画面手艺](../craft.md) 与 [导演手册](../direction.md) 上实施；不改旁白、字幕时序和交付规则。
 示例配色不是默认值。storyboard 开头仍声明风格、配色、参考方向和内容理由；每镜头逐项写「图形元素 → 代表」。
 
+每镜头主信息由画出来的物件、生图剪纸或图解承载；文字卡片只放数字、原话和短标签，不能单独撑一个镜头。
+各物件标注 kind，含义与原生元素写法见 [storyboard 与图形类型](../direction.md#8-storyboardmd-写法)，回应 `text-card-only` 的连续采样帧段。
+
 ## 材质与主体
 
 - 按内容选米白、牛皮纸、方格本或横线本中的一种底纸：账单用米白，档案用牛皮纸，计算记录用方格本，笔记用横线本。只保留真实纸面印刷线，不画装饰性的空间网格。
@@ -47,7 +50,7 @@ stamp的低频压按基底跟score主音；tape/pen以噪声为主，不伪造�
 
 ## 一帧合格的纸面画面包含什么
 
-以本页的 `PaperCollageExample` 为参考质量下限，核对 f30、f100、f170，并缩到手机宽度（例如 360px）逐张看：
+本页的 `PaperCollageExample` 仅作材质与笔触参考（不是整镜主体构成样板），核对 f30、f100、f170，并缩到手机宽度（例如 360px）逐张看：
 
 - [ ] **看得出纸纹**：牛皮纸桌面的纤维、颗粒可辨；纸内有轻纹理，字周围仍然干净。
 - [ ] **纸片有投影和倾斜**：白边、细碎撕边清楚，接触暗影和偏移模糊影一致，纸片倾斜 1–3°。
@@ -69,7 +72,8 @@ stamp的低频压按基底跟score主音；tape/pen以噪声为主，不伪造�
 用 `pickRhythmResponse` 的 seed=3 在四个示意小节上轮换物件动作；`useRhythmResponse` 上报四类主动作与线稿 boil。
 `useBoilSeed({ stepFrames: 2 })` 只改变线稿，不改变纹理、纸片轮廓和文字；阅读层保持水平，纸片本身略微倾斜。
 印章和它留下的印记分区展示，避免盖住正在读的金额；不靠光闪或背景缩放表达节拍。
-本示例仅演示纸面材质和四类动作，不是讲述段的完整运动计划；真实片必须补持续桌面微移与每拍的轮换反应。
+本示例仅演示纸面材质和四类动作，不是完整镜头主体设计：账单、便利贴如实标为 card，f0–38 印章入画前只有文字卡片，会触发 `text-card-only`；真实片须用插画/图解承载主信息。
+它也不是讲述段的完整运动计划；真实片必须补持续桌面微移与每拍的轮换反应。
 代码与 `PaperCollageExample.tsx` 同步，Skill 示例编译与 film:check 覆盖；真实片补本片实测时序、声轨、字幕和场景轨，不把示意小节当实测配乐网格。
 
 | 小节 | 帧      | 图形元素 → 代表                                  | 承载物件与反应                                              | 音效  |
@@ -449,6 +453,7 @@ export const PaperCollageExample = () => {
         </g>
         <g
           data-axmorf-object="用电读数换算费用的撕边账单"
+          data-axmorf-object-kind="card"
           transform="rotate(-2 635 640)"
         >
           <g transform={`translate(0 ${-lift})`}>
@@ -561,6 +566,7 @@ export const PaperCollageExample = () => {
         </g>
         <g
           data-axmorf-object="提醒先核对读数再算费用的便利贴"
+          data-axmorf-object-kind="card"
           transform="rotate(2.5 1450 535)"
         >
           <path
@@ -618,6 +624,7 @@ export const PaperCollageExample = () => {
         </g>
         <g
           data-axmorf-object="压按回弹的核对章是左侧印泥的来源"
+          data-axmorf-object-kind="prop"
           opacity={frame >= at("stamp") - 6 ? 1 : 0}
           transform={`translate(0 ${press}) translate(1450 981) scale(${2 - squash} ${squash}) translate(-1450 -981) rotate(-2 1450 900)`}
         >
@@ -655,6 +662,6 @@ export const PaperCollageExample = () => {
 
 ## 审片追加项
 
-逐镜头静音描述、手机尺寸读字并写帧号：认不出实物或说不出意义就改；`graphicWarnings` 三条应为空或逐条说明。
+逐镜头静音描述、手机尺寸读字并写帧号：认不出实物或说不出意义就改；`graphicWarnings` 包括 `text-card-only`，应为空或逐条说明。
 核对纸纹不抢主体、白边/阴影一致、标签不超过 3°、每章物件反应不少于 3 类，光闪和背景缩放仅作补充。
 看连续小图确认纸片、印章和笔划实际在动作；上报的节奏反应不是可见性证明。
