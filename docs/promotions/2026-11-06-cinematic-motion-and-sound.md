@@ -19,7 +19,8 @@ AxiomMorph 是可选文字对照/重组/拆解；hook/drop 按内容语义安排
 验证：首轮80项focused通过；负责人补充修正同相过零与全句子锚点指纹，45项focused及完整check（551主测试通过、1跳过、24宿主通过）通过。
 修后fixture校准speech gap9.2LU/mix -1.7dBTP；仅连续48 samples双声道零串保持静音，短零串正常滤波。
 v6官方registry授权单次安装恢复，三轮审片后交付97.4秒1920×1080/30fps四件套，软件解码通过。
-局部speculate窗口bed差5.9LU、f2067冲击略低p99和30条NumberRoll绘制unknown如实保留供负责人审阅，不声称全项通过。
+负责人最终补充用现有musicDips仅压speculate句：绝对音量0.41990519760136413、与speech取min；实测片段差9.0LU、整片旁白区间9.3LU。Open提前出场，f1263全开/标签出现，连续预备已看图。
+f2067仅为编曲继发拍的软提示与30条NumberRoll定位unknown由负责人接受保留，不伪装通过；runtime及P6不再改动。
 以下各批次内容保留为历史记录；当前验收见 [执行进度](2026-11-09-voiceover-progress.md)。
 
 ## 1. 为什么改

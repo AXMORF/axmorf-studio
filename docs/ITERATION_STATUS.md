@@ -10,7 +10,9 @@ AXMORF Studio 是通用视频工具；效果由内容语义决定。AxiomMorph �
 同步所有字符串句子锚点指纹失效与OP配方，补充focused45项通过；完整check：551主测试通过、1平台跳过，24宿主通过，packages:build/repack通过。
 修后同fixture重新校准：.64/.60 + voiceover，speech gap9.2 LU、mix -1.7 dBTP；官方registry单次授权安装成功，标准browser:prepare及doctor通过。
 v6同take、原beat/bar/section网格、配置/封面/publish/bookends保留；三轮审片后交付97.4秒1920×1080/30fps四件套，完整软件解码通过，AAC -15.9LUFS/-2.1dBTP。
-仍保留f2067冲击略低p99提示、30条NumberRoll绘制定位unknown；整片旁白区间bed低9.2LU，speculate短窗口仅5.9LU，未达局部目标。帧证据/实测如实交负责人审阅，真实听感和逐字精度未验证。
+负责人最终补充已修：speculate句级musicDips绝对音量0.41990519760136413，与speech取min，Film/测量共用选项；重测窗口差9.0LU、整片旁白区间差9.3LU，默认.64/.60不变。
+Open场景1253出场、4帧遮罩，门体1255–1262连续预备、1263全开且标签首次出现。SFX只改for并更新指纹，29条PCM及原music/narration/timing不变。
+仅保留负责人接受的f2067软提示（语义揭示在2051，2067为编曲继发拍）及30条NumberRoll定位unknown；本轮无runtime改动，不重复工程全检。负责人独立完整check仍551主测通过+1skip、24宿主通过；真实听感和逐字精度未验证。
 实施和验收进度见 [口播混音与 v6 对比进度](promotions/2026-11-09-voiceover-progress.md)。
 
 ## P6 局部文字对比提示（2026-11-09，未发布）

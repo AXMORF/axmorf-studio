@@ -3,7 +3,7 @@
 本任务方案取代早期 P8 中品牌母题、12–15 LU、讲述期全面减幅要求；P6 冻结。
 只在 axmorf/voiceover-mix（基线 f053f7c）实施，不合并、推送或发布。
 
-当前状态：代码验收及v6四件套交付/软件解码完成，待负责人亲自审阅；保留的局部混音/运动提示和unknown见末尾。
+当前状态：负责人最终补充两项已完成并重新交付。speculate差9.0LU、whole差9.3LU，f1263精确全开；旧v6四件套完整历史备份、解码/hash/封面复验通过。runtime不改、不重复工程全检。
 
 ## 执行计划
 
@@ -111,7 +111,7 @@ v6已按既定方案修改，7个句首锚点全部核对onsets包含落点，�
 bill[506,622)：voice -15.2 / bed -24.2 LUFS，差9.0LU，mix -15.0/-2.7dBTP。speculate[1942,2045)：voice -17.2 / bed -23.1，差5.9LU，mix -16.4/-3.2dBTP。后者未达8–10LU目标，留给负责人听审决定，未自行换母带或加侧链。
 审片记录：v6/out/voiceover-evidence/review-notes.md（逐条warning、30条unknown、六张小图帧号）；最终review JSON：同目录round3-final.json。
 
-## 完成交付与复验（2026-11-09）
+## 上轮交付与复验快照（由末尾最终补充轮结果取代）
 
 film:deliver退出0，恰好video.mp4、cover-4x3.png、cover-3x4.png、publish.json，无旧交付替换。
 完整FFmpeg -hwaccel none软件解码退出0；ffprobe为1920×1080/30fps、2922帧/97.4秒（正片2622+片头60+片尾240），AAC 48kHz stereo。
@@ -146,7 +146,7 @@ v5原463个保护文件全部SHA256不变；v6旁白/timing、producer.config.js
 - animatic：/home/zzzxc/AgentWorkspace/axmorf-trial-v6-voiceover/workspace/out/films/ai-small-lab-training-cost-20261106/review/animatic.mp4
 - contactSheet：/home/zzzxc/AgentWorkspace/axmorf-trial-v6-voiceover/workspace/out/films/ai-small-lab-training-cost-20261106/review/contact-sheet.jpeg
 - reviewNotes：/home/zzzxc/AgentWorkspace/axmorf-trial-v6-voiceover/workspace/out/voiceover-evidence/review-notes.md
-- reviewReport：/home/zzzxc/AgentWorkspace/axmorf-trial-v6-voiceover/workspace/out/voiceover-evidence/round3-final.json
+- reviewReport：/home/zzzxc/AgentWorkspace/axmorf-trial-v6-voiceover/workspace/out/voiceover-evidence/round4-final-two-fixes.json
 - audioReport：/home/zzzxc/AgentWorkspace/axmorf-trial-v6-voiceover/workspace/src/films/ai-small-lab-training-cost-20261106/review-evidence/audio/report.json
 - deliveryVerification：/home/zzzxc/AgentWorkspace/axmorf-trial-v6-voiceover/workspace/out/voiceover-evidence/delivery-verification.json
 - calibration：/home/zzzxc/.config/CindyGlobal/owners/24ad0e43f9901a2b3b9e/bots/bot_1793619581836_kwfnjr/workspace/axmorf-studio-voiceover/.axmorf/voiceover-calibration-fixed/report.json
@@ -155,3 +155,35 @@ v5原463个保护文件全部SHA256不变；v6旁白/timing、producer.config.js
 - changedFiles：/home/zzzxc/.config/CindyGlobal/owners/24ad0e43f9901a2b3b9e/bots/bot_1793619581836_kwfnjr/workspace/axmorf-studio-voiceover/.axmorf/voiceover-evidence/changed-files.txt
 - protectedVerification：/home/zzzxc/.config/CindyGlobal/owners/24ad0e43f9901a2b3b9e/bots/bot_1793619581836_kwfnjr/workspace/axmorf-studio-voiceover/.axmorf/voiceover-evidence/v5-v6-protected-final.json
 - 四件套和全部6张强重音图的逐个绝对路径：上述worktree `.axmorf/voiceover-evidence/artifact-paths.json`。
+
+## 负责人最终两项补充（2026-11-09，执行中）
+
+不重做runtime/安装/doctor或已通过的工程检查，只改v6：speculate句[1942,2045)使用现有musicDips，绝对增益=.6*10^((5.9-9)/20)，与speech取min；Film.tsx和measure-v6共用本片soundtrack.ts选项，重测含SFX窗口后按9±1LU验收。
+Open场景从1253出场、mask-wipe4帧，门体[1255,1263]从关到全开，1263后12帧小回弹；“开放...”标签不早于1263。只改原SFX动作for，不增音效，film:sfx更新指纹，PCM应保持。
+负责人已接受f2067软提示：语义揭示在2051，2067仅编曲继发拍，不追指标继续加镜头；30条NumberRoll unknown保留。原v5/P6仍冻结。
+
+最终补充轮实测：dip=0.41990519760136413，一次命中speculate差9.0LU（voice -17.2、bed -26.2、mix -16.8LUFS/-3.6dBTP）；bill保持差9.0LU；whole旁白区间差9.3LU（voice -16.0、bed -25.3、mix -15.7LUFS/-2.3dBTP）。
+film:sfx/film:check均0；新63帧带声animatic+review为0，包含1253、1254、1255–1267逐帧和1270/1275。15格开门图与完整联系表已看，1255–1262主体持续可见、1263全开且标签首次出现。readability/still/repetition warnings均0；仅保留原f2067提示、30条NumberRoll unknown，motion unknown=0。
+负责人已独立完整check退出0（551主测+1skip/24宿主）、逐字核对10文件Skill/adapter，并亲自看开门关键帧及局部audio报告；本轮未重做工程检查、安装、doctor或runtime源码。负责人已自行cherry-pick ca3ff09/ac29113到原开发分支b0a8446/21ccaf6；实施Agent没有移动原分支，后续只提交本轮文档。
+
+## 最终补充轮完成（2026-11-09）
+
+更新四件套交付成功，旧四件套由CLI完整备份到 `/home/zzzxc/AgentWorkspace/axmorf-trial-v6-voiceover/workspace/.axmorf/history/ai-small-lab-training-cost-20261106/2026-11-09T10-37-12-951Z`，四文件hash与上一版记录逐项相同；两张新封面也与上一版逐字节相同。
+新视频完整 `ffmpeg -hwaccel none` 软件解码退出0，ffprobe 1920×1080/30fps、2922帧/97.4秒；最终AAC -15.9LUFS/-2.1dBTP。原v5 463保护文件不变，v6原配乐、旁白、timing、29条SFX WAV、工作区配置、封面源码、publish/bookends配置均不变。
+剩余仅负责人接受的f2067软提示、30条NumberRoll绘制定位unknown；speculate局部差和open晚4帧两问题已解决。真实听感/连续观看/逐字精度仍未验证；未启动任何播放器。
+本轮仅本地提交三份状态/计划/进度文档；影片源码与本片soundtrack.ts为ignored本地产物，focused source patch在worktree `.axmorf/voiceover-evidence/final-two-fixes-source.patch`。原开发分支不由实施Agent移动。
+
+### 本轮命令与结果
+
+- v6 `npm run film:sfx -- --film ai-small-lab-training-cost-20261106`：0，原effect只for改变，所有29条WAV hash不变；`npm run film:check -- --film ai-small-lab-training-cost-20261106`：0，无errors/warnings。
+- worktree `node --import tsx .axmorf/voiceover-evidence/measure-v6.ts`：0，Film和测量共用same soundtrack.ts，speculate差9.0LU、whole差9.3LU，无需第二次校准。一次辅助脚本cwd错误后只补完测量脚本/进度路径，未重复已完成片源修改。
+- v6 `film:review -- --film ai-small-lab-training-cost-20261106 --animatic --frames <63帧>`：0；完整参数见 `/tmp/axmorf-v6-final-review.log` 和v6/out/voiceover-evidence同名日志。
+- FFmpeg `-hwaccel none` 拼出f1253–1267的15格开门图，逐格看图通过：`/home/zzzxc/AgentWorkspace/axmorf-trial-v6-voiceover/workspace/out/voiceover-evidence/open-f1253-f1267.jpeg`。
+- v6 `film:deliver -- --film ai-small-lab-training-cost-20261106`：0，内置check/四件套复验通过，有v6自身history备份，无交付warnings。
+- 完整FFmpeg软件解码、ffprobe全帧计数/规格、AAC ebur128测量均0；命令同上轮，所有解码显式`-hwaccel none`。
+- `python3 .axmorf/voiceover-evidence/verify-protected.py`：0；新旧四文件/history与封面hash检查通过；animaticReminder返回null。
+- 未重新安装/doctor/打包/工程全检；负责人独立全检日志为worktree `.axmorf/voiceover-evidence/owner-review-check.log`（551主测+1skip、24宿主，退出0）。
+
+最终报告：v6 `/out/voiceover-evidence/round4-final-two-fixes.json`、同目录`review-notes.md`、`delivery-verification.json`；audio报告仍在本片`review-evidence/audio/report.json`，含实际musicDips选项。worktree `.axmorf/voiceover-evidence/artifact-paths.json` 已更新所有绝对路径。
+
+交付publish.json由CLI重生成，与上一版差异仅`.deliveredAt`、`.files.video.size`、`.files.video.checksum`；标题/简介/标签/来源与bookends配置未改，不能把新交付清单声称为逐字节相同。
