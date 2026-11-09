@@ -160,3 +160,6 @@ FFmpeg 失败/超时直接报告，不自动重试。上述 motion 字段是 `fi
 
 见[发布流程](guides/RELEASE.md)。CI 在 tag 上完成完整检查、真实渲染与全新 Workspace 冒烟后以 provenance 发布；
 `next` 版本经真实 Agent 宿主做完一部片后再以正式版本发布到 `latest`。
+
+纸面拟音新增stamp/tape/pen，仍由film:sfx离线合成48kHz双声道PCM。stamp的64Hz基底进入现有主音跟调；tape/pen为调制滤波/带通噪声，不自动跟调。
+沿用durationFrames/anchor/pitch/brightness/intensity/tail/stereo/seed与许可登记；保留film-sfx-v2，因为旧12类分支及输出未变，并用24个PCM SHA-256锁定回归。

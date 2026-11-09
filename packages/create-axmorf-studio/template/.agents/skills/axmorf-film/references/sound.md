@@ -24,7 +24,7 @@
 `anchor: start` 从 frame 起；`end` 在 frame 排他结束；`center` 将 frame 置于窗口中心。
 `pitch` 为半音偏移；`brightness` 为亮度；`intensity` 为强度；`tail` 为尾音比例；`stereo` 为声像宽度；`seed` 为确定性种子。
 kind：`riser` 上升蓄势、`impact` 冲击、`whoosh` 掠过、`tick` 轻刻度、`glitch` 碎裂、`shimmer` 闪烁余韵、
-`swell` 聚拢、`thud` 低沉落地、`paper` 纸张、`clank` 金属碰撞、`chime` 和弦提示、`click` 点击。
+`swell` 聚拢、`thud` 低沉落地、`paper` 纸张、`clank` 金属碰撞、`chime` 和弦提示、`click` 点击、`stamp` 印章压按、`tape` 撕贴胶带、`pen` 笔划圈画。
 参数范围和默认值见 [API](api.md)。
 
 运行 `npm run film:sfx -- --film <filmId>`，输出本片 `public/films/<id>/sfx/<effectId>.wav` 与 `generated/sfx.json`。
@@ -38,6 +38,32 @@ kind：`riser` 上升蓄势、`impact` 冲击、`whoosh` 掠过、`tick` 轻刻�
 
 审片逐条写出可见动作、动作起止帧、声音起止帧、主要落点与 onset/accent 的距离；音长必须与动作时长一致。
 已有 v3 等锁定画面的声音重做，不改画面代码或旁白字幕帧；用 `framemd5` 对新旧视频流逐帧比对，全部相同才算通过。
+
+## 纸面质感音效
+
+按实际可见动作选kind，不能为风格凭空加声：
+
+| 动作 | kind | 声音与计划 |
+| --- | --- | --- |
+| 印章/贴纸压下并回弹 | stamp | 短促低频压按加纸面闷响；有音高的64Hz基底跟随score主音，显式pitch优先。 |
+| 撕开/贴合胶带 | tape | 噼啪调制的滤波噪声，声音覆盖撕贴动作，不自动配音高。 |
+| 红笔画圈/下划线/手写笔划 | pen | 随笔触节奏调制的带通摩擦噪声，durationFrames等于实际画线时长，不自动配音高。 |
+| 翻页/抽走纸片/新纸片落桌 | paper | 继续使用既有纸张音色；碎纸可轻叠tick，不能替代缺失画面。 |
+
+三种新kind沿用pitch、brightness、intensity、tail、stereo、seed参数；pitch对噪声类改变滤波/笔触速度，不伪造和弦。
+所有尾音都裁在动作窗口内；anchor start/end/center与其他kind相同。印章例f60压下，胶带例f75撕完，红圈例f120–136画完：
+
+```json
+"sound": { "effects": [
+  { "id": "approved", "kind": "stamp", "frame": 60, "durationFrames": 10, "anchor": "start", "params": { "intensity": 0.24, "brightness": 0.35, "tail": 0.3, "seed": 29 }, "for": "bill：f60–70 核对印章压下回弹" },
+  { "id": "peel", "kind": "tape", "frame": 75, "durationFrames": 15, "anchor": "end", "params": { "intensity": 0.2, "brightness": 0.55, "seed": 31 }, "for": "bill：f60–75 胶带撕开（只有画面确有此动作才加）" },
+  { "id": "circle", "kind": "pen", "frame": 120, "durationFrames": 16, "anchor": "start", "params": { "intensity": 0.18, "brightness": 0.6, "seed": 37 }, "for": "bill：f120–136 红笔圈出费用" }
+] }
+```
+
+这只是计划示例，不自动接到最小视觉示例。实际动作改变就改时长/锚点并重新film:sfx；不要挪旁白或字幕来对齐。
+新增kind保留film-sfx-v2，旧12种的合成分支和缓存指纹不变；24组旧PCM哈希回归保证本次增量没有改变其输出。
+纸面示例的图形/反应审片见 [配方](styles/paper-collage.md)，实际听感仍交给用户在手机或Mac审听。
 
 ## 显式 Cue 与吸附（兼容旧片）
 
@@ -135,7 +161,7 @@ export const EvidenceSoundtrack = () => (
 
 ## 调性与旧片兼容
 
-`film:sfx` 的 film-sfx-v2 会读取 score.arrangement 的 tonic/mode：chime、shimmer、swell、riser、impact、thud、tick 未写 params.pitch 时，
+`film:sfx` 的 film-sfx-v2 会读取 score.arrangement 的 tonic/mode：chime、shimmer、swell、riser、impact、thud、tick、stamp 未写 params.pitch 时，
 把基音或滑音落点对齐到最近八度的主音（主音和谐波五度均在大小调内）。显式 pitch（含 0）完全保留；无调性与噪声拟音不变。
 旁白下仍用运行时 ducking，音效 intensity .18–.30 是与 v3 教学谱一起校准的起点。旧 film-sfx-v1 的音频、指纹和许可仍按 v1 校验，
 `film:check` 不因升级强制重生成；主动运行 film:sfx 才升级。改过计划、损坏 PCM 或缺许可仍报错。

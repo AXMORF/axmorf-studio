@@ -38,6 +38,7 @@ Noto CJK 的许可为 SIL Open Font License 1.1，本机包的许可声明在 `/
 每个章节至少 3 种物件反应，相邻小节轮换；读字不抖，同一件物体不必每拍都动。线稿 boil、纸片弹起、印章压扁回弹、
 红笔圈画等从内容和拍点派生，不能只闪环境光或缩放背景。详见 [反应词库](../direction.md#4-三层动效核心)。
 印章落定对应 `stamp`，胶带撕贴对应 `tape`，红笔圈画对应 `pen`；抽纸/翻页继续用 `paper`，碎纸可用轻 `paper` 加 `tick`。
+stamp的低频压按基底跟score主音；tape/pen以噪声为主，不伪造跟调。三者都可调pitch/brightness/intensity/tail/stereo/seed。
 只从可见动作生成音效计划，长度覆盖动作，anchor 对齐落点；参数与跟调见 [音效计划](../sound.md)。
 
 ## 可编译最小示例

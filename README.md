@@ -122,6 +122,7 @@ Skill 中的创作方法、animatic 与看图回路；motionWarnings 仅作提�
 用户或 Workspace 指定纸面拼贴/手绘线稿时，Skill 提供对应配方、已安装字体回退和可编译 gallery。
 节拍反应落在具体物件上，每章至少三类、相邻小节轮换；`beat-response-monotone` 与 `motion.summary.beatResponses`
 区分物件动作和 global 光闪/缩放，缺遥测为 unknown，仅提示。轮换、boil seed 与上报 API 从 rhythm 导出。
+纸面动作可用 film:sfx 的 stamp（压章）、tape（撕贴胶带）、pen（笔划），继续复用统一参数与动作锚点；旧12类PCM不变。
 `motion["strong-accent-strip"]` 导出每个强重音的 [f-8,f+4] 逐帧联系表；必须人工确认配方过程可见，在 review-notes 按帧号记录。修改作品就是修改源码后重新交付，上一版交付自动移到 `.axmorf/history/`。
 
 ## 常用命令

@@ -121,6 +121,38 @@ export const renderFilmSoundEffectWav = (
           (0.25 + 0.75 * Math.abs(sine(u * (5.5 + tail * 4)))) *
           (hiss + 0.1 * harmonic(420));
         break;
+      case "stamp":
+        // A short padded press: tuned low body plus dull paper contact. The
+        // noise is not retuned independently; pitch moves the tonal body/filter.
+        sample =
+          decay ** 1.8 *
+          (0.84 * harmonic(64) + 0.42 * low + 0.3 * hiss * Math.exp(-t * 90));
+        break;
+      case "tape": {
+        // Filtered pull with deterministic little adhesive releases. Duration
+        // follows the tear, while tail controls the pull/peel envelope.
+        const crackle = Math.abs(white) > 0.78 ? white : 0;
+        const peel =
+          0.18 +
+          0.82 *
+            Math.abs(sine(pitch * (55 + brightness * 95) * t)) ** (1 + tail);
+        sample =
+          Math.sin(Math.PI * u) ** (1.6 - tail) *
+          peel *
+          (hiss + 0.32 * crackle);
+        break;
+      }
+      case "pen": {
+        // Band-pass friction, modulated into strokes over the authored action;
+        // no pitched oscillator, so automatic musical tuning is unnecessary.
+        const stroke = 0.16 + 0.84 * Math.max(0, sine(u * (3 + tail * 3))) ** 2;
+        sample =
+          Math.sin(Math.PI * u) ** (1.3 - tail * 0.7) *
+          stroke *
+          (band - low) *
+          (0.7 + 0.3 * Math.abs(sine(pitch * 43 * t)));
+        break;
+      }
       case "clank":
         sample =
           decay *

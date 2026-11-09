@@ -1,5 +1,16 @@
 # Iteration Status
 
+## P9 F 纸面拟音（2026-11-10，未发布）
+
+film:sfx新增stamp（短低频压按+纸面闷响）、tape（胶带噼啪调制滤波噪声）、pen（笔触调制带通摩擦噪声）。
+统一参数、PCM时长、start/end/center锚点、缓存/登记校验沿用；stamp基底跟score主音，纯噪声tape/pen不自动跟调。
+新增分支不改旧12类算法，版本保留film-sfx-v2；24组旧音效PCM哈希全部一致。
+音效focused 22项通过，包含新3类参数/确定性/时长/锚点及真实film:sfx生成登记/缓存；实际听感未验证。
+D/E/F完成后统一完整npm run check退出0：主测试574通过、1项macOS专属跳过，宿主36通过，合计610通过、1跳过、0失败。
+packages:build、类型/lint/文档/音频投影/Web/Remotion构建/creator包/宿主compositions均通过；Skill格式校验通过。
+原12个system composition的46张PNG与fb2d96a原始源码逐字节一致，旧12类音效24组PCM哈希不变。
+详细校准数据在out/p9/def-calibration/，交付说明追加D/E/F章节；未安装依赖、未改lockfile、未推送/发布/合并。
+
 ## P9 D/E 纸面风格与物件节奏反应（2026-11-10，未发布）
 
 纸面拼贴/手绘线稿配方已加入四份Skill入口与creator镜像；米白/牛皮纸/笔记纸按内容选，固定seed纸纹，白边投影与深灰手绘线，
@@ -10,7 +21,7 @@ PaperCollageExample的账单/笔/印章均标注语义；图形三条提示在f0
 章节要求至少三类物件动作，相邻小节主动作轮换，文字阅读时固定；global光闪/缩放不计入物件种类，旧纯函数兼容不变。
 beat-response-monotone只提示，summary.beatResponses列出章节物件与kind，缺遥测/边界/测量保留unknown。
 真实gallery正例4类物件动作、0单调提示；global-only反例0类物件动作、1条提示，相关unknown均为0。
-定向46测试、36宿主测试、6项Skill编译/同步与实际film:check示例通过；完整check在D/E/F完成后统一执行。
+定向46测试、36宿主测试、6项Skill编译/同步与实际film:check示例通过；完整check结果见上方F记录。
 
 ## P9 图形语义与风格规则（2026-11-10，未发布）
 

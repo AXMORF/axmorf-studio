@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import legacyHashes from "../fixtures/film-sfx-v2-hashes.json";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -274,6 +276,7 @@ test("tonal SFX land on the score tonic; explicit pitches and unpitched foley st
     "impact",
     "thud",
     "tick",
+    "stamp",
   ] as const) {
     const authored = { ...effect, kind };
     const tuned = resolveFilmSoundEffectPitch(authored, key("D"));
@@ -428,4 +431,102 @@ test("v1 generated films remain checkable without regeneration; explicit generat
     "film-sfx-v2",
   );
   assert.equal(current.generated, 1);
+});
+
+test("all twelve existing v2 kinds retain exact PCM bytes across default and custom parameter profiles", () => {
+  assert.equal(legacyHashes.length, 24);
+  for (const snapshot of legacyHashes) {
+    const spec = FilmSoundEffectSpecSchema.parse(snapshot.effect);
+    const wav = renderFilmSoundEffectWav(spec, snapshot.fps);
+    assert.equal(
+      createHash("sha256").update(wav).digest("hex"),
+      snapshot.sha256,
+      `${spec.kind}: ${JSON.stringify(spec.params)}`,
+    );
+  }
+});
+
+test("paper foley generates registered original clips with exact start/end/center action alignment", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "axmorf-paper-foley-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const filmId = "paper-foley";
+  const paths = filmPaths(rootDir, filmId);
+  const effects = [
+    {
+      id: "approve",
+      kind: "stamp",
+      frame: 30,
+      durationFrames: 10,
+      anchor: "start",
+      for: "印章压下后回弹",
+    },
+    {
+      id: "peel",
+      kind: "tape",
+      frame: 75,
+      durationFrames: 15,
+      anchor: "end",
+      for: "撕开胶带至落点",
+    },
+    {
+      id: "circle",
+      kind: "pen",
+      frame: 105,
+      durationFrames: 18,
+      anchor: "center",
+      for: "红笔圈画金额",
+    },
+  ];
+  const spec = FilmSpecSchema.parse({
+    schemaVersion: 1,
+    filmId,
+    render: { width: 960, height: 540, fps: 30 },
+    timeline: { durationInFrames: 180 },
+    narration: [],
+    music: null,
+    sound: { effects },
+    publish: { title: "Paper Foley" },
+  });
+  await mkdir(paths.dir, { recursive: true });
+  await writeJsonFile(paths.spec, spec);
+  await writeJsonFile(
+    paths.timing,
+    buildFilmTiming({ spec, sentenceSamples: [], narration: null }),
+  );
+  const report = await runFilmSfx({ rootDir, filmId });
+  assert.equal(report.generated, 3);
+  const generated = await assertFilmSfxConsistency({
+    rootDir,
+    spec,
+    durationInFrames: 180,
+  });
+  assert.equal(generated!.effects.length, 3);
+  for (const entry of generated!.effects) {
+    const plan = spec.sound!.effects.find((e) => e.id === entry.id)!;
+    const alignment = resolveFilmSoundEffectFrames(plan, 180);
+    assert.equal(entry.startFrame, alignment.startFrame);
+    assert.equal(entry.endFrame, alignment.endFrame);
+    assert.equal(entry.alignmentFrame, plan.frame);
+    assert.equal(entry.sampleFrameCount, plan.durationFrames * 1600);
+  }
+  assert.equal((await runFilmSfx({ rootDir, filmId })).cached, 3);
+});
+
+test("paper foley tunes only the stamp body; silent intensity and endpoint cleanup work for all new kinds", () => {
+  const key = {
+    music: { score: { arrangement: { tonic: "D", mode: "minor" } } },
+  };
+  for (const kind of ["stamp", "tape", "pen"] as const) {
+    const spec = { ...effect, kind };
+    const tuned = resolveFilmSoundEffectPitch(spec, key);
+    assert.equal(tuned !== spec, kind === "stamp");
+    const silent = renderFilmSoundEffectWav(
+      { ...spec, params: { intensity: 0 } },
+      30,
+    );
+    assert.equal(measureFilmSoundEffectWav(silent).peak, 0);
+    const wav = renderFilmSoundEffectWav(spec, 30);
+    assert.equal(wav.readInt16LE(44), 0);
+    assert.equal(wav.readInt16LE(wav.length - 2), 0);
+  }
 });

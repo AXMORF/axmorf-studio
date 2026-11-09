@@ -2,7 +2,8 @@ import { z } from "zod";
 
 import { createFingerprint } from "./fingerprint";
 
-/** Bump whenever synthesis or PCM encoding changes: old audio must not hit cache. */
+/** Bump if existing synthesis/PCM changes. Additive kinds retain v2 only while
+ * all existing kind outputs stay byte-identical (locked by PCM regression hashes). */
 export const FILM_SFX_SYNTHESIZER_VERSION = "film-sfx-v2" as const;
 export type FilmSfxSynthesizerVersion = "film-sfx-v1" | "film-sfx-v2";
 export const FilmSoundEffectKindSchema = z.enum([
@@ -18,6 +19,9 @@ export const FilmSoundEffectKindSchema = z.enum([
   "clank",
   "chime",
   "click",
+  "stamp",
+  "tape",
+  "pen",
 ]);
 export type FilmSoundEffectKind = z.infer<typeof FilmSoundEffectKindSchema>;
 const FrameSchema = z.number().int().min(0).max(1_000_000);
@@ -122,6 +126,7 @@ const TonalBases: Partial<Record<FilmSoundEffectKind, number>> = {
   impact: 42,
   thud: 48,
   tick: 2100,
+  stamp: 64,
 };
 export const resolveFilmSoundEffectPitch = (
   effect: FilmSoundEffectSpec,
