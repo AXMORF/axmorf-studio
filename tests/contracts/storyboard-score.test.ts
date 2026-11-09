@@ -630,3 +630,52 @@ test("a selective break also excludes the removed voices' delay and reverb tails
     onlyKept.right.subarray(from, to),
   );
 });
+
+test("all sentence anchor controls invalidate music when sentence starts change at equal total duration", () => {
+  const numeric = {
+    engine: "studio-v3",
+    bpm: 100,
+    arrangement: {
+      tonic: "C",
+      mode: "minor",
+      progression: [1],
+      sections: [{ from: 0, instruments: ["pad"], density: 0.5, energy: 0.5 }],
+    },
+    hits: [{ frame: 100, kind: "stinger", intensity: 0.6 }],
+    breaks: [{ from: 80, to: 100, keep: [] }],
+    ending: { landFrame: 250, cadence: "resolve" },
+  };
+  for (const location of [
+    "numeric",
+    "section",
+    "hit",
+    "break-from",
+    "break-to",
+    "ending",
+  ]) {
+    const score = JSON.parse(JSON.stringify(numeric));
+    if (location === "section") score.arrangement.sections[0].from = "reveal";
+    if (location === "hit") score.hits[0].frame = "reveal";
+    if (location === "break-from") score.breaks[0].from = "reveal";
+    if (location === "break-to") score.breaks[0].to = "reveal";
+    if (location === "ending") score.ending.landFrame = "reveal";
+    const spec = FilmSpecSchema.parse({
+      schemaVersion: 1,
+      filmId: "anchor-fingerprint",
+      render: { width: 640, height: 360, fps: 30 },
+      timeline: { durationInFrames: 300 },
+      narration: [],
+      music: { score },
+      publish: { title: "test" },
+    });
+    const fingerprint = (startFrame: number) =>
+      computeFilmMusicInputFingerprint({
+        spec,
+        durationInFrames: 300,
+        sentenceFrames: [{ id: "reveal", startFrame }],
+      });
+    if (location === "numeric")
+      assert.equal(fingerprint(100), fingerprint(110));
+    else assert.notEqual(fingerprint(100), fingerprint(110), location);
+  }
+});

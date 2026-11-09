@@ -2,6 +2,9 @@ import type { FilmMusicSpec } from "@axmorf/studio/contracts";
 
 import { canonicalizeWav, TRACK_SAMPLE_RATE } from "./music-track";
 
+// 1 ms at 48 kHz: longer than waveform zero crossings, shorter than authored frame-long breaks.
+export const MUSIC_DIGITAL_SILENCE_MIN_SAMPLES = 48;
+
 /**
  * Static spectral space for speech, before source mastering (not a sidechain).
  * RBJ peaking EQ: https://www.w3.org/TR/audio-eq-cookbook/ .
@@ -41,15 +44,30 @@ export const applyFilmMusicMixProfile = (
     x2 = [0, 0],
     y1 = [0, 0],
     y2 = [0, 0];
+  let zeroRunEnd = 44;
   for (let at = 44; at < pcm.length; at += 4) {
-    // Preserve authored digital rests and discard the causal filter's tail.
-    // Reset only when BOTH channels are zero; a silent channel cannot alter its peer.
-    if (pcm.readInt16LE(at) === 0 && pcm.readInt16LE(at + 2) === 0) {
-      x1.fill(0);
-      x2.fill(0);
-      y1.fill(0);
-      y2.fill(0);
-      continue;
+    if (
+      at >= zeroRunEnd &&
+      pcm.readInt16LE(at) === 0 &&
+      pcm.readInt16LE(at + 2) === 0
+    ) {
+      zeroRunEnd = at;
+      while (
+        zeroRunEnd < pcm.length &&
+        pcm.readInt16LE(zeroRunEnd) === 0 &&
+        pcm.readInt16LE(zeroRunEnd + 2) === 0
+      )
+        zeroRunEnd += 4;
+      if ((zeroRunEnd - at) / 4 >= MUSIC_DIGITAL_SILENCE_MIN_SAMPLES) {
+        // Silence the entire qualified run and reset at its boundaries.
+        // Short zero runs are waveform samples: filter them without resetting.
+        x1.fill(0);
+        x2.fill(0);
+        y1.fill(0);
+        y2.fill(0);
+        at = zeroRunEnd - 4;
+        continue;
+      }
     }
     for (let channel = 0; channel < 2; channel++) {
       const offset = at + channel * 2;

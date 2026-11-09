@@ -1,13 +1,16 @@
 # Iteration Status
 
-## 口播规则修正（2026-11-09，代码已验收，v6 安装阻断，未发布）
+## 口播规则修正（2026-11-09，v6 已交付待审阅，未发布）
 
 本条取代下文历史记录中强制品牌母题、12–15 LU、讲述段全面减幅、非旁白运动必须高于口播的要求。P6 冻结，未修改其判据。
 AXMORF Studio 是通用视频工具；效果由内容语义决定。AxiomMorph 保留可选，legacy 提醒枚举不再发出。
 可选 voiceover 静态 EQ 在唯一母带入口前处理两路配乐；省略保持旧语义。新口播起点 .64/.60，实测目标低 8–10 LU。
 事件按句首或经确认绝对帧与精确 hit 同步；当前 timing 只有句级。背景/非阅读主体不因口播全面减幅，阅读文字独立稳定。
-80 项 focused tests 全通过；完整 check：548 主测试通过、1 平台跳过，24 宿主测试通过。
-同 fixture 校准：.64/.60 + voiceover，speech gap 9.2 LU，mix -1.7 dBTP。v6 标准 npm 安装返回 ERESOLVE（three@undefined），未重试；未生成对比交付。
+首轮80项focused通过；负责人复验后补修同相过零bug：仅连续48 samples双声道零串才作为休止，47及以下保留滤波状态。
+同步所有字符串句子锚点指纹失效与OP配方，补充focused45项通过；完整check：551主测试通过、1平台跳过，24宿主通过，packages:build/repack通过。
+修后同fixture重新校准：.64/.60 + voiceover，speech gap9.2 LU、mix -1.7 dBTP；官方registry单次授权安装成功，标准browser:prepare及doctor通过。
+v6同take、原beat/bar/section网格、配置/封面/publish/bookends保留；三轮审片后交付97.4秒1920×1080/30fps四件套，完整软件解码通过，AAC -15.9LUFS/-2.1dBTP。
+仍保留f2067冲击略低p99提示、30条NumberRoll绘制定位unknown；整片旁白区间bed低9.2LU，speculate短窗口仅5.9LU，未达局部目标。帧证据/实测如实交负责人审阅，真实听感和逐字精度未验证。
 实施和验收进度见 [口播混音与 v6 对比进度](promotions/2026-11-09-voiceover-progress.md)。
 
 ## P6 局部文字对比提示（2026-11-09，未发布）

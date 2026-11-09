@@ -398,18 +398,26 @@ export const computeFilmTimingInputFingerprint = (spec: FilmSpec) =>
   });
 
 const scoreUsesSentenceAnchors = (score: FilmMusicSpec["score"]) => {
+  const hasString = (value: unknown, key: string) =>
+    typeof value === "object" &&
+    value !== null &&
+    key in value &&
+    typeof (value as Record<string, unknown>)[key] === "string";
   const arrangement = score?.arrangement;
-  if (typeof arrangement !== "object" || arrangement === null) return false;
-  const sections = (arrangement as { sections?: unknown }).sections;
+  const sections =
+    typeof arrangement === "object" && arrangement !== null
+      ? (arrangement as { sections?: unknown }).sections
+      : undefined;
   return (
-    Array.isArray(sections) &&
-    sections.some(
-      (section: unknown) =>
-        typeof section === "object" &&
-        section !== null &&
-        "from" in section &&
-        typeof section.from === "string",
-    )
+    (Array.isArray(sections) &&
+      sections.some((section) => hasString(section, "from"))) ||
+    (Array.isArray(score?.hits) &&
+      score.hits.some((hit) => hasString(hit, "frame"))) ||
+    (Array.isArray(score?.breaks) &&
+      score.breaks.some(
+        (gap) => hasString(gap, "from") || hasString(gap, "to"),
+      )) ||
+    hasString(score?.ending, "landFrame")
   );
 };
 

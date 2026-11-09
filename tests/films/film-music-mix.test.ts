@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { applyFilmMusicMixProfile } from "../../scripts/films/music-mix";
+import {
+  applyFilmMusicMixProfile,
+  MUSIC_DIGITAL_SILENCE_MIN_SAMPLES,
+} from "../../scripts/films/music-mix";
 
 const wav = (
   frames: number,
@@ -34,8 +37,14 @@ const rms = (bytes: Buffer, channel = 0) => {
   return Math.sqrt(energy / n);
 };
 test("voiceover peaking EQ cuts 2 kHz by 6 dB while preserving bass and treble", () => {
-  for (const hz of [100, 2000, 10000]) {
-    const input = wav(48000, (f, c) => tone(hz, f, c));
+  for (const [hz, phase] of [100, 2000, 10000].flatMap((hz) => [
+    [hz, 0],
+    [hz, 0.37],
+  ])) {
+    const input = wav(
+      48000,
+      (f, c) => 10000 * Math.sin((2 * Math.PI * hz * f) / 48000 + c * phase),
+    );
     const output = applyFilmMusicMixProfile(input, "voiceover");
     for (const channel of [0, 1]) {
       const db = 20 * Math.log10(rms(output, channel) / rms(input, channel));
@@ -54,6 +63,15 @@ test("stereo states are independent, with identical coefficients and no crosstal
   const rightOnly = wav(48000, (f, c) => (c ? tone(2000, f, 0) : 0));
   const left = applyFilmMusicMixProfile(leftOnly, "voiceover");
   const right = applyFilmMusicMixProfile(rightOnly, "voiceover");
+  for (const [output, input, channel] of [
+    [left, leftOnly, 0],
+    [right, rightOnly, 1],
+  ] as const)
+    assert.ok(
+      Math.abs(
+        20 * Math.log10(rms(output, channel) / rms(input, channel)) + 6,
+      ) < 0.02,
+    );
   for (let i = 44; i < left.length; i += 4) {
     assert.equal(left.readInt16LE(i + 2), 0);
     assert.equal(right.readInt16LE(i), 0);
@@ -85,5 +103,45 @@ test("omitted profile is an exact bypass; invalid profile PCM fails explicitly",
       () => applyFilmMusicMixProfile(invalid, "voiceover"),
       /48 kHz stereo s16/,
     );
+  }
+});
+
+test("zero crossings and zero runs shorter than 48 samples preserve filter state", () => {
+  assert.equal(MUSIC_DIGITAL_SILENCE_MIN_SAMPLES, 48);
+  for (const length of [1, 2, 24, 47]) {
+    const signal = (f: number) => (f % (length + 1) === 0 ? 10000 : 0);
+    const input = wav(300, (f) => signal(f));
+    // A nonzero right channel prevents stereo silence classification; left history must match.
+    const reference = wav(300, (f, c) => (c ? 1 : signal(f)));
+    const actual = applyFilmMusicMixProfile(input, "voiceover");
+    const expected = applyFilmMusicMixProfile(reference, "voiceover");
+    for (let f = 0; f < 300; f++)
+      assert.equal(
+        actual.readInt16LE(44 + f * 4),
+        expected.readInt16LE(44 + f * 4),
+        `${length}: f${f}`,
+      );
+    assert.notEqual(actual.readInt16LE(48), 0);
+  }
+});
+
+test("48-sample silence resets both boundaries while 47 samples retain the causal tail", () => {
+  for (const length of [47, 48, 1600]) {
+    const source = wav(10 + length + 10, (f) =>
+      f < 10 || f >= 10 + length ? 10000 : 0,
+    );
+    const output = applyFilmMusicMixProfile(source, "voiceover");
+    const rest = output.subarray(44 + 10 * 4, 44 + (10 + length) * 4);
+    if (length >= 48) {
+      assert.deepEqual(rest, Buffer.alloc(length * 4));
+      const cold = applyFilmMusicMixProfile(
+        wav(10, () => 10000),
+        "voiceover",
+      );
+      assert.deepEqual(
+        output.subarray(44 + (10 + length) * 4),
+        cold.subarray(44),
+      );
+    } else assert.notDeepEqual(rest, Buffer.alloc(length * 4));
   }
 });

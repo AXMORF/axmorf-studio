@@ -122,8 +122,9 @@ Skill 强制逐张人工确认预备与数字/文字过程可见，并在 review
 口播语义先决定事件，现有 score.hits.frame 用句子 id 或经人工/外部确认的绝对帧与画面对齐；只有句级 timing，不伪造逐字时间。
 规律 kick/bar 维持底层节奏，不挪旁白字幕；背景/非阅读主体 L1 默认均为 .035*pulse，镜头不因口播全面减幅，阅读文字独立稳定。
 FilmMusicSpec 可选 mixProfile="voiceover"，在 score/track 共用的源母带入口前做整轨静态 RBJ EQ（2kHz、Q=2/3、-6dB），不改采样数/事件帧。
-左右独立状态；双声道数字零保持零并清空状态，最近整数舍入后显式 s16 饱和。省略 profile 完全旁路，旧默认 .24/.09 不变。
-完整 music spec 已进入指纹；不新增 timing 字段或播放路径 EQ，FilmSoundtrack 仍仅逐句 duck 一次。
+左右独立状态；双声道连续至少 48 samples（1ms）数字零的整段保持零并清空状态，短零串正常滤波，最近整数舍入后显式 s16 饱和。省略 profile 完全旁路，旧默认 .24/.09 不变。
+完整 music spec 已进入指纹；sections.from、hits.frame、breaks.from/to、ending.landFrame 任一字符串锚点均纳入句首帧，确保同总时长重配音失效；纯数字及已有section字符串的旧指纹保持。
+不新增 timing 字段或播放路径 EQ，FilmSoundtrack 仍仅逐句 duck 一次。
 新片口播起点 .64/.60 + voiceover，逐片实测底层低 8–10 LU、混音 ≤-1dBTP，不保证任意编曲达标；无旁白片去掉 profile。
 FFmpeg 失败/超时直接报告，不自动重试。上述 motion 字段是 `film:review` 输出；
 不拦 `film:check`/交付。animatic 默认关闭、Skill 要求成片前至少看一次；缺少或过期时交付命令提醒，不增加交付文件。

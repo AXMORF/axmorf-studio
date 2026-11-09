@@ -130,7 +130,7 @@ hook 直接进鼓，能量 hook 高 → verse 中 → lift 收 → drop 爆 → 
 旁白约 -16 LUFS，讲述段底层（配乐 + SFX，实际逐句 duck 后）目标低 8–10 LU；节拍段低 6–8 LU 可作参考，混音 true peak ≤ -1 dBTP。
 新 studio-v3 口播片显式 .64/.60 和 `mixProfile: "voiceover"` 是教学谱校准起点（同 fixture：voice -16.0 LUFS，speech bed -25.2 LUFS/差 9.2 LU，开场/收尾差 7.3/8.1 LU，mix -1.7 dBTP），不保证任意片均达到目标；音效 intensity .18–.30，真实片仍须测量并由用户听审。
 `voiceover` 是整条配乐的静态频谱预留：48kHz stereo s16 PCM 在源母带化前进行因果 RBJ peaking EQ（2000Hz、Q=2/3、-6dB），左右独立状态，相同系数。
-两声道同时为数字零时保持零并清空滤波状态；四舍五入至最近整数并显式饱和到 s16，非有限输出报错，不改采样数或事件帧。
+两声道连续至少 48 samples（1ms）同时为数字零时，整个零区间保持零并在边界清空滤波状态；短零串正常滤波，不把过零当休止；四舍五入至最近整数并显式饱和到 s16，非有限输出报错，不改采样数或事件帧。
 这不是声纹、ASR 或动态侧链；短循环也不依赖句间位置。FilmSoundtrack 仍仅一次逐句音量 ducking，生成后和播放时不再 EQ。
 省略 profile 保持旧 PCM、音量默认 .24/.09 和指纹语义；纯音乐不默认使用 profile，film:new 建片后无旁白时去掉它。
 频响公式见 [W3C Audio EQ Cookbook](https://www.w3.org/TR/audio-eq-cookbook/)。
