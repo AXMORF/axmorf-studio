@@ -101,6 +101,13 @@ review measurement 的可选 transitionWindow 标记来自场景轨精确的 ove
 不足 20% 的剩余背景用近文字色区域估计，避免滤掉同色背景而被少量亮边误导。描边、阴影、底板参与实渲染像素，不按 CSS 直接豁免。
 message 与 measurements 保留文字、帧号、最差格、比值及转场/同组形变标注；像素/颜色不可用或空网格列入 readability.unknown，已确认低对比不被其他 unknown 抵消。
 readability.contrast 给出 threshold、measuredTexts、analysisMs（软件解码已有图片与分析总耗时），不额外解码整片，也不改变画面或交付门禁。
+narration 每句可选 `caption` 只作屏幕显示；`text` 仍传给 TTS，两者各自限制 72 display half-units。
+新 timing.sentences 透传 caption，旧 timing 字节与输入指纹算法不变；useFilmTiming 按 id 读取当前 film.json 的 caption，包含修改和删除，
+因此改字幕无需重新生成 voice。voice 缓存与 timing 输入指纹均不含 caption。
+FilmCaptions 默认 box；旧 box 未写 caption 时保持原排版，caption/paper 使用纯函数 resolveCaptionLines 按画幅、字号与 padding 显式折成最多两行，
+保护数字、英文词与型号/版本，优先中间附近标点/空格。paper 用固定微倾底纸、水平文字与两端胶带，默认墨/纸对比 >4.5:1，style 可覆盖。
+审片 `captionWarnings` 的 `caption-spoken-numerals` 检查 text 连续至少 3 个中文数字字符且没有 caption，只提示不拦交付。
+
 图形测量同样只在 readability 已有采样帧执行，无额外渲染。原生 DOM/SVG 的 `data-axmorf-object` 标明含义，
 可选 `data-axmorf-object-role` 为 subject（默认）/relation/background；
 `data-axmorf-object-kind` 为 illustration/diagram/prop/card（缺省 prop，旧遥测兼容）；按实际绘制图形（不含文字）的边界汇总物体，
@@ -111,6 +118,8 @@ readability.contrast 给出 threshold、measuredTexts、analysisMs（软件解�
 非卡/空主体及缺失、unknown、截断测量断段。kind 只表达作者分类，不自动识别插画或卡片语义。
 排除零透明度、不可见、文字组、字幕、FilmStatusTag、全帧背景板、SVG 定义与场景轨转场覆盖层；
 覆盖层只添加内部 className，不改组件接口或画面。转场窗口内仍报并标注；缺测/错误/截断为 `graphics.unknown`。
+`graphics.frames[].captionRects` 输出实际字幕框；`graphic-in-caption-band` 提示非 background 标注图形的可见包围盒与字幕框外扩 24px 相交。
+复用现有 captionRect 与图形测量，不新增渲染；无字幕帧跳过，转场窗口照报并注明。手和道具须留在字幕带之外。
 图形清单不证明标注的语义正确，也不按遮挡顺序重建像素轮廓；作者须逐镜头静音描述并回应提示。全部不进入 check/deliver 门禁。
 运动分析以场景轨/内部候选切点的中点签名提示非相邻的 `repeated-composition`（含旁白时段，无场景轨旧片为 unknown）。
 新 rhythm 遥测经现有 review-only registry 传递完整计划，impact 记落点，bar camera 只记实际不同机位。

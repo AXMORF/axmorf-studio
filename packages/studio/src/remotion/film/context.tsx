@@ -97,7 +97,21 @@ export type FilmSentenceTiming = FilmTiming["sentences"][number];
 export const useFilmTiming = () => {
   const { spec, timing, music, durationInFrames } = useFilm();
   return useMemo(() => {
-    const sentences = timing?.sentences ?? [];
+    // Display edits take effect without regenerating measured timing or voice.
+    // film.json is authoritative, including removal of a previously saved caption.
+    const captions = new Map(
+      spec.narration.map(({ id, caption }) => [id, caption]),
+    );
+    const sentences: FilmSentenceTiming[] = (timing?.sentences ?? []).map(
+      ({ caption, ...sentence }) => {
+        const current = captions.has(sentence.id)
+          ? captions.get(sentence.id)
+          : caption;
+        return current === undefined
+          ? sentence
+          : { ...sentence, caption: current };
+      },
+    );
     const byId = new Map(sentences.map((sentence) => [sentence.id, sentence]));
     return {
       fps: spec.render.fps,

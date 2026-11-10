@@ -200,17 +200,23 @@ export const FilmSentenceSchema = z
   .object({
     id: z.string().min(1).max(32).regex(slugPattern),
     text: z.string().trim().min(1).max(200),
+    /** Screen copy; text remains the pronunciation sent to TTS. */
+    caption: z.string().trim().min(1).max(200).optional(),
     pauseAfterMs: z.number().int().min(0).max(5_000).optional(),
   })
   .strict()
   .superRefine((sentence, context) => {
-    const halfUnits = countCaptionDisplayHalfUnits(sentence.text);
-    if (halfUnits > CAPTION_MAX_DISPLAY_HALF_UNITS) {
-      context.addIssue({
-        code: "custom",
-        path: ["text"],
-        message: `Sentence ${sentence.id} uses ${halfUnits} caption half-units; split it at a natural pause so each sentence fits ${CAPTION_MAX_DISPLAY_HALF_UNITS}.`,
-      });
+    for (const field of ["text", "caption"] as const) {
+      const value = sentence[field];
+      if (value === undefined) continue;
+      const halfUnits = countCaptionDisplayHalfUnits(value);
+      if (halfUnits > CAPTION_MAX_DISPLAY_HALF_UNITS) {
+        context.addIssue({
+          code: "custom",
+          path: [field],
+          message: `Sentence ${sentence.id} uses ${halfUnits} caption half-units; split it at a natural pause so each sentence fits ${CAPTION_MAX_DISPLAY_HALF_UNITS}.`,
+        });
+      }
     }
   });
 export type FilmSentence = z.infer<typeof FilmSentenceSchema>;
@@ -506,6 +512,15 @@ export const FilmTimingSchema = z
         .object({
           id: z.string(),
           text: z.string(),
+          caption: FilmSentenceSchema.shape.caption.refine(
+            (value) =>
+              value === undefined ||
+              countCaptionDisplayHalfUnits(value) <=
+                CAPTION_MAX_DISPLAY_HALF_UNITS,
+            {
+              message: `Caption must fit ${CAPTION_MAX_DISPLAY_HALF_UNITS} display half-units.`,
+            },
+          ),
           startFrame: NonNegativeFrameSchema,
           endFrame: PositiveFrameSchema,
         })

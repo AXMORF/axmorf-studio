@@ -1,5 +1,20 @@
 # Iteration Status
 
+## P11 字幕显示、纸条与字幕带（2026-11-10，未发布）
+
+narration 句子增加可选 caption；text 保留 TTS 念法，caption 写屏幕数字/型号/货币符号，各自最多 72 half-units。
+新 timing 透传 caption，useFilmTiming 读取当前 spec 的显示文本；caption 不进入原 timing 指纹或 voice 缓存，不需重合成。
+FilmCaptions 增加 paper 白纸条/胶带，底纸固定倾斜 0.65°、字保持水平；caption/paper 用确定性标点优先断行并保护数字/英文词。
+为保留旧片像素，未写 caption 的旧 box 沿用原排版；style 仍可覆盖。审片输出字幕框位置与只提示的
+caption-spoken-numerals（连续至少 3 个中文数字且无 caption）、graphic-in-caption-band（非 background 图形伸入字幕框外扩 24px，转场照报）。
+四份 Skill 文档及 creator 模板同步字幕写法、variant 与手/道具避让规则。
+
+v8 只读副本校准：6 条念法提示（size/bill/hours/split/cluster/data）；f692/f700/f708 命中手伸入字幕带，图形 unknown=0。
+副本补 caption/paper 后 f700/f2600 已渲染并看图：白纸与桌面分层清楚，f2600 在逗号后断行，字保持水平；两帧旧 box 与原组件 PNG 字节一致。
+完整 `npm run check` 退出 0：主测试 586 通过、1 macOS 专属跳过，宿主 40 通过；合计 626 通过、1 跳过、0 失败。
+旧 12 个 system composition 的 46 张 PNG 与 2cd92a9 原始源码逐字节一致，0 张变化；纸条两帧实测最低对比 11.78:1 / 11.70:1。
+证据见 `/home/zzzxc/AgentWorkspace/2026-11-10-p11-captions-notes.md`，未安装依赖、未改 lockfile 或原片，未 push/publish/merge。
+
 ## P10 讲述段像素运动与图解主体（2026-11-10，未发布）
 
 新增 `narration-static`，复用 animatic 正片 160×90 灰度相邻帧 MAD：讲述段中位数 <0.2，或能量 <0.15

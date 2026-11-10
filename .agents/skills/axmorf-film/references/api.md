@@ -13,7 +13,7 @@ t.fps;
 t.durationInFrames;
 t.narrationStartFrame;
 t.narrationEndFrame;
-t.sentences; // [{ id, text, startFrame, endFrame }]，正片绝对帧
+t.sentences; // [{ id, text, caption?, startFrame, endFrame }]，正片绝对帧
 t.sentence("s03").startFrame;
 t.music?.barFrames; // 另有 beatFrames、sectionFrames、accentFrames、bpm、beatsPerBar、framesPerBeat
 ```
@@ -32,9 +32,23 @@ t.music?.barFrames; // 另有 beatFrames、sectionFrames、accentFrames、bpm、
 </AbsoluteFill>
 ```
 
-- `FilmCaptions` 可调 `bottom`（离底边的画面高度比例）、`maxWidth`、`style`，或用
+- `FilmCaptions` 可调 `variant="box" | "paper"`（默认 box）、`bottom`（离底边的画面高度比例）、`maxWidth`、`style`，或用
   `render={(sentence, progress) => ...}` 自定义字幕外观（例如逐字高亮）。默认字号竖屏约为宽度的 4.6%（1080 宽约 50px），
   长句折成两行；自定义时保持字号不低于宽度的 4%（约 43px），宁可折行也不要缩小或强制单行。
+- narration 每句的 `text` 是 TTS 念法，`caption?` 是屏幕文本，显示 `caption ?? text`；两者各自最多 72 个半角单位。
+  例：`text: "这是八千四百一十五个H一百小时，乘每小时二点五美元。"`，
+  `caption: "这是 8,415 个 H100 小时，乘每小时 $2.5。"`。
+  timing.sentences 可保存 caption；`useFilmTiming()` 以当前 film.json 为准（包括修改或删除 caption），不改音频/帧边界。
+  caption 不进入 timing 输入指纹或 voice 缓存键，只改字幕不运行 film:voice。
+- paper 是偏白纸条、深灰字、轻投影与两端半透明胶带；底纸固定倾斜 0.65°，字保持水平、不 boil。
+  默认纸/墨对比大于 4.5:1；style 可覆盖，覆盖后重新核对对比。纸面片使用 `<FilmCaptions variant="paper" />`。
+- `resolveCaptionLines(text, maxHalfUnitsPerLine)` 返回最多两行，优先选择宽度内靠中间的标点，其次空格，再在中文字间折行；
+  不拆数字、单词和 `Apache 2.0` 等版本名称，不留 ≤3 半角单位的孤行或行首标点。单个不可拆词长于行宽时保留整体，需改写文案或增加可用宽度。
+  caption/paper 默认按画幅、字号、maxWidth 与 padding 计算行宽并插入换行；未写 caption 的旧 box 保留浏览器原排版，保证像素不变。
+- 字幕框用 `data-axmorf-caption-box` 标记，审片在 `graphics.frames[].captionRects` 输出实际位置；自定义 render 复用可测的字幕文本框。
+  手和道具不能伸进字幕框外扩 24px 的保护带。`graphic-in-caption-band` 检查非 background 标注物件的可见包围盒，
+  转场窗口也报告并标记，无字幕帧跳过。`captionWarnings` 的 `caption-spoken-numerals` 在 text 连续含至少 3 个中文数字字符且没写 caption 时提示。
+  两条都是审片提示，不拦检查与交付。
 - `FilmSoundtrack narration={false}` 或 `music={false}` 可去掉其中一轨。
 - 音效默认用 `<FilmSoundEffects />` 播放本片合成计划；显式播放用 `<FilmSoundEffects cues={cues} />`；cue、素材角色、吸附、留白和收音见 [音效轨](sound.md)。
 

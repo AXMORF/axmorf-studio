@@ -9,6 +9,7 @@ export {
 } from "./context";
 export {
   FilmCaptions,
+  resolveCaptionLines,
   resolveFilmCaptionFontSize,
   type FilmCaptionsProps,
 } from "./FilmCaptions";

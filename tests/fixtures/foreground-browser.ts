@@ -24,12 +24,16 @@ export const measureFixture = (html: string) => {
   };
 };
 
-export const measureReadabilityFixture = (html: string) => {
-  document.body.innerHTML = `<div id="root" style="position:absolute;inset:0;width:600px;height:300px">${html}</div>`;
+export const measureReadabilityFixture = (
+  html: string,
+  width = 600,
+  height = 300,
+) => {
+  document.body.innerHTML = `<div id="root" style="position:absolute;inset:0;width:${width}px;height:${height}px">${html}</div>`;
   return measureReviewText(
     document.getElementById("root") as HTMLDivElement,
-    600,
-    300,
+    width,
+    height,
   );
 };
 

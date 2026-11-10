@@ -722,3 +722,142 @@ test("paper collage and global-only gallery calibrate response telemetry and car
     await rm(scratch, { recursive: true, force: true });
   }
 });
+
+test("paper captions expose their real box, keep phone-readable explicit lines and protect the caption band", async (context) => {
+  const { renderCaptionFixture, caption } =
+    await import("../../tests/fixtures/film-captions");
+  const { analyzeReviewGraphics } = await import("../films/graphics");
+  const bundle = await build({
+    entryPoints: [resolve("tests/fixtures/foreground-browser.ts")],
+    bundle: true,
+    write: false,
+    format: "iife",
+    globalName: "captionTest",
+    platform: "browser",
+  });
+  const browser = await openBrowser("chrome", {
+    browserExecutable: process.env.AXMORF_BROWSER_EXECUTABLE?.trim(),
+  });
+  const scratch = await mkdtemp(join(tmpdir(), "caption-browser-"));
+  try {
+    const page = await browser.newPage({
+      context: () => null,
+      logLevel: "error",
+      indent: false,
+      pageIndex: 0,
+      onBrowserLog: null,
+      onLog: () => {},
+    });
+    await page.evaluate(bundle.outputFiles[0].text);
+    for (const [width, height] of [
+      [1920, 1080],
+      [1080, 1920],
+    ])
+      await context.test(
+        `${width}×${height}: paper contrast and visible caption-band intrusion`,
+        async () => {
+          await page.setViewport({ width, height, deviceScaleFactor: 1 });
+          const html =
+            `<div style="position:absolute;inset:0;background:#d6c3a0" data-axmorf-object="桌面" data-axmorf-object-role="background"></div>` +
+            renderCaptionFixture(
+              { variant: "paper" },
+              caption,
+              undefined,
+              width,
+              height,
+            );
+          const telemetry = (await page.evaluate(
+            `captionTest.measureReadabilityFixture(${JSON.stringify(html)},${width},${height})`,
+          )) as ReturnType<typeof measureReadabilityFixture>;
+          const text = telemetry.texts.find((t) => t.caption)!;
+          assert.ok(
+            text.captionRect,
+            "measure the strip, not only its text span",
+          );
+          assert.ok(text.captionRect.width > text.rect.width);
+          assert.ok(
+            text.fontSize >= Math.round(Math.min(width, height) * 0.04),
+          );
+          const layout = await page.evaluate(
+            `(() => {const node=document.querySelector('[data-axmorf-caption-box]');return {lines:node.textContent.split('\\n').length,wrap:getComputedStyle(node).whiteSpace,rotation:getComputedStyle(node.querySelector('span')).transform};})()`,
+          );
+          assert.deepEqual(layout, {
+            lines: width < height ? 2 : 1,
+            wrap: "pre",
+            rotation: "none",
+          });
+          const imagePath = join(scratch, `${width}.png`);
+          const shot = await page
+            ._client()
+            .send("Page.captureScreenshot", { format: "png" });
+          await writeFile(imagePath, Buffer.from(shot.value.data, "base64"));
+          const image = await readReviewFramePixels({
+            rootDir: process.cwd(),
+            imagePath,
+            pixelsPath: join(scratch, `${width}-rgb.png`),
+          });
+          const contrast = measureTextContrast({ text, image, width, height });
+          assert.equal(contrast.unknown, undefined);
+          assert.ok(
+            contrast.worst && contrast.worst.contrastRatio >= 4.5,
+            JSON.stringify(contrast),
+          );
+          const bandIntruder = `<div data-axmorf-object="拿笔的手" style="position:absolute;left:${text.captionRect.x - 12}px;top:${text.captionRect.y + 12}px;width:10px;height:20px;background:#30343b"></div>`;
+          for (const hidden of [false, true]) {
+            const art =
+              html +
+              (hidden
+                ? bandIntruder.replace("background:", "opacity:0;background:")
+                : bandIntruder);
+            const graphics = (await page.evaluate(
+              `captionTest.measureGraphicsFixture(${JSON.stringify(art)},${width},${height})`,
+            )) as ReturnType<
+              typeof import("../../tests/fixtures/foreground-browser").measureGraphicsFixture
+            >;
+            const result = analyzeReviewGraphics({
+              records: [
+                {
+                  index: 0,
+                  frame: 700,
+                  width,
+                  height,
+                  ...telemetry,
+                  graphics,
+                  transitionWindow: true,
+                },
+              ],
+              frames: [700],
+              width,
+              height,
+            });
+            const warnings = result.graphicWarnings.filter(
+              (w) => w.rule === "graphic-in-caption-band",
+            );
+            assert.equal(warnings.length, hidden ? 0 : 1);
+            if (!hidden) {
+              assert.deepEqual(
+                warnings[0].objects.map((o) => o.label),
+                ["拿笔的手"],
+              );
+              assert.equal(warnings[0].transitionWindow, true);
+            }
+          }
+          const silent = renderCaptionFixture(
+            { variant: "paper" },
+            caption,
+            undefined,
+            width,
+            height,
+            60,
+          );
+          const noCaption = (await page.evaluate(
+            `captionTest.measureReadabilityFixture(${JSON.stringify(silent)},${width},${height})`,
+          )) as ReturnType<typeof measureReadabilityFixture>;
+          assert.equal(noCaption.texts.length, 0);
+        },
+      );
+  } finally {
+    await browser.close({ silent: true });
+    await rm(scratch, { recursive: true, force: true });
+  }
+});

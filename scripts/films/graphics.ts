@@ -11,6 +11,7 @@ export const GRAPHIC_OVERLAP_RATIO = 0.15;
 // semantic review. Sum bounds (not a pixel union); dense art can exceed 100%.
 export const UNLABELED_GRAPHIC_RATIO = 0.1;
 export const MAX_GRAPHIC_SUBJECTS = 3;
+export const CAPTION_BAND_PADDING_PX = 24;
 
 type ObjectMeasurement = FilmReviewGraphics["objects"][number];
 export type GraphicWarning = {
@@ -18,6 +19,7 @@ export type GraphicWarning = {
     | "graphic-overlap"
     | "too-many-subjects"
     | "unlabeled-graphic"
+    | "graphic-in-caption-band"
     | "text-card-only";
   frame: number;
   /** Inclusive bounds of consecutive matching samples, not unsampled-frame proof. */
@@ -28,6 +30,8 @@ export type GraphicWarning = {
   overlapRatio?: number;
   subjectCount?: number;
   unlabeledAreaRatio?: number;
+  captionRect?: FilmReviewRect;
+  captionBand?: FilmReviewRect;
   message: string;
 };
 const area = (rect: FilmReviewRect) => rect.width * rect.height;
@@ -55,6 +59,7 @@ export const analyzeReviewGraphics = ({
     frame: number;
     transitionWindow: boolean;
     objects: ObjectMeasurement[];
+    captionRects: FilmReviewRect[];
     subjectCount: number;
     unlabeledCount: number;
     unlabeledAreaRatio: number;
@@ -103,6 +108,38 @@ export const analyzeReviewGraphics = ({
     unknown.push(...graphics.unknown.map((reason) => ({ frame, reason })));
     const transitionWindow = record.transitionWindow ?? false;
     const suffix = transitionWindow ? " 转场窗口内；请人工核对。" : "";
+    const captionRects = [
+      ...new Map(
+        record.texts
+          .filter((text) => text.caption)
+          .map((text) => {
+            const rect = text.captionRect ?? text.rect;
+            return [JSON.stringify(rect), rect] as const;
+          }),
+      ).values(),
+    ];
+    for (const captionRect of captionRects) {
+      const captionBand = {
+        x: captionRect.x - CAPTION_BAND_PADDING_PX,
+        y: captionRect.y - CAPTION_BAND_PADDING_PX,
+        width: captionRect.width + 2 * CAPTION_BAND_PADDING_PX,
+        height: captionRect.height + 2 * CAPTION_BAND_PADDING_PX,
+      };
+      const intruders = graphics.objects.filter(
+        (object) =>
+          object.role !== "background" && overlap(object.rect, captionBand) > 0,
+      );
+      if (intruders.length)
+        graphicWarnings.push({
+          rule: "graphic-in-caption-band",
+          frame,
+          objects: intruders,
+          transitionWindow,
+          captionRect,
+          captionBand,
+          message: `f${frame}：${intruders.map((object) => JSON.stringify(object.label)).join("、")} 的可见包围盒伸进字幕框外扩 ${CAPTION_BAND_PADDING_PX}px 的保护区；手和道具不能伸进字幕带。${suffix}`,
+        });
+    }
     const subjects = graphics.objects.filter(
       (object) => object.role === "subject",
     );
@@ -121,6 +158,7 @@ export const analyzeReviewGraphics = ({
       frame,
       transitionWindow,
       objects: graphics.objects,
+      captionRects,
       subjectCount: subjects.length,
       unlabeledCount: graphics.unlabeledCount,
       unlabeledAreaRatio,
@@ -173,6 +211,7 @@ export const analyzeReviewGraphics = ({
         overlapRatio: GRAPHIC_OVERLAP_RATIO,
         unlabeledAreaRatio: UNLABELED_GRAPHIC_RATIO,
         maxSubjects: MAX_GRAPHIC_SUBJECTS,
+        captionBandPaddingPx: CAPTION_BAND_PADDING_PX,
       },
       frames: measured,
       measuredFrames: measured.length,

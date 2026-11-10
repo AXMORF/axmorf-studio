@@ -78,7 +78,13 @@ export const buildFilmTiming = ({
     if (sentence.pauseAfterMs) {
       cursor += createExplicitPausePcm(sentence.pauseAfterMs).sampleFrameCount;
     }
-    return { id: sentence.id, text: sentence.text, startFrame, endFrame };
+    return {
+      id: sentence.id,
+      text: sentence.text,
+      ...(sentence.caption === undefined ? {} : { caption: sentence.caption }),
+      startFrame,
+      endFrame,
+    };
   });
   const narrationEndFrame = sentences.at(-1)?.endFrame ?? narrationStartFrame;
   const total = durationInFrames ?? narrationEndFrame + tailFrames;

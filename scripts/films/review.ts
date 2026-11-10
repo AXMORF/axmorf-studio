@@ -38,6 +38,7 @@ import {
 import { loadCurrentFilmTiming } from "./music";
 import { readWorkspaceRenderTimeoutMs } from "./render-timeout";
 import { analyzeReviewReadability } from "./readability";
+import { analyzeFilmCaptions } from "./captions";
 import type { ContrastFrame } from "./text-contrast";
 
 import {
@@ -429,6 +430,7 @@ export const runFilmReview = async ({
       frames: images,
       stillWarnings,
       repetitionWarnings,
+      ...analyzeFilmCaptions(spec),
       ...readability,
       ...motion,
       next: "Open the contact sheet and the frames; resolve or justify each readabilityWarning, repetitionWarning and motionWarning, and inspect missingFrames. 逐帧对照 graphics.frames 的标注清单做静音描述；回应 graphicWarnings，graphics.unknown 不算通过。 Open the motion curve, dense frames and animatic (use --animatic to generate it); inspect motion.unknown and missingFrames. Check subject, framing, and changes on the listed sentences and accents. 必须逐张打开 motion['strong-accent-strip']，在 review-notes 按帧记录预备及数字/文字过程是否可见；整帧运动不能证明配方过程可见。",

@@ -35,7 +35,12 @@ Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐�
    没有旁白、由音乐驱动的片（MV、OP、纯视觉短片）在构思时先问用户要不要品牌片头片尾：不要就建片时加
    `--bookends none`，要但 Workspace 默认没开就加 `--bookends both`。这只决定本片，不改 Workspace 默认；有旁白的片照旧。
 4. **写剧本** `src/films/<filmId>/film.json`：
-   - `narration` 按自然句写，每句是一个字幕事件，最多 72 个半角单位（一个汉字算 2）；需要停顿时给 `pauseAfterMs`。
+   - `narration` 按自然句写，每句是一个字幕事件；`text` 写 TTS 念法，可选 `caption` 写屏幕显示文本。
+     两者各自最多 72 个半角单位（一个汉字算 2），需要停顿时给 `pauseAfterMs`。
+     例如 `text: "这是八千四百一十五个H一百小时，乘每小时二点五美元。"`，
+     `caption: "这是 8,415 个 H100 小时，乘每小时 $2.5。"`。
+     字幕显示 `caption ?? text`；只改 caption 无须重跑 voice，既有 timing 与旁白指纹不变。
+     `captionWarnings` 的 `caption-spoken-numerals` 在 text 连续含至少 3 个中文数字字符且没写 caption 时提示补显示文本。
      `<FilmCaptions />` 会把长句自动折成最多两行并保持手机可读的字号；不要为了排成一行把字幕缩小
      （`readabilityWarnings` 会提示过小的字幕）。
    - 有旁白时删除 `timeline.durationInFrames`，总长由实测旁白加 `tailFrames` 决定；无旁白的纯视觉片保留它。
@@ -85,6 +90,9 @@ Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐�
    - 用 `<FilmSoundEffects />` 播放本片生成计划；显式 cue 可用 `sfx: "plan:<id>"` 引用。
      场景轨和配方 resolver 的 `sfxCues` 提供 kind/时长建议，先转为本片计划，避免和计划重复播放；视觉组件不会自动发声。
    - 必须挂载 `<FilmSoundtrack />` 与 `<FilmCaptions />`（字幕放在最上层，均在场景轨之外）。
+     默认 `variant="box"`；纸面片使用 `variant="paper"`（偏白纸条、深灰字、两端胶带），style 仍可覆盖。
+     caption 或 paper 使用标点优先、保护数字/单词的显式断行；未写 caption 的旧 box 保留原排版以保持像素兼容。
+     手和道具不能伸进实际字幕框外扩 24px 的字幕带；回应 `graphic-in-caption-band`，转场窗口也要核对，无字幕帧不检查。
    - 按段落拆成子组件或 `scenes/*.tsx`；所有文件留在本片目录内。
 10. **先出 animatic 看节奏**（必做）：
     ```bash

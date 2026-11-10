@@ -308,3 +308,60 @@ test("text-card-only groups consecutive matching samples, resets on missing/unkn
   assert.equal(uncertain.graphicWarnings.length, 0);
   assert.equal(uncertain.graphics.unknown.length, 1);
 });
+
+test("caption band uses the actual box plus 24px, reports subjects and relations even in transitions, and skips backgrounds and silent frames", () => {
+  const captionRect = { x: 300, y: 350, width: 400, height: 80 };
+  const captionText = {
+    snippet: "字幕",
+    caption: true,
+    fontSize: 40,
+    rect: { x: 320, y: 360, width: 350, height: 40 },
+    captionRect,
+  };
+  for (const [name, x, role, withCaption, transitionWindow, expected] of [
+    ["padding intruder", 277, "subject", true, false, true],
+    ["touching boundary", 276, "subject", true, false, false],
+    ["relation", 400, "relation", true, false, true],
+    ["background", 400, "background", true, false, false],
+    ["silent", 400, "subject", false, false, false],
+    ["transition", 400, "subject", true, true, true],
+  ] as const) {
+    const result = analyze([
+      record({
+        texts: withCaption
+          ? [captionText, { ...captionText, snippet: "第二行" }]
+          : [],
+        transitionWindow,
+        graphics: graphics({
+          objects: [
+            object(0, {
+              role,
+              label: "拿笔的手",
+              rect: { x: x - 10, y: 330, width: 10, height: 80 },
+            }),
+          ],
+        }),
+      }),
+    ]);
+    const warnings = result.graphicWarnings.filter(
+      (w) => w.rule === "graphic-in-caption-band",
+    );
+    assert.equal(warnings.length, expected ? 1 : 0, name);
+    assert.deepEqual(
+      result.graphics.frames[0].captionRects,
+      withCaption ? [captionRect] : [],
+      name,
+    );
+    if (expected) {
+      assert.deepEqual(warnings[0].captionBand, {
+        x: 276,
+        y: 326,
+        width: 448,
+        height: 128,
+      });
+      assert.equal(warnings[0].transitionWindow, transitionWindow);
+      assert.match(warnings[0].message, /拿笔的手.*24px/);
+      if (transitionWindow) assert.match(warnings[0].message, /转场窗口内/);
+    }
+  }
+});

@@ -121,6 +121,9 @@ Skill 中的创作方法、animatic 与看图回路；motionWarnings 仅作提�
 用原生元素的 `data-axmorf-object` 说明物体含义，可选角色 subject/relation/background，kind 可为 illustration/diagram/prop/card（默认 prop）。
 `text-card-only` 提示可见 subject 全是文字卡片的连续命中采样段，列出起止及实际采样帧，不推断未采样帧。`graphics.frames` 列出逐帧标注，
 辅助静音描述；转场照报，`graphics.unknown` 不算通过。复用审片采样，仅提示、不拦交付，不自动选择影片风格。
+旁白念法保留在 `narration[].text`，可选 `caption` 写屏幕文本（数字/型号/货币符号），不改变 voice 缓存、timing 指纹或实测帧。
+`FilmCaptions variant="paper"` 提供白纸条字幕与显式断行；默认 box 的旧片像素不变。
+审片新增 `captionWarnings` 的 `caption-spoken-numerals` 与 `graphicWarnings` 的 `graphic-in-caption-band`（实际字幕框外扩 24px），均只提示。
 用户或 Workspace 指定纸面拼贴/手绘线稿时，Skill 提供对应配方、已安装字体回退和可编译 gallery。
 纸面关键人物/实物由宿主生图剪纸准备，工具不可用停下；bookends 显式 light，每镜头写真实桌面动作。
 讲述段只保护阅读文字，持续桌面微移、非文字线稿 boil、每拍轮换物件反应，每章至少三类、相邻小节主动作轮换；`beat-response-monotone` 与 `motion.summary.beatResponses`

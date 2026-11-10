@@ -170,6 +170,8 @@ export const foregroundSampler = (root: Element) => {
 };
 
 const captionBlock = (element: Element, marker: Element) => {
+  const box = element.closest("[data-axmorf-caption-box]");
+  if (box && marker.contains(box)) return box;
   let block = element;
   while (
     block.parentElement &&

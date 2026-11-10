@@ -83,6 +83,8 @@ test("film cache hits bypass Edge pacing, diagnostics and provider requests", as
   const sentence = { id: "s01", text: "缓存测试。" };
   const first = await service.speak(sentence);
   assert.deepEqual(await service.speak(sentence), first);
+  const displayEdit = { ...sentence, caption: "缓存测试 2.0。" };
+  assert.deepEqual(await service.speak(displayEdit), first);
   assert.deepEqual(starts, [0]);
   assert.deepEqual(waits, []);
   assert.equal(events.length, 2);
