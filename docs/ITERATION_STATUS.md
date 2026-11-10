@@ -1,5 +1,12 @@
 # Iteration Status
 
+## 0.3.0-rc.7 发布审计修复（2026-11-10）
+
+`v0.3.0-rc.6` tag CI 在开发依赖审计失败（minimatch，GHSA-g3hv-75wg-m249），未发布；该 tag 保留作废。
+上游 typescript-eslint 尚无依赖 minimatch ≥11.0.1 的版本，故只对 `@typescript-eslint/typescript-estree` 的 minimatch 加最小 override
+（11.0.5），lint 前后结果一致、审计为 0；以 0.3.0-rc.7 重新发布。原因、验证与移除条件见
+[发布审计修复](evidence/2026-11-10-rc7-npm-audit.md)。
+
 ## 0.3.0-rc.6 / P6 本地准备（2026-11-10，未发布）
 
 P6 **进行中：发布 0.3.0-rc.6 到 next**。v8 终版按用户反馈已通过；这不是本机 Agent 的实际播放/听审结论。
