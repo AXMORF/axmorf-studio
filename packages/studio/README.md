@@ -32,7 +32,7 @@ npm run dev
 - `@axmorf/studio/remotion` — film hooks and components (`useFilm`, `useFilmTiming`, `FilmCaptions`,
   `FilmSoundtrack`, `FilmSceneTrack`, `FilmSoundEffects`, `FilmStatusTag`), six motion recipes with pure resolvers and
   `PRODUCER_RECIPE_CATALOG`, the system bookends, and optional camera, motion, interface, media and effect components
-- `axmorf` — the workspace CLI used by generated npm scripts (`doctor`, `dev`, `film new|voice|music|asset|review|check|deliver|list|delete`)
+- `axmorf` — the workspace CLI used by generated npm scripts (`doctor`, `dev`, `film new|voice|captions|music|sfx|asset|review|check|deliver|list|delete`)
 
 Package internals are not public API. A generated workspace owns its films, media, private configuration, output and
 deliveries. Make videos through its npm scripts and the Workspace-local `axmorf-film` Skill.
@@ -41,6 +41,21 @@ The Skill first reads `references/direction.md`: measured narration → rhythm s
 `film:review --animatic` outputs a continuous preview with sound before visual refinement; `film:review` outputs
 `motion` and `motionWarnings`, including exact event sync counts in `motion.summary.rhythmSync`, alongside frame reviews. These are advisory and do not replace `film:check`.
 Scene-track transitions preserve body timing; recipe and transition cue suggestions play only when passed to `FilmSoundEffects`.
+
+New scores use the deterministic `studio-v3` synthesizer. The optional `voiceover` mix profile applies a static 2 kHz EQ cut
+before mastering; playback ducks music once per narration range. Semantic events drive exact music hits and visual landings;
+mid-sentence keyword frames need human or external confirmation. The paper-collage recipe uses generated subject cutouts,
+registered sources and code compositing. Graphics, rhythm and readability warnings remain advisory; unknown is not a pass.
+Captions support separate screen copy (`caption`), paper strips and optional `highlight="karaoke"`; `film:captions` estimates
+clause timing offline from existing narration, with linear progress within each clause, without word recognition or TTS.
+
+Sentence caches use audio-content identity (provider/model/material checksums or voiceId/parameters/rate/text), independent
+of Workspace paths and connection settings. New-key caches transfer between workspaces; old keys are not automatically converted.
+Existing timing fingerprints and delivered takes remain valid. To retain a complete take, copy its matching film.json,
+timing.json and narration.wav and run `film:check` without rerunning voice.
+
+On the production host, do not launch GUI players or browser autoplay. Render, extract frames and measure audio using
+software decoding (`ffmpeg -hwaccel none`); watch and listen on a phone or Mac. Do not elevate permissions after a denial.
 
 VoxCPM supports the configured local or remote HTTP(S) deployment, including a private Tailscale endpoint. Diagnostics
 only read `/health` and `/ready`, without generation, warm-up or redirects. High-fidelity clone prompts are normalized

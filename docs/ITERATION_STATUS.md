@@ -1,5 +1,25 @@
 # Iteration Status
 
+## 0.3.0-rc.6 / P6 本地准备（2026-11-10，未发布）
+
+P6 **进行中：发布 0.3.0-rc.6 到 next**。v8 终版按用户反馈已通过；这不是本机 Agent 的实际播放/听审结论。
+当前 `@axmorf/studio` 公共 dist-tag 仍为 next=0.3.0-rc.5、latest=0.2.1；版本 manifest 与 lock 保留原值，版本准备和对外发布由负责人执行。
+以下日期段落是各批次当时的验收记录；其中「P6 冻结」「待 v8」已由本段及[实施计划当前状态](promotions/2026-11-06-cinematic-motion-and-sound.md)取代。
+
+当前能力：studio-v3 确定性合成器、每片 SFX/纸面拟音、节奏驱动 L1/L2/L3 与导演手册、口播静态 EQ 频段避让和逐句 ducking；
+语义帧先于音乐 hit，句中关键词仍需人工/外部帧依据，没有 ASR 逐字对齐。纸面配方要求关键人物/手/实物生图剪纸、来源登记、
+代码白边投影合成；精确图解可用 SVG。图形语义、重叠、文字卡、节拍轮换、强重音和讲述段静止均有软提示，unknown 不作通过。
+字幕两轮均已实现：caption 显示文本/paper 纸条/字幕带；可选 karaoke 与离线分句估时（分句内线性，非逐字识别）。
+本机不启动播放器或浏览器自动播放，只渲染/抽帧/测量及 `ffmpeg -hwaccel none` 软件解码，实际看听由用户在手机或 Mac 完成。
+
+旁白缓存根因：VoxCPM safeDescriptor.privateConfigFingerprint 包含展开后的素材绝对路径，导致相同素材跨 Workspace 的
+providerAttemptFingerprint 不同。逐句缓存现改用独立音频内容指纹，正向选取 provider/模型/素材内容哈希或 voiceId/生成参数/语速/文本，
+排除路径、连接配置与显示名称；旧执行指纹、timing/inputFingerprint 算法不变，旧缓存键不自动转换。
+v7/v8 只读副本的执行描述仅 privateConfigFingerprint 不同，新内容指纹相同。副本内离线将已确认的 25 个旧逐句缓存写入新键后迁移，
+当前 film voice CLI 25/25 命中、网络/TTS=0，narration.wav 与原 v8 8,324,822 bytes 逐字节一致，2656 帧和句边界/输入指纹不变。
+旧 v7/v8 timing 均通过新 film:check，检查前后字节不变。缓存/流程等 focused 34 项、内容身份 3 项通过。
+详细证据和最终完整 check 结果见本地 `/home/zzzxc/AgentWorkspace/2026-11-10-p6-prep-notes.md`。
+
 ## P11 字幕显示、纸条与字幕带（2026-11-10，未发布）
 
 narration 句子增加可选 caption；text 保留 TTS 念法，caption 写屏幕数字/型号/货币符号，各自最多 72 half-units。
@@ -17,10 +37,9 @@ v8 只读副本校准：6 条念法提示（size/bill/hours/split/cluster/data�
 
 ## P10 讲述段像素运动与图解主体（2026-11-10，未发布）
 
-新增 `narration-static`，复用 animatic 正片 160×90 灰度相邻帧 MAD：讲述段中位数 <0.2，或能量 <0.15
-连续超过 30 帧即提示，报告最长段起止帧和帧数；静默间隙断段，无可用 animatic/讲述样本为 unknown，仅提示不拦交付。
-指定校准存在冲突，未擅改判据：v7 中位数 0.013611、最长 f146–199（54 帧），命中；v5 中位数 0.531806，
-但末句 f2480–2533 也近静止 54 帧，仍命中。因此“v5 不报”未满足，需明确修订判据或验收预期，不能宣称全项验收通过。
+新增 `narration-static`，复用 animatic 正片 160×90 灰度相邻帧 MAD。首次使用连续 30 帧判据时，v5/v7 都有 54 帧停留，
+无法区分有意收尾与大面积冻结；后续 2cd92a9 已改为讲述段中位数 <0.2，或能量 <0.15 的帧占讲述段一半以上。
+最长静止段只供人工参考。复校准 v5 不报、v7 命中；无可用 animatic/讲述样本为 unknown，仅提示不拦交付。
 
 新增可选 object-kind=illustration/diagram/prop/card（默认 prop，旧遥测兼容）。`text-card-only` 提示可见 subject
 全为 card 的连续命中采样段，给出 frames/sampledFrames，不推断未采样帧；缺失/unknown/截断及非卡/空主体断段。

@@ -7,7 +7,32 @@
 >
 > 对应 [ROADMAP.md](../ROADMAP.md) “下一步候选”第一项（把镜头与连续空间做成 Skill 内的示范），并扩展到转场、镜头配方、音效与审片提示。
 
-## 2026-11-09 当前决定（取代下文历史方案中的冲突规则）
+## 2026-11-10 当前状态（覆盖下文历史进度）
+
+**v8 终版已获用户通过；P6 进行中：发布 0.3.0-rc.6 到 next。** 本地准备不执行版本准备、push、PR、tag 或发布，
+不代表 `next` 已更新。`@axmorf/studio` 当前 next=0.3.0-rc.5、latest=0.2.1；发布后实际 Workspace 升级和一部日常片验证仍待负责人安排。
+
+| 批次 | 当前实现与验收事实 |
+| --- | --- |
+| P5 对比样片 | 已经过 v2–v8 多轮制作、审片和用户反馈；早期版本未获认可不能算通过，**v8 终版已获用户认可**。v8 的 25 句旁白/2656 帧正片、四件套与审片记录保留；本机未启动播放器，不把软件测量冒充人工听审。 |
+| P6 发布 | **进行中：发布 0.3.0-rc.6 到 next**。本轮完成跨 Workspace 旁白内容缓存修复、文档同步和本地 main 合入准备；对外动作均由负责人执行。 |
+| P7 本片原创声音 | `film:sfx`、score 句子/帧锚点、hits/breaks/ending/onsets 与能量 hook 已实现；当批完整 check 478 通过、1 平台跳过。原先冻结 v3 画面的声音验收方案已被 P8 音乐先行取代，早期 A/B/C 听审失败记录保留。 |
+| P8 节奏与 studio-v3 | 合成器升级、L1/L2/L3、强度分档、可见预备、p99、强重音连续小图和导演手册已实现；不是历史提案中的 useMusicPulse/useMusicAccent 命名，现有 API 为 useBeatPulse/useBarCamera/useImpact 等。口播混音后续采用 .64/.60 + voiceover 静态 EQ（2kHz -6dB），只做一次逐句 ducking；教学谱实测底层低 9.2 LU、mix -1.7 dBTP。关键词只支持人工/外部确认帧，不提供逐字识别。 |
+| P9 图形与纸面 | 图形语义/重叠/主体数/未标注提示、纸面拼贴配方、生图单主体剪纸流程、物件节拍轮换、boil 与 stamp/tape/pen 已实现；D/E/F 完整 check 610 通过、1 平台跳过，旧 46 张系统 still 和旧 24 组 SFX PCM 哈希保持一致。图形/节奏均只提示，unknown 不算通过。 |
+| P10 讲述运动与图解 | narration-static、text-card-only、持续桌面微移/非文字 boil、每镜头真实动作与生图手已实现；完整 check 614 通过、1 平台跳过。初版连续 30 帧判据的 v5/v7 冲突已由 2cd92a9 修正为中位数 <.2 或近静止占比 >50%；v5 不报、v7 命中，最长段仅作参考。 |
+| 字幕第一轮（P11） | caption 显示文本、paper 纸条、保护数字/单词的断行、字幕带与念法数字提示已实现；完整 check 626 通过、1 平台跳过；旧 46 张系统 still 不变，纸条对比实测 11.78:1/11.70:1。只改 caption 不重做 voice。 |
+| 字幕第二轮（P12） | 可选 karaoke 连续双色扫字、film:captions 离线分句估时、DP 顺序匹配/部分停顿补齐、分句不符提示已实现；完整 check 641 通过、1 平台跳过。15 帧/35 分句实渲染边界最大差 37.02px（小于 56px 一字），旧 box/paper 像素兼容；分句内线性估计，非逐字识别。字幕小样的本机实际听感未验证，不扩大 v8 用户认可的范围。 |
+
+旁白缓存补验：原 v7/v8 的 safeDescriptor 仅 privateConfigFingerprint 不同，根因是其中的素材绝对路径。
+新逐句键排除路径和连接配置，按素材内容/模型/参数/语速/文本计算；副本离线重键后迁移 25/25 句命中、TTS=0，
+重建 narration.wav 与原 v8 逐字节一致。旧 timing/inputFingerprint 不变、film:check 通过；旧缓存键不自动转换。
+四份 Skill 是两份共享正文和两份 Claude 发现入口，按原机制分别同步，references 同步到 creator；不将发现入口复制成另一套正文。
+本机只做渲染、抽帧、音频测量及 `ffmpeg -hwaccel none` 软件解码，不启动 GUI 播放器或用浏览器自动播放绕过，观看交给手机或 Mac。
+
+下文保留各阶段的原始计划和当时结论；「P6 冻结」「尚未 v8」「待实现」等描述仅表示当时状态。
+当前 API、验收范围及本轮完整 check 以 [ITERATION_STATUS](../ITERATION_STATUS.md) 和本地 P6 交付说明为准。
+
+## 2026-11-09 口播决定（历史记录，发布进度见上方当前状态）
 
 AXMORF Studio 是通用视频工具，与品牌“旧公理→新公理”没有产品约束关系。
 AxiomMorph 是可选文字对照/重组/拆解；hook/drop 按内容语义安排，不要求固定公理叙事，也不要求解释未使用原因。
@@ -231,7 +256,7 @@ Skill 根目录 `.agents/skills/axmorf-film/` 和模板 `packages/create-axmorf-
 | P3   | 第 4 节审片提示与 animatic                                                                                                                                                                                                                                               | 纯函数单测；对今天旧片跑一次，应能报出 `enter-then-hold`、`no-sound-effects`、`hard-cut-heavy`，结果记入 ITERATION_STATUS；animatic 能正常播放且有声音                                                                                                                                                             |
 | P4   | 第 5 节 Skill 与模板                                                                                                                                                                                                                                                     | 镜像检查通过；README、api、TERMINOLOGY、ARCHITECTURE 同步；旧权威 grep 无残留                                                                                                                                                                                                                                      |
 | P5   | **对比样片**：在独立的试用 Workspace（用本地 `npm pack` 的 rc 包由 `create-axmorf-studio` 创建，不动生产 ai Workspace）中，由一个**只读 Skill 的新 Agent 任务**用同样的剧本、旁白文本和事实，重做 `ai-small-lab-training-cost-20261106`，新片 id 为 `…-v2`，只交付不发布 | 交付通过 `film:deliver`；生成新旧左右并排、画面同步播放的对比视频，含两条音轨（音轨 1 旧版、音轨 2 新版，可在播放器里切换），另附两版原片；附两版的 `motionWarnings` 对照和新版 `storyboard.md`。**先交 commander 审**（抽帧、对照提示、核对音效计划），再给用户看并实际听审；**用户认可才算通过**，指标只作为参考 |
-| P6   | 发布                                                                                                                                                                                                                                                                     | 用户认可后按 [RELEASE](../guides/RELEASE.md) 发 rc 到 `next`；ai Workspace 执行 `workspace:upgrade`，再做一部日常片验证，之后才考虑 `latest`                                                                                                                                                                       |
+| P6   | 进行中：发布 0.3.0-rc.6 到 next | v8 终版已获用户认可；本地准备后由负责人按 [RELEASE](../guides/RELEASE.md) 发布，升级实际 Workspace 并做一部日常片验证，之后才考虑 `latest` |
 
 **P1 进度（2026-11-06，未发布）**：场景轨、音效轨、配乐 musicDips/ending、六个确定性合成音效及共享分发已实现。
 新增 18 项回归；完整 `npm run check` 通过（381 项中 380 通过，Linux 跳过 1 项 macOS 专用测试），两包构建/typecheck 与 runtime 包检查通过。
@@ -345,7 +370,7 @@ P5 由“只读 Skill 的新 Agent”来做，是为了检验 Skill 能不能把
 
 - 单测覆盖：合成结果的确定性、每种 kind 的时长和对齐、锚点 bpm 搜索与残差、hits/breaks/ending、`film:check` 的一致性校验。
 - 先按 P5 的做法用 v3 片源重做声音（画面不动），只交付不发布。**画面必须与 v3 逐帧一致**：以 v3 的画面事件帧为锚，
-  不改任何画面代码；交付后用 `ffmpeg -map 0:v -f framemd5` 比对新旧两版的视频流，全部帧的 md5 必须相同。把对比片和用户听审结论交给 commander，确认后再进 P6。
+  不改任何画面代码；交付后用 `ffmpeg -hwaccel none -i <video> -map 0:v -f framemd5 -` 比对新旧两版的视频流，全部帧的 md5 必须相同。把对比片和用户听审结论交给 commander，确认后再进 P6。
   做声音的是不是新 Agent，由 commander 和用户决定。
 
 ### 9.6 实施记录（2026-11-07，未发布）

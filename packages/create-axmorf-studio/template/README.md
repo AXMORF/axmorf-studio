@@ -21,8 +21,20 @@ The Agent writes each film as ordinary Remotion code in `src/films/<film-id>/`, 
 then follows `references/direction.md` to write `src/films/<film-id>/storyboard.md` one bar at a time: L2 composition changes,
 L3 accents, sentence ids and sound cues, plus chapter worlds and camera paths. It uses rhythm hooks, `FilmSceneTrack` and
 the motion recipes for visuals, then derives sound effects from those actions and plays them with `FilmSoundEffects`.
-It watches a sound-enabled animatic for pacing before refining rendered frames and delivering. Long films may be split across subagents when your Agent supports
+It produces a sound-enabled animatic for pacing review before refining rendered frames and delivering. Long films may be split across subagents when your Agent supports
 them; that is optional.
+
+New films use `studio-v3`, with the optional `voiceover` static EQ profile for speech. Follow the local director guide for
+semantic hit alignment, paper-collage recipes, generated subject cutouts and advisory graphics/rhythm review.
+Only sentence timing is measured; mid-sentence keyword frames need human or external confirmation.
+Use `narration[].caption` for screen copy, `FilmCaptions variant="paper"` for paper strips, and optional
+`highlight="karaoke"` for continuous clause-based highlighting. `film:captions` estimates clauses offline without TTS;
+it does not recognize word boundaries. Caption edits do not invalidate existing voice or timing fingerprints.
+
+Sentence caches in `.axmorf/cache/voice/` use provider/model/material content or voiceId/parameters/rate/text, not Workspace
+paths or connection settings. Transfer new-key caches with matching audio inputs to reuse unchanged sentences.
+Old keys are not automatically converted. To preserve a complete take, copy matching film.json, timing.json and narration.wav,
+keep the filmId and relative paths, then run `film:check` without rerunning voice.
 
 ## Start here
 
@@ -31,8 +43,10 @@ npm run doctor
 npm run dev
 ```
 
-`npm run dev` starts the loopback-only Web control center and Remotion Studio. Open Remotion Studio to watch a film while
-the Agent works on it.
+`npm run dev` starts the loopback-only Web control center and Remotion Studio. On the production host, do not launch GUI
+players (ffplay/VLC/mpv/etc.) or use xdg-open, gio open or browser autoplay to bypass this restriction. Only render,
+extract frames and measure audio with software decoding (`ffmpeg -hwaccel none`); watch and listen on a phone or Mac.
+If execution is denied, do not elevate permissions or replace players. Record unverified viewing/listening honestly.
 
 Creator installation prepares the pinned browser and runs a real tiny render before claiming readiness. If browser preparation
 was skipped or the browser was removed, run `npm run browser:prepare`, then `npm run doctor`. If direct download stalls, set

@@ -150,7 +150,7 @@ summary 另含 median、anticipationThreshold 与各重音 anticipationFrames。
 每格标明正片帧号，每张三列、480px 单格，图片和 metadata 只留在 ignored 的 review/public，缺帧报错，不伪造联系表。
 Skill 强制逐张人工确认预备与数字/文字过程可见，并在 review-notes 按帧记录结论；该人工要求不变成交付 gate。
 `beat-sections-static` 只在完整样本的非旁白中位数为 0 时提示核对有意停留；保留讲述/非旁白两类中位数，不比较大小，纯音乐可测。
-`narration-static` 复用同一批全帧能量，讲述段中位数 <0.2 或能量 <0.15 连续超过 30 帧时提示（均有注释常量）。
+`narration-static` 复用同一批全帧能量，讲述段中位数 <0.2 或能量 <0.15 的帧超过讲述段一半时提示（均有注释常量）。
 旁白为 [startFrame,endFrame)，静默间隙重置连续计数；summary 记录 speechStillFrames 和 longestSpeechStillRun（含首尾和帧数）。
 没有可用 animatic 或没有讲述样本为 unknown；只提示，不改变 film:check 或交付。
 `axiom-morph-missing` 仅保留 legacy 报告枚举，分析器不再发出 warning 或 unknown；AxiomMorph 是可选的通用文字形变。

@@ -25,6 +25,8 @@ Agent 像导演兼动效设计师一样，直接用 Remotion 代码制作讲解�
 （[迁移方案](docs/promotions/2026-10-14-direct-film-production.md)）。已有 Workspace 用
 `npx create-axmorf-studio@latest upgrade` 同时升级 Skill 与运行时；升级会列出旧 Project 留下的目录，但不会删除它们。
 公开版本、验收范围与限制以[当前实现状态](docs/ITERATION_STATUS.md)为准。
+截至 2026-11-10，`@axmorf/studio` 的 `next` 为 `0.3.0-rc.5`，`latest` 为 `0.2.1`；本分支正在准备 P6 `0.3.0-rc.6`，尚未发布。
+v8 终版已获用户认可；发布后的 Workspace 升级与日常片验证仍待完成。
 
 ## 把这段提示词交给你的 Agent
 
@@ -98,6 +100,15 @@ AXMORF 不用操作系统 allowlist 预先阻止安装。Agent 可以准备声�
 
 新片脚手架包含 `studio-v3` 原创配乐起点；按实测旁白重写后生成分层鼓组、贝斯、和声与过门，
 导出 fill/break 区间及带强度重音。音效默认跟随 score 调性，显式 pitch 保留。v2、原始引擎及既有音效继续兼容。
+具体接线和分镜方法见[节奏驱动动效导演手册](.agents/skills/axmorf-film/references/direction.md)。
+口播混音起点为 `volume: 0.64`、`underSpeechVolume: 0.60`、可选 `mixProfile: "voiceover"`：
+在配乐母带前用静态 EQ 避让 2 kHz 人声频段，播放时只做一次逐句 ducking；每片需实测确认底层比旁白低 8–10 LU。
+语义事件先定帧，再对齐音乐 hit 和画面；只有句级 timing，句中关键词帧须人工或外部确认，不提供 ASR 逐字对拍。
+
+逐句旁白缓存位于 `.axmorf/cache/voice/`，内容键依赖 provider 种类、模型、音色素材内容哈希或 voiceId、生成参数、语速和文本，
+不依赖 Workspace 绝对路径或连接配置。迁移新键缓存可跨 Workspace 复用；旧版键不自动转换。
+只保留完整 take 时，一起复制匹配的 film.json、timing.json、narration.wav，保留 filmId/相对路径，用 `film:check`，跳过 voice。
+缓存键更新不改既有 timing/inputFingerprint 或已交付音频。
 
 最终交付固定为：
 
@@ -113,7 +124,7 @@ deliveries/<film-id>/publish.json
 Skill 中的创作方法、animatic 与看图回路；motionWarnings 仅作提示，不拦交付；音画同步 total/matched 统计在 motion.summary.rhythmSync，缺测为 unknown。
 强重音力度与节拍段运动另用 fresh animatic 的连续全帧测量，统计在 `motion.summary.motionEnergy`；
 `accent-underplayed` 检查强重音整帧预备和 p99 冲击，`beat-sections-static` 提示非旁白中位数为零；
-`narration-static` 提示讲述段中位数 <0.2 或近静止（能量 <0.15）连续超过 30 帧，报告最长段起止帧。
+`narration-static` 提示讲述段中位数 <0.2，或近静止（能量 <0.15）帧超过讲述段的一半；最长段起止帧只供核对。
 三者都只提示，缺少或过期的 animatic 为 unknown；AxiomMorph 为可选效果，不要求使用。
 `readabilityWarnings` 的 `low-contrast-text` 提示局部文字/背景对比低于 3:1，列出帧号、最差网格位置和比值；
 转场与同组形变照常提示，像素或颜色不可用保留 unknown，仅审片、不拦交付。耗时见 `readability.contrast.analysisMs`。
@@ -126,8 +137,9 @@ Skill 中的创作方法、animatic 与看图回路；motionWarnings 仅作提�
 可选 `highlight="karaoke"` 连续双色扫字；voice 后运行 `film:captions` 离线估分句时间，不重做旁白。
 精度为分句级、分句内线性估计，caption 与 text 保持相同分句标点；纸面风格推荐开启。
 审片新增 `captionWarnings` 的 `caption-spoken-numerals` / `karaoke-clause-mismatch` 与 `graphicWarnings` 的 `graphic-in-caption-band`（实际字幕框外扩 24px），均只提示。
-用户或 Workspace 指定纸面拼贴/手绘线稿时，Skill 提供对应配方、已安装字体回退和可编译 gallery。
-纸面关键人物/实物由宿主生图剪纸准备，工具不可用停下；bookends 显式 light，每镜头写真实桌面动作。
+用户或 Workspace 指定纸面拼贴/手绘线稿时，Skill 提供[纸面风格配方](.agents/skills/axmorf-film/references/styles/paper-collage.md)、已安装字体回退和可编译 gallery。
+纸面关键人物、手、实物由宿主生图制作单主体剪纸，登记来源并由代码合成白边/投影；工具不可用停下。
+精确图解仍可用 SVG；bookends 显式 light，每镜头写真实桌面动作。
 讲述段只保护阅读文字，持续桌面微移、非文字线稿 boil、每拍轮换物件反应，每章至少三类、相邻小节主动作轮换；`beat-response-monotone` 与 `motion.summary.beatResponses`
 区分物件动作和 global 光闪/缩放，缺遥测为 unknown，仅提示。轮换、boil seed 与上报 API 从 rhythm 导出。
 纸面动作可用 film:sfx 的 stamp（压章）、tape（撕贴胶带）、pen（笔划），继续复用统一参数与动作锚点；旧12类PCM不变。
@@ -156,6 +168,9 @@ Skill 中的创作方法、animatic 与看图回路；motionWarnings 仅作提�
 新建视频时，提示词明确指定的横竖屏、尺寸、帧率写入该片的 `film.json`；未指定字段继承配置，单次覆盖不改写长期默认值。
 制作方法见 Workspace 内的 `.agents/skills/axmorf-film/SKILL.md`；分镜、六种镜头配方、音效与横屏接线示例均在其参考文档中。
 `film:review` 的 animatic 不属于交付四件套；`film:deliver` 在缺少或过期时提醒，不拦交付。
+本机禁止启动 ffplay、VLC、mpv 等播放器，也不通过 xdg-open、gio open 或浏览器自动播放绕过。
+只做渲染、抽帧、音频测量和 `ffmpeg -hwaccel none` 软件解码；animatic 和成片交给用户在手机或 Mac 上看听。
+执行被拒时不提权或改权限；未实际看听的部分如实标为未验证。
 
 ## Packages
 
