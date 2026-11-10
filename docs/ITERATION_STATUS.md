@@ -2,16 +2,24 @@
 
 ## Workspace 共享资源升级修复（2026-11-10，未发布）
 
+**升级提示：已发布的 0.3.0-rc.7 从共享资源仍为旧版的 Workspace 升级会失败，但会安全回滚，私有配置不会改变。
+请改用 0.3.0-rc.8 升级；本分支修复尚待负责人调整版本并发布。**
+
 rc.5 Workspace 升 rc.7 时，未修改的 `assets.manifest.json` 因与新版包字节不同被 bootstrap 判成冲突，导致回滚。
 upgrade 现于 install 前读取旧运行时种子的实际 SHA-256，优先于历史记录交给 bootstrap；bootstrap 维护独立
 `.axmorf/shared-resources.json`，仅替换匹配旧哈希的资源，确认匹配新版的资源并补齐缺失资源。
 本地修改及无旧哈希依据的差异仍报冲突。资源与父目录保留符号链接检查，更新为原子替换；共享资源及清单纳入备份/回滚，
 新版新增的文件在失败时移除。模板托管清单不收录共享资源，避免误删。
+bootstrap 在写入前一次列出全部字节冲突，指引先备份本地改动，再删掉冲突文件或换成新版包字节后重跑 upgrade；
+若要保留自己的修改，则保留文件并继续用旧版。旧运行时缺失、旧包不含该路径或记录缺少该路径且无法确认旧字节时均不覆盖。
 
-定向 32 项通过，包含 rc.5 原始清单回归、包哈希优先/历史兜底、缺失补写、本地冲突、无依据拒绝、符号链接保护及
+定向 35 项通过，包含 rc.5 原始清单回归、包哈希优先/历史兜底、缺失补写、本地冲突、无依据拒绝、全部冲突汇总、符号链接保护及
 bootstrap/doctor 中途失败恢复。`npm run packages:build` 与完整 `npm run check` 退出 0：
-主测试 620 通过、1 macOS 专属跳过，宿主 43 通过，合计 **663 通过、1 跳过、0 失败**。
+主测试 623 通过、1 macOS 专属跳过，宿主 43 通过，合计 **666 通过、1 跳过、0 失败**。
 类型、lint、链接、音频投影、Web/Remotion 构建、creator 包与 compositions 门禁通过。
+另新增独立真实打包 E2E `node --import tsx --test scripts/tests/check-workspace-upgrade.ts`，构建后运行：1 通过、0 跳过、0 失败。
+该用例生成 rc.5 Workspace、真实安装 rc.5 node_modules 并核对原始 fixture 字节，随后用当前 runtime tgz 和实际 CLI/npm 完成
+upgrade、bootstrap、doctor，确认旧资源已更新、备份保留旧字节、配置不变；不模拟安装或运行时命令，不混入普通单元测试的网络依赖。
 
 生产 Workspace 连同 node_modules 只读复制后，以本分支 runtime/creator tgz 实际升级：rc.5 → 本地 rc.7 验收包成功，
 doctor 五项通过，`private/producer.config.json` 逐字节不变，40 项共享资源与包种子及新哈希记录一致。

@@ -509,7 +509,12 @@ test("upgrade can use recorded hashes when the old installed runtime is unavaila
   }
 });
 
-for (const scenario of ["local edit", "no old hash"]) {
+for (const scenario of [
+  "local edit",
+  "no old hash",
+  "old package lacks resource",
+  "manifest lacks resource",
+]) {
   test(`upgrade preserves conflicting shared resources with ${scenario}`, async () => {
     const { parent, root } = await legacyWorkspace();
     try {
@@ -521,6 +526,23 @@ for (const scenario of ["local edit", "no old hash"]) {
           "old package\n",
         );
       }
+      if (scenario === "old package lacks resource") {
+        await writeResource(
+          root,
+          `${installedSeedPath}/public/assets/axmorf-shared/unrelated.txt`,
+          "old unrelated resource\n",
+        );
+      }
+      if (scenario === "manifest lacks resource") {
+        await writeResource(
+          root,
+          sharedManifestPath,
+          JSON.stringify({ schemaVersion: 1, files: {} }),
+        );
+      }
+      const manifestBefore = await readFile(
+        join(root, sharedManifestPath),
+      ).catch(() => null);
       const { calls, runCommand } = resourceUpgradeRunner(
         root,
         "new package\n",
@@ -531,7 +553,18 @@ for (const scenario of ["local edit", "no old hash"]) {
           { cwd: root, runtimePackage: "9.9.9", creatorVersion: "9.9.9" },
           { runCommand, progress: () => {} },
         ),
-        /conflicts with package bytes/u,
+        (error: unknown) => {
+          assert.ok(error instanceof Error);
+          assert.match(error.message, /conflicts with package bytes/u);
+          assert.ok(error.message.includes(sharedResourcePath));
+          assert.match(error.message, /Back up your local changes first/u);
+          assert.match(error.message, /rerun upgrade/u);
+          assert.match(
+            error.message,
+            /continue using the previous runtime version/u,
+          );
+          return true;
+        },
       );
       assert.equal(
         await readFile(join(root, sharedResourcePath), "utf8"),
@@ -542,9 +575,16 @@ for (const scenario of ["local edit", "no old hash"]) {
         packageBefore,
       );
       assert.deepEqual(calls, ["install", "bootstrap", "install"]);
-      await assert.rejects(stat(join(root, sharedManifestPath)), {
-        code: "ENOENT",
-      });
+      if (manifestBefore === null) {
+        await assert.rejects(stat(join(root, sharedManifestPath)), {
+          code: "ENOENT",
+        });
+      } else {
+        assert.deepEqual(
+          await readFile(join(root, sharedManifestPath)),
+          manifestBefore,
+        );
+      }
     } finally {
       await rm(parent, { recursive: true, force: true });
     }

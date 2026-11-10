@@ -26,6 +26,17 @@ const SHARED_RESOURCE_MANIFEST = ".axmorf/shared-resources.json";
 const sha256 = (bytes: Buffer) =>
   `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
 
+class SharedResourceConflictError extends Error {
+  constructor(readonly paths: readonly string[]) {
+    super(
+      `Shared Workspace resource conflicts with package bytes:\n${paths.map((path) => `- ${path}`).join("\n")}\n` +
+        "The current bytes do not match the new package, and unchanged old package bytes cannot be verified. " +
+        "Back up your local changes first, then delete each conflicting file or replace it with the version from the new @axmorf/studio package, and rerun upgrade. " +
+        "If these are intentional local changes, keep the files and continue using the previous runtime version.",
+    );
+  }
+}
+
 const ensureDirectory = async (rootDir: string, relativePath: string) => {
   const assertManagedDirectory = (
     metadata: Awaited<ReturnType<typeof lstat>>,
@@ -130,9 +141,7 @@ const inspectTarget = async ({
       !currentBytes.equals(expected) &&
       sha256(currentBytes) !== previousHash
     ) {
-      throw new Error(
-        `Shared Workspace resource conflicts with package bytes: ${relativePath}.`,
-      );
+      throw new SharedResourceConflictError([relativePath]);
     }
     return currentBytes;
   } catch (error) {
@@ -250,7 +259,7 @@ export const bootstrapWorkspace = async ({
     await ensureDirectory(rootDir, relativePath);
   }
   const previous = await readSharedResourceManifest(rootDir);
-  const current = await Promise.all(
+  const inspected = await Promise.allSettled(
     seedFiles.map((file) =>
       inspectTarget({
         rootDir,
@@ -260,6 +269,17 @@ export const bootstrapWorkspace = async ({
       }),
     ),
   );
+  const conflicts = inspected.flatMap((result) =>
+    result.status === "rejected" &&
+    result.reason instanceof SharedResourceConflictError
+      ? result.reason.paths
+      : [],
+  );
+  if (conflicts.length > 0) throw new SharedResourceConflictError(conflicts);
+  const current = inspected.map((result) => {
+    if (result.status === "rejected") throw result.reason;
+    return result.value;
+  });
   for (const [index, file] of seedFiles.entries()) {
     if (current[index]?.equals(file.bytes)) continue;
     await writeResource({ rootDir, ...file, previous: current[index] });

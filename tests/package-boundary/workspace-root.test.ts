@@ -369,3 +369,59 @@ test("bootstrap refuses resource and manifest symlinks even if their bytes match
     /regular non-symbolic file/u,
   );
 });
+
+test("bootstrap lists every byte conflict with recovery guidance before writing any resources", async (context) => {
+  const rootDir = await createTemporaryDirectory(
+    context,
+    "workspace-all-conflicts-",
+  );
+  const workspaceSeedRoot = await createWorkspaceSeed(context);
+  const eligible = "public/assets/axmorf-shared/eligible.txt";
+  const untracked = "public/assets/axmorf-shared/untracked.txt";
+  const missing = "public/assets/axmorf-shared/missing.txt";
+  await writeFile(join(workspaceSeedRoot, eligible), "old package\n");
+  await bootstrapWorkspace({ rootDir, workspaceSeedRoot });
+  const manifestBefore = await readFile(join(rootDir, resourceManifest));
+  await writeFile(join(rootDir, sharedPath), "local edit\n");
+  await writeFile(join(workspaceSeedRoot, eligible), "new package\n");
+  await writeFile(join(workspaceSeedRoot, untracked), "new package\n");
+  await writeFile(join(rootDir, untracked), "unknown old bytes\n");
+  await writeFile(join(workspaceSeedRoot, missing), "new package\n");
+  await assert.rejects(
+    bootstrapWorkspace({ rootDir, workspaceSeedRoot }),
+    (error: unknown) => {
+      assert.ok(error instanceof Error);
+      assert.ok(error.message.includes(`- ${sharedPath}\n- ${untracked}\n`));
+      assert.ok(!error.message.includes(eligible));
+      assert.ok(!error.message.includes(missing));
+      assert.match(error.message, /Back up your local changes first/u);
+      assert.match(
+        error.message,
+        /delete each conflicting file or replace it with the version from the new @axmorf\/studio package/u,
+      );
+      assert.match(error.message, /rerun upgrade/u);
+      assert.match(
+        error.message,
+        /keep the files and continue using the previous runtime version/u,
+      );
+      return true;
+    },
+  );
+  assert.equal(
+    await readFile(join(rootDir, sharedPath), "utf8"),
+    "local edit\n",
+  );
+  assert.equal(
+    await readFile(join(rootDir, untracked), "utf8"),
+    "unknown old bytes\n",
+  );
+  assert.equal(
+    await readFile(join(rootDir, eligible), "utf8"),
+    "old package\n",
+  );
+  await assert.rejects(lstat(join(rootDir, missing)), { code: "ENOENT" });
+  assert.deepEqual(
+    await readFile(join(rootDir, resourceManifest)),
+    manifestBefore,
+  );
+});

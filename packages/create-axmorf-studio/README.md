@@ -82,6 +82,9 @@ Before install, upgrade captures hashes from the installed runtime seed, taking 
 `.axmorf/shared-resources.json`. Bootstrap records hashes there whenever it writes or confirms shared resources.
 Without either source of old hashes, differing bytes remain conflicts. Shared resources and this manifest are backed up
 and restored on failure, including removal of newly created resources.
+Bootstrap lists all byte conflicts before writing any resources. Back up local changes, then delete the conflicting files
+or replace them with the new package's versions and rerun upgrade. To keep intentional local changes, retain the files
+and continue using the previous runtime version.
 
 When the registry is npmmirror and `prefer-offline` is enabled, creation or upgrade may fail with
 `three@undefined` (`ERESOLVE`). Use the official registry and prefer online metadata for that operation:
