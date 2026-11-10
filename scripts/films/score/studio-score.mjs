@@ -601,7 +601,7 @@ const renderVoice = (event, fps, style, noise) => {
 // ---------------------------------------------------------------------------
 
 /** Freeverb-style comb/allpass network with different lengths per side for width. */
-const reverb = (input, count, seedOffset, room) => {
+const reverb = (input, count, seedOffset, room, loop = true) => {
   const combs = [1557, 1617, 1491, 1422, 1277, 1356].map((length) => ({
     buffer: new Float32Array(length + seedOffset),
     index: 0,
@@ -613,7 +613,7 @@ const reverb = (input, count, seedOffset, room) => {
   }));
   const output = new Float32Array(count);
   // Run two loop cycles so the tail of the end wraps seamlessly into frame zero.
-  for (let pass = 0; pass < 2; pass++) {
+  for (let pass = 0; pass < (loop ? 2 : 1); pass++) {
     for (let i = 0; i < count; i++) {
       const x = input[i] * 0.015;
       let sum = 0;
@@ -631,18 +631,19 @@ const reverb = (input, count, seedOffset, room) => {
         allpass.index = (allpass.index + 1) % allpass.buffer.length;
         sum = y;
       }
-      if (pass === 1) output[i] = sum;
+      if (!loop || pass === 1) output[i] = sum;
     }
   }
   return output;
 };
 
 /** Ping-pong dotted-eighth delay synced to the score tempo, wrapped for loops. */
-const pingPong = (inputL, inputR, count, delaySamples) => {
+const pingPong = (inputL, inputR, count, delaySamples, loop = true) => {
   const outL = new Float32Array(count);
   const outR = new Float32Array(count);
-  for (let pass = 0; pass < 2; pass++) {
+  for (let pass = 0; pass < (loop ? 2 : 1); pass++) {
     for (let i = 0; i < count; i++) {
+      if (!loop && i < delaySamples) continue;
       const j = (i - delaySamples + count) % count;
       const fromL = inputR[j] + outR[j] * 0.38;
       const fromR = inputL[j] + outL[j] * 0.38;
@@ -656,6 +657,20 @@ const pingPong = (inputL, inputR, count, delaySamples) => {
 export const synthesizeStudioTimeline = (timeline) => {
   const count = Math.round((timeline.durationInFrames / timeline.fps) * SR);
   const random = rng(timeline.seed);
+  const loop = timeline.loop !== false;
+  const windowSamples = Math.round(
+    ((timeline.musicWindowInFrames ?? timeline.durationInFrames) /
+      timeline.fps) *
+      SR,
+  );
+  const breaks = (timeline.breaks ?? []).map((gap) => ({
+    ...gap,
+    fromSample: Math.round((gap.from / timeline.fps) * SR),
+    toSample: Math.round((gap.to / timeline.fps) * SR),
+  }));
+  const endingSample = timeline.ending
+    ? Math.round((timeline.ending.landFrame / timeline.fps) * SR)
+    : null;
   const buses = {
     drumsL: new Float32Array(count),
     drumsR: new Float32Array(count),
@@ -667,6 +682,21 @@ export const synthesizeStudioTimeline = (timeline) => {
     delayL: new Float32Array(count),
     delayR: new Float32Array(count),
   };
+  // Voices with the same keep mask share an effects stem; excluded tails cannot leak into a break.
+  const wetGroups = new Map();
+  const wetFor = (type) => {
+    if (breaks.length === 0) return buses;
+    const muted = breaks.filter((gap) => !gap.keep.includes(type));
+    const key = muted.map((gap) => gap.fromSample).join(":");
+    if (!wetGroups.has(key))
+      wetGroups.set(key, {
+        muted,
+        reverb: new Float32Array(count),
+        delayL: new Float32Array(count),
+        delayR: new Float32Array(count),
+      });
+    return wetGroups.get(key);
+  };
   const kickStarts = [];
   for (const event of timeline.music) {
     // Exact beat onsets keep fast drum patterns tight; older timelines fall back to frames.
@@ -675,32 +705,70 @@ export const synthesizeStudioTimeline = (timeline) => {
         ? Math.round(((event.beat * 60) / timeline.bpm) * SR)
         : Math.round((event.frame / timeline.fps) * SR);
     if (event.type === "kick") kickStarts.push(start);
-    const { left, right, voice } = renderVoice(event, timeline.fps, timeline.style, random);
+    const { left, right, voice } = renderVoice(
+      event,
+      timeline.fps,
+      timeline.style,
+      random,
+    );
     // Wide voices alternate pitch-dependent panning; other voices use their fixed seat.
     const pan = voice.wide ? (((event.note % 5) - 2) / 2) * 0.35 : voice.pan;
     const gainL = Math.cos(((pan + 1) * Math.PI) / 4) * Math.SQRT2;
     const gainR = Math.sin(((pan + 1) * Math.PI) / 4) * Math.SQRT2;
-    const dryL = voice.pumped ? buses.pumpedL : voice.bus === "drums" ? buses.drumsL : buses.musicL;
-    const dryR = voice.pumped ? buses.pumpedR : voice.bus === "drums" ? buses.drumsR : buses.musicR;
+    const dryL = voice.pumped
+      ? buses.pumpedL
+      : voice.bus === "drums"
+        ? buses.drumsL
+        : buses.musicL;
+    const dryR = voice.pumped
+      ? buses.pumpedR
+      : voice.bus === "drums"
+        ? buses.drumsR
+        : buses.musicR;
+    const wet = wetFor(event.type);
     for (let i = 0; i < left.length; i++) {
+      if (!loop && start + i >= windowSamples) break;
       const index = (start + i) % count;
+      if (
+        breaks.some(
+          (gap) =>
+            index >= gap.fromSample &&
+            index < gap.toSample &&
+            !gap.keep.includes(event.type),
+        )
+      )
+        continue;
+      if (
+        endingSample !== null &&
+        timeline.ending.cadence === "resolve" &&
+        start < endingSample &&
+        index >= endingSample &&
+        voice.bus !== "drums"
+      )
+        continue;
       const l = left[i] * gainL;
       const r = right[i] * gainR;
       dryL[index] += l;
       dryR[index] += r;
-      buses.reverb[index] += (l + r) * voice.reverb;
+      wet.reverb[index] += (l + r) * voice.reverb;
       if (voice.delay) {
-        buses.delayL[index] += l * voice.delay;
-        buses.delayR[index] += r * voice.delay;
+        wet.delayL[index] += l * voice.delay;
+        wet.delayR[index] += r * voice.delay;
       }
     }
   }
 
   // Sidechain: tonal voices duck under each kick, giving electronic scores their pulse.
-  const depth = timeline.style === "electronic" ? 0.55 : timeline.style === "drive" ? 0.12 : 0.2;
+  const depth =
+    timeline.style === "electronic"
+      ? 0.55
+      : timeline.style === "drive"
+        ? 0.12
+        : 0.2;
   const pump = new Float32Array(count).fill(1);
   for (const start of kickStarts) {
     for (let i = 0; i < SR * 0.3; i++) {
+      if (!loop && start + i >= count) break;
       const index = (start + i) % count;
       const attack = Math.min(1, i / (SR * 0.004));
       const duck = 1 - depth * attack * Math.exp(-i / (SR * 0.09));
@@ -708,10 +776,60 @@ export const synthesizeStudioTimeline = (timeline) => {
     }
   }
 
-  const reverbL = reverb(buses.reverb, count, 0, timeline.style === "organic" ? 0.86 : 0.8);
-  const reverbR = reverb(buses.reverb, count, 23, timeline.style === "organic" ? 0.86 : 0.8);
+  const reverbL = reverb(
+    buses.reverb,
+    count,
+    0,
+    timeline.style === "organic" ? 0.86 : 0.8,
+    loop,
+  );
+  const reverbR = reverb(
+    buses.reverb,
+    count,
+    23,
+    timeline.style === "organic" ? 0.86 : 0.8,
+    loop,
+  );
   const beatSamples = Math.round((60 / timeline.bpm) * SR);
-  const echo = pingPong(buses.delayL, buses.delayR, count, Math.round(beatSamples * 0.75));
+  const echo = pingPong(
+    buses.delayL,
+    buses.delayR,
+    count,
+    Math.round(beatSamples * 0.75),
+    loop,
+  );
+
+  for (const wet of wetGroups.values()) {
+    const wetL = reverb(
+      wet.reverb,
+      count,
+      0,
+      timeline.style === "organic" ? 0.86 : 0.8,
+      false,
+    );
+    const wetR = reverb(
+      wet.reverb,
+      count,
+      23,
+      timeline.style === "organic" ? 0.86 : 0.8,
+      false,
+    );
+    const delayed = pingPong(
+      wet.delayL,
+      wet.delayR,
+      count,
+      Math.round(beatSamples * 0.75),
+      false,
+    );
+    for (let i = 0; i < count; i++) {
+      if (wet.muted.some((gap) => i >= gap.fromSample && i < gap.toSample))
+        continue;
+      reverbL[i] += wetL[i];
+      reverbR[i] += wetR[i];
+      echo.left[i] += delayed.left[i];
+      echo.right[i] += delayed.right[i];
+    }
+  }
 
   const left = new Float32Array(count);
   const right = new Float32Array(count);
@@ -727,8 +845,22 @@ export const synthesizeStudioTimeline = (timeline) => {
       buses.musicR[i] +
       buses.pumpedR[i] * pump[i] +
       (reverbR[i] + echo.right[i]) * pump[i];
-    left[i] = Math.tanh(l * 0.9);
-    right[i] = Math.tanh(r * 0.9);
+    let envelope = 1;
+    if (!loop) {
+      const cutSample =
+        timeline.ending?.cadence === "cut" ? endingSample : windowSamples;
+      envelope = Math.max(0, Math.min(1, (cutSample - i) / (SR * 0.01)));
+      // An empty keep list is a true rest, including the effects returns.
+      if (
+        breaks.some(
+          (gap) =>
+            gap.keep.length === 0 && i >= gap.fromSample && i < gap.toSample,
+        )
+      )
+        envelope = 0;
+    }
+    left[i] = Math.tanh(l * 0.9) * envelope;
+    right[i] = Math.tanh(r * 0.9) * envelope;
     peak = Math.max(peak, Math.abs(left[i]), Math.abs(right[i]));
   }
   return { left, right, peak };

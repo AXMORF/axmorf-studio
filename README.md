@@ -9,12 +9,12 @@
 
 AXMORF Studio 是一个基于 [Remotion](https://www.remotion.dev/) 的 Agent-first 本地视频工作室。你正在使用的 coding
 Agent 像导演兼动效设计师一样，直接用 Remotion 代码制作讲解短视频；Workspace 替它完成旁白与实测时序、原创配乐与节拍、
-素材许可、审片联系表和交付校验。项目、媒体、配置和最终视频都留在本地。
+素材许可、审片与交付校验。项目、媒体、配置和最终视频都留在本地。
 
 - **Agent-first**：支持 Codex、Claude Code、Cursor、Gemini CLI、GitHub Copilot，以及其他能读写文件并运行 npm 的
   Agent。
 - **直接创作**：每部片是 `src/films/<film-id>/` 下一个普通的 Remotion 工程，构图、镜头、转场和字幕样式都由
-  Agent 决定，并通过审片联系表看图迭代。
+  Agent 决定；先定节奏谱与配乐，再按小节分镜、写画面和音效，看带声音 animatic 的节奏，最后看图精修。
 - **Local-first**：Workspace 和视频资产属于用户，不需要 AXMORF 云端账号。
 - **可验证交付**：完成结果固定为视频、两张封面和发布清单四个文件，不把聊天中的“完成了”当作成功。
 
@@ -25,6 +25,8 @@ Agent 像导演兼动效设计师一样，直接用 Remotion 代码制作讲解�
 （[迁移方案](docs/promotions/2026-10-14-direct-film-production.md)）。已有 Workspace 用
 `npx create-axmorf-studio@latest upgrade` 同时升级 Skill 与运行时；升级会列出旧 Project 留下的目录，但不会删除它们。
 公开版本、验收范围与限制以[当前实现状态](docs/ITERATION_STATUS.md)为准。
+截至 2026-11-10，`@axmorf/studio` 的 `next` 为 `0.3.0-rc.5`，`latest` 为 `0.2.1`；本分支正在准备 P6 `0.3.0-rc.6`，尚未发布。
+v8 终版已获用户认可；发布后的 Workspace 升级与日常片验证仍待完成。
 
 ## 把这段提示词交给你的 Agent
 
@@ -52,9 +54,17 @@ npm run dev
 npx create-axmorf-studio@latest upgrade
 ```
 
+registry 使用 npmmirror 且开启 `prefer-offline` 时，创建或升级的安装可能报 `three@undefined`（`ERESOLVE`）。
+为该次操作指定官方 registry 并优先在线元数据：
+
+```bash
+npm_config_registry=https://registry.npmjs.org/ npm_config_prefer_online=true npm create axmorf-studio@latest my-video -- --yes
+npm_config_registry=https://registry.npmjs.org/ npm_config_prefer_online=true npx create-axmorf-studio@latest upgrade
+```
+
 creator 会安装精确依赖、生成 `package-lock.json`，并在原子提升目标目录前运行无 provider 的
 `bootstrap`/`doctor`。`bootstrap` 从 runtime package 投影经过清单与 checksum 验证的共享素材：片头 cinematic
-impact、片尾 8 秒电子 BGM、AXMORF 标记、24 条动效音效与五首循环 BGM。`npm run dev` 会同时启动 loopback-only
+impact、片尾 8 秒电子 BGM、AXMORF 标记、30 条原创动效音效（含 riser、reverse swell、low impact、glitch tick、whip、shimmer）与五首循环 BGM。`npm run dev` 会同时启动 loopback-only
 Web 控制中心和 Remotion Studio：前者用于作品与交付预览、配置和环境诊断，后者用于实时预览。
 
 VoxCPM 可使用配置中的本机或远程 HTTP(S) 地址（例如 Tailscale 内的自托管服务）。环境诊断只访问该服务的
@@ -77,12 +87,28 @@ AXMORF 不用操作系统 allowlist 预先阻止安装。Agent 可以准备声�
 视频需求
   → film:new 建立 src/films/<film-id>/（film.json 剧本 + Film.tsx + Cover.tsx）
   → film:voice 逐句 TTS，按实测音频给出每句起止帧
-  → film:music 按编曲配方合成原创配乐，给出段落、重音与小节帧
-  → Agent 用 useFilmTiming() 编写画面，挂载 <FilmSoundtrack /> 与 <FilmCaptions />
-  → film:review 渲染联系表，看图修改（至少一轮）
+  → Agent 按句子章节写 music.score 节奏谱：sections、hits、breaks、ending
+  → film:music 生成配乐与节拍网格，导出段落、重音、小节和乐器 onset 帧
+  → Agent 按小节写 storyboard.md，以 L1 kick 呼吸 / L2 小节构图 / L3 重音冲击编写画面
+  → 从可见动作派生 sound.effects，film:sfx 生成本片音效；挂载 FilmSoundEffects / FilmSoundtrack / FilmCaptions
+  → 内容状态标识用 FilmStatusTag；旁白与字幕保持实测时序
+  → film:review --animatic 输出带声音预览，先看节奏
+  → film:review 输出联系表与 motion / motionWarnings，对照分镜看图修改（至少一轮）
   → film:check 硬规则检查
   → film:deliver 渲染并复验四个交付文件
 ```
+
+新片脚手架包含 `studio-v3` 原创配乐起点；按实测旁白重写后生成分层鼓组、贝斯、和声与过门，
+导出 fill/break 区间及带强度重音。音效默认跟随 score 调性，显式 pitch 保留。v2、原始引擎及既有音效继续兼容。
+具体接线和分镜方法见[节奏驱动动效导演手册](.agents/skills/axmorf-film/references/direction.md)。
+口播混音起点为 `volume: 0.64`、`underSpeechVolume: 0.60`、可选 `mixProfile: "voiceover"`：
+在配乐母带前用静态 EQ 避让 2 kHz 人声频段，播放时只做一次逐句 ducking；每片需实测确认底层比旁白低 8–10 LU。
+语义事件先定帧，再对齐音乐 hit 和画面；只有句级 timing，句中关键词帧须人工或外部确认，不提供 ASR 逐字对拍。
+
+逐句旁白缓存位于 `.axmorf/cache/voice/`，内容键依赖 provider 种类、模型、音色素材内容哈希或 voiceId、生成参数、语速和文本，
+不依赖 Workspace 绝对路径或连接配置。迁移新键缓存可跨 Workspace 复用；旧版键不自动转换。
+只保留完整 take 时，一起复制匹配的 film.json、timing.json、narration.wav，保留 filmId/相对路径，用 `film:check`，跳过 voice。
+缓存键更新不改既有 timing/inputFingerprint 或已交付音频。
 
 最终交付固定为：
 
@@ -94,8 +120,30 @@ deliveries/<film-id>/publish.json
 ```
 
 `film:check` 只拦会导致渲染失败、交付不合格或许可问题的情况：TypeScript 错误、渲染时联网、CSS 动画、
-不确定的随机数与时间、未登记的媒体、跨片导入，以及与 `film.json` 不一致的旁白和配乐。审美和可读性靠
-Skill 中的创作方法和看图回路。修改作品就是修改源码后重新交付，上一版交付自动移到 `.axmorf/history/`。
+不确定的随机数与时间、未登记的媒体、跨片导入，以及与 `film.json` 不一致的旁白、配乐和音效计划。审美和可读性靠
+Skill 中的创作方法、animatic 与看图回路；motionWarnings 仅作提示，不拦交付；音画同步 total/matched 统计在 motion.summary.rhythmSync，缺测为 unknown。
+强重音力度与节拍段运动另用 fresh animatic 的连续全帧测量，统计在 `motion.summary.motionEnergy`；
+`accent-underplayed` 检查强重音整帧预备和 p99 冲击，`beat-sections-static` 提示非旁白中位数为零；
+`narration-static` 提示讲述段中位数 <0.2，或近静止（能量 <0.15）帧超过讲述段的一半；最长段起止帧只供核对。
+三者都只提示，缺少或过期的 animatic 为 unknown；AxiomMorph 为可选效果，不要求使用。
+`readabilityWarnings` 的 `low-contrast-text` 提示局部文字/背景对比低于 3:1，列出帧号、最差网格位置和比值；
+转场与同组形变照常提示，像素或颜色不可用保留 unknown，仅审片、不拦交付。耗时见 `readability.contrast.analysisMs`。
+`graphicWarnings` 提示主体包围盒重叠 >15%、同帧主体超过 3 个、未标注图形包围盒面积总和 >10%；
+用原生元素的 `data-axmorf-object` 说明物体含义，可选角色 subject/relation/background，kind 可为 illustration/diagram/prop/card（默认 prop）。
+`text-card-only` 提示可见 subject 全是文字卡片的连续命中采样段，列出起止及实际采样帧，不推断未采样帧。`graphics.frames` 列出逐帧标注，
+辅助静音描述；转场照报，`graphics.unknown` 不算通过。复用审片采样，仅提示、不拦交付，不自动选择影片风格。
+旁白念法保留在 `narration[].text`，可选 `caption` 写屏幕文本（数字/型号/货币符号），不改变 voice 缓存、timing 指纹或实测帧。
+`FilmCaptions variant="paper"` 提供白纸条字幕与显式断行；默认 box 的旧片像素不变。
+可选 `highlight="karaoke"` 连续双色扫字；voice 后运行 `film:captions` 离线估分句时间，不重做旁白。
+精度为分句级、分句内线性估计，caption 与 text 保持相同分句标点；纸面风格推荐开启。
+审片新增 `captionWarnings` 的 `caption-spoken-numerals` / `karaoke-clause-mismatch` 与 `graphicWarnings` 的 `graphic-in-caption-band`（实际字幕框外扩 24px），均只提示。
+用户或 Workspace 指定纸面拼贴/手绘线稿时，Skill 提供[纸面风格配方](.agents/skills/axmorf-film/references/styles/paper-collage.md)、已安装字体回退和可编译 gallery。
+纸面关键人物、手、实物由宿主生图制作单主体剪纸，登记来源并由代码合成白边/投影；工具不可用停下。
+精确图解仍可用 SVG；bookends 显式 light，每镜头写真实桌面动作。
+讲述段只保护阅读文字，持续桌面微移、非文字线稿 boil、每拍轮换物件反应，每章至少三类、相邻小节主动作轮换；`beat-response-monotone` 与 `motion.summary.beatResponses`
+区分物件动作和 global 光闪/缩放，缺遥测为 unknown，仅提示。轮换、boil seed 与上报 API 从 rhythm 导出。
+纸面动作可用 film:sfx 的 stamp（压章）、tape（撕贴胶带）、pen（笔划），继续复用统一参数与动作锚点；旧12类PCM不变。
+`motion["strong-accent-strip"]` 导出每个强重音的 [f-8,f+4] 逐帧联系表；必须人工确认配方过程可见，在 review-notes 按帧号记录。修改作品就是修改源码后重新交付，上一版交付自动移到 `.axmorf/history/`。
 
 ## 常用命令
 
@@ -104,10 +152,13 @@ Skill 中的创作方法和看图回路。修改作品就是修改源码后重�
 | 检查当前环境                       | `npm run doctor`                                           |
 | 同时打开控制中心与 Remotion Studio | `npm run dev`                                              |
 | 新建一部片                         | `npm run film:new -- --film <film-id> --title "<标题>"`    |
+| 离线估计双色字幕分句时间           | `npm run film:captions -- --film <film-id>`                |
 | 生成旁白与时序                     | `npm run film:voice -- --film <film-id>`                   |
 | 生成配乐与节拍网格                 | `npm run film:music -- --film <film-id>`                   |
+| 生成本片原创音效                   | `npm run film:sfx -- --film <film-id>`                     |
 | 登记生成图片或原创 SVG             | `npm run film:asset -- --film <film-id> --file <path> ...` |
 | 渲染审片联系表                     | `npm run film:review -- --film <film-id>`                  |
+| 先看带声音的节奏预览               | `npm run film:review -- --film <film-id> --animatic`       |
 | 交付前检查                         | `npm run film:check -- --film <film-id>`                   |
 | 渲染并复验四个交付文件             | `npm run film:deliver -- --film <film-id>`                 |
 | 列出所有片与交付状态               | `npm run film:list`                                        |
@@ -115,7 +166,11 @@ Skill 中的创作方法和看图回路。修改作品就是修改源码后重�
 | 升级 Workspace                     | `npm run workspace:upgrade`                                |
 
 新建视频时，提示词明确指定的横竖屏、尺寸、帧率写入该片的 `film.json`；未指定字段继承配置，单次覆盖不改写长期默认值。
-制作方法见 Workspace 内的 `.agents/skills/axmorf-film/SKILL.md`。
+制作方法见 Workspace 内的 `.agents/skills/axmorf-film/SKILL.md`；分镜、六种镜头配方、音效与横屏接线示例均在其参考文档中。
+`film:review` 的 animatic 不属于交付四件套；`film:deliver` 在缺少或过期时提醒，不拦交付。
+本机禁止启动 ffplay、VLC、mpv 等播放器，也不通过 xdg-open、gio open 或浏览器自动播放绕过。
+只做渲染、抽帧、音频测量和 `ffmpeg -hwaccel none` 软件解码；animatic 和成片交给用户在手机或 Mac 上看听。
+执行被拒时不提权或改权限；未实际看听的部分如实标为未验证。
 
 ## Packages
 
@@ -151,7 +206,7 @@ npm run check:static
 `packages:build` 提供模板编译所需的公共包类型导出。涉及 Chromium 或 Remotion 时，再运行：
 
 ```bash
-npm run compositions
+npm run check:host # compositions 与真实 SVG/HTML 遮挡回归
 npm run check
 ```
 
@@ -167,3 +222,7 @@ credentials、voice profile 内容或用户作品数据。
 
 生成 Workspace 的 creator 先串行准备固定版本浏览器，doctor 真实执行小图渲染后才报告 ready。
 直连下载受阻时可用 `AXMORF_BROWSER_EXECUTABLE` 指定宿主已安装的兼容 Chrome/Chromium 绝对路径；创建、doctor 与渲染阶段需保持该环境变量，真实小图验证仍执行。
+
+口播配乐与节奏：新片使用可选 `mixProfile: "voiceover"` 静态频谱预留，实际底层目标比旁白低 8–10 LU；旧片省略 profile 保持兼容。
+语义事件用精确 hit 与画面同步，背景/非阅读主体不因口播全面减幅，阅读文字独立稳定；AxiomMorph 为可选通用效果。
+详见 [导演手册](.agents/skills/axmorf-film/references/direction.md) 与 [当前进度](docs/promotions/2026-11-09-voiceover-progress.md)。

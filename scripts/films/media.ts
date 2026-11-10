@@ -55,15 +55,17 @@ const remotion = async (
 
 const entryPoint = (rootDir: string) => join(rootDir, "src/index.ts");
 
-export const renderFilmVideo = async ({
+const renderFilmVideoAtScale = async ({
   rootDir,
   compositionId,
   outputPath,
+  scale,
   timeoutMs,
   runProcess = runMediaProcess,
 }: {
   readonly rootDir: string;
   readonly compositionId: string;
+  readonly scale?: number;
   readonly outputPath: string;
   readonly timeoutMs?: number;
   readonly runProcess?: ProcessRunner;
@@ -81,6 +83,7 @@ export const renderFilmVideo = async ({
           entryPoint(rootDir),
           compositionId,
           videoPath,
+          ...(scale === undefined ? [] : [`--scale=${scale}`]),
           `--codec=${options.codec}`,
           `--audio-codec=${options.audioCodec}`,
           `--separate-audio-to=${pcmPath}`,
@@ -96,6 +99,49 @@ export const renderFilmVideo = async ({
       );
     },
   });
+
+/** Delivery keeps its existing resolution and audio path. */
+export const renderFilmVideo = (
+  options: Omit<Parameters<typeof renderFilmVideoAtScale>[0], "scale">,
+) => renderFilmVideoAtScale(options);
+export const renderFilmAnimatic = ({
+  width,
+  height,
+  ...options
+}: Omit<Parameters<typeof renderFilmVideoAtScale>[0], "scale"> & {
+  readonly width: number;
+  readonly height: number;
+}) =>
+  renderFilmVideoAtScale({ ...options, scale: 360 / Math.min(width, height) });
+
+export const renderMotionCurve = ({
+  rootDir,
+  compositionId,
+  propsPath,
+  outputPath,
+  timeoutMs,
+}: {
+  rootDir: string;
+  compositionId: string;
+  propsPath: string;
+  outputPath: string;
+  timeoutMs: number;
+}) =>
+  remotion(
+    rootDir,
+    [
+      "still",
+      entryPoint(rootDir),
+      compositionId,
+      outputPath,
+      "--image-format=png",
+      `--props=${propsPath}`,
+    ],
+    "Drawing motion curve",
+    runMediaProcess,
+    "error",
+    timeoutMs,
+  );
 
 export const renderFilmStill = async ({
   rootDir,
@@ -177,12 +223,14 @@ export const renderContactSheet = ({
   compositionId,
   propsPath,
   outputPath,
+  timeoutMs,
   runProcess = runMediaProcess,
 }: {
   readonly rootDir: string;
   readonly compositionId: string;
   readonly propsPath: string;
   readonly outputPath: string;
+  readonly timeoutMs?: number;
   readonly runProcess?: ProcessRunner;
 }) =>
   remotion(
@@ -198,4 +246,6 @@ export const renderContactSheet = ({
     ],
     "Building the contact sheet",
     runProcess,
+    "error",
+    timeoutMs,
   );

@@ -130,6 +130,70 @@ export type ChunkAudioGenerator = (
 export const NARRATION_NORMALIZATION_POLICY_ID =
   "pcm-s16le-normalize-v1" as const;
 
+/** Audio identity excludes credentials, transport settings and local paths/labels.
+ * Keep the execution fingerprint separate: it also describes how a request ran.
+ */
+export const computeProviderAudioFingerprint = (
+  descriptor: SafeProviderExecutionDescriptor,
+) => {
+  let value: Record<string, unknown>;
+  switch (descriptor.adapterId) {
+    case "voxcpm-controllable-clone-http-v2":
+    case "voxcpm-high-fidelity-clone-http-v2":
+      value = {
+        adapterId: descriptor.adapterId,
+        modelId: descriptor.modelId,
+        mode: descriptor.mode,
+        cfgValue: descriptor.cfgValue,
+        inferenceTimesteps: descriptor.inferenceTimesteps,
+        minLen: descriptor.minLen,
+        maxLen: descriptor.maxLen,
+        normalize: descriptor.normalize,
+        denoise: descriptor.denoise,
+        retryBadcase: descriptor.retryBadcase,
+        retryBadcaseMaxTimes: descriptor.retryBadcaseMaxTimes,
+        retryBadcaseRatioThreshold: descriptor.retryBadcaseRatioThreshold,
+        speechRate: descriptor.speechRate,
+        referenceAudioChecksum: descriptor.referenceAudioChecksum,
+        ...(descriptor.mode === "high-fidelity-clone"
+          ? {
+              promptSourceChecksum: descriptor.promptSourceChecksum,
+              promptTextChecksum: descriptor.promptTextChecksum,
+              promptAudioChecksum: descriptor.promptAudioChecksum,
+            }
+          : { controlInstruction: descriptor.controlInstruction }),
+      };
+      break;
+    case "speech-sdk-direct-v2":
+      value = {
+        adapterId: descriptor.adapterId,
+        vendor: descriptor.vendor,
+        modelId: descriptor.modelId,
+        voiceId: descriptor.voiceId,
+        speechRate: descriptor.speechRate,
+      };
+      break;
+    case "edge-read-aloud-websocket-v1":
+      value = {
+        adapterId: descriptor.adapterId,
+        service: descriptor.service,
+        modelId: descriptor.modelId,
+        voiceId: descriptor.voiceId,
+        locale: descriptor.locale,
+        speechRate: descriptor.speechRate,
+      };
+      break;
+  }
+  return createFingerprint({
+    namespace: "tts-provider-audio",
+    version: 1,
+    value: {
+      normalizationPolicyId: NARRATION_NORMALIZATION_POLICY_ID,
+      ...value,
+    },
+  });
+};
+
 export const computeProviderAttemptFingerprint = (
   descriptor: SafeProviderExecutionDescriptor,
 ) => {

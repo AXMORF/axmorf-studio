@@ -19,6 +19,7 @@ import {
   workspacePath,
 } from "./files";
 import { loadCurrentFilmTiming } from "./music";
+import { assertFilmSfxConsistency } from "./sfx";
 
 export type FilmCheckIssue = Readonly<{
   rule: string;
@@ -121,9 +122,11 @@ const checkGeneratedFiles = async (
 ) => {
   const paths = filmPaths(rootDir, spec.filmId);
   let durationInFrames: number | null = null;
+  let sentenceFrames: readonly { id: string; startFrame: number }[] = [];
   try {
     const timing = await loadCurrentFilmTiming(rootDir, spec);
     durationInFrames = timing.durationInFrames;
+    sentenceFrames = timing.sentences;
     if (timing.narration !== null) {
       const bytes = await readFile(
         join(rootDir, timing.narration.publicPath),
@@ -138,7 +141,13 @@ const checkGeneratedFiles = async (
   } catch (error) {
     errors.push({ rule: "timing-stale", message: (error as Error).message });
   }
-  if (spec.music === null || durationInFrames === null) return;
+  if (durationInFrames === null) return;
+  try {
+    await assertFilmSfxConsistency({ rootDir, spec, durationInFrames });
+  } catch (error) {
+    errors.push({ rule: "sfx-stale", message: (error as Error).message });
+  }
+  if (spec.music === null) return;
   const music = await readOptionalJsonFile(
     paths.music,
     FilmMusicSchema,
@@ -147,7 +156,11 @@ const checkGeneratedFiles = async (
   if (
     music === null ||
     music.inputFingerprint !==
-      computeFilmMusicInputFingerprint({ spec, durationInFrames })
+      computeFilmMusicInputFingerprint({
+        spec,
+        durationInFrames,
+        sentenceFrames,
+      })
   ) {
     errors.push({
       rule: "music-stale",

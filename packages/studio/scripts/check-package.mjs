@@ -42,6 +42,14 @@ const motionSoundEffectNames = [
   "warning-blip",
   "success-arpeggio",
 ];
+const cinematicSoundEffectNames = [
+  "riser-short",
+  "reverse-swell",
+  "low-impact",
+  "glitch-tick",
+  "whip",
+  "shimmer",
+];
 const backgroundMusicNames = [
   "neon-motion",
   "easy-day",
@@ -52,7 +60,7 @@ const backgroundMusicNames = [
 const sharedResourcePaths = [
   "dist/assets/workspace-seed/public/assets/axmorf-shared/audio/music/mixkit-deep-urban-623-outro-8s.mp3",
   "dist/assets/workspace-seed/public/assets/axmorf-shared/audio/sound-effects/mixkit-movie-trailer-epic-impact-2908-intro-2s.wav",
-  ...motionSoundEffectNames.map(
+  ...[...motionSoundEffectNames, ...cinematicSoundEffectNames].map(
     (name) =>
       `dist/assets/workspace-seed/public/assets/axmorf-shared/audio/sound-effects/axmorf-${name}-v1.wav`,
   ),
@@ -140,6 +148,7 @@ assert.deepEqual(
     "asset.mixkit.deep-urban-623-outro-8s",
     ...motionSoundEffectNames.map((name) => `asset.axmorf.sfx.${name}-v1`),
     ...backgroundMusicNames.map((name) => `asset.axmorf.music.${name}-loop-v1`),
+    ...cinematicSoundEffectNames.map((name) => `asset.axmorf.sfx.${name}-v1`),
   ],
 );
 for (const name of backgroundMusicNames) {

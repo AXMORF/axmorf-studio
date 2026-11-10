@@ -10,8 +10,11 @@ import { join, relative } from "node:path";
 
 import {
   FILM_CONTACT_SHEET_ID,
+  FILM_MOTION_CURVE_ID,
+  FilmMotionReviewSchema,
   filmCompositionIds,
   FilmMusicSchema,
+  resolveFilmBookendFrames,
   type FilmTiming,
 } from "@axmorf/studio/contracts";
 
@@ -21,11 +24,38 @@ import {
   readOptionalJsonFile,
   workspacePath,
 } from "./files";
-import { meanAbsoluteDifference, readFrameSignature } from "./frame-compare";
-import { renderContactSheet, renderFilmReviewFrames } from "./media";
+import {
+  meanAbsoluteDifference,
+  readFrameSignature,
+  readReviewFramePixels,
+} from "./frame-compare";
+import {
+  renderFilmAnimatic,
+  renderMotionCurve,
+  renderContactSheet,
+  renderFilmReviewFrames,
+} from "./media";
 import { loadCurrentFilmTiming } from "./music";
 import { readWorkspaceRenderTimeoutMs } from "./render-timeout";
 import { analyzeReviewReadability } from "./readability";
+import { analyzeFilmCaptions } from "./captions";
+import type { ContrastFrame } from "./text-contrast";
+
+import {
+  analyzeMotion,
+  buildMotionCurve,
+  compositionSegments,
+  reviewMotionScenes,
+  extractMotionMeasurements,
+  MOTION_SAMPLE_SECONDS,
+  selectDenseMotionFrames,
+} from "./motion";
+import { animaticReminder, filmHasLegacyAudio } from "./motion-files";
+import { analyzeMotionEnergy, decodeMotionEnergy } from "./motion-energy";
+import {
+  renderStrongAccentStrips,
+  STRONG_ACCENT_STRIP_CELL_WIDTH,
+} from "./strong-accent-strips";
 
 export type ReviewFrame = Readonly<{ frame: number; reason: string }>;
 
@@ -217,12 +247,14 @@ export const runFilmReview = async ({
   filmId,
   frames: requested,
   scale = 0.5,
+  animatic = false,
   env = process.env,
 }: {
   readonly rootDir: string;
   readonly filmId: string;
   readonly frames?: readonly number[];
   readonly scale?: number;
+  readonly animatic?: boolean;
   readonly env?: NodeJS.ProcessEnv;
 }) => {
   const timeoutMs = await readWorkspaceRenderTimeoutMs({ rootDir, env });
@@ -252,8 +284,13 @@ export const runFilmReview = async ({
           }
           return { frame, reason: "requested" };
         });
-  await rm(paths.review, { recursive: true, force: true });
   await mkdir(paths.review, { recursive: true });
+  // A normal contact-sheet refresh must not discard an expensive animatic.
+  // Its mtime still lets deliver identify source edits since the preview.
+  for (const name of await readdir(paths.review)) {
+    if (name === "animatic.mp4") continue;
+    await rm(join(paths.review, name), { recursive: true, force: true });
+  }
   // Remotion reads anything after the last dot of a sequence directory as an
   // extension, so the scratch name has no dot and is passed relative to rootDir.
   const scratch = await mkdtemp(join(paths.review, "render-"));
@@ -272,12 +309,6 @@ export const runFilmReview = async ({
       scale,
       timeoutMs,
     });
-    const readability = analyzeReviewReadability({
-      output: `${renderOutput.stdout}\n${renderOutput.stderr}`,
-      frames: selected.map(({ frame }) => frame),
-      width: spec.render.width,
-      height: spec.render.height,
-    });
     const rendered = (await readdir(join(scratch, "frames")))
       .filter((name) => name.startsWith("review-"))
       .sort(
@@ -289,6 +320,33 @@ export const runFilmReview = async ({
         `Expected ${selected.length} review frames, got ${rendered.length}.`,
       );
     }
+    const contrastStart = performance.now();
+    const contrastFrames = new Map<number, ContrastFrame>();
+    for (const [index, name] of rendered.entries()) {
+      try {
+        contrastFrames.set(index, {
+          image: await readReviewFramePixels({
+            rootDir,
+            imagePath: join(scratch, "frames", name),
+            pixelsPath: join(scratch, `contrast-${index}.png`),
+          }),
+        });
+      } catch (error) {
+        // Pixel failure is unknown, never a pass or an automatic retry.
+        contrastFrames.set(index, {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+    const readability = analyzeReviewReadability({
+      output: `${renderOutput.stdout}\n${renderOutput.stderr}`,
+      frames: selected.map(({ frame }) => frame),
+      width: spec.render.width,
+      height: spec.render.height,
+      contrastFrames,
+      contrastMs: performance.now() - contrastStart,
+    });
+    contrastFrames.clear();
     // The sheet Still loads frames through staticFile(), so they also go under public/.
     const sheetFrames = join(paths.publicDir, "review");
     await rm(sheetFrames, { recursive: true, force: true });
@@ -355,6 +413,16 @@ export const runFilmReview = async ({
       fps: spec.render.fps,
       timeoutMs,
     });
+    const motion = await reviewMotion({
+      rootDir,
+      filmId,
+      scratch,
+      timing,
+      music,
+      stillWarnings,
+      timeoutMs,
+      animatic,
+    });
     return {
       status: "film-review-rendered",
       filmId: paths.id,
@@ -362,8 +430,10 @@ export const runFilmReview = async ({
       frames: images,
       stillWarnings,
       repetitionWarnings,
+      ...analyzeFilmCaptions(spec),
       ...readability,
-      next: "Open the contact sheet and the frames; resolve or justify each readabilityWarning and repetitionWarning, and inspect missingFrames. Check subject, framing, and changes on the listed sentences and accents.",
+      ...motion,
+      next: "Open the contact sheet and the frames; resolve or justify each readabilityWarning, repetitionWarning and motionWarning, and inspect missingFrames. 逐帧对照 graphics.frames 的标注清单做静音描述；回应 graphicWarnings，graphics.unknown 不算通过。 Open the motion curve, dense frames and animatic (use --animatic to generate it); inspect motion.unknown and missingFrames. Check subject, framing, and changes on the listed sentences and accents. 必须逐张打开 motion['strong-accent-strip']，在 review-notes 按帧记录预备及数字/文字过程是否可见；整帧运动不能证明配方过程可见。",
     } as const;
   } finally {
     await rm(scratch, { recursive: true, force: true });
@@ -427,4 +497,276 @@ const analyzeRepetition = async ({
     });
   }
   return findRepetition({ samples, fps });
+};
+
+/** Keep telemetry well below bounded-process's 1 MiB tail and reuse one frame
+ * renderer for the curve and dense frames. Chunking preserves 0.5s coverage. */
+const sampleMotionFrames = async ({
+  rootDir,
+  compositionId,
+  scratch,
+  frames,
+  timeoutMs,
+  onImage,
+  scale = 0.125,
+}: {
+  rootDir: string;
+  compositionId: string;
+  scratch: string;
+  frames: readonly number[];
+  timeoutMs: number;
+  onImage: (frame: number, path: string, index: number) => Promise<void>;
+  scale?: number;
+}) => {
+  const records = [];
+  let badLines = 0;
+  const chunkSize = 48;
+  for (let start = 0; start < frames.length; start += chunkSize) {
+    const batch = frames.slice(start, start + chunkSize);
+    const dir = join(scratch, `motion-${start}`);
+    await mkdir(dir, { recursive: true });
+    const propsPath = join(dir, "props.json");
+    await writeFile(
+      propsPath,
+      JSON.stringify({ frames: batch, readability: false }),
+    );
+    const result = await renderFilmReviewFrames({
+      rootDir,
+      compositionId,
+      propsPath,
+      outputDirectory: relative(rootDir, join(dir, "frames")),
+      count: batch.length,
+      scale,
+      timeoutMs,
+    });
+    const parsed = extractMotionMeasurements(
+      `${result.stdout}\n${result.stderr}`,
+    );
+    badLines += parsed.badLines;
+    records.push(
+      ...parsed.records
+        .filter((r) => batch[r.index] === r.frame)
+        .map((r) => ({ ...r, index: r.index + start })),
+    );
+    const images = (await readdir(join(dir, "frames")))
+      .filter((n) => n.startsWith("review-"))
+      .sort(
+        (a, b) => Number(a.match(/\d+/u)?.[0]) - Number(b.match(/\d+/u)?.[0]),
+      );
+    if (images.length !== batch.length)
+      throw new Error(
+        `Expected ${batch.length} motion samples, got ${images.length}.`,
+      );
+    for (const [i, name] of images.entries())
+      await onImage(batch[i], join(dir, "frames", name), start + i);
+    await rm(dir, { recursive: true, force: true });
+  }
+  return { records, badLines };
+};
+
+const reviewMotion = async ({
+  rootDir,
+  filmId,
+  scratch,
+  timing,
+  music,
+  stillWarnings,
+  timeoutMs,
+  animatic,
+}: {
+  rootDir: string;
+  filmId: string;
+  scratch: string;
+  timing: FilmTiming;
+  music: ReturnType<typeof FilmMusicSchema.parse> | null;
+  stillWarnings: ReturnType<typeof findStillStretches>;
+  timeoutMs: number;
+  animatic: boolean;
+}) => {
+  const paths = filmPaths(rootDir, filmId);
+  const spec = await loadFilmSpec(rootDir, filmId);
+  const compositionId = filmCompositionIds(filmId).review;
+  const step = Math.max(1, Math.round(spec.render.fps * MOTION_SAMPLE_SECONDS));
+  const frames: number[] = [];
+  for (let frame = 0; frame < timing.durationInFrames; frame += step)
+    frames.push(frame);
+  const samples: { frame: number; signature: Uint8Array }[] = [];
+  const { records, badLines } = await sampleMotionFrames({
+    rootDir,
+    compositionId,
+    scratch,
+    frames,
+    timeoutMs,
+    onImage: async (frame, path, index) => {
+      samples.push({
+        frame,
+        signature: await readFrameSignature({
+          rootDir,
+          imagePath: path,
+          signaturePath: join(scratch, `motion-signature-${index}.png`),
+        }),
+      });
+    },
+  });
+  const curve = buildMotionCurve(samples, spec.render.fps);
+  const compositionSamples: typeof samples = [];
+  const midpoints = compositionSegments(reviewMotionScenes(records), curve).map(
+    (s) => s.frame,
+  );
+  const sampled = new Map(samples.map((sample) => [sample.frame, sample]));
+  for (const frame of midpoints)
+    if (sampled.has(frame)) compositionSamples.push(sampled.get(frame)!);
+  const missingMidpoints = [
+    ...new Set(midpoints.filter((frame) => !sampled.has(frame))),
+  ];
+  if (missingMidpoints.length)
+    await sampleMotionFrames({
+      rootDir,
+      compositionId,
+      scratch,
+      frames: missingMidpoints,
+      timeoutMs,
+      onImage: async (frame, path, index) => {
+        compositionSamples.push({
+          frame,
+          signature: await readFrameSignature({
+            rootDir,
+            imagePath: path,
+            signaturePath: join(scratch, `composition-signature-${index}.png`),
+          }),
+        });
+      },
+    });
+  const preview = join(paths.review, "animatic.mp4");
+  if (animatic)
+    await renderFilmAnimatic({
+      rootDir,
+      compositionId: filmCompositionIds(filmId).film,
+      outputPath: preview,
+      ...spec.render,
+      timeoutMs,
+    });
+  // Sparse stills are not consecutive frames. Only a fresh continuous preview can
+  // support energy comparisons; no preview (or a stale one) remains unknown.
+  const energyUnavailable = await animaticReminder(rootDir, filmId);
+  const energy =
+    energyUnavailable === null
+      ? await decodeMotionEnergy({
+          rootDir,
+          videoPath: preview,
+          scratch,
+          startFrame: resolveFilmBookendFrames(spec).introFrames,
+          durationInFrames: timing.durationInFrames,
+        })
+      : null;
+  const energyAnalysis = analyzeMotionEnergy({
+    samples: energy?.samples ?? null,
+    durationInFrames: timing.durationInFrames,
+    sentences: timing.sentences,
+    accents: music?.onsets?.accents ?? null,
+    unavailableReason: energyUnavailable ?? undefined,
+  });
+  const energyJson = join(paths.review, "motion-energy.json");
+  if (energy)
+    await writeFile(energyJson, JSON.stringify(energy, null, 2) + "\n");
+  const analysis = analyzeMotion({
+    records,
+    frames,
+    curve,
+    compositionSamples,
+    durationInFrames: timing.durationInFrames,
+    fps: spec.render.fps,
+    hasNarration: timing.sentences.length > 0,
+    legacyAudio: await filmHasLegacyAudio(paths.dir),
+    music,
+    stillWarnings,
+  });
+  analysis.motionWarnings.push(...energyAnalysis.motionWarnings);
+  analysis.unknown.push(...energyAnalysis.unknown);
+  const curveJson = join(paths.review, "motion-curve.json");
+  const curveImage = join(paths.review, "motion-curve.png");
+  await writeFile(curveJson, JSON.stringify(curve, null, 2) + "\n");
+  await renderMotionCurve({
+    rootDir,
+    compositionId: FILM_MOTION_CURVE_ID,
+    propsPath: curveJson,
+    outputPath: curveImage,
+    timeoutMs,
+  });
+  const dense = [];
+  const ranges = selectDenseMotionFrames(
+    analysis.motionWarnings,
+    spec.render.fps,
+  );
+  for (const range of ranges) {
+    const directory = join(
+      paths.review,
+      "dense",
+      `${range.rule}-${range.range[0]}-${range.range[1]}`,
+    );
+    await mkdir(directory, { recursive: true });
+    await sampleMotionFrames({
+      rootDir,
+      compositionId,
+      scratch,
+      frames: range.frames,
+      timeoutMs,
+      onImage: async (frame, path) => {
+        await copyFile(path, join(directory, `frame-${frame}.jpeg`));
+      },
+    });
+    dense.push({
+      rule: range.rule,
+      frames: range.range,
+      directory: workspacePath(rootDir, directory),
+      count: range.frames.length,
+    });
+  }
+  const strips = await renderStrongAccentStrips({
+    rootDir,
+    filmId,
+    scratch,
+    ...spec.render,
+    durationInFrames: timing.durationInFrames,
+    accents: music?.onsets?.accents ?? null,
+    timeoutMs,
+    renderFrames: async (frames, onImage) => {
+      await sampleMotionFrames({
+        rootDir,
+        compositionId,
+        scratch,
+        frames,
+        timeoutMs,
+        onImage,
+        scale: Math.min(1, STRONG_ACCENT_STRIP_CELL_WIDTH / spec.render.width),
+      });
+    },
+  });
+  return FilmMotionReviewSchema.parse({
+    motion: {
+      summary: { ...analysis.summary, motionEnergy: energyAnalysis.summary },
+      boundaryChecks: analysis.boundaryChecks,
+      telemetry: analysis.telemetry,
+      badLines,
+      missingFrames: analysis.missingFrames,
+      unknown: analysis.unknown,
+      curve: {
+        json: workspacePath(rootDir, curveJson),
+        image: workspacePath(rootDir, curveImage),
+      },
+      dense,
+      denseSkipped: analysis.motionWarnings.length - ranges.length,
+      animatic:
+        energyUnavailable === null ? workspacePath(rootDir, preview) : null,
+      "strong-accent-strip": strips,
+      energy: energy
+        ? {
+            json: workspacePath(rootDir, energyJson),
+            decodedFrames: energy.decodedFrames,
+            decodeMs: energy.decodeMs,
+          }
+        : null,
+    },
+    motionWarnings: analysis.motionWarnings,
+  });
 };

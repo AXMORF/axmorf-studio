@@ -1,0 +1,398 @@
+[
+  {
+    "fps": 29,
+    "effect": {
+      "id": "legacy",
+      "kind": "riser",
+      "frame": 30,
+      "anchor": "start",
+      "for": "legacy PCM regression",
+      "durationFrames": 7,
+      "params": {}
+    },
+    "sha256": "e79518086b7ebaf658f0fd30686154e2550c37dc3d78e9e29d56f58ccfc0e165"
+  },
+  {
+    "fps": 30,
+    "effect": {
+      "id": "legacy",
+      "kind": "riser",
+      "frame": 30,
+      "anchor": "start",
+      "for": "legacy PCM regression",
+      "durationFrames": 12,
+      "params": {
+        "pitch": 3,
+        "brightness": 0.7,
+        "intensity": 0.4,
+        "tail": 0.8,
+        "stereo": -0.2,
+        "seed": 17
+      }
+    },
+    "sha256": "94d924ffb6b0b700c1bbad659555c72c59010c2d77dfb3217dd6fdb3babc4746"
+  },
+  {
+    "fps": 29,
+    "effect": {
+      "id": "legacy",
+      "kind": "impact",
+      "frame": 30,
+      "anchor": "start",
+      "for": "legacy PCM regression",
+      "durationFrames": 7,
+      "params": {}
+    },
+    "sha256": "b583f449d6c293befa7ff17654a87bb879bbe2088828335fc46c0d77669b8a61"
+  },
+  {
+    "fps": 30,
+    "effect": {
+      "id": "legacy",
+      "kind": "impact",
+      "frame": 30,
+      "anchor": "start",
+      "for": "legacy PCM regression",
+      "durationFrames": 12,
+      "params": {
+        "pitch": 3,
+        "brightness": 0.7,
+        "intensity": 0.4,
+        "tail": 0.8,
+        "stereo": -0.2,
+        "seed": 17
+      }
+    },
+    "sha256": "3313b7648311a765a92491b11cea6858919c8bfe50e2a68712ba11d522b98618"
+  },
+  {
+    "fps": 29,
+    "effect": {
+      "id": "legacy",
+      "kind": "whoosh",
+      "frame": 30,
+      "anchor": "start",
+      "for": "legacy PCM regression",
+      "durationFrames": 7,
+      "params": {}
+    },
+    "sha256": "6dc2accd94f3b2ca2e8e6ed2486a0876afe1e4ff9359e1a50fd39feb187459f4"
+  },
+  {
+    "fps": 30,
+    "effect": {
+      "id": "legacy",
+      "kind": "whoosh",
+      "frame": 30,
+      "anchor": "start",
+      "for": "legacy PCM regression",
+      "durationFrames": 12,
+      "params": {
+        "pitch": 3,
+        "brightness": 0.7,
+        "intensity": 0.4,
+        "tail": 0.8,
+        "stereo": -0.2,
+        "seed": 17
+      }
+    },
+    "sha256": "3434462e5c75074e52fd2d8a7b618a40359232b744145989d586515105a36d07"
+  },
+  {
+    "fps": 29,
+    "effect": {
+      "id": "legacy",
+      "kind": "tick",
+      "frame": 30,
+      "anchor": "start",
+      "for": "legacy PCM regression",
+      "durationFrames": 7,
+      "params": {}
+    },
+    "sha256": "e59d461d2a729eb7efaab8ce3d92ea9b33bdb178fabee73f4379ea39c0e17629"
+  },
+  {
+    "fps": 30,
+    "effect": {
+      "id": "legacy",
+      "kind": "tick",
+      "frame": 30,
+      "anchor": "start",
+      "for": "legacy PCM regression",
+      "durationFrames": 12,
+      "params": {
+        "pitch": 3,
+        "brightness": 0.7,
+        "intensity": 0.4,
+        "tail": 0.8,
+        "stereo": -0.2,
+        "seed": 17
+      }
+    },
+    "sha256": "611ffe874918439f7590b983665a1809a308ff682087f9d8cad4f23816993938"
+  },
+  {
+    "fps": 29,
+    "effect": {
+      "id": "legacy",
+      "kind": "glitch",
+      "frame": 30,
+      "anchor": "start",
+      "for": "legacy PCM regression",
+      "durationFrames": 7,
+      "params": {}
+    },
+    "sha256": "c263e675325ab0e41a4df63702db6a46b3cf640eeadc6486e442e9763febea6e"
+  },
+  {
+    "fps": 30,
+    "effect": {
+      "id": "legacy",
+      "kind": "glitch",
+      "frame": 30,
+      "anchor": "start",
+      "for": "legacy PCM regression",
+      "durationFrames": 12,
+      "params": {
+        "pitch": 3,
+        "brightness": 0.7,
+        "intensity": 0.4,
+        "tail": 0.8,
+        "stereo": -0.2,
+        "seed": 17
+      }
+    },
+    "sha256": "383e2fcb1ec3ae510f8fbef963533f1b694376957848162a4aa64958701902b0"
+  },
+  {
+    "fps": 29,
+    "effect": {
+      "id": "legacy",
+      "kind": "shimmer",
+      "frame": 30,
+      "anchor": "start",
+      "for": "legacy PCM regression",
+      "durationFrames": 7,
+      "params": {}
+    },
+    "sha256": "56928eb68080c8e5fb9775d060a5bc21135df8a7f0cae39ec99bcfeed958604c"
+  },
+  {
+    "fps": 30,
+    "effect": {
+      "id": "legacy",
+      "kind": "shimmer",
+      "frame": 30,
+      "anchor": "start",
+      "for": "legacy PCM regression",
+      "durationFrames": 12,
+      "params": {
+        "pitch": 3,
+        "brightness": 0.7,
+        "intensity": 0.4,
+        "tail": 0.8,
+        "stereo": -0.2,
+        "seed": 17
+      }
+    },
+    "sha256": "fa9eb51eeb8a27c094350fc43baeca826b71b37ea450a556b7e9526dd0a38e0f"
+  },
+  {
+    "fps": 29,
+    "effect": {
+      "id": "legacy",
+      "kind": "swell",
+      "frame": 30,
+      "anchor": "start",
+      "for": "legacy PCM regression",
+      "durationFrames": 7,
+      "params": {}
+    },
+    "sha256": "9392b21664f60d4e275d2dfbe4695622042ddfe72396df90666aefe60b478210"
+  },
+  {
+    "fps": 30,
+    "effect": {
+      "id": "legacy",
+      "kind": "swell",
+      "frame": 30,
+      "anchor": "start",
+      "for": "legacy PCM regression",
+      "durationFrames": 12,
+      "params": {
+        "pitch": 3,
+        "brightness": 0.7,
+        "intensity": 0.4,
+        "tail": 0.8,
+        "stereo": -0.2,
+        "seed": 17
+      }
+    },
+    "sha256": "59cd19af9522e1281180aac516b27910e0967801698bba9b8fd2e7c056bc0be9"
+  },
+  {
+    "fps": 29,
+    "effect": {
+      "id": "legacy",
+      "kind": "thud",
+      "frame": 30,
+      "anchor": "start",
+      "for": "legacy PCM regression",
+      "durationFrames": 7,
+      "params": {}
+    },
+    "sha256": "4f9b7177dc2307009b6711651462c5f93990797ae8221522fe8cf8639c987726"
+  },
+  {
+    "fps": 30,
+    "effect": {
+      "id": "legacy",
+      "kind": "thud",
+      "frame": 30,
+      "anchor": "start",
+      "for": "legacy PCM regression",
+      "durationFrames": 12,
+      "params": {
+        "pitch": 3,
+        "brightness": 0.7,
+        "intensity": 0.4,
+        "tail": 0.8,
+        "stereo": -0.2,
+        "seed": 17
+      }
+    },
+    "sha256": "33e691666e6565e4cc72fd1e7375c499878b2873f4093165173dd8c4d3029f45"
+  },
+  {
+    "fps": 29,
+    "effect": {
+      "id": "legacy",
+      "kind": "paper",
+      "frame": 30,
+      "anchor": "start",
+      "for": "legacy PCM regression",
+      "durationFrames": 7,
+      "params": {}
+    },
+    "sha256": "8119a5f2a2a1484e1e649d98ae2154315e658f93f44099e137b98ddd085b4d54"
+  },
+  {
+    "fps": 30,
+    "effect": {
+      "id": "legacy",
+      "kind": "paper",
+      "frame": 30,
+      "anchor": "start",
+      "for": "legacy PCM regression",
+      "durationFrames": 12,
+      "params": {
+        "pitch": 3,
+        "brightness": 0.7,
+        "intensity": 0.4,
+        "tail": 0.8,
+        "stereo": -0.2,
+        "seed": 17
+      }
+    },
+    "sha256": "cfc2e1689e90f91bfa5b4b5f8fb8808d63ac0678d18430e17c47db4b2d3eeb83"
+  },
+  {
+    "fps": 29,
+    "effect": {
+      "id": "legacy",
+      "kind": "clank",
+      "frame": 30,
+      "anchor": "start",
+      "for": "legacy PCM regression",
+      "durationFrames": 7,
+      "params": {}
+    },
+    "sha256": "eeffaf2f800906688a64c6e7a6e0831c1b1aa67db9e2b2acf9c0899cb23985ea"
+  },
+  {
+    "fps": 30,
+    "effect": {
+      "id": "legacy",
+      "kind": "clank",
+      "frame": 30,
+      "anchor": "start",
+      "for": "legacy PCM regression",
+      "durationFrames": 12,
+      "params": {
+        "pitch": 3,
+        "brightness": 0.7,
+        "intensity": 0.4,
+        "tail": 0.8,
+        "stereo": -0.2,
+        "seed": 17
+      }
+    },
+    "sha256": "04a2c138b7ddba786cef5350a3e8a35fe34b71b05923b636f1af01b01a62b2d4"
+  },
+  {
+    "fps": 29,
+    "effect": {
+      "id": "legacy",
+      "kind": "chime",
+      "frame": 30,
+      "anchor": "start",
+      "for": "legacy PCM regression",
+      "durationFrames": 7,
+      "params": {}
+    },
+    "sha256": "8f00ecb4088813be3f1371422c49b18e9ad6b5271b26e8208d0a45d3d4ef5e15"
+  },
+  {
+    "fps": 30,
+    "effect": {
+      "id": "legacy",
+      "kind": "chime",
+      "frame": 30,
+      "anchor": "start",
+      "for": "legacy PCM regression",
+      "durationFrames": 12,
+      "params": {
+        "pitch": 3,
+        "brightness": 0.7,
+        "intensity": 0.4,
+        "tail": 0.8,
+        "stereo": -0.2,
+        "seed": 17
+      }
+    },
+    "sha256": "b466525d6a104fdfd883b2dfde9d1205c8b485a0605a7a4bc184d86c20f84470"
+  },
+  {
+    "fps": 29,
+    "effect": {
+      "id": "legacy",
+      "kind": "click",
+      "frame": 30,
+      "anchor": "start",
+      "for": "legacy PCM regression",
+      "durationFrames": 7,
+      "params": {}
+    },
+    "sha256": "f52d3c2acf4d81d621ed4a3e6a9b7001b8973210bfc80fb20abf69e3f02e2349"
+  },
+  {
+    "fps": 30,
+    "effect": {
+      "id": "legacy",
+      "kind": "click",
+      "frame": 30,
+      "anchor": "start",
+      "for": "legacy PCM regression",
+      "durationFrames": 12,
+      "params": {
+        "pitch": 3,
+        "brightness": 0.7,
+        "intensity": 0.4,
+        "tail": 0.8,
+        "stereo": -0.2,
+        "seed": 17
+      }
+    },
+    "sha256": "24c2f5ee786c6003d27e092cb34fb250532fababa0e54f28bc57f77eea7206bb"
+  }
+]

@@ -1,3 +1,4 @@
+import { useReviewMotion } from "../../film/review-motion";
 import type { CSSProperties, FC, ReactNode } from "react";
 import { AbsoluteFill, useCurrentFrame } from "remotion";
 
@@ -64,6 +65,15 @@ export const ProducerWorldCamera: FC<ProducerWorldCameraProps> = ({
     worldWidth,
     worldHeight,
   }).center;
+  useReviewMotion({
+    type: "world-camera",
+    moving: shots.some(
+      (shot) =>
+        shot.center[0] !== shots[0].center[0] ||
+        shot.center[1] !== shots[0].center[1] ||
+        (shot.zoom ?? 1) !== (shots[0].zoom ?? 1),
+    ),
+  });
   return (
     <AbsoluteFill style={{ ...style, width, height, overflow: "hidden" }}>
       {layers.map(({ depth, content }, index) => {

@@ -24,7 +24,10 @@ import {
   createExplicitPausePcm,
   measureCanonicalPcmWav,
 } from "../narration/domain/pcm-wav";
-import { computeChunkRequestFingerprint } from "../narration/domain/provider-input";
+import {
+  computeChunkRequestFingerprint,
+  computeProviderAudioFingerprint,
+} from "../narration/domain/provider-input";
 import { masterNarrationBytes } from "../narration/mastering";
 import { writeBinaryFileAtomic } from "../shared/atomic-file";
 import {
@@ -78,7 +81,13 @@ export const buildFilmTiming = ({
     if (sentence.pauseAfterMs) {
       cursor += createExplicitPausePcm(sentence.pauseAfterMs).sampleFrameCount;
     }
-    return { id: sentence.id, text: sentence.text, startFrame, endFrame };
+    return {
+      id: sentence.id,
+      text: sentence.text,
+      ...(sentence.caption === undefined ? {} : { caption: sentence.caption }),
+      startFrame,
+      endFrame,
+    };
   });
   const narrationEndFrame = sentences.at(-1)?.endFrame ?? narrationStartFrame;
   const total = durationInFrames ?? narrationEndFrame + tailFrames;
@@ -126,12 +135,15 @@ export const createFilmVoiceService = async ({
     narration,
   });
   const generate = createGenerator({ resolved });
+  const providerAudioFingerprint = computeProviderAudioFingerprint(
+    resolved.safeDescriptor,
+  );
   const cacheDir = join(rootDir, ".axmorf/cache/voice");
   return {
     speak: async ({ id, text }) => {
       const key = sha256(
         JSON.stringify({
-          provider: snapshot.providerAttemptFingerprint,
+          provider: providerAudioFingerprint,
           speechRate: snapshot.speechRate,
           text,
         }),

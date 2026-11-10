@@ -41,6 +41,18 @@ integrity；`npm publish` 报版本已存在（例如上次运行发布成功但
 
 运行回执（渲染事实、Workspace doctor、lock 与 SHA256SUMS）作为 Actions artifact 保存 30 天，不提交进仓库。
 
+## 创建与升级的 registry 注意事项
+
+registry 使用 npmmirror 且开启 `prefer-offline` 时，创建或升级 Workspace 的安装可能报
+`three@undefined`（`ERESOLVE`）。创建或升级时使用官方 registry 并优先在线元数据：
+
+```bash
+npm_config_registry=https://registry.npmjs.org/ npm_config_prefer_online=true npm create axmorf-studio@next my-video -- --yes
+npm_config_registry=https://registry.npmjs.org/ npm_config_prefer_online=true npx create-axmorf-studio@next upgrade
+```
+
+不要改精确依赖或用 `--force` / `--legacy-peer-deps` 绕过检查。
+
 ## 晋级门（Agent 验收）
 
 用 `next` 版本新建 Workspace，或用 `npx create-axmorf-studio@next upgrade` 升级已有 Workspace，然后只发送一条普通的

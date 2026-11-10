@@ -1,6 +1,8 @@
 import { z } from "zod";
 
 import { createFingerprint } from "./fingerprint";
+import { FilmSoundSpecSchema, validateFilmSoundEffects } from "./film-sfx";
+import { FilmMusicOnsetsSchema, FilmMusicAlignmentSchema } from "./film-score";
 
 /**
  * Direct film contracts. A film is an ordinary Remotion source directory that
@@ -60,6 +62,16 @@ export const countCaptionDisplayHalfUnits = (text: string) =>
     0,
   );
 
+/** Shared by audio estimation, karaoke rendering and advisory review. Keep
+ * punctuation on its preceding clause; ASCII commas/periods may be numbers. */
+export const splitFilmCaptionClauses = (text: string): string[] =>
+  (
+    text.match(/[^，。、；：？！]*[，。、；：？！]+|[^，。、；：？！]+$/gu) ??
+    []
+  )
+    .map((clause) => clause.trim())
+    .filter(Boolean);
+
 export const FILM_SCHEMA_VERSION = 1 as const;
 export const FILM_SPEECH_DUCKING_RAMP_FRAMES = 8;
 export const FILM_COVER_VARIANTS = [
@@ -74,12 +86,28 @@ export const FILM_CONTACT_SHEET_ID = "axmorf-contact-sheet";
 export const minimumReadableFontSize = (width: number, height: number) =>
   Math.round(Math.min(width, height) * 0.024);
 
+/** Default caption size; a 72 half-unit sentence fits on at most two lines. */
+export const resolveFilmCaptionFontSize = (width: number, height: number) =>
+  Math.round(Math.min(width, height) * (width < height ? 0.046 : 0.04));
+
 /** Captions below this read poorly on a phone (about 43px on a 1080-wide frame). */
 export const minimumCaptionFontSize = (width: number, height: number) =>
   Math.round(Math.min(width, height) * 0.04);
 
 export const FILM_REVIEW_MEASUREMENT_MARKER = "AXMORF_REVIEW_MEASUREMENT";
 export const FILM_REVIEW_MAX_TEXTS = 120;
+// Conservative review hints: dense edge coverage, with any confirmed hit reported.
+export const FILM_REVIEW_FOREGROUND_COLUMNS = 20;
+export const FILM_REVIEW_FOREGROUND_ROWS = 7;
+export const FILM_REVIEW_FOREGROUND_OPACITY = 0.3;
+export const FilmReviewForegroundSchema = z
+  .strictObject({
+    samples: z.number().int().positive(),
+    covered: z.number().int().nonnegative(),
+    unknown: z.number().int().nonnegative(),
+  })
+  .refine(({ samples, covered, unknown }) => covered + unknown <= samples);
+export type FilmReviewForeground = z.infer<typeof FilmReviewForegroundSchema>;
 
 export const FilmReviewRectSchema = z.strictObject({
   x: z.number(),
@@ -89,23 +117,70 @@ export const FilmReviewRectSchema = z.strictObject({
 });
 export type FilmReviewRect = z.infer<typeof FilmReviewRectSchema>;
 
+// Bound telemetry to keep review's existing console transport small. Partial
+// measurements remain unknown; this cap is not a film authoring limit.
+export const FILM_REVIEW_MAX_OBJECTS = 120;
+export const FilmReviewGraphicsSchema = z.strictObject({
+  objects: z
+    .array(
+      z.strictObject({
+        id: z.number().int().nonnegative(),
+        label: z.string().min(1).max(160),
+        role: z.enum(["subject", "relation", "background"]),
+        // Legacy telemetry and annotations without kind remain ordinary props.
+        kind: z
+          .enum(["illustration", "diagram", "prop", "card"])
+          .default("prop"),
+        ancestors: z
+          .array(z.number().int().nonnegative())
+          .max(FILM_REVIEW_MAX_OBJECTS),
+        rect: FilmReviewRectSchema,
+      }),
+    )
+    .max(FILM_REVIEW_MAX_OBJECTS),
+  /** Sum of clipped painted-element bounding-box areas, not a silhouette union. */
+  unlabeledArea: z.number().nonnegative(),
+  unlabeledCount: z.number().int().nonnegative(),
+  truncated: z.boolean(),
+  unknown: z.array(z.string().min(1).max(240)).max(20),
+});
+export type FilmReviewGraphics = z.infer<typeof FilmReviewGraphicsSchema>;
+
 /** Internal review telemetry; no DOM or Node dependencies. */
 export const FilmReviewMeasurementSchema = z.strictObject({
   index: z.number().int().nonnegative(),
   frame: z.number().int().nonnegative(),
   width: z.number().int().positive(),
   height: z.number().int().positive(),
+  /** Body frame is inside a FilmSceneTrack overlay or overlap window. */
+  transitionWindow: z.boolean().optional(),
+  /** Actual rendered caption size, or the canvas default between sentences. */
+  captionFontSize: z.number().positive().optional(),
   texts: z
     .array(
       z.strictObject({
         snippet: z.string().min(1).max(24),
         caption: z.boolean(),
+        statusTag: z.boolean().optional(),
         fontSize: z.number().nonnegative(),
         rect: FilmReviewRectSchema,
         captionRect: FilmReviewRectSchema.optional(),
+        foreground: FilmReviewForegroundSchema.optional(),
+        /** Computed sRGB fill, including fill/ancestor alpha. Absent if unmeasurable. */
+        color: z
+          .tuple([
+            z.number().int().min(0).max(255),
+            z.number().int().min(0).max(255),
+            z.number().int().min(0).max(255),
+            z.number().min(0).max(1),
+          ])
+          .optional(),
+        textGroup: z.string().min(1).max(80).optional(),
       }),
     )
     .max(FILM_REVIEW_MAX_TEXTS),
+  /** Optional for older telemetry; absence is unknown, never a clean frame. */
+  graphics: FilmReviewGraphicsSchema.optional(),
   truncated: z.boolean(),
   error: z.string().min(1).max(1_000).optional(),
 });
@@ -135,17 +210,23 @@ export const FilmSentenceSchema = z
   .object({
     id: z.string().min(1).max(32).regex(slugPattern),
     text: z.string().trim().min(1).max(200),
+    /** Screen copy; text remains the pronunciation sent to TTS. */
+    caption: z.string().trim().min(1).max(200).optional(),
     pauseAfterMs: z.number().int().min(0).max(5_000).optional(),
   })
   .strict()
   .superRefine((sentence, context) => {
-    const halfUnits = countCaptionDisplayHalfUnits(sentence.text);
-    if (halfUnits > CAPTION_MAX_DISPLAY_HALF_UNITS) {
-      context.addIssue({
-        code: "custom",
-        path: ["text"],
-        message: `Sentence ${sentence.id} uses ${halfUnits} caption half-units; split it at a natural pause so each sentence fits ${CAPTION_MAX_DISPLAY_HALF_UNITS}.`,
-      });
+    for (const field of ["text", "caption"] as const) {
+      const value = sentence[field];
+      if (value === undefined) continue;
+      const halfUnits = countCaptionDisplayHalfUnits(value);
+      if (halfUnits > CAPTION_MAX_DISPLAY_HALF_UNITS) {
+        context.addIssue({
+          code: "custom",
+          path: [field],
+          message: `Sentence ${sentence.id} uses ${halfUnits} caption half-units; split it at a natural pause so each sentence fits ${CAPTION_MAX_DISPLAY_HALF_UNITS}.`,
+        });
+      }
     }
   });
 export type FilmSentence = z.infer<typeof FilmSentenceSchema>;
@@ -193,7 +274,7 @@ export type FilmMusicTrack = z.infer<typeof FilmMusicTrackSchema>;
 
 export const FilmMusicSpecSchema = z
   .object({
-    /** studio-v2 score recipe without fps; the film fps is injected. */
+    /** studio-v3 (or compatible studio-v2) score without fps; injected from film. */
     score: z.record(z.string(), z.unknown()).optional(),
     /** A registered, licensed audio file instead of a synthesized score. */
     track: FilmMusicTrackSchema.optional(),
@@ -201,6 +282,7 @@ export const FilmMusicSpecSchema = z
     volume: VolumeSchema.default(0.24),
     /** Music volume while narration is speaking. */
     underSpeechVolume: VolumeSchema.default(0.09),
+    mixProfile: z.literal("voiceover").optional(),
     fadeOutFrames: NonNegativeFrameSchema.default(45),
   })
   .strict()
@@ -301,6 +383,7 @@ export const FilmSpecSchema = z
       .default({ narrationStartFrame: 15, tailFrames: 45 }),
     narration: z.array(FilmSentenceSchema).max(200),
     music: FilmMusicSpecSchema.nullable().default(null),
+    sound: FilmSoundSpecSchema.optional(),
     /** Omitted means no bookends; film:new fills it from the Workspace defaults. */
     bookends: FilmBookendsSchema.optional(),
     publish: z
@@ -331,6 +414,17 @@ export const FilmSpecSchema = z
         message: "A film without narration needs timeline.durationInFrames.",
       });
     }
+    if (spec.timeline.durationInFrames !== undefined) {
+      try {
+        validateFilmSoundEffects(spec, spec.timeline.durationInFrames);
+      } catch (error) {
+        context.addIssue({
+          code: "custom",
+          path: ["sound", "effects"],
+          message: (error as Error).message,
+        });
+      }
+    }
   });
 export type FilmSpec = z.infer<typeof FilmSpecSchema>;
 
@@ -350,17 +444,59 @@ export const computeFilmTimingInputFingerprint = (spec: FilmSpec) =>
     },
   });
 
+const scoreUsesSentenceAnchors = (score: FilmMusicSpec["score"]) => {
+  const hasString = (value: unknown, key: string) =>
+    typeof value === "object" &&
+    value !== null &&
+    key in value &&
+    typeof (value as Record<string, unknown>)[key] === "string";
+  const arrangement = score?.arrangement;
+  const sections =
+    typeof arrangement === "object" && arrangement !== null
+      ? (arrangement as { sections?: unknown }).sections
+      : undefined;
+  return (
+    (Array.isArray(sections) &&
+      sections.some((section) => hasString(section, "from"))) ||
+    (Array.isArray(score?.hits) &&
+      score.hits.some((hit) => hasString(hit, "frame"))) ||
+    (Array.isArray(score?.breaks) &&
+      score.breaks.some(
+        (gap) => hasString(gap, "from") || hasString(gap, "to"),
+      )) ||
+    hasString(score?.ending, "landFrame")
+  );
+};
+
 export const computeFilmMusicInputFingerprint = ({
   spec,
   durationInFrames,
+  sentenceFrames,
 }: {
   readonly spec: FilmSpec;
   readonly durationInFrames: number;
+  readonly sentenceFrames?: readonly {
+    readonly id: string;
+    readonly startFrame: number;
+  }[];
 }) =>
   createFingerprint({
     namespace: "film-music-input",
     version: 1,
-    value: { fps: spec.render.fps, durationInFrames, music: spec.music },
+    value: {
+      fps: spec.render.fps,
+      durationInFrames,
+      music: spec.music,
+      ...(scoreUsesSentenceAnchors(spec.music?.score)
+        ? {
+            sentenceFrames:
+              sentenceFrames?.map(({ id, startFrame }) => ({
+                id,
+                startFrame,
+              })) ?? [],
+          }
+        : {}),
+    },
   });
 
 export const FilmTimingSchema = z
@@ -386,10 +522,50 @@ export const FilmTimingSchema = z
         .object({
           id: z.string(),
           text: z.string(),
+          caption: FilmSentenceSchema.shape.caption.refine(
+            (value) =>
+              value === undefined ||
+              countCaptionDisplayHalfUnits(value) <=
+                CAPTION_MAX_DISPLAY_HALF_UNITS,
+            {
+              message: `Caption must fit ${CAPTION_MAX_DISPLAY_HALF_UNITS} display half-units.`,
+            },
+          ),
           startFrame: NonNegativeFrameSchema,
           endFrame: PositiveFrameSchema,
+          /** Optional post-voice estimates; never part of a voice fingerprint. */
+          estimated: z.literal("proportional").optional(),
+          clauses: z
+            .array(
+              z.strictObject({
+                text: z.string().min(1),
+                startFrame: NonNegativeFrameSchema,
+                endFrame: NonNegativeFrameSchema,
+                source: z.enum(["pause", "proportional"]),
+              }),
+            )
+            .min(1)
+            .optional(),
         })
-        .strict(),
+        .strict()
+        .superRefine((sentence, context) => {
+          let end = sentence.startFrame;
+          sentence.clauses?.forEach((clause, index) => {
+            if (
+              clause.startFrame < end ||
+              clause.endFrame < clause.startFrame ||
+              clause.endFrame > sentence.endFrame
+            ) {
+              context.addIssue({
+                code: "custom",
+                path: ["clauses", index],
+                message:
+                  "Clauses must be ordered within their sentence frames.",
+              });
+            }
+            end = clause.endFrame;
+          });
+        }),
     ),
   })
   .strict();
@@ -415,6 +591,10 @@ export const FilmMusicSchema = z
     barFrames: z.array(NonNegativeFrameSchema),
     sectionFrames: z.array(NonNegativeFrameSchema),
     accentFrames: z.array(NonNegativeFrameSchema),
+    onsets: FilmMusicOnsetsSchema.optional(),
+    alignment: FilmMusicAlignmentSchema.optional(),
+    /** Anchored scores have an authored ending and never loop. */
+    loop: z.boolean().optional(),
     /** Present for music.track: checksum of the registered source audio. */
     trackChecksum: Sha256Schema.optional(),
   })
@@ -492,3 +672,251 @@ export const filmFrameFromSamples = (
   const denominator = BigInt(sampleRate);
   return Number((numerator + denominator - 1n) / denominator);
 };
+
+/** Shares readability's warn-level, marker + single-line JSON transport. */
+export const FILM_REVIEW_MOTION_MARKER = "AXMORF_REVIEW_MOTION";
+export const FILM_MOTION_CURVE_ID = "axmorf-motion-curve";
+const ReviewFrameSchema = z.number().int().nonnegative();
+export const FilmReviewMotionSceneSchema = z.strictObject({
+  id: z.string(),
+  chapter: z.string().nullable(),
+  boundaryFrame: ReviewFrameSchema,
+  endFrame: ReviewFrameSchema,
+  enter: z
+    .strictObject({
+      kind: z.string(),
+      mode: z.enum(["overlay", "overlap"]),
+      startFrame: ReviewFrameSchema,
+      endFrame: ReviewFrameSchema,
+    })
+    .nullable(),
+});
+export const FilmReviewMotionEventSchema = z.discriminatedUnion("type", [
+  z.strictObject({
+    type: z.literal("scene-track"),
+    scenes: z.array(FilmReviewMotionSceneSchema),
+  }),
+  z.strictObject({
+    type: z.literal("sound-effects"),
+    cues: z.array(
+      z.strictObject({
+        frame: ReviewFrameSchema,
+        endFrame: ReviewFrameSchema,
+        /** Actual start/end/center anchor; absent in legacy telemetry. */
+        alignmentFrame: ReviewFrameSchema.optional(),
+        sfx: z.string(),
+        for: z.string(),
+      }),
+    ),
+  }),
+  z.strictObject({
+    type: z.literal("recipe"),
+    id: z.string(),
+    preset: z.string().optional(),
+    anticipate: ReviewFrameSchema,
+    move: ReviewFrameSchema,
+    land: ReviewFrameSchema,
+    settle: ReviewFrameSchema,
+  }),
+  z.strictObject({
+    type: z.literal("rhythm-response"),
+    object: z.string().trim().min(1).max(160),
+    kind: z.string().trim().min(1).max(80),
+    scope: z.enum(["object", "global"]),
+    frames: z.array(ReviewFrameSchema),
+  }),
+  z.strictObject({ type: z.literal("world-camera"), moving: z.boolean() }),
+  z.strictObject({
+    type: z.literal("rhythm"),
+    kind: z.enum(["pulse", "narration", "bar-camera", "impact"]),
+    frames: z.array(ReviewFrameSchema),
+  }),
+]);
+export type FilmReviewMotionEvent = z.infer<typeof FilmReviewMotionEventSchema>;
+export const FilmReviewMotionSchema = z.strictObject({
+  index: ReviewFrameSchema,
+  frame: ReviewFrameSchema,
+  events: z.array(FilmReviewMotionEventSchema).max(120),
+  truncated: z.boolean(),
+});
+export type FilmReviewMotion = z.infer<typeof FilmReviewMotionSchema>;
+export const FilmMotionRuleSchema = z.enum([
+  "enter-then-hold",
+  "hard-cut-heavy",
+  "no-sound-effects",
+  "off-beat-cuts",
+  "static-camera",
+  "repeated-composition",
+  "accent-without-visual",
+  "visual-without-sound",
+  "sound-without-visual",
+  "bar-without-change",
+  "accent-underplayed",
+  "beat-sections-static",
+  "narration-static",
+  "beat-response-monotone",
+  "axiom-morph-missing", // Legacy reports only; no longer emitted.
+]);
+export const FilmMotionWarningSchema = z.strictObject({
+  rule: FilmMotionRuleSchema,
+  frames: z.tuple([ReviewFrameSchema, ReviewFrameSchema]),
+  message: z.string(),
+});
+export const FilmMotionCurveSchema = z.strictObject({
+  fps: z.number().positive(),
+  sampleSeconds: z.number().positive(),
+  samples: z.array(
+    z.strictObject({
+      frame: ReviewFrameSchema,
+      difference: z.number().nonnegative(),
+    }),
+  ),
+  seconds: z.array(
+    z.strictObject({
+      second: ReviewFrameSchema,
+      difference: z.number().nonnegative(),
+    }),
+  ),
+  cuts: z.array(
+    z.strictObject({
+      from: ReviewFrameSchema,
+      to: ReviewFrameSchema,
+      frame: ReviewFrameSchema,
+      difference: z.number().nonnegative(),
+    }),
+  ),
+});
+export type FilmMotionCurve = z.infer<typeof FilmMotionCurveSchema>;
+export const FilmMotionReviewSchema = z.strictObject({
+  motion: z.strictObject({
+    summary: z.strictObject({
+      sampledFrames: ReviewFrameSchema,
+      sceneCount: ReviewFrameSchema,
+      cueCount: ReviewFrameSchema,
+      recipeIds: z.array(z.string()),
+      cameraPresets: z.array(z.string()),
+      worldCameraSamples: ReviewFrameSchema,
+      detectedCuts: ReviewFrameSchema,
+      motionEnergy: z
+        .strictObject({
+          sampledFrames: ReviewFrameSchema,
+          p95: z.number().nonnegative(),
+          p99: z.number().nonnegative().optional(),
+          median: z.number().nonnegative().optional(),
+          anticipationThreshold: z.number().nonnegative().optional(),
+          strongAccents: z
+            .array(
+              z.strictObject({
+                frame: ReviewFrameSchema,
+                strength: z.number().min(0).max(1),
+                peak: z.number().nonnegative(),
+                anticipationFrames: ReviewFrameSchema.optional(),
+              }),
+            )
+            .nullable(),
+          speechFrames: ReviewFrameSchema,
+          speechMedian: z.number().nonnegative().nullable(),
+          speechStillFrames: ReviewFrameSchema.optional(),
+          longestSpeechStillRun: z
+            .strictObject({
+              startFrame: ReviewFrameSchema,
+              endFrame: ReviewFrameSchema,
+              frames: ReviewFrameSchema,
+            })
+            .nullable()
+            .optional(),
+          beatFrames: ReviewFrameSchema,
+          beatMedian: z.number().nonnegative().nullable(),
+        })
+        .nullable()
+        .optional(),
+      beatResponses: z
+        .array(
+          z.strictObject({
+            chapter: z.string(),
+            startFrame: ReviewFrameSchema,
+            endFrame: ReviewFrameSchema,
+            kinds: z.array(z.string()),
+            objects: z.array(z.string()),
+            globalKinds: z.array(z.string()),
+          }),
+        )
+        .nullable()
+        .optional(),
+      rhythmSync: z
+        .strictObject({
+          accents: z
+            .strictObject({
+              total: ReviewFrameSchema,
+              matched: ReviewFrameSchema,
+            })
+            .nullable(),
+          landings: z
+            .strictObject({
+              total: ReviewFrameSchema,
+              matched: ReviewFrameSchema,
+            })
+            .nullable(),
+          sounds: z
+            .strictObject({
+              total: ReviewFrameSchema,
+              matched: ReviewFrameSchema,
+            })
+            .nullable(),
+          bars: z
+            .strictObject({
+              total: ReviewFrameSchema,
+              matched: ReviewFrameSchema,
+            })
+            .nullable(),
+        })
+        .optional(),
+    }),
+    boundaryChecks: z.array(
+      z.strictObject({
+        boundaryFrame: ReviewFrameSchema,
+        kind: z.string().nullable(),
+        candidateCutFrames: z
+          .tuple([ReviewFrameSchema, ReviewFrameSchema])
+          .nullable(),
+      }),
+    ),
+    telemetry: z.array(FilmReviewMotionSchema),
+    badLines: ReviewFrameSchema,
+    missingFrames: z.array(ReviewFrameSchema),
+    unknown: z.array(
+      z.strictObject({ rule: FilmMotionRuleSchema, reason: z.string() }),
+    ),
+    curve: z.strictObject({ json: z.string(), image: z.string() }),
+    dense: z.array(
+      z.strictObject({
+        rule: FilmMotionRuleSchema,
+        frames: z.tuple([ReviewFrameSchema, ReviewFrameSchema]),
+        directory: z.string(),
+        count: ReviewFrameSchema,
+      }),
+    ),
+    denseSkipped: ReviewFrameSchema,
+    animatic: z.string().nullable(),
+    "strong-accent-strip": z
+      .array(
+        z.strictObject({
+          frame: ReviewFrameSchema,
+          strength: z.number().min(0.9).max(1),
+          frames: z.array(ReviewFrameSchema).min(1),
+          image: z.string(),
+          message: z.string(),
+        }),
+      )
+      .optional(),
+    energy: z
+      .strictObject({
+        json: z.string(),
+        decodedFrames: ReviewFrameSchema,
+        decodeMs: z.number().nonnegative(),
+      })
+      .nullable()
+      .optional(),
+  }),
+  motionWarnings: z.array(FilmMotionWarningSchema),
+});

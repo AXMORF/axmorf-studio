@@ -3,6 +3,20 @@ import { Composition, Folder } from "remotion";
 
 import { DEFAULT_SCENE_TEMPLATE_AUDIO_PROJECTION } from "./capabilities/scene-templates/registry";
 import { SceneTemplateAudioProjectionSchema } from "./capabilities/scene-templates/template-audio";
+import { BeatResponseGallery } from "./compositions/capability-gallery/BeatResponseGallery";
+import { PaperCollageExample } from "./compositions/capability-gallery/PaperCollageExample";
+import { TextCardReviewGallery } from "./compositions/capability-gallery/TextCardReviewGallery";
+import { GraphicReviewGallery } from "./compositions/capability-gallery/GraphicReviewGallery";
+import { EditorialInvoiceExample } from "./compositions/capability-gallery/EditorialInvoiceExample";
+import { NightObservationExample } from "./compositions/capability-gallery/NightObservationExample";
+import { AxiomStoryGallery } from "./compositions/capability-gallery/AxiomStoryGallery";
+import { SceneTrackGallery } from "./compositions/capability-gallery/SceneTrackGallery";
+import { MusicSyncGallery } from "./compositions/capability-gallery/MusicSyncGallery";
+import {
+  RecipeGallery,
+  RECIPE_GALLERY_IDS,
+  RECIPE_GALLERY_FRAMES,
+} from "./compositions/capability-gallery/RecipeGallery";
 import { CapabilityGallery } from "./compositions/capability-gallery/CapabilityGallery";
 import {
   BrandRevealTemplatePreview,
@@ -44,6 +58,131 @@ export const createRemotionRoot = (
           width={1920}
           height={1080}
         />
+        <Composition
+          id="SceneTrackGallery"
+          component={SceneTrackGallery}
+          durationInFrames={90}
+          fps={30}
+          width={1920}
+          height={1080}
+        />
+        <Composition
+          id="AxiomStoryGallery"
+          component={AxiomStoryGallery}
+          durationInFrames={300}
+          fps={30}
+          width={1920}
+          height={1080}
+        />
+        <Composition
+          id="MusicSyncGallery"
+          component={MusicSyncGallery}
+          defaultProps={{ music: null, sfx: null }}
+          durationInFrames={300}
+          fps={30}
+          width={1920}
+          height={1080}
+        />
+        <Folder name="BeatResponses">
+          <Composition
+            id="BeatResponse-Varied"
+            component={BeatResponseGallery}
+            defaultProps={{ globalOnly: false }}
+            durationInFrames={180}
+            fps={30}
+            width={1920}
+            height={1080}
+          />
+          <Composition
+            id="BeatResponse-GlobalOnly"
+            component={BeatResponseGallery}
+            defaultProps={{ globalOnly: true }}
+            durationInFrames={180}
+            fps={30}
+            width={960}
+            height={540}
+          />
+        </Folder>
+        <Folder name="GraphicReview">
+          <Composition
+            id="GraphicReview-Compliant"
+            component={GraphicReviewGallery}
+            defaultProps={{ invalid: false }}
+            durationInFrames={30}
+            fps={30}
+            width={960}
+            height={540}
+          />
+          <Composition
+            id="GraphicReview-Counterexample"
+            component={GraphicReviewGallery}
+            defaultProps={{ invalid: true }}
+            durationInFrames={30}
+            fps={30}
+            width={960}
+            height={540}
+          />
+        </Folder>
+        <Folder name="TextCardReview">
+          <Composition
+            id="TextCardReview-Diagram"
+            component={TextCardReviewGallery}
+            defaultProps={{ cardOnly: false }}
+            durationInFrames={30}
+            fps={30}
+            width={960}
+            height={540}
+          />
+          <Composition
+            id="TextCardReview-CardOnly"
+            component={TextCardReviewGallery}
+            defaultProps={{ cardOnly: true }}
+            durationInFrames={30}
+            fps={30}
+            width={960}
+            height={540}
+          />
+        </Folder>
+        <Folder name="StyleExamples">
+          <Composition
+            id="PaperCollageExample"
+            component={PaperCollageExample}
+            durationInFrames={180}
+            fps={30}
+            width={1920}
+            height={1080}
+          />
+          <Composition
+            id="EditorialInvoiceExample"
+            component={EditorialInvoiceExample}
+            durationInFrames={120}
+            fps={30}
+            width={1920}
+            height={1080}
+          />
+          <Composition
+            id="NightObservationExample"
+            component={NightObservationExample}
+            durationInFrames={120}
+            fps={30}
+            width={1080}
+            height={1920}
+          />
+        </Folder>
+        <Folder name="Recipes">
+          {RECIPE_GALLERY_IDS.map((recipe) => (
+            <Composition
+              key={recipe}
+              id={`Recipe-${recipe}`}
+              component={RecipeGallery}
+              defaultProps={{ recipe }}
+              durationInFrames={RECIPE_GALLERY_FRAMES}
+              fps={30}
+              width={1920}
+              height={1080}
+            />
+          ))}
+        </Folder>
         <Composition
           id="DefaultIntroPreview"
           component={BrandRevealTemplatePreview}

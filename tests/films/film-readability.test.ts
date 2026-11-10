@@ -15,6 +15,7 @@ import {
 import {
   analyzeReviewReadability,
   extractReviewMeasurements,
+  foregroundCoverage,
 } from "../../scripts/films/readability";
 
 type Text = FilmReviewMeasurement["texts"][number];
@@ -376,4 +377,195 @@ test("captions shrunk to fit one line are flagged once; default-size captions ar
     warnings[0]?.message ?? "",
     /31px \(minimum 43px.*wrap to two lines/u,
   );
+});
+
+test("foreground reports any confirmed coverage even with uncertain samples, skips captions and retains unknown tests", () => {
+  const result = analyze([
+    text({
+      snippet: "covered",
+      foreground: { samples: 30, covered: 6, unknown: 0 },
+    }),
+    text({
+      snippet: "below",
+      foreground: { samples: 30, covered: 5, unknown: 0 },
+    }),
+    text({
+      snippet: "caption",
+      caption: true,
+      fontSize: 50,
+      foreground: { samples: 30, covered: 30, unknown: 0 },
+    }),
+    text({
+      snippet: "pointer-events:none",
+      foreground: { samples: 30, covered: 20, unknown: 1 },
+    }),
+    text({ snippet: "legacy" }),
+  ]);
+  assert.deepEqual(
+    result.readabilityWarnings.map((w) => [w.rule, w.snippet]),
+    ["covered", "below", "pointer-events:none"].map((snippet) => [
+      "text-under-foreground",
+      snippet,
+    ]),
+  );
+  assert.equal(
+    result.readabilityWarnings[0].measurements[0].foregroundCoverageRatio,
+    0.2,
+  );
+  assert.match(result.readabilityWarnings[0].message, /20%.*frames 10/);
+  assert.deepEqual(
+    result.readability.unknown
+      .filter((u) => u.rule === "text-under-foreground")
+      .map((u) => u.snippet),
+    ["pointer-events:none", "legacy"],
+  );
+  assert.equal(foregroundCoverage({ samples: 30, covered: 0, unknown: 0 }), 0);
+  assert.equal(
+    foregroundCoverage({ samples: 30, covered: 6, unknown: 1 }),
+    0.2,
+  );
+  assert.equal(foregroundCoverage(), null);
+});
+
+test("foreground hints merge frame evidence and ignore offscreen text", () => {
+  const covered = { samples: 30, covered: 9, unknown: 0 };
+  const result = analyzeReviewReadability({
+    output: [
+      line(record({ texts: [text({ foreground: covered })] })),
+      line(
+        record({ index: 1, frame: 20, texts: [text({ foreground: covered })] }),
+      ),
+    ].join("\n"),
+    frames: [10, 20],
+    width: 1080,
+    height: 1920,
+  });
+  assert.deepEqual(result.readabilityWarnings[0].frames, [10, 20]);
+  assert.equal(
+    analyze([
+      text({
+        foreground: covered,
+        rect: { x: 1080, y: 0, width: 100, height: 20 },
+      }),
+    ]).readabilityWarnings.length,
+    0,
+  );
+});
+
+test("foreground telemetry rejects impossible sample counts, supports old records", () => {
+  for (const foreground of [
+    { samples: 0, covered: 0, unknown: 0 },
+    { samples: 30, covered: 31, unknown: 0 },
+    { samples: 30, covered: 20, unknown: 11 },
+    { samples: 30, covered: -1, unknown: 0 },
+  ])
+    assert.equal(
+      FilmReviewMeasurementSchema.safeParse(
+        record({ texts: [text({ foreground })] }),
+      ).success,
+      false,
+    );
+  assert.equal(
+    FilmReviewMeasurementSchema.safeParse(record({ texts: [text()] })).success,
+    true,
+  );
+});
+
+test("small-status-tag measures both words against 70% of actual captions without affecting other text or legacy logs", () => {
+  const result = analyzeReviewReadability({
+    output: [
+      line(
+        record({
+          captionFontSize: 60,
+          texts: [
+            text({ snippet: "main", statusTag: true, fontSize: 41.999 }),
+            text({ snippet: "detail", statusTag: true, fontSize: 34 }),
+            text({ snippet: "boundary", statusTag: true, fontSize: 42 }),
+            text({ snippet: "ordinary", fontSize: 34 }),
+            text({ snippet: "caption", caption: true, fontSize: 60 }),
+            text({
+              snippet: "offscreen",
+              statusTag: true,
+              fontSize: 20,
+              rect: { x: 1080, y: 0, width: 100, height: 20 },
+            }),
+          ],
+        }),
+      ),
+      line(
+        record({
+          index: 1,
+          frame: 20,
+          captionFontSize: 48,
+          texts: [text({ snippet: "detail", statusTag: true, fontSize: 33.6 })],
+        }),
+      ),
+    ].join("\n"),
+    frames: [10, 20],
+    width: 1080,
+    height: 1920,
+  });
+  const hints = result.readabilityWarnings.filter(
+    (w) => w.rule === "small-status-tag",
+  );
+  assert.deepEqual(
+    hints.map((w) => [w.snippet, w.frames]),
+    [
+      ["main", [10]],
+      ["detail", [10]],
+    ],
+  );
+  assert.equal(hints[0].measurements[0].minimumFontSize, 42);
+  assert.match(hints[0].message, /at least 70%/);
+  assert.equal(analyze([text({ fontSize: 30 })]).readabilityWarnings.length, 0);
+  assert.equal(
+    FilmReviewMeasurementSchema.safeParse(
+      record({
+        captionFontSize: 48,
+        texts: [text({ statusTag: true })],
+      }),
+    ).success,
+    true,
+  );
+  assert.equal(
+    FilmReviewMeasurementSchema.safeParse(record({ captionFontSize: 0 }))
+      .success,
+    false,
+  );
+});
+
+test("status hints use canvas caption default between sentences and stay separate from the body minimum", () => {
+  const result = analyze([
+    text({ snippet: "tag", statusTag: true, fontSize: 34 }),
+    text({ snippet: "tiny-tag", statusTag: true, fontSize: 20 }),
+  ]);
+  assert.deepEqual(
+    result.readabilityWarnings.map((w) => [w.rule, w.snippet]),
+    [
+      ["small-status-tag", "tag"],
+      ["small-status-tag", "tiny-tag"],
+      ["small-text", "tiny-tag"],
+    ],
+  );
+});
+
+test("foreground messages mark only frames inside overlay/overlap windows and preserve legacy records", () => {
+  const texts = [
+    text({ foreground: { samples: 140, covered: 1, unknown: 0 } }),
+  ];
+  const result = analyzeReviewReadability({
+    output: [
+      line(record({ texts })),
+      line(record({ index: 1, frame: 20, texts, transitionWindow: true })),
+      line(record({ index: 2, frame: 21, texts, transitionWindow: true })),
+    ].join("\n"),
+    frames: [10, 20, 21],
+    width: 1080,
+    height: 1920,
+  });
+  const warning = result.readabilityWarnings[0];
+  assert.deepEqual(warning.frames, [10, 20, 21]);
+  assert.match(warning.message, /转场窗口内：frames 20, 21/u);
+  assert.equal(warning.measurements[0].transitionWindow, undefined);
+  assert.equal(warning.measurements[1].transitionWindow, true);
 });

@@ -18,6 +18,10 @@
 
 制作一部片的方法由 Workspace 里的 `axmorf-film` Skill 负责（仓库副本：
 [`.agents/skills/axmorf-film/SKILL.md`](../.agents/skills/axmorf-film/SKILL.md)）。
+分镜与镜头路线见 [画面手艺](../.agents/skills/axmorf-film/references/craft.md)，
+具体用法见 [配方目录](../.agents/skills/axmorf-film/references/recipes.md)、
+[音效计划](../.agents/skills/axmorf-film/references/sound.md) 和
+[横竖屏示例](../.agents/skills/axmorf-film/references/examples.md)。
 文档冲突时先用 executable code/tests 确认 repo truth，再修正文档；不能把目标写成实现。
 
 ## 操作与维护指南
@@ -33,7 +37,7 @@
 - `evidence/` 记录发生时的验收证据，不定义 current runtime；例如
   [Edge TTS 请求节奏诊断](evidence/2026-10-15-edge-tts-pacing.md)。
 - `promotions/` 保存实施中的方案：[Direct Film 生产方案](promotions/2026-10-14-direct-film-production.md)
-  （0.3.0 发布后归档）、[审片渲染实测可读性提示](promotions/2026-10-20-review-readability-measurement.md)。
+  （0.3.0 发布后归档）、[镜头、转场与声音](promotions/2026-11-06-cinematic-motion-and-sound.md)、[审片渲染实测可读性提示](promotions/2026-10-20-review-readability-measurement.md)。
 - [archive/](archive/README.md) 保存已完成或被取代的计划、0.2.0 之前的状态历史，以及 0.3.0 删除的
   Project production 主链文档与证据，仅供追溯。
 

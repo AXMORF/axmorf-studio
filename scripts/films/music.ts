@@ -7,6 +7,8 @@ import {
   computeFilmTimingInputFingerprint,
   FilmAssetsSchema,
   FilmMusicSchema,
+  FilmMusicAlignmentSchema,
+  type FilmMusicOnsets,
   FilmTimingSchema,
   resolveSceneMusicTiming,
   SynthesizedMusicTimelineSchema,
@@ -15,6 +17,11 @@ import {
   type FilmTiming,
 } from "@axmorf/studio/contracts";
 
+import {
+  SCORE_ANCHOR_TOLERANCE_FRAMES,
+  scoreOnsets,
+  usesStoryboardScore,
+} from "./score/storyboard-score.mjs";
 import { generateScore, master } from "./score/synth-score.mjs";
 import { writeBinaryFileAtomic } from "../shared/atomic-file";
 import {
@@ -36,6 +43,8 @@ import {
   TRACK_SAMPLE_RATE,
   type TrackDecoder,
 } from "./music-track";
+
+import { applyFilmMusicMixProfile } from "./music-mix";
 
 export type ScoreRenderer = (recipe: Record<string, unknown>) => {
   readonly timeline: Record<string, unknown> & { durationInFrames: number };
@@ -82,7 +91,7 @@ export const projectFilmMusicGrid = ({
   readonly durationInFrames: number;
 }) => {
   const local = resolveSceneMusicTiming({
-    timeline: SynthesizedMusicTimelineSchema.parse(timeline),
+    timeline: parseScoreTimeline(timeline as Record<string, unknown>),
     sceneStartFrame: 0,
     durationInFrames: durationInFrames - startFrame,
   });
@@ -106,14 +115,18 @@ export const runFilmMusic = async ({
   readonly rootDir: string;
   readonly filmId: string;
   readonly renderScore?: ScoreRenderer;
-  readonly masterScore?: (raw: Buffer, directory: string) => Buffer;
+  readonly masterScore?: (
+    raw: Buffer,
+    directory: string,
+    exactOnsets?: boolean,
+  ) => Buffer;
   readonly decodeTrack?: TrackDecoder;
 }) =>
   withWorkspaceLock(rootDir, "film-music", async () => {
     const spec = await loadFilmSpec(rootDir, filmId);
     if (spec.music === null) {
       throw new Error(
-        "film.json has no music; add music.score (studio-v2) or music.track (a registered audio file) first.",
+        "film.json has no music; add music.score (studio-v3, or compatible studio-v2) or music.track (a registered audio file) first.",
       );
     }
     const timing = await loadCurrentFilmTiming(rootDir, spec);
@@ -121,7 +134,12 @@ export const runFilmMusic = async ({
     if (startFrame >= timing.durationInFrames) {
       throw new Error("music.startFrame is after the end of the film.");
     }
-    const mastered = (raw: Buffer) => masterInScratch(raw, masterScore);
+    const mastered = (raw: Buffer, exactOnsets = false) =>
+      masterInScratch(
+        applyFilmMusicMixProfile(raw, spec.music!.mixProfile),
+        masterScore,
+        exactOnsets,
+      );
     const source =
       spec.music.track !== undefined
         ? await prepareTrack({
@@ -135,6 +153,7 @@ export const runFilmMusic = async ({
         : await prepareScore({
             spec,
             music: spec.music,
+            timing,
             durationInFrames: timing.durationInFrames,
             renderScore,
             mastered,
@@ -152,6 +171,7 @@ export const runFilmMusic = async ({
       inputFingerprint: computeFilmMusicInputFingerprint({
         spec,
         durationInFrames: timing.durationInFrames,
+        sentenceFrames: timing.sentences,
       }),
       publicPath: workspacePath(rootDir, paths.musicWav),
       checksum: sha256(source.audio),
@@ -163,6 +183,9 @@ export const runFilmMusic = async ({
       bpm: source.bpm,
       beatsPerBar: source.beatsPerBar,
       ...source.grid,
+      ...(source.onsets ? { onsets: source.onsets } : {}),
+      ...(source.alignment ? { alignment: source.alignment } : {}),
+      ...(source.loop === false ? { loop: false } : {}),
       ...(source.trackChecksum ? { trackChecksum: source.trackChecksum } : {}),
     });
     await writeJsonFile(paths.music, music);
@@ -188,6 +211,8 @@ export const runFilmMusic = async ({
       sectionFrames: music.sectionFrames,
       accentFrames: music.accentFrames,
       barFrames: music.barFrames,
+      ...(source.alignment ? { alignment: source.alignment } : {}),
+      ...(source.onsets ? { onsets: source.onsets } : {}),
     } as const;
   });
 
@@ -198,16 +223,24 @@ type PreparedMusic = {
   readonly beatsPerBar: number;
   readonly grid: ReturnType<typeof projectFilmMusicGrid>;
   readonly trackChecksum?: string;
+  readonly onsets?: FilmMusicOnsets;
+  readonly alignment?: ReturnType<typeof FilmMusicAlignmentSchema.parse>;
+  readonly loop?: boolean;
   readonly notes: readonly string[];
 };
 
 const masterInScratch = async (
   raw: Buffer,
-  masterScore: (raw: Buffer, directory: string) => Buffer,
+  masterScore: (
+    raw: Buffer,
+    directory: string,
+    exactOnsets?: boolean,
+  ) => Buffer,
+  exactOnsets = false,
 ) => {
   const scratch = await mkdtemp(join(tmpdir(), "axmorf-film-music-"));
   try {
-    return masterScore(raw, scratch);
+    return masterScore(raw, scratch, exactOnsets);
   } finally {
     await rm(scratch, { recursive: true, force: true });
   }
@@ -217,22 +250,38 @@ const prepareScore = async ({
   spec,
   music,
   durationInFrames,
+  timing,
   renderScore,
   mastered,
 }: {
   readonly spec: FilmSpec;
   readonly music: FilmMusicSpec;
   readonly durationInFrames: number;
+  readonly timing: FilmTiming;
   readonly renderScore: ScoreRenderer;
-  readonly mastered: (raw: Buffer) => Promise<Buffer>;
+  readonly mastered: (raw: Buffer, exactOnsets?: boolean) => Promise<Buffer>;
 }): Promise<PreparedMusic> => {
-  const { timeline, audio: raw } = renderScore({
-    ...music.score,
+  const recipe = resolveFilmScoreRecipe({
+    music,
+    timing,
     fps: spec.render.fps,
   });
-  const audio = await mastered(raw);
+  const { timeline, audio: raw } = renderScore(recipe);
+  const audio = await mastered(raw, timeline.engine === "studio-v3");
   const scoreTimeline = { ...timeline, audioChecksum: sha256(audio) };
-  const parsedTimeline = SynthesizedMusicTimelineSchema.parse(scoreTimeline);
+  const parsedTimeline = parseScoreTimeline(scoreTimeline);
+  const alignment =
+    timeline.alignment === undefined
+      ? undefined
+      : FilmMusicAlignmentSchema.parse(timeline.alignment);
+  const absoluteAlignment = alignment && {
+    ...alignment,
+    boundaries: alignment.boundaries.map((boundary) => ({
+      ...boundary,
+      requestedFrame: boundary.requestedFrame + music.startFrame,
+      actualFrame: boundary.actualFrame + music.startFrame,
+    })),
+  };
   return {
     audio,
     durationInFrames: parsedTimeline.durationInFrames,
@@ -243,7 +292,189 @@ const prepareScore = async ({
       startFrame: music.startFrame,
       durationInFrames,
     }),
-    notes: [],
+    onsets: projectFilmMusicOnsets({
+      timeline,
+      startFrame: music.startFrame,
+      durationInFrames,
+    }),
+    ...(absoluteAlignment ? { alignment: absoluteAlignment } : {}),
+    ...(timeline.loop === false ? { loop: false } : {}),
+    notes:
+      alignment?.boundaries
+        .filter(
+          (boundary) =>
+            Math.abs(boundary.residualFrames) > SCORE_ANCHOR_TOLERANCE_FRAMES,
+        )
+        .map(
+          (boundary) =>
+            `Section ${boundary.sectionIndex} misses its anchor by ${boundary.residualFrames} frames; adjust the authored score anchors or widen bpmRange; keep locked picture and narration fixed.`,
+        ) ?? [],
+  };
+};
+
+/** Retain the frozen timeline contract; storyboard controls are validated by the engine. */
+const parseScoreTimeline = (timeline: Record<string, unknown>) =>
+  SynthesizedMusicTimelineSchema.parse(
+    Object.fromEntries(
+      Object.entries(timeline).filter(
+        ([key]) =>
+          ![
+            "loop",
+            "alignment",
+            "hits",
+            "breaks",
+            "ending",
+            "musicWindowInFrames",
+            "fills",
+            "accents",
+          ].includes(key),
+      ),
+    ),
+  );
+
+export const projectFilmMusicOnsets = ({
+  timeline,
+  startFrame,
+  durationInFrames,
+}: {
+  readonly timeline: Record<string, unknown>;
+  readonly startFrame: number;
+  readonly durationInFrames: number;
+}): FilmMusicOnsets => {
+  const local = scoreOnsets(timeline);
+  const cycleFrames = timeline.durationInFrames as number;
+  const offsets: number[] = [];
+  for (
+    let offset = startFrame;
+    offset < durationInFrames;
+    offset += cycleFrames
+  ) {
+    offsets.push(offset);
+    if (timeline.loop === false) break;
+  }
+  const frames = Object.fromEntries(
+    (["kick", "snare", "clap", "hat", "bass", "hits", "sections"] as const).map(
+      (type) => {
+        const projected: number[] = [];
+        for (const offset of offsets) {
+          for (const frame of local[type])
+            if (offset + frame < durationInFrames)
+              projected.push(offset + frame);
+        }
+        return [type, [...new Set(projected)].sort((a, b) => a - b)];
+      },
+    ),
+  ) as Pick<
+    FilmMusicOnsets,
+    "kick" | "snare" | "clap" | "hat" | "bass" | "hits" | "sections"
+  >;
+  const intervals = (windows: { from: number; to: number }[]) =>
+    offsets.flatMap((offset) =>
+      windows
+        .map(({ from, to }) => ({
+          from: from + offset,
+          to: Math.min(to + offset, durationInFrames),
+        }))
+        .filter(({ from, to }) => from < to),
+    );
+  return {
+    ...frames,
+    ...(local.fills ? { fills: intervals(local.fills) } : {}),
+    ...(local.breaks ? { breaks: intervals(local.breaks) } : {}),
+    ...(local.accents
+      ? {
+          accents: offsets.flatMap((offset) =>
+            local
+              .accents!.map(({ frame, strength }) => ({
+                frame: frame + offset,
+                strength,
+              }))
+              .filter(({ frame }) => frame < durationInFrames),
+          ),
+        }
+      : {}),
+  };
+};
+
+/** Resolve storyboard anchors against measured speech without changing that clock. */
+export const resolveFilmScoreRecipe = ({
+  music,
+  timing,
+  fps,
+}: {
+  readonly music: FilmMusicSpec;
+  readonly timing: FilmTiming;
+  readonly fps: number;
+}): Record<string, unknown> => {
+  const score = music.score!;
+  if (!usesStoryboardScore(score)) return { ...score, fps };
+  const window = timing.durationInFrames - music.startFrame;
+  const localFrame = (value: unknown, label: string, allowEnd = false) => {
+    const absolute =
+      typeof value === "string"
+        ? timing.sentences.find((sentence) => sentence.id === value)?.startFrame
+        : value;
+    if (
+      typeof absolute !== "number" ||
+      !Number.isSafeInteger(absolute) ||
+      absolute < music.startFrame ||
+      absolute > timing.durationInFrames ||
+      (!allowEnd && absolute === timing.durationInFrames)
+    )
+      throw new Error(
+        `Invalid ${label}: use a measured sentence id or frame within the film music window.`,
+      );
+    return absolute - music.startFrame;
+  };
+  const arrangement = score.arrangement as Record<string, unknown> | undefined;
+  return {
+    ...score,
+    fps,
+    durationInFrames: window,
+    ...(arrangement && Array.isArray(arrangement.sections)
+      ? {
+          arrangement: {
+            ...arrangement,
+            sections: arrangement.sections.map(
+              (section: Record<string, unknown>) =>
+                section.from === undefined
+                  ? section
+                  : {
+                      ...section,
+                      from: localFrame(section.from, "section from"),
+                    },
+            ),
+          },
+        }
+      : {}),
+    ...(Array.isArray(score.hits)
+      ? {
+          hits: score.hits.map((hit: Record<string, unknown>) => ({
+            ...hit,
+            frame: localFrame(hit.frame, "hit frame"),
+          })),
+        }
+      : {}),
+    ...(Array.isArray(score.breaks)
+      ? {
+          breaks: score.breaks.map((gap: Record<string, unknown>) => ({
+            ...gap,
+            from: localFrame(gap.from, "break from"),
+            to: localFrame(gap.to, "break to", true),
+          })),
+        }
+      : {}),
+    ...(score.ending && typeof score.ending === "object"
+      ? {
+          ending: {
+            ...score.ending,
+            landFrame: localFrame(
+              (score.ending as Record<string, unknown>).landFrame,
+              "ending landFrame",
+            ),
+          },
+        }
+      : {}),
   };
 };
 

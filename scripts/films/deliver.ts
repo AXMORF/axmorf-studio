@@ -27,6 +27,8 @@ import { loadCurrentFilmTiming } from "./music";
 import { readWorkspaceRenderTimeoutMs } from "./render-timeout";
 import { generateFilmRegistry } from "./registry";
 
+import { animaticReminder } from "./motion-files";
+
 export type FilmDeliveryMedia = Readonly<{
   renderVideo: typeof renderFilmVideo;
   renderStill: typeof renderFilmStill;
@@ -85,6 +87,10 @@ export const deliverFilm = async ({
     const spec = await loadFilmSpec(rootDir, filmId);
     const timing = await loadCurrentFilmTiming(rootDir, spec);
     const paths = filmPaths(rootDir, filmId);
+    const previewReminder = await animaticReminder(rootDir, filmId).catch(
+      (error: unknown) =>
+        `Animatic freshness could not be checked: ${error instanceof Error ? error.message : String(error)} (advisory only).`,
+    );
     const ids = filmCompositionIds(paths.id);
     const { introFrames, outroFrames } = resolveFilmBookendFrames(spec);
     // The delivered video adds the system bookends around the authored body.
@@ -210,6 +216,9 @@ export const deliverFilm = async ({
         previousDelivery:
           archived === null ? null : workspacePath(rootDir, archived),
         warnings: report.warnings,
+        ...(previewReminder === null
+          ? {}
+          : { animaticReminder: previewReminder }),
       } as const;
     } finally {
       await rm(staging, { recursive: true, force: true });

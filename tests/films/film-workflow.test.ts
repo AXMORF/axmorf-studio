@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import {
+  copyFile,
   mkdir,
   mkdtemp,
   readFile,
@@ -100,6 +101,46 @@ const silentSpeech = (seconds: number) =>
 const fakeVoice = async () => ({
   speak: async ({ text }: { text: string }) => silentSpeech(text.length / 4),
   master: async (wav: Buffer) => wav,
+});
+
+test("copied generated timing and narration are outputs, not the provider-specific sentence cache", async (context) => {
+  const spec = {
+    timeline: { narrationStartFrame: 0, tailFrames: 30 },
+    narration: [{ id: "a", text: "同一份剧本。" }],
+  };
+  const source = await createWorkspace(context);
+  const sourcePaths = await writeFilm(source, "copied-voice", { spec });
+  await runFilmVoice({
+    rootDir: source,
+    filmId: "copied-voice",
+    createService: fakeVoice,
+  });
+  const target = await createWorkspace(context);
+  const targetPaths = await writeFilm(target, "copied-voice", { spec });
+  await mkdir(targetPaths.publicDir, { recursive: true });
+  await copyFile(sourcePaths.timing, targetPaths.timing);
+  await copyFile(sourcePaths.narrationWav, targetPaths.narrationWav);
+  const before = JSON.parse(await readFile(targetPaths.timing, "utf8"));
+  let calls = 0;
+  await runFilmVoice({
+    rootDir: target,
+    filmId: "copied-voice",
+    createService: async () => ({
+      speak: async () => {
+        calls++;
+        return silentSpeech(1);
+      },
+      master: async (wav) => wav,
+    }),
+  });
+  const after = JSON.parse(await readFile(targetPaths.timing, "utf8"));
+  assert.equal(
+    calls,
+    1,
+    "film:voice must use the current voice service, not silently retain an old take",
+  );
+  assert.equal(before.inputFingerprint, after.inputFingerprint);
+  assert.notEqual(before.narration.checksum, after.narration.checksum);
 });
 
 test("voice measures each sentence, writes narration and timing, and registers the film", async (context) => {
@@ -251,8 +292,9 @@ test("static small-text uses the shared review threshold and preserves its messa
 
 test("the Skill's example segments pass film:check inside a film", async (context) => {
   const guides = [
-    { path: "references/examples.md", segments: 3 },
+    { path: "references/examples.md", segments: 2 },
     { path: "references/styles/anime-op.md", segments: 1 },
+    { path: "references/styles/paper-collage.md", segments: 1 },
   ];
   const examples: string[] = [];
   for (const guide of guides) {
@@ -268,10 +310,17 @@ test("the Skill's example segments pass film:check inside a film", async (contex
   }
   const root = await createWorkspace(context);
   for (const [index, example] of examples.entries()) {
-    const segment = example.match(/export const (\w+Segment)/u)?.[1];
-    assert.ok(segment, `example ${index} exports a segment`);
+    const component = example.match(
+      /export const (\w+(?:Segment|Example))/u,
+    )?.[1];
+    assert.ok(component, `example ${index} exports a segment or example`);
+    const segment = component.endsWith("Segment");
     const filmId = `example-film-${index}`;
     await writeFilm(root, filmId, {
+      spec:
+        component === "EditorialInvoiceExample"
+          ? { render: { width: 1920, height: 1080, fps: 30 } }
+          : {},
       film: `${example}
 // Aliased so examples may import the same names themselves.
 import { AbsoluteFill as ExampleFill, Sequence as ExampleSequence } from "remotion";
@@ -286,7 +335,7 @@ const Film = () => {
   return (
     <ExampleFill>
       <ExampleSequence durationInFrames={durationInFrames}>
-        <${segment} durationInFrames={durationInFrames} />
+        <${component}${segment ? " durationInFrames={durationInFrames}" : ""} />
       </ExampleSequence>
       <ExampleSoundtrack />
       <ExampleCaptions />
@@ -342,6 +391,7 @@ test("deliver replaces the delivery only after every file renders and keeps the 
     now: () => new Date("2026-10-14T01:00:00Z"),
   });
   assert.equal(first.status, "film-delivered");
+  assert.match(first.animaticReminder!, /Animatic is missing/u);
   assert.equal(first.previousDelivery, null);
   assert.deepEqual(calls, [
     "video",
@@ -509,6 +559,159 @@ const withListChunk = (wav: Buffer) => {
   return out;
 };
 
+test("film sfx CLI freezes a licensed plan in the registry and check rejects stale or altered projections", async (context) => {
+  const { runFilmCli } = await import("../../scripts/films/cli");
+  const root = await createWorkspace(context);
+  const filmId = "planned-sound";
+  const effect = {
+    id: "arrive",
+    kind: "impact",
+    frame: 30,
+    durationFrames: 12,
+    anchor: "start",
+    for: "evidence lands at f30",
+  };
+  const paths = await writeFilm(root, filmId, {
+    spec: { sound: { effects: [effect] } },
+    film: FILM_SOURCE.replace(
+      "  FilmCaptions,",
+      "  FilmCaptions,\n  FilmSoundEffects,",
+    ).replace(
+      "      <FilmSoundtrack />",
+      "      <FilmSoundtrack />\n      <FilmSoundEffects />",
+    ),
+  });
+  await runFilmVoice({ rootDir: root, filmId, createService: fakeVoice });
+  const missing = await checkFilm({ rootDir: root, filmId });
+  assert.deepEqual(
+    missing.errors.map(({ rule }) => rule),
+    ["sfx-stale"],
+  );
+  const output: string[] = [];
+  const generate = () =>
+    runFilmCli(["sfx", "--film", filmId], {
+      rootDir: root,
+      env: {},
+      stdout: (line) => output.push(line),
+    });
+  await generate();
+  assert.equal(JSON.parse(output.at(-1)!).status, "film-sfx-ready");
+  assert.equal(JSON.parse(output.at(-1)!).generated, 1);
+  assert.deepEqual((await checkFilm({ rootDir: root, filmId })).errors, []);
+  const registry = await readFile(join(root, "src/films/index.ts"), "utf8");
+  assert.match(
+    registry,
+    /import sfx0 from "\.\/planned-sound\/generated\/sfx\.json"/u,
+  );
+  assert.match(registry, /sfx: sfx0/u);
+
+  await generate();
+  assert.equal(JSON.parse(output.at(-1)!).cached, 1);
+  const spec = JSON.parse(await readFile(paths.spec, "utf8"));
+  await writeFile(
+    paths.spec,
+    JSON.stringify({ ...spec, sound: { effects: [{ ...effect, frame: 35 }] } }),
+  );
+  const stale = await checkFilm({ rootDir: root, filmId });
+  assert.deepEqual(
+    stale.errors.map(({ rule }) => rule),
+    ["sfx-stale"],
+  );
+  assert.match(stale.errors[0]!.message, /film:sfx/u);
+  await generate();
+
+  const wavPath = join(paths.sfxDir, "arrive.wav");
+  const wav = await readFile(wavPath);
+  wav[100] ^= 0x01;
+  await writeFile(wavPath, Uint8Array.from(wav));
+  assert.deepEqual(
+    (await checkFilm({ rootDir: root, filmId })).errors.map(({ rule }) => rule),
+    ["sfx-stale"],
+  );
+  await generate();
+  const sfx = JSON.parse(await readFile(paths.sfx, "utf8"));
+  sfx.effects[0].startFrame += 1;
+  await writeFile(paths.sfx, JSON.stringify(sfx));
+  const misaligned = await checkFilm({ rootDir: root, filmId });
+  assert.deepEqual(
+    misaligned.errors.map(({ rule }) => rule),
+    ["sfx-stale"],
+  );
+  assert.match(misaligned.errors[0]!.message, /alignment/u);
+  await generate();
+  const assets = JSON.parse(await readFile(paths.assets, "utf8"));
+  assets.assets = [];
+  await writeFile(paths.assets, JSON.stringify(assets));
+  const unlicensed = await checkFilm({ rootDir: root, filmId });
+  assert.deepEqual(
+    unlicensed.errors.map(({ rule }) => rule),
+    ["sfx-stale"],
+  );
+  assert.match(unlicensed.errors[0]!.message, /license/u);
+  await generate();
+  await deliverFilm({ rootDir: root, filmId, media: fakeMedia([]) });
+  const published = FilmPublishSchema.parse(
+    JSON.parse(await readFile(join(paths.delivery, "publish.json"), "utf8")),
+  );
+  assert.deepEqual(published.attributions, [
+    "arrive: original sound effect synthesized by AXMORF Studio film-sfx-v2 (Apache-2.0)",
+  ]);
+});
+
+test("film:music warns only when a selected score anchor misses by more than three frames", async (context) => {
+  const rootDir = await createWorkspace(context);
+  const { runFilmMusic } = await import("../../scripts/films/music");
+  for (const [filmId, anchors, bpm, bpmRange, residuals, notes] of [
+    ["feasible-score", [0, 64], 108, [100, 120], [0, 3], []],
+    [
+      "infeasible-score",
+      [0, 80, 245],
+      120,
+      [96, 128],
+      [0, -5, -20],
+      [
+        "Section 1 misses its anchor by -5 frames; adjust the authored score anchors or widen bpmRange; keep locked picture and narration fixed.",
+        "Section 2 misses its anchor by -20 frames; adjust the authored score anchors or widen bpmRange; keep locked picture and narration fixed.",
+      ],
+    ],
+  ] as const) {
+    await writeFilm(rootDir, filmId, {
+      spec: {
+        timeline: { durationInFrames: 300 },
+        music: {
+          score: {
+            engine: "studio-v2",
+            bpm,
+            bpmRange,
+            arrangement: {
+              tonic: "C",
+              mode: "minor",
+              progression: [1, 6, 3, 7],
+              sections: anchors.map((from) => ({
+                from,
+                instruments: ["pad"],
+                density: 0.5,
+                energy: 0.5,
+              })),
+            },
+          },
+        },
+      },
+    });
+    await runFilmVoice({ rootDir, filmId, createService: fakeVoice });
+    const result = await runFilmMusic({
+      rootDir,
+      filmId,
+      masterScore: (raw) => raw,
+    });
+    assert.deepEqual(
+      result.alignment?.boundaries.map((b) => b.residualFrames),
+      residuals,
+    );
+    assert.deepEqual(result.notes ?? [], notes);
+  }
+});
+
 test("a registered track becomes the film's music on an authored beat grid", async (context) => {
   const root = await createWorkspace(context);
   const track = clickTrackWav(8);
@@ -581,6 +784,27 @@ test("a registered track becomes the film's music on an authored beat grid", asy
   assert.deepEqual(result.sectionFrames, [8, 128]);
   assert.deepEqual(result.accentFrames, [8, 128]);
   assert.equal("notes" in result, false);
+  assert.deepEqual(
+    (await checkFilm({ rootDir: root, filmId: "track-film" })).errors,
+    [],
+  );
+  assert.deepEqual(await readFile(paths.musicWav), track);
+  const { applyFilmMusicMixProfile } =
+    await import("../../scripts/films/music-mix");
+  spec.music.mixProfile = "voiceover";
+  await writeFile(paths.spec, JSON.stringify(spec));
+  assert.ok(
+    (await checkFilm({ rootDir: root, filmId: "track-film" })).errors.some(
+      (e) => e.rule === "music-stale",
+    ),
+  );
+  await runFilmMusic({
+    ...options,
+    masterScore: (raw) => {
+      assert.deepEqual(raw, applyFilmMusicMixProfile(track, "voiceover"));
+      return raw;
+    },
+  });
   assert.deepEqual(
     (await checkFilm({ rootDir: root, filmId: "track-film" })).errors,
     [],
@@ -663,6 +887,18 @@ test("film:new can decide bookends per film without touching the Workspace defau
     const spec = JSON.parse(
       await readFile(filmPaths(root, filmId).spec, "utf8"),
     );
+    assert.equal(spec.music.score.engine, "studio-v3");
+    assert.equal(spec.music.volume, 0.64);
+    assert.equal(spec.music.underSpeechVolume, 0.6);
+    assert.equal(spec.music.mixProfile, "voiceover");
+    const { generateScore } =
+      await import("../../scripts/films/score/synth-score.mjs");
+    const starter = generateScore({
+      ...spec.music.score,
+      fps: spec.render.fps,
+      durationInFrames: spec.timeline.durationInFrames,
+    });
+    assert.ok(starter.audio.length > 44);
     return [spec.bookends.intro, spec.bookends.outro];
   };
   assert.deepEqual(await bookendsOf("explainer-film"), [
@@ -689,4 +925,82 @@ test("the tempo suggestion keeps fast songs at full speed", async () => {
   const { bpm } = estimateTrackTempo(samples, sampleRate);
   // A suggestion within one BPM; the author writes the exact value.
   assert.ok(Math.abs(bpm - 172) <= 1, `expected about 172 BPM, got ${bpm}`);
+});
+
+test("v2/v3 omitted profile preserves score bytes; voiceover processes once before mastering and invalidates fingerprint", async (context) => {
+  const rootDir = await createWorkspace(context);
+  const { runFilmMusic, resolveFilmScoreRecipe } =
+    await import("../../scripts/films/music");
+  const { applyFilmMusicMixProfile } =
+    await import("../../scripts/films/music-mix");
+  const { generateScore } =
+    await import("../../scripts/films/score/synth-score.mjs");
+  const { FilmSpecSchema } = await import("@axmorf/studio/contracts");
+  for (const engine of ["studio-v2", "studio-v3"]) {
+    const filmId = `profile-${engine}`;
+    const paths = await writeFilm(rootDir, filmId, {
+      spec: {
+        timeline: { durationInFrames: 90 },
+        music: {
+          score: {
+            engine,
+            bpm: 100,
+            arrangement: {
+              tonic: "C",
+              mode: "minor",
+              progression: [1, 6, 3, 7],
+              sections: [
+                {
+                  from: 0,
+                  instruments: ["kick", "pad"],
+                  density: 0.5,
+                  energy: 0.5,
+                },
+              ],
+            },
+          },
+        },
+      },
+    });
+    await runFilmVoice({ rootDir, filmId, createService: fakeVoice });
+    const spec = JSON.parse(await readFile(paths.spec, "utf8"));
+    const timing = FilmTimingSchema.parse(
+      JSON.parse(await readFile(paths.timing, "utf8")),
+    );
+    const parsed = FilmSpecSchema.parse(spec);
+    const raw = generateScore(
+      resolveFilmScoreRecipe({ music: parsed.music!, timing, fps: 30 }),
+    ).audio;
+    let calls = 0;
+    await runFilmMusic({
+      rootDir,
+      filmId,
+      masterScore: (input) => {
+        calls++;
+        assert.deepEqual(input, raw);
+        return input;
+      },
+    });
+    assert.equal(calls, 1);
+    assert.deepEqual(await readFile(paths.musicWav), raw);
+    spec.music.mixProfile = "voiceover";
+    await writeFile(paths.spec, JSON.stringify(spec));
+    assert.ok(
+      (await checkFilm({ rootDir, filmId })).errors.some(
+        (e) => e.rule === "music-stale",
+      ),
+    );
+    calls = 0;
+    await runFilmMusic({
+      rootDir,
+      filmId,
+      masterScore: (input) => {
+        calls++;
+        assert.deepEqual(input, applyFilmMusicMixProfile(raw, "voiceover"));
+        return input;
+      },
+    });
+    assert.equal(calls, 1);
+    assert.deepEqual((await checkFilm({ rootDir, filmId })).errors, []);
+  }
 });

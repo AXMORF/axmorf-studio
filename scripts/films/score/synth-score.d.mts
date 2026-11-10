@@ -6,5 +6,12 @@ export declare const generateScore: (recipe: Record<string, unknown>) => {
 export declare const makeTimeline: (
   recipe: Record<string, unknown>,
 ) => Record<string, unknown>;
+export declare const synthesizeTimeline: (
+  timeline: Record<string, unknown>,
+) => Buffer;
 /** Loudness-masters a score WAV using a scratch directory (needs ffmpeg). */
-export declare const master: (raw: Buffer, directory: string) => Buffer;
+export declare const master: (
+  raw: Buffer,
+  directory: string,
+  exactOnsets?: boolean,
+) => Buffer;

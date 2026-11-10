@@ -1,77 +1,144 @@
 # 配乐与卡点
 
-配乐有两种来源，写在 `film.json` 的 `music` 字段，二选一：
+做片先读 [导演手册](direction.md)，顺序以第 2 节为准：实测旁白 → 节奏谱 → film:music → 按小节分镜 → 画面 → 音效。
+默认为本片写原创 `studio-v3` music.score；v2 与原始 bars-only 引擎保持字节兼容。只有用户指定才用已登记许可的 music.track；本页讲配置与生成 API。
+旁白与字幕使用实测时序，不为踩拍改变。
 
-- `music.score`：在本地用代码合成的原创配乐（默认做法，下面大部分内容讲它）。
-- `music.track`：一首已用 `film:asset` 登记来源与许可的音频文件，见文末 [使用授权曲目](#使用授权曲目)。
+## 用旁白章节锚定节奏谱（默认）
 
-写好后运行 `npm run film:voice` 和 `npm run film:music`。
+sections.from 用句子 id 或正片绝对帧，hits 是揭示、breaks 是揭示前抽空、ending 是收尾。
+先用口播语义决定事件，再让精确 hit 与画面落点对齐；规律 kick/bar 维持底层节奏，不挪旁白字幕强塞固定拍点。
+句首短语用 sentence id；句中关键词只有经人工或外部确认的绝对帧才称词级精度，否则只称句级，不按字数均分。
+bpmRange 先找所有章节锚点误差都在 3 帧以内的速度，再取最接近显式 bpm 的速度；没写 bpm 时取最接近区间中点者。
+film:music 输出实际边界与残差，超过 3 帧按提示调整范围或锚点。
 
 ```json
-"music": {
-  "score": {
-    "engine": "studio-v2",
-    "bpm": 104,
-    "beatsPerBar": 4,
-    "bars": 20,
-    "style": "electronic",
-    "seed": 20261014,
-    "arrangement": {
-      "tonic": "A",
-      "mode": "minor",
-      "progression": [1, 6, 3, 7],
-      "swing": 0.05,
-      "sections": [
-        { "bars": 2, "instruments": ["pad", "pluck"], "density": 0.35, "energy": 0.35 },
-        { "bars": 8, "instruments": ["kick", "hat", "bass", "pluck", "pad"], "density": 0.55, "energy": 0.55 },
-        { "bars": 6, "instruments": ["kick", "clap", "snare", "hat", "bass", "pluck", "pad", "lead"], "density": 0.8, "energy": 0.9 },
-        { "bars": 4, "instruments": ["pad", "pluck", "lead"], "density": 0.4, "energy": 0.4 }
-      ]
-    }
-  },
-  "startFrame": 0,
-  "volume": 0.24,
-  "underSpeechVolume": 0.09,
-  "fadeOutFrames": 45
+{
+  "music": {
+    "score": {
+      "engine": "studio-v3",
+      "bpm": 104,
+      "bpmRange": [96, 116],
+      "beatsPerBar": 4,
+      "style": "electronic",
+      "seed": 17,
+      "arrangement": {
+        "tonic": "A",
+        "mode": "minor",
+        "progression": [1, 6, 3, 7],
+        "sections": [
+          {
+            "from": 0,
+            "instruments": ["kick", "snare", "hat", "bass", "pluck"],
+            "density": 0.8,
+            "energy": 0.85
+          },
+          {
+            "from": 216,
+            "instruments": ["kick", "hat", "bass", "pad"],
+            "density": 0.55,
+            "energy": 0.55
+          },
+          {
+            "from": 504,
+            "instruments": ["pad", "pluck"],
+            "density": 0.25,
+            "energy": 0.3
+          },
+          {
+            "from": 576,
+            "instruments": [
+              "kick",
+              "snare",
+              "clap",
+              "hat",
+              "bass",
+              "pad",
+              "lead"
+            ],
+            "density": 0.9,
+            "energy": 1
+          },
+          {
+            "from": 720,
+            "instruments": ["pad", "pluck"],
+            "density": 0.3,
+            "energy": 0.3
+          }
+        ]
+      },
+      "hits": [
+        {
+          "frame": 0,
+          "kind": "stinger",
+          "intensity": 0.8
+        },
+        {
+          "frame": 576,
+          "kind": "drop",
+          "intensity": 1
+        }
+      ],
+      "breaks": [
+        {
+          "from": 540,
+          "to": 576,
+          "keep": ["pad"]
+        }
+      ],
+      "ending": {
+        "landFrame": 864,
+        "cadence": "resolve"
+      }
+    },
+    "startFrame": 0,
+    "volume": 0.64,
+    "underSpeechVolume": 0.60,
+    "mixProfile": "voiceover",
+    "fadeOutFrames": 0
+  }
 }
 ```
 
-`score` 不写 `fps`（使用本片 fps）。配乐只覆盖正片，片头片尾使用各自的模板音频。乐器：`kick`、`snare`、`clap`、`hat`、`bass`、`pad`、`pluck`、`lead`、`guitar`（失真强力和弦，主要给 `drive`）；
-`sections` 的小节数之和必须等于 `bars`，最多 64 小节。
+`score` 不写 fps，使用本片 fps。配乐只覆盖正片；片头片尾用各自音频。
+乐器为 kick/snare/clap/hat/bass/pad/pluck/lead/guitar；旧 bars-only sections 总和必须等于 bars，最多 64 小节。
 
-## 按故事编曲
+这是 30 fps、900 帧（30 秒）的可生成教学谱：hook 7.2 秒 → 证据 → lift/break → f576 drop（之后 2 小节最满）→ outro，f864 和声落定；
+真实片按实测句子调整章节，不直接套用这些长度。例子用于至少 900 帧的正片；真实片先按实测句子写节奏谱，生成网格后再写 storyboard，不照搬帧号。`from` 可和旧的 `bars` 段混用（每段二选一）；锚定编曲省略总 `bars` 时自动覆盖全片，写了则必须足够长。
+速度搜索步长 0.01 BPM，另含范围端点和中点。先筛选所有锚点整数帧残差绝对值都 ≤3 的候选，
+按到显式 bpm（未写时为区间中点）的距离排序；距离相同取残差平方和更小者，仍相同取较小 BPM。
+没有可行候选时，最小化 Σ(残差 / 每小节帧数)²，避免偏向快速度；超过 3 帧的提示保留。
+`hits.kind` 为 `stinger` / `lift` / `drop` / `swell`；它们按指定帧加入配乐，并进入 `accentFrames`。
+`breaks` 在编曲中真正停掉未保留乐器，与 `musicDips` 压低音量不同；`ending.cadence` 为 `resolve` / `cut` / `ring`，
+在落点解决、切断或留尾，不用循环收尾。锚点使用正片帧，`music.startFrame` 由生成器处理。
+旧的只用 bars 的 score 和指定 track 继续兼容。
 
-1. **长度**：先运行 `film:voice` 得到总帧数，按 `bars × beatsPerBar × 60 / bpm` 秒选 `bars` 覆盖全片。
-   `film:music` 在配乐比片子短时会给出建议的小节数；短于全片时配乐会循环。
-2. **速度与色彩**：平静讲解 84–96 BPM `organic`；产品、科技、轻快题材 100–124 BPM `electronic`；
-   片头、MV、动漫 OP 一类高能片 160–180 BPM `drive`（乐队编制：军鼓反拍、八分音符贝斯、强力和弦吉他，
-   每 4 小节自动过门，段落交接前有通鼓滚奏）。`drive` 按段落 `energy` 分三档：低于 0.5 为主歌（闷音和弦），
-   0.5–0.8 为前奏（十六分琶音推进），0.8 以上为副歌（开放和弦、开镲、每两小节镲片），`lead` 在每 4 小节里把同一个
-   两小节钩子唱两遍再回答。
-   小调适合紧张和探究，大调适合乐观和揭晓。
-3. **段落跟随叙事**：开场钩子用稀疏的段落（pad、pluck）；问题展开时加入脉冲（kick、hat、bass）；
-   关键揭示用最满的段落（加 snare/clap 和 lead）；结尾收薄。把段落边界放在它所服务的那句旁白开始附近
-   （`film:voice` 输出了每句的起止帧）。能量逐步走向高潮，一次清楚的到达胜过一直很满。
-4. **给旁白留空间**：`lead` 留给高潮或没有旁白的段落；密度超过 0.8 只用在旁白停顿或画面独自承担的时刻。
-5. **音量**：保留 `volume: 0.24` 和 `underSpeechVolume: 0.09`。`<FilmSoundtrack />` 会在每句旁白下平滑压低配乐，
-   句间回升，结尾淡出。无旁白的片可把 `underSpeechVolume` 设成与 `volume` 相同。
+## 用音乐事件做次级运动
 
-`seed` 只改变旋律细节；改变情绪要改调式、和声、配器和段落，而不是换 seed。
+`useFilmTiming().music.onsets` 是合成时导出的实际事件帧，含 `kick`、`snare`、`clap`、`hat`、`bass`、`hits`、`sections`。
+v3 还导出 `onsets.fills` / `onsets.breaks`（`{from,to}`，半开区间）及 `onsets.accents`（`{frame,strength}`，与 `accentFrames` 一致）；
+这些新增字段可选，旧文件继续可读。fill 区间是军鼓过门的编排窗口，break 区间中只保留 authored keep 的乐器及其混响；全部 keep 为空时为 PCM 数字零。
+`useBeatPulse({events:"fill"})` / `events:"break"` 读窗口起点，`useImpact(music.onsets.accents)` 读带强度重音。
+例如 kick 事件 f120，灯在 f120 开始闪，误差为 0 帧；无需再做音频节拍检测。旧 track 没有 onsets，必须判断字段是否存在。
+`useFilmMusicEnergy()` 返回对数刻度、平滑后的 `{ low, mid, high }`，只用于辉光、粒子呼吸等连续次级运动；
+关键动作仍用事件帧。它读取本片的本地 WAV，详见 [API](api.md)。
 
-## 卡点
+## 节奏与混音
 
-`film:music` 输出 `sectionFrames`（段落起点）、`accentFrames`（段落升起处的重音）和 `barFrames`；
-代码里用 `useFilmTiming().music` 读取，帧号都是全片绝对帧。
-
-- 最大的揭示、切换或镜头到位落在 `accentFrames` 或 `sectionFrames`；次要动作落在 `barFrames`/`beatFrames`。
-- 用 `snapProducerFrameToBeat(frame, music.barFrames, { maxShiftFrames: 6, minFrame, maxFrame })` 在允许的窗口里吸附；
-  预备动作提前开始，让“到达”那一帧踩在拍上。
-- 语义优先：吸附会让画面早于或晚于对应旁白时就保留原帧。旁白和字幕的时间永远不为踩拍而改变。
-- 音效对齐同一个落点（`assets/axmorf-shared/audio/sound-effects/` 下的共享音效），不要每个拍点都发声。
+统一遵循 [导演手册第 3、4、7 节](direction.md#3-节奏谱怎么写)：讲解片一个 BPM，96–116，
+hook 直接进鼓，能量 hook 高 → verse 中 → lift 收 → drop 爆 → outro 落；每小节 L2、每重音 L3（0 帧误差）。
+旁白约 -16 LUFS，讲述段底层（配乐 + SFX，实际逐句 duck 后）目标低 8–10 LU；节拍段低 6–8 LU 可作参考，混音 true peak ≤ -1 dBTP。
+新 studio-v3 口播片显式 .64/.60 和 `mixProfile: "voiceover"` 是教学谱校准起点（同 fixture：voice -16.0 LUFS，speech bed -25.2 LUFS/差 9.2 LU，开场/收尾差 7.3/8.1 LU，mix -1.7 dBTP），不保证任意片均达到目标；音效 intensity .18–.30，真实片仍须测量并由用户听审。
+`voiceover` 是整条配乐的静态频谱预留：48kHz stereo s16 PCM 在源母带化前进行因果 RBJ peaking EQ（2000Hz、Q=2/3、-6dB），左右独立状态，相同系数。
+两声道连续至少 48 samples（1ms）同时为数字零时，整个零区间保持零并在边界清空滤波状态；短零串正常滤波，不把过零当休止；四舍五入至最近整数并显式饱和到 s16，非有限输出报错，不改采样数或事件帧。
+这不是声纹、ASR 或动态侧链；短循环也不依赖句间位置。FilmSoundtrack 仍仅一次逐句音量 ducking，生成后和播放时不再 EQ。
+省略 profile 保持旧 PCM、音量默认 .24/.09 和指纹语义；纯音乐不默认使用 profile，film:new 建片后无旁白时去掉它。
+频响公式见 [W3C Audio EQ Cookbook](https://www.w3.org/TR/audio-eq-cookbook/)。
+已锁定画面的声音重做保留原帧，用精确 hit 强调；不移动原画面/旁白/字幕，不改旧 schema 隐式默认。
 
 ## 使用授权曲目
 
-合成音色有上限；MV、OP 这类靠音乐撑起来的片，可以改用一首真实制作的曲子，但它必须能证明可以用：
+只有用户指定曲目或素材时使用；必须能证明可以用：
 
 1. **确认许可**：曲子来自用户本人、明确写了可再使用的许可（如 CC BY、购买的授权），或用户确认有权使用。
    曲库、平台或生成服务没写清站外使用条款时，停下来问用户，不要自行认定可以用。

@@ -4,13 +4,24 @@ import {
   SoundContribution,
   type SoundContributionValue,
 } from "../runtime/sound-design/SoundContribution";
+import {
+  resolveFilmSoundEffects,
+  type FilmSoundEffectSource,
+} from "./FilmSoundEffects";
 import { useFilm, type FilmRuntime } from "./context";
+
+import { useReviewMotion } from "./review-motion";
 
 export type FilmSoundtrackProps = Readonly<{
   /** Set false to leave out the narration track. */
   narration?: boolean;
   /** Set false to leave out the score. */
   music?: boolean;
+  /** Body-local [from, to) absolute music volumes, combined with speech by minimum. */
+  musicDips?: readonly Readonly<{ from: number; to: number; volume: number }>[];
+  /** Fade to silence at landFrame, or the last body accent (body end if none).
+   * Optional SFX is end-anchored here too, so its tail never enters the outro. */
+  ending?: Readonly<{ landFrame?: number; sfx?: FilmSoundEffectSource }>;
 }>;
 
 /**
@@ -18,12 +29,10 @@ export type FilmSoundtrackProps = Readonly<{
  * recorded frame, loops when shorter than the film, fades out at the end, and
  * dips to `underSpeechVolume` while any sentence is spoken.
  */
-export const resolveFilmSoundtrack = ({
-  spec,
-  timing,
-  music,
-  durationInFrames,
-}: FilmRuntime): SoundContributionValue[] => {
+export const resolveFilmSoundtrack = (
+  { spec, timing, music, sfx, durationInFrames }: FilmRuntime,
+  options: Pick<FilmSoundtrackProps, "musicDips" | "ending"> = {},
+): SoundContributionValue[] => {
   const tracks: SoundContributionValue[] = [];
   const { fps } = spec.render;
   if (timing?.narration) {
@@ -43,8 +52,38 @@ export const resolveFilmSoundtrack = ({
       loop: false,
     });
   }
+  for (const dip of options.musicDips ?? []) {
+    if (
+      !Number.isSafeInteger(dip.from) ||
+      !Number.isSafeInteger(dip.to) ||
+      dip.from < 0 ||
+      dip.to <= dip.from ||
+      dip.to > durationInFrames ||
+      !Number.isFinite(dip.volume) ||
+      dip.volume < 0 ||
+      dip.volume > 1
+    )
+      throw new Error("Invalid music dip.");
+  }
+  const accents = (music?.accentFrames ?? []).filter(
+    (frame) => frame > (music?.startFrame ?? 0) && frame <= durationInFrames,
+  );
+  const landFrame =
+    options.ending === undefined
+      ? durationInFrames
+      : (options.ending.landFrame ??
+        (accents.length ? Math.max(...accents) : durationInFrames));
+  if (
+    options.ending !== undefined &&
+    (!Number.isSafeInteger(landFrame) ||
+      landFrame <= (music?.startFrame ?? 0) ||
+      landFrame > durationInFrames)
+  )
+    throw new Error(
+      "Ending landFrame must follow music start and stay in the body.",
+    );
   if (music !== null && music.startFrame < durationInFrames) {
-    const length = durationInFrames - music.startFrame;
+    const length = landFrame - music.startFrame;
     const ranges = (timing?.sentences ?? []).map(
       ({ startFrame, endFrame }) => [startFrame, endFrame] as const,
     );
@@ -52,11 +91,25 @@ export const resolveFilmSoundtrack = ({
       contributionId: "music",
       publicPath: music.publicPath,
       startFrame: music.startFrame,
-      endFrame: durationInFrames,
+      endFrame: landFrame,
       volume: music.volume,
-      loop: music.scoreDurationInFrames < length,
+      loop: music.loop !== false && music.scoreDurationInFrames < length,
       sourceDurationInSeconds: music.scoreDurationInFrames / fps,
       fadeOutFrames: Math.min(music.fadeOutFrames, length),
+      ...((options.musicDips?.length ?? 0) === 0
+        ? {}
+        : {
+            volumeDips: (options.musicDips ?? []).map((dip) => ({
+              volume: Math.min(dip.volume, music.volume),
+              rampFrames: FILM_SPEECH_DUCKING_RAMP_FRAMES,
+              ranges: [
+                [
+                  dip.from - music.startFrame,
+                  dip.to - music.startFrame,
+                ] as const,
+              ],
+            })),
+          }),
       ...(ranges.length === 0 || music.underSpeechVolume >= music.volume
         ? {}
         : {
@@ -72,26 +125,49 @@ export const resolveFilmSoundtrack = ({
           }),
     });
   }
+  if (options.ending?.sfx !== undefined) {
+    tracks.push(
+      ...resolveFilmSoundEffects(
+        { spec, timing, music, sfx, durationInFrames },
+        [{ endFrame: landFrame, sfx: options.ending.sfx, for: "Film ending" }],
+      ),
+    );
+  }
   return tracks;
 };
 
 export const FilmSoundtrack = ({
   narration = true,
   music = true,
+  musicDips,
+  ending,
 }: FilmSoundtrackProps) => {
   const film = useFilm();
+  const tracks = resolveFilmSoundtrack(film, { musicDips, ending }).filter(
+    ({ contributionId }) =>
+      contributionId === "narration" ? narration : music,
+  );
+  // P1 ending.sfx also contributes an effect without a FilmSoundEffects node.
+  useReviewMotion({
+    type: "sound-effects",
+    cues: tracks
+      .filter((track) => track.contributionId.startsWith("sfx:"))
+      .map((track) => ({
+        frame: track.startFrame,
+        endFrame: track.endFrame,
+        alignmentFrame: track.endFrame,
+        sfx: track.publicPath,
+        for: "Film ending",
+      })),
+  });
   return (
     <>
-      {resolveFilmSoundtrack(film)
-        .filter(({ contributionId }) =>
-          contributionId === "narration" ? narration : music,
-        )
-        .map((contribution) => (
-          <SoundContribution
-            key={contribution.contributionId}
-            contribution={contribution}
-          />
-        ))}
+      {tracks.map((contribution) => (
+        <SoundContribution
+          key={contribution.contributionId}
+          contribution={contribution}
+        />
+      ))}
     </>
   );
 };

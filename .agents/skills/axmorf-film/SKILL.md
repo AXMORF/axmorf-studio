@@ -8,16 +8,20 @@ description: 用 AXMORF Studio 制作或修改讲解短视频。Agent 直接编�
 你是这部片的导演兼动效设计师。每部片是 `src/films/<filmId>/` 下一个普通的 Remotion 工程，源码完全由你编写；
 Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐与节拍、素材许可、渲染与交付校验。
 
-画面好不好看取决于构思和反复看图修改，不取决于检查通过。开工前读 [画面手艺](references/craft.md)；
+**做片先读 [references/direction.md](references/direction.md)**，这是节奏驱动动效的导演手册，工作顺序、三层动效、混音、分镜和自检以它为准。
+画面好不好看取决于构思和反复看图修改，不取决于检查通过。构思时读 [画面手艺](references/craft.md)；
+分镜时读 [镜头配方](references/recipes.md) 与 [音效计划](references/sound.md)；
 用配乐时读 [配乐与卡点](references/music.md)；需要图片或 SVG 时读 [素材](references/artwork.md)；
 写代码时查 [运行时 API](references/api.md)，并按需读 [示例段落](references/examples.md) 借鉴镜头、光影和层级技法。
-用户点名或认可某种风格时，读 `references/styles/` 下对应的配方，例如 [动漫 OP](references/styles/anime-op.md)。
+用户或 Workspace 指定了风格时，读 `references/styles/` 下对应的配方，例如 [纸面拼贴 / 手绘线稿](references/styles/paper-collage.md) 或 [动漫 OP](references/styles/anime-op.md)。
+示例里的配色不是默认值，按内容和已选风格重新选色。
 
 ## 流程
 
 1. **确认环境**：首次在这个 Workspace 制作时运行 `npm run doctor`，全部通过再继续。失败时报告 blocker，
    不修改 `node_modules`、依赖版本或检查器。
 2. **构思**：先想清楚观众看完要记住什么、每一段的代表画面（主体、取景、光影、变化），再写剧本。
+   在 storyboard 开头声明风格、配色、参考方向及内容理由；不默认用深色科技风，选择它时说明本片为什么需要。
    把构思简要告诉用户：主题、时长、画面路线、配乐风格。
 3. **建片**：
    ```bash
@@ -27,45 +31,129 @@ Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐�
    `film:new` 按 Workspace 配置写入 `bookends`：系统会在正片前后自动接上品牌片头（2 秒）和片尾（8 秒，先列出
    `bookends.sources` 里的参考来源，再显示品牌）。不要在正片里再做品牌开场或结尾；只有用户明确不要时才把
    `intro`/`outro` 设为 `null`。`Film.tsx` 里的帧号只计正片，交付时长 = 片头 + 正片 + 片尾。
+   纸面风格在建片后把本片 `bookends.theme` 明确改为 `"light"`，在 storyboard 风格声明中写明主题并与正片一致，详见纸面配方。
    没有旁白、由音乐驱动的片（MV、OP、纯视觉短片）在构思时先问用户要不要品牌片头片尾：不要就建片时加
    `--bookends none`，要但 Workspace 默认没开就加 `--bookends both`。这只决定本片，不改 Workspace 默认；有旁白的片照旧。
 4. **写剧本** `src/films/<filmId>/film.json`：
-   - `narration` 按自然句写，每句是一个字幕事件，最多 72 个半角单位（一个汉字算 2）；需要停顿时给 `pauseAfterMs`。
+   - `narration` 按自然句写，每句是一个字幕事件；`text` 写 TTS 念法，可选 `caption` 写屏幕显示文本。
+     两者各自最多 72 个半角单位（一个汉字算 2），需要停顿时给 `pauseAfterMs`。
+     例如 `text: "这是八千四百一十五个H一百小时，乘每小时二点五美元。"`，
+     `caption: "这是 8,415 个 H100 小时，乘每小时 $2.5。"`。
+     字幕显示 `caption ?? text`；只改 caption 无须重跑 voice，既有 timing 与旁白指纹不变。
+     推荐纸面片用 `<FilmCaptions variant="paper" highlight="karaoke" />`。caption 与 text 保持相同的分句标点
+     （，。、；：？！）和分句数，才能逐分句对齐；数字仍可用不同写法。精度是分句级、分句内线性估计，不是逐字对齐。
+     `captionWarnings` 的 `caption-spoken-numerals` 在 text 连续含至少 3 个中文数字字符且没写 caption 时提示补显示文本。
      `<FilmCaptions />` 会把长句自动折成最多两行并保持手机可读的字号；不要为了排成一行把字幕缩小
      （`readabilityWarnings` 会提示过小的字幕）。
    - 有旁白时删除 `timeline.durationInFrames`，总长由实测旁白加 `tailFrames` 决定；无旁白的纯视觉片保留它。
    - `narrationStartFrame` 留给正片的开场画面；`publish` 写标题、简介和标签；用到的事实来源写进
      `bookends.sources`（标题 + 网址），会显示在片尾。
-   - 需要配乐时写 `music.score`（见 [配乐与卡点](references/music.md)）。
-5. **生成旁白**：`npm run film:voice -- --film <filmId>`。输出每句的起止帧。修改旁白文本后重新运行；
-   没改过的句子来自缓存，不会重复调用 TTS。
-6. **生成配乐**：`npm run film:music -- --film <filmId>`。输出段落起点与重音帧。旁白时长变了就重新运行。
-7. **准备素材**（可选）：生成图片或原创 SVG 后用 `film:asset` 登记，见 [素材](references/artwork.md)。
-8. **编写** `Film.tsx` 与 `Cover.tsx`：
-   - 用 `useFilmTiming()` 读取每句旁白的帧区间和音乐网格，画面变化跟着旁白语义走，关键落点对齐重音或小节线。
-   - 必须挂载 `<FilmSoundtrack />` 与 `<FilmCaptions />`（放在最上层）。
+   - `film:new` 已写入 10 秒占位 `studio-v3` 谱；按本片内容重写 `music.score`，不要沿用占位收尾帧。无配乐的片设 `music: null`；实测旁白后先写节奏谱、生成配乐，再按小节写 storyboard（见 [导演手册](references/direction.md#2-工作顺序不能倒过来)）。
+5. **生成旁白**：`npm run film:voice -- --film <filmId>`。输出每句的起止帧，不提供逐字时间。短语从句首开始可用句子 id；句中关键词需人工/外部确认绝对帧，否则只称句级，不按字数均分推算。修改旁白文本后重新运行；
+   相同 provider 种类、模型、音色素材内容哈希（或远端 voiceId）、生成参数、语速和文本的句子在
+   `.axmorf/cache/voice/` 命中时不会重复调用 TTS；Workspace 绝对路径、连接凭据、超时和显示名称不进入缓存键。
+   `generated/timing.json.inputFingerprint` 仅描述剧本/时序输入，不含 provider 或音色，不是 TTS 缓存键。
+   跨 Workspace 要保留同一个 take：一起复制匹配的 `film.json`、`generated/timing.json` 与
+   `public/films/<filmId>/narration.wav`（保持 filmId 和相对路径），直接运行 `film:check` 验证输入指纹和音频 checksum，
+   不再运行 `film:voice`。要在新 Workspace 编辑旁白并复用未改句子，还需迁移 `.axmorf/cache/voice/`，
+   配置相同 provider、模型、音色素材内容、生成参数与语速；路径不同不影响新缓存命中，素材内容或 voiceId 改变会失效。
+   `0.3.0-rc.6` 起使用内容缓存键；旧版缓存键不自动迁移，首次生成可能未命中，但旧 timing、inputFingerprint 和交付不受影响。
+   只要保留原 take 就仍用 `film:check`、跳过 `film:voice`；不要把混合、停顿、母带处理后的 narration.wav 当作逐句缓存。
+   需要双色滚动字幕时，voice 后运行 `npm run film:captions -- --film <filmId>`，离线分析现有 narration.wav 的能量停顿，
+   把可选 clauses 写进 timing.json；不调用 TTS、不改音频、句级边界或指纹。以念法半角单位的比例位置做确定性最优顺序匹配：
+   多余停顿忽略，缺失边界在相邻已匹配停顿之间按比例补齐。各分句分别写 source；含补齐边界的分句为 proportional，
+   句子仍标 `estimated: "proportional"`。重新 voice 后再跑一次；旧 timing 不补也能按整句线性扫过。
+6. **先写节奏谱并生成配乐**：按实测句子锚定 `music.score`，先定 sections、揭示 hits、揭示前 breaks 和 ending。
+   一部讲解片一个 BPM（96–116），hook 直接进鼓、第一小节就有重音，证据段中、揭示前收、drop 爆、结尾落。
+   新片使用 `studio-v3`；显式写 `volume: 0.64`、`underSpeechVolume: 0.60`、`mixProfile: "voiceover"` 作为口播混音起点；实测讲述段底层比旁白低 8–10 LU。无旁白片去掉 voiceover profile。
+   运行 `npm run film:music -- --film <filmId>`，取得 beatFrames、barFrames、sectionFrames、accentFrames 和 onsets。
+   实际字段、锚点、残差见 [配乐与卡点](references/music.md)。无配乐的片不伪造网格；无旁白的片跳过 voice，先定音乐。
+7. **按小节分镜 → 画面 → 音效**（顺序必做）：先写 `src/films/<filmId>/storyboard.md`，告知用户路径和画面路线。
+   使用 [导演手册第 8 节](references/direction.md#8-storyboardmd-写法) 的表格，每行一个小节，列帧、段落、旁白句、图形元素 → 代表、桌面动作、L2、L3 和音效，
+   并补章节世界、镜头路径、转场动机、配方起止和声音窗口；每镜头写一个看得见的真实桌面动作动词，只有“卡片出现然后停住”不合格，手也用生图剪纸。写出入画→动作→收手、anticipate/land 和音效锚点；不按句子分页。
+   由内容语义选择图解和效果；`AxiomMorph` 是可选的通用文字对照、重组或拆解，不是品牌要求。
+   先搭 L1 具体物件细节反应、L2 每小节轮换物件动作并推进构图、L3 每重音大动作，落点误差 0 帧，再填细节。
+   strength ≥0.9 的重音之前必须有至少 6 帧可见预备；不能把配方过程藏起来只露出终值，详见导演手册。
+   按第 9 步完成画面后，才从可见动作派生逐条 `sound.effects`，写 kind、动作长度、anchor、params 和 for，
+   运行 `npm run film:sfx -- --film <filmId>`。默认本片原创，不用 track/共享音效库，除非用户指定。
+   技法见 [镜头配方](references/recipes.md)，声音接线见 [音效轨](references/sound.md)；改片同步小节表，不能只在聊天口述。
+   旁白长度变化时重做节奏谱和 `film:music`，再更新表、画面和音效；不挪旁白或字幕踩拍。
+8. **准备素材**：纸面风格的关键人物/手/实物必须用宿主实际可用的生图工具生成单主体剪纸，抠像、代码合成、`film:asset --origin generated` 登记，见 [素材](references/artwork.md)。统一风格提示词及各主体提示词写入 storyboard；工具不可用就停下列出缺失主体，不用代码画人物/实物凑数。精确图解、数字、线条、印章印迹、红笔痕迹仍可用 SVG；其他风格按需备料。
+9. **编写** `Film.tsx` 与 `Cover.tsx`：
+   - 每个图形主体（包括文字卡片）在实际 DOM/SVG 元素（或包住该物体的组）上加 `data-axmorf-object="它代表什么"`；
+     可选 `data-axmorf-object-role="subject|relation|background"`，默认 `subject`。同一物体的零件放在同一标注组下，
+     不把多个独立主体包成一个标注来躲数量/重叠提示。连接线/箭头用 `relation`，标明旁白中的具体关系；
+     可辨认的环境用 `background`，不能用它掩盖主体。不要给 React 组件传不接收的属性，包在原生元素上即可。
+     可选 `data-axmorf-object-kind="illustration|diagram|prop|card"`（默认 prop），含义与方法见导演手册第 8 节。
+     每镜头主信息由画出来的物件、生图剪纸或图解承载；文字卡片只放数字、原话和短标签，不能单独构成主体。
+     同时可见的非文字主体最多 3 个；说不出代表什么的图形不画，不用无意义交叉或重叠填空。
+   - 用 `useFilmTiming()` 读取实测旁白与配乐网格；口播语义先决定事件，音乐精确 hit 与画面落点对齐；规律 kick/bar 维持底层节奏。
+     用 `useBeatPulse` / `useNarrationActive`、`useBarCamera`、`useImpact` 搭三层动效，根组件调用以保持正片时钟，
+     按 [可编译最小示例](references/direction.md#41-用运行时接好三层动效) 接世界镜头，不在阅读文字上做呼吸。
+   - 推荐用 `FilmSceneTrack` 组织章节与场景：同章默认连续、不写 `enter`，跨章才选择有动机的转场。
+     配方只解决怎么动，构图和世界从剧本出发，不原样粘贴配方卡。
+   - 「已发生 / 迹象 / 推测」等内容状态标识统一用 `FilmStatusTag`，不手写。放在场景轨之外，
+     主词和副词都不得低于实测字幕字号的 70%，且不低于 `minimumReadableFontSize(width, height)`；
+     使用清楚的底板和对比，在手机尺寸下可读，不能当小字装饰。全片固定在左上角安全区；与主体冲突时才换到另一个
+     固定角，并在 storyboard.md 注明，不压住主体。
+   - 用 `<FilmSoundEffects />` 播放本片生成计划；显式 cue 可用 `sfx: "plan:<id>"` 引用。
+     场景轨和配方 resolver 的 `sfxCues` 提供 kind/时长建议，先转为本片计划，避免和计划重复播放；视觉组件不会自动发声。
+   - 必须挂载 `<FilmSoundtrack />` 与 `<FilmCaptions />`（字幕放在最上层，均在场景轨之外）。
+     默认 `variant="box"`、`highlight="none"`；纸面片推荐 `variant="paper" highlight="karaoke"`（偏白纸条、深灰字、两端胶带），style 仍可覆盖。
+     caption 或 paper 使用标点优先、保护数字/单词的显式断行；未写 caption 的旧 box 保留原排版以保持像素兼容。
+     手和道具不能伸进实际字幕框外扩 24px 的字幕带；回应 `graphic-in-caption-band`，转场窗口也要核对，无字幕帧不检查。
    - 按段落拆成子组件或 `scenes/*.tsx`；所有文件留在本片目录内。
-9. **看图迭代**（必做）：
-   ```bash
-   npm run film:review -- --film <filmId>
-   ```
-   打开输出的 `contact-sheet.jpeg` 和单帧图片，按 [画面手艺](references/craft.md#审片) 逐条回答并写下帧号证据，
-   修改后再次审片。输出里的 `stillWarnings` 列出相隔 2 秒以上却几乎没变的帧，必须改或说明理由。
-   `readabilityWarnings` 提示实测字号过小、文字越界或被字幕遮挡；必须为空，或逐条给出理由。
-   `repetitionWarnings` 只统计没有旁白的时段，提示同一画面在开场、转场、高潮里反复出现；同样逐条修改或说明理由。`readability`
-   中的 `missingFrames`、`truncatedFrames` 不为空时，补看对应单帧，不把测量缺失当作通过。这些提示不拦截交付。
-   至少完成一轮“审片 → 修改 → 再审片”。需要看某些帧时用 `--frames 120,240,360`。
-   用户想实时预览时，可运行 `npm run dev` 打开 Remotion Studio。
-10. **检查**：`npm run film:check -- --film <filmId>`。错误必须修复；警告逐条判断。
-11. **交付**：`npm run film:deliver -- --film <filmId>`。它先检查，再渲染并复验
+10. **先出 animatic 看节奏**（必做）：
+    ```bash
+    npm run film:review -- --film <filmId> --animatic
+    ```
+    命令只生成 `review/animatic.mp4`：短边 360、原帧率、带声音的连续预览，不属于交付四件套，默认 review 不生成。
+    **本机不要启动任何播放器**（ffplay、VLC、mpv、浏览器等），也不要用 xdg-open、gio open 或自动播放打开它；在报告里写出它的路径，请用户在手机或 Mac 上连续看、听。
+    你自己对照 `storyboard.md`，用联系表、强重音连续小图和音频测量核对镜头路径、因果推进、转场、停留和落点；
+    节奏对了再精修画面，修改节奏后重新生成。实际观看与听感一律如实记为未验证，联系表不能代替。
+11. **看图迭代**（必做）：
+    ```bash
+    npm run film:review -- --film <filmId>
+    ```
+    打开输出的 `contact-sheet.jpeg` 和单帧图片，按 [导演手册第 9 节](references/direction.md#9-自检看-animatic-时逐条回答写帧号) 逐条回答并写下帧号证据，
+    修改后再次审片。输出里的 `stillWarnings` 列出相隔 2 秒以上却几乎没变的帧，必须改或说明理由。
+    **每个 strength ≥0.9 重音都必须逐张打开 `motion["strong-accent-strip"]` 的连续小图**，确认预备至少 6 帧可见，
+    数字/文字变化过程没有被藏起来只露出终值；在 `review-notes.md` 按帧号记录结论与小图路径。像素预备或 p99 通过不替代这项人工检查。
+    逐镜头做静音描述测试：画面有什么、各代表什么、关系对应哪句旁白；写不出来就改，按帧号写入 `review-notes.md`。
+    `graphicWarnings` 的 `graphic-overlap`、`too-many-subjects`、`unlabeled-graphic` 逐条修改或说明内容理由；
+    对照 `graphics.frames` 的标注清单，`graphics.unknown` 不算通过。这些均只提示，不拦交付。
+    `text-card-only` 提示连续采样段的可见 subject 全为 card；查看 `frames`/`sampledFrames`，用图解或插画承载主信息。无 kind 的旧记录默认 prop，不代表已核对语义。
+    `readabilityWarnings` 提示实测字号过小、文字越界、被字幕或前景遮挡、局部低对比；必须为空，或逐条给出理由。
+    `repetitionWarnings` 只统计没有旁白的时段，提示同一画面在开场、转场、高潮里反复出现；同样逐条修改或说明理由。
+    `readability` 中的 `missingFrames`、`truncatedFrames` 不为空时，补看对应单帧，不把测量缺失当作通过。这些提示不拦截交付。
+    `film:review` 输出的 `motion` / `motionWarnings` 记录运动与声音提示：motionWarnings 必须为空，或按
+    [导演手册自检](references/direction.md#9-自检看-animatic-时逐条回答写帧号) 对各条规则逐条说明理由与帧号；`unknown` 不是已通过。
+    `low-contrast-text` 必须逐条回应帧号、最差网格位置与比值；文字不要横跨明暗交界，深色字不要放在深色背景上。
+    底板、描边、阴影以实际像素为准，转场窗口与同组形变不免检；颜色或像素缺失为 unknown。
+    `text-under-foreground` 必须逐条回应；`readability.unknown` 中无法定位绘制位置的文字（如 display:contents）
+    要看图核对。`repeated-composition` 比较包含旁白的非相邻段落构图；没有场景轨的旧片保持 unknown。
+    内容状态标识必须用 `FilmStatusTag`；同时核对 `small-status-tag`，主词和副词都不低于字幕字号的 70%，
+    看图确认底板、对比和手机可读性，写出帧号证据。这条提示不拦交付。
+    `narration-static` 复用 animatic 全帧能量，提示讲述段中位数 <0.2 或近静止（<0.15）帧占讲述段一半以上；最长静止段起止帧只作参考，逐段核对是否为有意停留。没有可用 animatic 为 unknown，只提示不拦交付。
+    讲述段持续极小、非匀速桌面手持微移，全程非文字线稿 boil，每拍一个轮换物件反应；“停住阅读”只保护正在阅读的文字。自检连续超过 1 秒整帧不动的段落。
+    每章至少3种物件节拍反应、相邻小节主反应不同；核对 `beat-response-monotone` 与 `motion.summary.beatResponses`，无上报为unknown。光闪/背景缩放仅作补充。
+    对照 `storyboard.md` 逐小节核对 L2、L3、章节世界、镜头路径、配方落点、转场和音效，偏离计划就同步修改。
+    每条音效对应一个可见动作，音长与动作时长一致；写出动作/声音起止帧、主要落点及 onset/accent 帧号和差值。
+    至少完成一轮“审片 → 修改 → 再审片”。需要看某些帧时用 `--frames 120,240,360`。
+    用户想实时预览时，可运行 `npm run dev` 打开 Remotion Studio。
+12. **检查**：`npm run film:check -- --film <filmId>`。错误必须修复；警告逐条判断。
+    motion 提示和 animatic 不替代、不弱化这道硬规则检查。
+13. **交付**：`npm run film:deliver -- --film <filmId>`。它先检查，再渲染并复验
     `deliveries/<filmId>/video.mp4`、`cover-4x3.png`、`cover-3x4.png`、`publish.json`；旧交付自动移到 `.axmorf/history/`。
-12. **报告**：交付路径、时长、关键画面与卡点所在帧、每轮审片清单的结论与帧号、修正了什么、
-    还没验证的（例如没有实际听音）。
+    缺少或过期的 animatic 会提醒，但不拦交付；交付前确认已完成节奏审片。
+14. **报告**：交付路径、时长、关键画面与卡点所在帧、每轮审片清单的结论与帧号、修正了什么、
+    storyboard 与实际成片是否一致、motionWarnings 的处理、animatic 路径，以及还没验证的（例如没有实际听音）。
 
 ## 修改已有的片
 
-直接修改 `film.json` 或源码，然后按需重新运行 `film:voice`、`film:music`，再审片、检查、交付。
-`film:check` 会指出旁白或配乐是否与 `film.json` 不一致。不要修改 `generated/` 下的文件。
+直接修改 `film.json` 或源码，然后按需重新运行 `film:voice`、`film:music`、`film:sfx`，同步更新 `storyboard.md`，再出 animatic、审片、检查、交付。
+`film:check` 会指出旁白、配乐或音效计划是否与 `film.json` 不一致。
+声音重做且画面锁定时，以原画面帧为锚，不改画面代码；新旧视频流 `framemd5` 必须逐帧相同。不要修改 `generated/` 下的文件。
 `npm run film:list` 列出所有片及其交付状态。
 
 ## 硬规则
@@ -97,3 +185,7 @@ Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐�
   或直接编辑 `private/producer.config.json` 的 `renderDefaults.renderTimeoutMinutes`，然后重新交付。
 - 命令报告 “Another Workspace operation is already active” 时，等待正在运行的命令结束；不要手动删除锁文件。
 - 删除一部片只用 `npm run film:delete -- --film <filmId> --confirm-delete`，并且只在用户明确要求时执行。
+- 环境限制：不要在本机启动任何 GUI 视频或音频播放器（ffplay、VLC、mpv、mplayer、Totem、浏览器播放等），
+  也不要用 xdg-open、gio open 或自动播放绕过；部分主机上播放器会触发显卡故障。只做渲染、抽帧、
+  禁用硬件加速的软件解码（ffmpeg `-hwaccel none`）和音频测量，观看交给用户在手机或 Mac 上完成。
+  执行被拒绝时不要提权、复制二进制、换播放器或修改权限与显示后端，如实报告未验证即可。

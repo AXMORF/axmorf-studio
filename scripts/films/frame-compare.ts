@@ -10,8 +10,8 @@ export const FRAME_SIGNATURE_SIZE = 64;
 
 const PNG_SIGNATURE = Buffer.from("89504e470d0a1a0a", "hex");
 
-/** Decodes an 8-bit grayscale, non-interlaced PNG (what ffmpeg writes for format=gray). */
-export const decodeGrayPng = (bytes: Buffer) => {
+/** Decode the 8-bit, non-interlaced gray/RGB PNGs emitted by Workspace FFmpeg. */
+const decodePng = (bytes: Buffer, channels: 1 | 3) => {
   if (!bytes.subarray(0, 8).equals(PNG_SIGNATURE)) {
     throw new Error("Frame signature is not a PNG.");
   }
@@ -25,9 +25,13 @@ export const decodeGrayPng = (bytes: Buffer) => {
     if (type === "IHDR") {
       width = data.readUInt32BE(0);
       height = data.readUInt32BE(4);
-      if (data[8] !== 8 || data[9] !== 0 || data[12] !== 0) {
+      if (
+        data[8] !== 8 ||
+        data[9] !== (channels === 1 ? 0 : 2) ||
+        data[12] !== 0
+      ) {
         throw new Error(
-          "Frame signature must be 8-bit grayscale, non-interlaced.",
+          `Review PNG must be 8-bit ${channels === 1 ? "grayscale" : "RGB"}, non-interlaced.`,
         );
       }
     } else if (type === "IDAT") {
@@ -36,14 +40,20 @@ export const decodeGrayPng = (bytes: Buffer) => {
     offset += 12 + length;
   }
   const raw = inflateSync(Buffer.concat(idat));
-  const pixels = new Uint8Array(width * height);
+  const stride = width * channels;
+  if (width <= 0 || height <= 0 || raw.length !== height * (stride + 1))
+    throw new Error("Review PNG has invalid dimensions or incomplete data.");
+  const pixels = new Uint8Array(stride * height);
   for (let row = 0; row < height; row++) {
-    const filter = raw[row * (width + 1)];
-    const line = raw.subarray(row * (width + 1) + 1, (row + 1) * (width + 1));
-    for (let x = 0; x < width; x++) {
-      const left = x > 0 ? pixels[row * width + x - 1]! : 0;
-      const up = row > 0 ? pixels[(row - 1) * width + x]! : 0;
-      const upLeft = x > 0 && row > 0 ? pixels[(row - 1) * width + x - 1]! : 0;
+    const filter = raw[row * (stride + 1)];
+    const line = raw.subarray(row * (stride + 1) + 1, (row + 1) * (stride + 1));
+    for (let x = 0; x < stride; x++) {
+      const left = x >= channels ? pixels[row * stride + x - channels]! : 0;
+      const up = row > 0 ? pixels[(row - 1) * stride + x]! : 0;
+      const upLeft =
+        x >= channels && row > 0
+          ? pixels[(row - 1) * stride + x - channels]!
+          : 0;
       let predictor = 0;
       if (filter === 1) predictor = left;
       else if (filter === 2) predictor = up;
@@ -57,11 +67,14 @@ export const decodeGrayPng = (bytes: Buffer) => {
       } else if (filter !== 0) {
         throw new Error(`Unsupported PNG filter ${filter}.`);
       }
-      pixels[row * width + x] = (line[x]! + predictor) & 0xff;
+      pixels[row * stride + x] = (line[x]! + predictor) & 0xff;
     }
   }
   return { width, height, pixels };
 };
+
+export const decodeGrayPng = (bytes: Buffer) => decodePng(bytes, 1);
+export const decodeRgbPng = (bytes: Buffer) => decodePng(bytes, 3);
 
 /** Average per-pixel difference on a 0–255 scale. */
 export const meanAbsoluteDifference = (left: Uint8Array, right: Uint8Array) => {
@@ -95,6 +108,8 @@ export const readFrameSignature = async ({
       "-v",
       "error",
       "-y",
+      "-hwaccel",
+      "none",
       "-i",
       imagePath,
       "-vf",
@@ -111,4 +126,51 @@ export const readFrameSignature = async ({
     throw new Error(`Could not read review frame ${imagePath}.`);
   }
   return decodeGrayPng(await readFile(signaturePath)).pixels;
+};
+
+export type ReviewFramePixels = {
+  width: number;
+  height: number;
+  /** Packed, row-major sRGB (three bytes per pixel). */
+  pixels: Uint8Array;
+};
+
+/** Decode only a JPEG already rendered for the contact sheet, using software. */
+export const readReviewFramePixels = async ({
+  rootDir,
+  imagePath,
+  pixelsPath,
+  runProcess = runMediaProcess,
+}: {
+  rootDir: string;
+  imagePath: string;
+  pixelsPath: string;
+  runProcess?: ProcessRunner;
+}): Promise<ReviewFramePixels> => {
+  const command = await resolveMediaToolCommand({
+    rootDir,
+    tool: "ffmpeg",
+    args: [
+      "-v",
+      "error",
+      "-y",
+      "-hwaccel",
+      "none",
+      "-i",
+      imagePath,
+      "-frames:v",
+      "1",
+      "-pix_fmt",
+      "rgb24",
+      pixelsPath,
+    ],
+  });
+  const result = await runProcess(command.command, command.args, {
+    cwd: rootDir,
+  });
+  if (result.status !== 0)
+    throw new Error(
+      `Could not read contrast pixels: ${result.stderr.trim() || imagePath}`,
+    );
+  return decodeRgbPng(await readFile(pixelsPath));
 };

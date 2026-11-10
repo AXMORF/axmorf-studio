@@ -5,10 +5,12 @@ import { checkFilm } from "./check";
 import { deliverFilm } from "./deliver";
 import { deleteFilm, listFilms } from "./manage";
 import { runFilmMusic } from "./music";
+import { runFilmSfx } from "./sfx";
 import { createFilm, type FilmBookendChoice } from "./new";
 import { generateFilmRegistry } from "./registry";
 import { runFilmReview } from "./review";
 import { runFilmVoice } from "./voice";
+import { runFilmCaptionTiming } from "./caption-timing";
 
 export type FilmCliContext = Readonly<{
   rootDir: string;
@@ -20,15 +22,17 @@ export type FilmCliContext = Readonly<{
 const USAGE = `Usage:
   film new --film <id> --title <title> [--width <px>] [--height <px>] [--fps <n>] [--bookends workspace|both|none]
   film voice --film <id>
+  film captions --film <id>
   film music --film <id>
+  film sfx --film <id>
   film asset --film <id> --file <absolute-path> --name <file-name> --origin generated|original|licensed --creator <who> --license <license> [--source-url <url>] [--attribution <text>]
-  film review --film <id> [--frames <f1,f2,...>] [--scale <0.1-1>]
+  film review --film <id> [--frames <f1,f2,...>] [--scale <0.1-1>] [--animatic]
   film check --film <id>
   film deliver --film <id>
   film list
   film delete --film <id> --confirm-delete`;
 
-const FLAGS = new Set(["confirm-delete"]);
+const FLAGS = new Set(["confirm-delete", "animatic"]);
 
 /** Parses `--name value` pairs and bare flags; rejects anything unexpected. */
 export const parseFilmOptions = (
@@ -124,9 +128,24 @@ export const runFilmCli = async (
       );
       return;
     }
+    case "captions": {
+      const options = parseFilmOptions(rest, ["film"]);
+      print(
+        await runFilmCaptionTiming({
+          rootDir,
+          filmId: options.required("film"),
+        }),
+      );
+      return;
+    }
     case "music": {
       const options = parseFilmOptions(rest, ["film"]);
       print(await runFilmMusic({ rootDir, filmId: options.required("film") }));
+      return;
+    }
+    case "sfx": {
+      const options = parseFilmOptions(rest, ["film"]);
+      print(await runFilmSfx({ rootDir, filmId: options.required("film") }));
       return;
     }
     case "asset": {
@@ -161,7 +180,12 @@ export const runFilmCli = async (
       return;
     }
     case "review": {
-      const options = parseFilmOptions(rest, ["film", "frames", "scale"]);
+      const options = parseFilmOptions(rest, [
+        "film",
+        "frames",
+        "scale",
+        "animatic",
+      ]);
       const frames = options
         .optional("frames")
         ?.split(",")
@@ -182,6 +206,7 @@ export const runFilmCli = async (
         await runFilmReview({
           rootDir,
           filmId: options.required("film"),
+          animatic: options.has("animatic"),
           ...(frames === undefined ? {} : { frames }),
           ...(parsedScale === undefined ? {} : { scale: parsedScale }),
           env: context.env,

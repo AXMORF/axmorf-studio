@@ -29,7 +29,7 @@ The initializer writes exact dependencies, installs them, creates a `package-loc
 `doctor` checks before atomically publishing the target directory. The resulting directory is a normal private npm application, not
 a clone of the AXMORF monorepo. Bootstrap also projects manifest- and checksum-verified shared media from the runtime package into the
 workspace Catalog. The initial set contains a Mixkit “Movie Trailer Epic Impact” opening excerpt, an eight-second Mixkit “Deep Urban”
-closing excerpt, a reusable AXMORF mark, 24 original motion effects and five authorized original loop masters.
+closing excerpt, a reusable AXMORF mark, 30 original motion effects (including six cinematic synthesized cues) and five authorized original loop masters.
 The default bookends play the opening and closing excerpts.
 
 Setup reports the `install`, `bootstrap`, `browser`, and `doctor` stages with elapsed seconds on stderr. While a stage is running,
@@ -39,6 +39,9 @@ only the final `workspace-ready` result means all setup checks passed.
 
 The workspace owns its films, media, private configuration, render output and deliveries. Its generated `film:*` scripts
 cover narration timing, original music, asset admission, review frames, hard-rule checks and the verified four-file delivery.
+The Skill guides the Agent through a written `storyboard.md`, scene tracks, six motion recipes and a sound-effects plan,
+then a sound-enabled `film:review --animatic` before visual refinement. `film:review` outputs advisory `motion` /
+`motionWarnings`; these do not weaken hard-rule checks or add delivery files.
 
 ## Options
 
@@ -73,6 +76,16 @@ Every replaced or removed managed file is first copied to `.axmorf/backups/<time
 the files are restored. `.axmorf/managed.json` records checksums so later upgrades list files you edited locally in
 `localChanges`. Use `--dry-run` to list changes without writing. The upgrade refuses to run while a film command holds
 `.project-operation.lock`. Workspaces created from 0.1.23 on also have `npm run workspace:upgrade`.
+
+When the registry is npmmirror and `prefer-offline` is enabled, creation or upgrade may fail with
+`three@undefined` (`ERESOLVE`). Use the official registry and prefer online metadata for that operation:
+
+```bash
+npm_config_registry=https://registry.npmjs.org/ npm_config_prefer_online=true npm create axmorf-studio@latest my-video -- --yes
+npm_config_registry=https://registry.npmjs.org/ npm_config_prefer_online=true npx create-axmorf-studio@latest upgrade
+```
+
+Keep the exact dependency versions; do not bypass checks with `--force` or `--legacy-peer-deps`.
 
 ## Requirements
 

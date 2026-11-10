@@ -9,6 +9,7 @@ export {
 } from "./context";
 export {
   FilmCaptions,
+  resolveCaptionLines,
   resolveFilmCaptionFontSize,
   type FilmCaptionsProps,
 } from "./FilmCaptions";
@@ -18,3 +19,13 @@ export {
   type FilmSoundtrackProps,
 } from "./FilmSoundtrack";
 export { FilmCompositions, type FilmRegistryEntry } from "./compositions";
+
+export * from "./scene-track";
+export * from "./FilmSceneTrack";
+export * from "./FilmSoundEffects";
+export { FilmStatusTag, type FilmStatusTagProps } from "./FilmStatusTag";
+export {
+  useFilmMusicEnergy,
+  type FilmMusicEnergy,
+  type FilmMusicEnergyOptions,
+} from "./useFilmMusicEnergy";
