@@ -1,5 +1,12 @@
 # Iteration Status
 
+## 0.3.0 正式发布（2026-11-11）
+
+0.3.0 由 `v0.3.0-rc.8` 晋级发布到 npm `latest`，源码与 rc.8 相同，只改版本号。
+晋级依据（RELEASE.md 晋级门）：生产 ai 工作区用 0.3.0-rc.8，由 Codex 宿主按 `axmorf-film` Skill 完成一部日常片
+`ai-chat-privacy-20261111`，`film:deliver` 交付四文件、`film:check` 为 `film-check-passed` 且 warnings 为空。
+`next` 仍指向 0.3.0-rc.8（发布流程只更新 `latest`），下一个预发布版本会把它推进。
+
 ## Workspace 共享资源升级修复（2026-11-10，未发布）
 
 **升级提示：已发布的 0.3.0-rc.7 从共享资源仍为旧版的 Workspace 升级会失败，但会安全回滚，私有配置不会改变。
