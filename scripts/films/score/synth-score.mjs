@@ -619,6 +619,8 @@ const ensureOutputDirectory = (root, id) => {
 };
 
 if (
+  // In the Workspace CLI bundle, import.meta.url belongs to main.js instead.
+  import.meta.url.endsWith("/synth-score.mjs") &&
   process.argv[1] &&
   import.meta.url === pathToFileURL(resolve(process.argv[1])).href
 ) {

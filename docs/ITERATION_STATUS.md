@@ -18,6 +18,8 @@ providerAttemptFingerprint 不同。逐句缓存现改用独立音频内容指�
 v7/v8 只读副本的执行描述仅 privateConfigFingerprint 不同，新内容指纹相同。副本内离线将已确认的 25 个旧逐句缓存写入新键后迁移，
 当前 film voice CLI 25/25 命中、网络/TTS=0，narration.wav 与原 v8 8,324,822 bytes 逐字节一致，2656 帧和句边界/输入指纹不变。
 旧 v7/v8 timing 均通过新 film:check，检查前后字节不变。缓存/流程等 focused 34 项、内容身份 3 项通过。
+构建产物补验还发现 synth-score 的独立 CLI 在 bundle 中误判自身为入口，导致 film voice 报 usage；
+入口现额外限定原模块 URL，避免触发独立合成命令，不改音频算法；打包复现/独立参数校验两项回归覆盖。
 详细证据和最终完整 check 结果见本地 `/home/zzzxc/AgentWorkspace/2026-11-10-p6-prep-notes.md`。
 
 ## P11 字幕显示、纸条与字幕带（2026-11-10，未发布）
