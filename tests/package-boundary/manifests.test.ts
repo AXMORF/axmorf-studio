@@ -47,6 +47,9 @@ test("the private repository root owns exactly the two public npm packages", asy
     "fast-uri": "3.1.9",
     "brace-expansion@1": "1.1.21",
     "brace-expansion@2": "2.1.7",
+    "@typescript-eslint/typescript-estree": {
+      minimatch: "11.0.5",
+    },
     nanoid: "3.3.18",
     "postcss-selector-parser": "7.1.6",
     "source-map-js": "1.2.2",
