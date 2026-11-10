@@ -54,6 +54,9 @@ npm run dev
 npx create-axmorf-studio@latest upgrade
 ```
 
+共享资源仅在当前字节匹配旧运行时或已记录的包哈希时更新；本地修改会报冲突并回滚。
+`bootstrap` 在 `.axmorf/shared-resources.json` 记录确认过的共享资源 SHA-256。
+
 registry 使用 npmmirror 且开启 `prefer-offline` 时，创建或升级的安装可能报 `three@undefined`（`ERESOLVE`）。
 为该次操作指定官方 registry 并优先在线元数据：
 

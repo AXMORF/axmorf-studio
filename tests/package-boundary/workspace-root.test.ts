@@ -1,5 +1,14 @@
 import assert from "node:assert/strict";
-import { lstat, mkdir, readFile, symlink, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import {
+  lstat,
+  mkdir,
+  readFile,
+  readdir,
+  rm,
+  symlink,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test, type TestContext } from "node:test";
@@ -223,5 +232,140 @@ test("workspace bootstrap rejects a symlink in a managed directory chain", async
   await assert.rejects(
     bootstrapWorkspace({ rootDir, workspaceSeedRoot }),
     /cannot be a symbolic link/u,
+  );
+});
+
+const sharedPath = "public/assets/axmorf-shared/shared.txt";
+const resourceManifest = ".axmorf/shared-resources.json";
+const hash = (bytes: string | Buffer) =>
+  `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
+
+test("bootstrap records confirmed resource hashes and updates only untouched old bytes", async (context) => {
+  const rootDir = await createTemporaryDirectory(
+    context,
+    "workspace-resource-update-",
+  );
+  const workspaceSeedRoot = await createWorkspaceSeed(context);
+  await bootstrapWorkspace({ rootDir, workspaceSeedRoot });
+  const manifestPath = join(rootDir, resourceManifest);
+  const oldManifest = JSON.parse(await readFile(manifestPath, "utf8"));
+  assert.equal(oldManifest.files[sharedPath], hash("shared\n"));
+  await writeFile(join(workspaceSeedRoot, sharedPath), "new package bytes\n");
+  await bootstrapWorkspace({ rootDir, workspaceSeedRoot });
+  assert.equal(
+    await readFile(join(rootDir, sharedPath), "utf8"),
+    "new package bytes\n",
+  );
+  const nextManifest = JSON.parse(await readFile(manifestPath, "utf8"));
+  assert.equal(nextManifest.files[sharedPath], hash("new package bytes\n"));
+  assert.deepEqual(
+    await readdir(join(rootDir, "public/assets/axmorf-shared")),
+    ["shared.txt"],
+  );
+});
+
+test("bootstrap preserves local edits and the old hash when the package changes", async (context) => {
+  const rootDir = await createTemporaryDirectory(
+    context,
+    "workspace-resource-edit-",
+  );
+  const workspaceSeedRoot = await createWorkspaceSeed(context);
+  await bootstrapWorkspace({ rootDir, workspaceSeedRoot });
+  const before = await readFile(join(rootDir, resourceManifest));
+  await writeFile(join(rootDir, sharedPath), "local edit\n");
+  await writeFile(join(workspaceSeedRoot, sharedPath), "new release\n");
+  await assert.rejects(
+    bootstrapWorkspace({ rootDir, workspaceSeedRoot }),
+    /conflicts with package bytes/u,
+  );
+  assert.equal(
+    await readFile(join(rootDir, sharedPath), "utf8"),
+    "local edit\n",
+  );
+  assert.deepEqual(await readFile(join(rootDir, resourceManifest)), before);
+});
+
+test("bootstrap repairs a missing resource even with a stale recorded hash", async (context) => {
+  const rootDir = await createTemporaryDirectory(
+    context,
+    "workspace-resource-missing-",
+  );
+  const workspaceSeedRoot = await createWorkspaceSeed(context);
+  await bootstrapWorkspace({ rootDir, workspaceSeedRoot });
+  await rm(join(rootDir, sharedPath));
+  await writeFile(join(workspaceSeedRoot, sharedPath), "new release\n");
+  await bootstrapWorkspace({ rootDir, workspaceSeedRoot });
+  assert.equal(
+    await readFile(join(rootDir, sharedPath), "utf8"),
+    "new release\n",
+  );
+});
+
+test("bootstrap cannot replace old package bytes without a recorded hash", async (context) => {
+  const rootDir = await createTemporaryDirectory(
+    context,
+    "workspace-resource-untracked-",
+  );
+  const workspaceSeedRoot = await createWorkspaceSeed(context);
+  await bootstrapWorkspace({ rootDir, workspaceSeedRoot });
+  await rm(join(rootDir, resourceManifest));
+  await writeFile(join(workspaceSeedRoot, sharedPath), "new release\n");
+  await assert.rejects(
+    bootstrapWorkspace({ rootDir, workspaceSeedRoot }),
+    /conflicts with package bytes/u,
+  );
+  assert.equal(await readFile(join(rootDir, sharedPath), "utf8"), "shared\n");
+});
+
+test("bootstrap records an existing matching resource without needing previous hashes", async (context) => {
+  const rootDir = await createTemporaryDirectory(
+    context,
+    "workspace-resource-confirm-",
+  );
+  const workspaceSeedRoot = await createWorkspaceSeed(context);
+  await mkdir(join(rootDir, "public/assets/axmorf-shared"), {
+    recursive: true,
+  });
+  await writeFile(join(rootDir, sharedPath), "shared\n");
+  await bootstrapWorkspace({ rootDir, workspaceSeedRoot });
+  const manifest = JSON.parse(
+    await readFile(join(rootDir, resourceManifest), "utf8"),
+  );
+  assert.equal(manifest.files[sharedPath], hash("shared\n"));
+});
+
+test("bootstrap refuses resource and manifest symlinks even if their bytes match", async (context) => {
+  const rootDir = await createTemporaryDirectory(
+    context,
+    "workspace-resource-symlink-",
+  );
+  const workspaceSeedRoot = await createWorkspaceSeed(context);
+  await bootstrapWorkspace({ rootDir, workspaceSeedRoot });
+  const outside = await createTemporaryDirectory(
+    context,
+    "workspace-resource-outside-",
+  );
+  await writeFile(join(outside, "shared.txt"), "shared\n");
+  await rm(join(rootDir, sharedPath));
+  await symlink(join(outside, "shared.txt"), join(rootDir, sharedPath));
+  await writeFile(join(workspaceSeedRoot, sharedPath), "new release\n");
+  await assert.rejects(
+    bootstrapWorkspace({ rootDir, workspaceSeedRoot }),
+    /target is unsafe/u,
+  );
+  assert.equal(await readFile(join(outside, "shared.txt"), "utf8"), "shared\n");
+  await rm(join(rootDir, sharedPath));
+  await rm(join(rootDir, resourceManifest));
+  await writeFile(
+    join(outside, "manifest.json"),
+    '{"schemaVersion":1,"files":{}}',
+  );
+  await symlink(
+    join(outside, "manifest.json"),
+    join(rootDir, resourceManifest),
+  );
+  await assert.rejects(
+    bootstrapWorkspace({ rootDir, workspaceSeedRoot }),
+    /regular non-symbolic file/u,
   );
 });

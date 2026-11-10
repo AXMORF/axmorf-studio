@@ -64,7 +64,7 @@ npx create-axmorf-studio@latest upgrade
 ```
 
 The command updates the product-managed files to this release: the `axmorf-film` Skill and its Claude Code entry, `AGENTS.md`/`CLAUDE.md`/`GEMINI.md`/`README.md`, configs, the generated npm
-scripts and the exact `@axmorf/studio` version. It then runs `npm install`, `bootstrap` and `doctor`. Films, `public/`,
+scripts and the exact `@axmorf/studio` version. It then runs `npm install`, `bootstrap` and `doctor`. Films, user media,
 `deliveries/`, `private/` configuration, your own scripts, dependencies and other skills stay unchanged.
 
 Upgrading to 0.3.0 removes the retired `axmorf-video` Skill, the Project-only `remotion-best-practices` copy and the
@@ -76,6 +76,12 @@ Every replaced or removed managed file is first copied to `.axmorf/backups/<time
 the files are restored. `.axmorf/managed.json` records checksums so later upgrades list files you edited locally in
 `localChanges`. Use `--dry-run` to list changes without writing. The upgrade refuses to run while a film command holds
 `.project-operation.lock`. Workspaces created from 0.1.23 on also have `npm run workspace:upgrade`.
+
+Shared runtime resources are updated only when their bytes match the old package hash; local edits remain conflicts.
+Before install, upgrade captures hashes from the installed runtime seed, taking priority over the history in
+`.axmorf/shared-resources.json`. Bootstrap records hashes there whenever it writes or confirms shared resources.
+Without either source of old hashes, differing bytes remain conflicts. Shared resources and this manifest are backed up
+and restored on failure, including removal of newly created resources.
 
 When the registry is npmmirror and `prefer-offline` is enabled, creation or upgrade may fail with
 `three@undefined` (`ERESOLVE`). Use the official registry and prefer online metadata for that operation:
