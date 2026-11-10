@@ -54,6 +54,7 @@ film:music   → film.json 的 music.score（合成）或 music.track（已登�
 Agent        → src/films/<id>/storyboard.md（每小节一行：L2、L3、旁白句、音效，另补章节世界、镜头路径/配方/转场）
                → FilmSceneTrack + rhythm hooks 编排 L1/L2/L3 画面 → 从动作派生 sound.effects
 film:sfx     → sound.effects → public/films/<id>/sfx/<effectId>.wav + generated/sfx.json（指纹、PCM 时长、对齐帧）；登记原创许可 → FilmSoundEffects
+film:captions → 现有 narration.wav 的确定性 RMS 停顿分析 → timing.json 可选 clauses（不调用 TTS、不改指纹）
 film:review  → 联系表、stillWarnings、readabilityWarnings、graphicWarnings、repetitionWarnings 与测量摘要 readability/graphics（仅提示）
                → motion / motionWarnings、review/motion-curve.json 与 .png、review/dense/ 密集帧（仅提示）
                → --animatic 时输出 review/animatic.mp4（短边 360、原帧率、带声音；先看节奏再精修）
@@ -106,6 +107,11 @@ narration 每句可选 `caption` 只作屏幕显示；`text` 仍传给 TTS，两
 因此改字幕无需重新生成 voice。voice 缓存与 timing 输入指纹均不含 caption。
 FilmCaptions 默认 box；旧 box 未写 caption 时保持原排版，caption/paper 使用纯函数 resolveCaptionLines 按画幅、字号与 padding 显式折成最多两行，
 保护数字、英文词与型号/版本，优先中间附近标点/空格。paper 用固定微倾底纸、水平文字与两端胶带，默认墨/纸对比 >4.5:1，style 可覆盖。
+可选 highlight="karaoke" 用分句时间连续扫色，跨行顺序推进；sungColor/unsungColor 可覆盖，默认关闭保持旧像素。
+film:captions 使用 10ms RMS 窗、句峰的 6% 阈值、最短 120ms 内部停顿，按念法半角单位比例位置用 DP 做最大数量、最小总距离的顺序匹配。
+多余停顿忽略；缺失边界在相邻已匹配停顿间按比例补齐。分句任一内部端点为补齐即标 proportional，否则标 pause；句子含比例分句时保留 estimated:proportional，CLI 区分 pause/mixed/proportional。
+分句精度为估计，分句内线性，不是逐字对齐；caption/text 分句数不符或旧 timing 无 clauses 时按整句线性扫过。
+审片 captionWarnings 的 karaoke-clause-mismatch 只提示分句数不符，不拦交付。
 审片 `captionWarnings` 的 `caption-spoken-numerals` 检查 text 连续至少 3 个中文数字字符且没有 caption，只提示不拦交付。
 
 图形测量同样只在 readability 已有采样帧执行，无额外渲染。原生 DOM/SVG 的 `data-axmorf-object` 标明含义，

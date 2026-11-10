@@ -40,6 +40,22 @@ t.music?.barFrames; // 另有 beatFrames、sectionFrames、accentFrames、bpm、
   `caption: "这是 8,415 个 H100 小时，乘每小时 $2.5。"`。
   timing.sentences 可保存 caption；`useFilmTiming()` 以当前 film.json 为准（包括修改或删除 caption），不改音频/帧边界。
   caption 不进入 timing 输入指纹或 voice 缓存键，只改字幕不运行 film:voice。
+- 开启 KTV 双色字幕：`<FilmCaptions variant="paper" highlight="karaoke" />`（纸面片推荐）。
+  `highlight` 默认为 `"none"`，不改变旧输出；`sungColor` / `unsungColor` 可覆盖已念 / 未念颜色。
+  paper 默认强调红 `#9c3426` / 墨灰 `#50545b`，box 默认浅金 `#ffe08a` / 浅灰 `#cbd5e1`，
+  karaoke box 使用不透明深底 `#0a0e18`，四个默认文字颜色对各自底板均 ≥4.5:1；自定义颜色或背景后重新审片。
+  voice 后运行 `npm run film:captions -- --film <filmId>`，从已有 canonical narration.wav 确定性检测停顿，
+  写入 timing.sentences 的可选 `clauses: [{text,startFrame,endFrame,source:"pause"|"proportional"}]`，
+  帧号是正片绝对帧。检测使用 10ms RMS 窗、句峰 RMS 的 6% 阈值、最短 120ms 内部停顿；首尾静音不计入停顿。
+  以念法半角单位累计比例位置与停顿中心的距离为代价，用 DP 做最大匹配数、最小总代价的顺序匹配；同代价保留较早候选。
+  多余停顿忽略；缺失边界在相邻已匹配停顿之间按比例补齐，不跨越已匹配静音。各分句只要任一内部端点为补齐，
+  就写 source:"proportional"，否则为 pause（句首尾来自能量实测）；存在比例分句时句子标 `estimated:"proportional"`。
+  CLI 另报告 matchedBoundaries、ignoredPauses、各边界来源及 pause / mixed / proportional 总体方法；只估计，不声称词级精度。
+  此步骤不初始化 TTS、不改音频、句级边界、timing 指纹或缓存键；重新 voice 后重新运行。渲染与审片不分析音频或改 timing。
+  caption 与 text 保持相同分句标点（，。、；：？！）和分句数，才能逐分句对应；8,415 / $2.5 不会误拆。
+  精度是分句级、分句内线性估计，不是逐字对齐；每个分句内连续填充部分字形，两行先第一行再第二行，停顿保持不动。
+  分句数不符、旧 timing 没有 clauses 时按整句时间线性扫过；`karaoke-clause-mismatch` 在分句数不符时只提示、不拦交付。
+  正在读的文字不抖、不缩放；自定义 `render` 完全接管字幕。双色渐变处的自动文字填充测量可能为 unknown，需看图核对两种颜色。
 - paper 是偏白纸条、深灰字、轻投影与两端半透明胶带；底纸固定倾斜 0.65°，字保持水平、不 boil。
   默认纸/墨对比大于 4.5:1；style 可覆盖，覆盖后重新核对对比。纸面片使用 `<FilmCaptions variant="paper" />`。
 - `resolveCaptionLines(text, maxHalfUnitsPerLine)` 返回最多两行，优先选择宽度内靠中间的标点，其次空格，再在中文字间折行；

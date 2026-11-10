@@ -123,7 +123,9 @@ Skill 中的创作方法、animatic 与看图回路；motionWarnings 仅作提�
 辅助静音描述；转场照报，`graphics.unknown` 不算通过。复用审片采样，仅提示、不拦交付，不自动选择影片风格。
 旁白念法保留在 `narration[].text`，可选 `caption` 写屏幕文本（数字/型号/货币符号），不改变 voice 缓存、timing 指纹或实测帧。
 `FilmCaptions variant="paper"` 提供白纸条字幕与显式断行；默认 box 的旧片像素不变。
-审片新增 `captionWarnings` 的 `caption-spoken-numerals` 与 `graphicWarnings` 的 `graphic-in-caption-band`（实际字幕框外扩 24px），均只提示。
+可选 `highlight="karaoke"` 连续双色扫字；voice 后运行 `film:captions` 离线估分句时间，不重做旁白。
+精度为分句级、分句内线性估计，caption 与 text 保持相同分句标点；纸面风格推荐开启。
+审片新增 `captionWarnings` 的 `caption-spoken-numerals` / `karaoke-clause-mismatch` 与 `graphicWarnings` 的 `graphic-in-caption-band`（实际字幕框外扩 24px），均只提示。
 用户或 Workspace 指定纸面拼贴/手绘线稿时，Skill 提供对应配方、已安装字体回退和可编译 gallery。
 纸面关键人物/实物由宿主生图剪纸准备，工具不可用停下；bookends 显式 light，每镜头写真实桌面动作。
 讲述段只保护阅读文字，持续桌面微移、非文字线稿 boil、每拍轮换物件反应，每章至少三类、相邻小节主动作轮换；`beat-response-monotone` 与 `motion.summary.beatResponses`
@@ -138,6 +140,7 @@ Skill 中的创作方法、animatic 与看图回路；motionWarnings 仅作提�
 | 检查当前环境                       | `npm run doctor`                                           |
 | 同时打开控制中心与 Remotion Studio | `npm run dev`                                              |
 | 新建一部片                         | `npm run film:new -- --film <film-id> --title "<标题>"`    |
+| 离线估计双色字幕分句时间           | `npm run film:captions -- --film <film-id>`                |
 | 生成旁白与时序                     | `npm run film:voice -- --film <film-id>`                   |
 | 生成配乐与节拍网格                 | `npm run film:music -- --film <film-id>`                   |
 | 生成本片原创音效                   | `npm run film:sfx -- --film <film-id>`                     |

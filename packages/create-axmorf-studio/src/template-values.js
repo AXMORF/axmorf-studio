@@ -59,6 +59,7 @@ const SCRIPTS = Object.freeze({
   compositions: "remotion compositions src/index.ts",
   "film:new": "axmorf film new",
   "film:voice": "axmorf film voice",
+  "film:captions": "axmorf film captions",
   "film:music": "axmorf film music",
   "film:sfx": "axmorf film sfx",
   "film:asset": "axmorf film asset",

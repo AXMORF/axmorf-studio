@@ -8,9 +8,14 @@
 
 ## 纸条字幕与保护带
 
-纸面片使用 `<FilmCaptions variant="paper" />`：偏白纸条与米色桌面拉开明度，深灰墨字、轻投影、两端半透明胶带；
+纸面片推荐使用 `<FilmCaptions variant="paper" highlight="karaoke" />`：偏白纸条与米色桌面拉开明度，深灰墨字、轻投影、两端半透明胶带；
 底纸仅固定倾斜 0.65°，字保持水平、不 boil。默认纸/墨对比大于 4.5:1，style 可覆盖，改色后重查对比。
-默认 box 保持旧片像素；caption/paper 按标点优先显式断行，保护数字和英文单词，不靠缩小字号排成一行。
+voice 后运行 `npm run film:captions -- --film <filmId>` 补分句估时；不改音频、句级边界或 voice 指纹。
+caption 与 text 保持相同分句标点（，。、；：？！）和分句数，才能逐分句对齐；精度为分句级、分句内线性估计，不是逐字对齐。
+停顿用确定性 DP 按比例位置做最优顺序匹配，多余停顿忽略、缺失边界在相邻匹配停顿间按比例补齐；各分句标 pause/proportional。
+含比例分句的句子标 estimated:proportional；显示/念法分句数不符则按整句扫过并提示 `karaoke-clause-mismatch`；旧 timing 也可按整句扫过。
+已念为强调红、未念为墨灰，`sungColor` / `unsungColor` 可覆盖，覆盖后重新核对 ≥4.5:1 对比；字不抖、不缩放。
+默认 `highlight="none"` 和 box 保持旧片像素；caption/paper 按标点优先显式断行，保护数字和英文单词，不靠缩小字号排成一行。
 旁白念法写在 narration 的 `text`，屏幕显示写在可选 `caption`（各自最多 72 半角单位），例如：
 `text: "这是八千四百一十五个H一百小时，乘每小时二点五美元。"`，
 `caption: "这是 8,415 个 H100 小时，乘每小时 $2.5。"`。只改 caption 不重跑旁白、不改实测时序或 voice 指纹。

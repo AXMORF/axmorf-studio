@@ -10,6 +10,7 @@ import { createFilm, type FilmBookendChoice } from "./new";
 import { generateFilmRegistry } from "./registry";
 import { runFilmReview } from "./review";
 import { runFilmVoice } from "./voice";
+import { runFilmCaptionTiming } from "./caption-timing";
 
 export type FilmCliContext = Readonly<{
   rootDir: string;
@@ -21,6 +22,7 @@ export type FilmCliContext = Readonly<{
 const USAGE = `Usage:
   film new --film <id> --title <title> [--width <px>] [--height <px>] [--fps <n>] [--bookends workspace|both|none]
   film voice --film <id>
+  film captions --film <id>
   film music --film <id>
   film sfx --film <id>
   film asset --film <id> --file <absolute-path> --name <file-name> --origin generated|original|licensed --creator <who> --license <license> [--source-url <url>] [--attribution <text>]
@@ -122,6 +124,16 @@ export const runFilmCli = async (
           rootDir,
           filmId: options.required("film"),
           env: context.env,
+        }),
+      );
+      return;
+    }
+    case "captions": {
+      const options = parseFilmOptions(rest, ["film"]);
+      print(
+        await runFilmCaptionTiming({
+          rootDir,
+          filmId: options.required("film"),
         }),
       );
       return;

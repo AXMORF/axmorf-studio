@@ -45,6 +45,7 @@ rendering, and keep it set while rendering.
 | ------------------------------------------ | ----------------------------------------------------------- |
 | Check host readiness                       | `npm run doctor`                                            |
 | Start a film                               | `npm run film:new -- --film <film-id> --title "<title>"`    |
+| Estimate clause timing for karaoke captions | `npm run film:captions -- --film <film-id>`                |
 | Generate narration and its timing          | `npm run film:voice -- --film <film-id>`                    |
 | Generate the score and its beat grid       | `npm run film:music -- --film <film-id>`                    |
 | Generate original per-film sound effects   | `npm run film:sfx -- --film <film-id>`                      |

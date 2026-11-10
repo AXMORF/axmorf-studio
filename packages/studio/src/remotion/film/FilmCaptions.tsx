@@ -6,6 +6,7 @@ export { resolveFilmCaptionFontSize } from "../../contracts/film";
 
 import { useFilmTiming, type FilmSentenceTiming } from "./context";
 import { resolveCaptionLines } from "./caption-lines";
+import { resolveKaraokeLines } from "./caption-karaoke";
 export { resolveCaptionLines } from "./caption-lines";
 
 export type FilmCaptionsProps = Readonly<{
@@ -15,6 +16,10 @@ export type FilmCaptionsProps = Readonly<{
   maxWidth?: number;
   /** Paper uses a stable reading plane over a lightly tilted, taped white strip. */
   variant?: "box" | "paper";
+  /** Clause-level estimates, with a continuous left-to-right color sweep. */
+  highlight?: "none" | "karaoke";
+  sungColor?: string;
+  unsungColor?: string;
   /** Overrides merged into the default caption box style. */
   style?: CSSProperties;
   /** Fully custom caption rendering; receives the active sentence and its 0–1 progress. */
@@ -29,6 +34,9 @@ export const FilmCaptions = ({
   bottom,
   maxWidth = 0.86,
   variant = "box",
+  highlight = "none",
+  sungColor,
+  unsungColor,
   style,
   render,
 }: FilmCaptionsProps) => {
@@ -46,7 +54,8 @@ export const FilmCaptions = ({
   const paper = variant === "paper";
   // Existing films keep their exact box pixels; opting into screen copy or paper
   // uses explicit line breaks. Do not reflow legacy captions on a runtime update.
-  const legacyBox = !paper && active.caption === undefined;
+  const karaoke = highlight === "karaoke";
+  const legacyBox = !karaoke && !paper && active.caption === undefined;
   const size =
     typeof style?.fontSize === "number"
       ? style.fontSize
@@ -88,6 +97,38 @@ export const FilmCaptions = ({
         active.caption ?? active.text,
         Math.max(1, Math.floor(lineWidth / (size / 2))),
       );
+  // Paper defaults both exceed 4.5:1 against #fffefa. Karaoke box is opaque so
+  // both colors retain contrast even over bright artwork. Overrides need review.
+  const sung = sungColor ?? (paper ? "#9c3426" : "#ffe08a");
+  const unsung = unsungColor ?? (paper ? "#50545b" : "#cbd5e1");
+  const karaokeText = karaoke ? (
+    <span style={{ position: "relative" }}>
+      {resolveKaraokeLines(active, lines!, frame).map((fragments, index) => (
+        <span key={index} style={{ display: "block" }}>
+          {fragments.map(({ text, progress }, fragment) => (
+            <span
+              key={fragment}
+              data-axmorf-karaoke-progress={progress}
+              style={{
+                display: "inline-block",
+                color: progress === 1 ? sung : unsung,
+                ...(progress > 0 && progress < 1
+                  ? {
+                      backgroundImage: `linear-gradient(to right, ${sung} ${progress * 100}%, ${unsung} ${progress * 100}%)`,
+                      backgroundClip: "text",
+                      WebkitBackgroundClip: "text",
+                      WebkitTextFillColor: "transparent",
+                    }
+                  : {}),
+              }}
+            >
+              {text}
+            </span>
+          ))}
+        </span>
+      ))}
+    </span>
+  ) : null;
   return (
     <AbsoluteFill
       data-axmorf-captions=""
@@ -112,7 +153,11 @@ export const FilmCaptions = ({
             maxWidth: Math.round(width * maxWidth),
             padding: `${Math.round(fontSize * 0.4)}px ${Math.round(fontSize * 0.7)}px`,
             borderRadius: paper ? 2 : Math.round(fontSize * 0.35),
-            backgroundColor: paper ? "transparent" : "rgba(10, 14, 24, 0.78)",
+            backgroundColor: paper
+              ? "transparent"
+              : karaoke
+                ? "#0a0e18"
+                : "rgba(10, 14, 24, 0.78)",
             color: paper ? "#30343b" : "#f8fafc",
             fontFamily:
               'Inter, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif',
@@ -156,8 +201,14 @@ export const FilmCaptions = ({
                   }}
                 />
               ))}
-              <span style={{ position: "relative" }}>{lines!.join("\n")}</span>
+              {karaokeText ?? (
+                <span style={{ position: "relative" }}>
+                  {lines!.join("\n")}
+                </span>
+              )}
             </>
+          ) : karaokeText ? (
+            karaokeText
           ) : lines ? (
             lines.join("\n")
           ) : (

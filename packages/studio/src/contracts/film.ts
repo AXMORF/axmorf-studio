@@ -62,6 +62,16 @@ export const countCaptionDisplayHalfUnits = (text: string) =>
     0,
   );
 
+/** Shared by audio estimation, karaoke rendering and advisory review. Keep
+ * punctuation on its preceding clause; ASCII commas/periods may be numbers. */
+export const splitFilmCaptionClauses = (text: string): string[] =>
+  (
+    text.match(/[^，。、；：？！]*[，。、；：？！]+|[^，。、；：？！]+$/gu) ??
+    []
+  )
+    .map((clause) => clause.trim())
+    .filter(Boolean);
+
 export const FILM_SCHEMA_VERSION = 1 as const;
 export const FILM_SPEECH_DUCKING_RAMP_FRAMES = 8;
 export const FILM_COVER_VARIANTS = [
@@ -523,8 +533,39 @@ export const FilmTimingSchema = z
           ),
           startFrame: NonNegativeFrameSchema,
           endFrame: PositiveFrameSchema,
+          /** Optional post-voice estimates; never part of a voice fingerprint. */
+          estimated: z.literal("proportional").optional(),
+          clauses: z
+            .array(
+              z.strictObject({
+                text: z.string().min(1),
+                startFrame: NonNegativeFrameSchema,
+                endFrame: NonNegativeFrameSchema,
+                source: z.enum(["pause", "proportional"]),
+              }),
+            )
+            .min(1)
+            .optional(),
         })
-        .strict(),
+        .strict()
+        .superRefine((sentence, context) => {
+          let end = sentence.startFrame;
+          sentence.clauses?.forEach((clause, index) => {
+            if (
+              clause.startFrame < end ||
+              clause.endFrame < clause.startFrame ||
+              clause.endFrame > sentence.endFrame
+            ) {
+              context.addIssue({
+                code: "custom",
+                path: ["clauses", index],
+                message:
+                  "Clauses must be ordered within their sentence frames.",
+              });
+            }
+            end = clause.endFrame;
+          });
+        }),
     ),
   })
   .strict();

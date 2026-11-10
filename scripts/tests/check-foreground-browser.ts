@@ -861,3 +861,129 @@ test("paper captions expose their real box, keep phone-readable explicit lines a
     await rm(scratch, { recursive: true, force: true });
   }
 });
+
+test("karaoke paints partial glyphs continuously with stable geometry and contrasting colors", async (context) => {
+  const { renderCaptionFixture } =
+    await import("../../tests/fixtures/film-captions");
+  const { contrastRatio, relativeLuminance } =
+    await import("../films/text-contrast");
+  const browser = await openBrowser("chrome", {
+    browserExecutable: process.env.AXMORF_BROWSER_EXECUTABLE?.trim(),
+  });
+  const scratch = await mkdtemp(join(tmpdir(), "karaoke-browser-"));
+  try {
+    const page = await browser.newPage({
+      context: () => null,
+      logLevel: "error",
+      indent: false,
+      pageIndex: 0,
+      onBrowserLog: null,
+      onLog: () => {},
+    });
+    for (const variant of ["paper", "box"] as const) {
+      await context.test(
+        `${variant}: two fills inside a glyph and no moving text`,
+        async () => {
+          await page.setViewport({
+            width: 1920,
+            height: 1080,
+            deviceScaleFactor: 1,
+          });
+          let previous = -1;
+          let geometry: unknown;
+          for (const frame of [0, 7, 14, 22, 29]) {
+            const html = renderCaptionFixture(
+              { variant, highlight: "karaoke" },
+              "████",
+              undefined,
+              1920,
+              1080,
+              frame,
+            );
+            await page.evaluate(
+              `document.body.innerHTML=${JSON.stringify(html)};document.body.style.margin='0';document.body.style.background='white'`,
+            );
+            const rect = await page.evaluate(`(() => {
+            const el=document.querySelector('[data-axmorf-karaoke-progress]');
+            const r=el.getBoundingClientRect();
+            const range=document.createRange();range.setStart(el.firstChild,1);range.setEnd(el.firstChild,2);
+            const glyph=range.getBoundingClientRect();
+            return {x:r.x,y:r.y,width:r.width,height:r.height,glyph:{x:glyph.x,y:glyph.y,width:glyph.width,height:glyph.height}};
+          })()`);
+            if (geometry) assert.deepEqual(rect, geometry);
+            geometry = rect;
+            const imagePath = join(scratch, `${variant}-${frame}.png`);
+            const shot = await page
+              ._client()
+              .send("Page.captureScreenshot", { format: "png" });
+            await writeFile(imagePath, Buffer.from(shot.value.data, "base64"));
+            const image = await readReviewFramePixels({
+              rootDir: process.cwd(),
+              imagePath,
+              pixelsPath: join(scratch, `${variant}-${frame}-rgb.png`),
+            });
+            const sung = variant === "paper" ? [156, 52, 38] : [255, 224, 138];
+            const unsung = variant === "paper" ? [80, 84, 91] : [203, 213, 225];
+            const counts = (area: {
+              x: number;
+              y: number;
+              width: number;
+              height: number;
+            }) => {
+              const result = [0, 0];
+              for (let y = Math.ceil(area.y); y < area.y + area.height; y++)
+                for (let x = Math.ceil(area.x); x < area.x + area.width; x++) {
+                  const at = (y * image.width + x) * 3;
+                  for (const [i, color] of [sung, unsung].entries())
+                    if (
+                      color.every(
+                        (v, c) => Math.abs(v - image.pixels[at + c]) < 4,
+                      )
+                    )
+                      result[i]++;
+                }
+              return result;
+            };
+            const typed = rect as {
+              x: number;
+              y: number;
+              width: number;
+              height: number;
+              glyph: { x: number; y: number; width: number; height: number };
+            };
+            const total = counts(typed);
+            assert.ok(
+              total[0] > previous,
+              `${variant} f${frame}: highlight advances`,
+            );
+            previous = total[0];
+            if (frame === 0) assert.equal(total[0], 0);
+            if (frame === 14) {
+              const partial = counts(typed.glyph);
+              assert.ok(
+                partial[0] > 20 && partial[1] > 20,
+                `one glyph has both fills: ${partial}`,
+              );
+            }
+            const background =
+              variant === "paper" ? [255, 254, 250] : [10, 14, 24];
+            for (const color of [sung, unsung])
+              assert.ok(
+                contrastRatio(
+                  relativeLuminance(color[0], color[1], color[2]),
+                  relativeLuminance(
+                    background[0],
+                    background[1],
+                    background[2],
+                  ),
+                ) >= 4.5,
+              );
+          }
+        },
+      );
+    }
+  } finally {
+    await browser.close({ silent: true });
+    await rm(scratch, { recursive: true, force: true });
+  }
+});

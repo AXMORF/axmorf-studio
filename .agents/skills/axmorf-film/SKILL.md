@@ -40,6 +40,8 @@ Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐�
      例如 `text: "这是八千四百一十五个H一百小时，乘每小时二点五美元。"`，
      `caption: "这是 8,415 个 H100 小时，乘每小时 $2.5。"`。
      字幕显示 `caption ?? text`；只改 caption 无须重跑 voice，既有 timing 与旁白指纹不变。
+     推荐纸面片用 `<FilmCaptions variant="paper" highlight="karaoke" />`。caption 与 text 保持相同的分句标点
+     （，。、；：？！）和分句数，才能逐分句对齐；数字仍可用不同写法。精度是分句级、分句内线性估计，不是逐字对齐。
      `captionWarnings` 的 `caption-spoken-numerals` 在 text 连续含至少 3 个中文数字字符且没写 caption 时提示补显示文本。
      `<FilmCaptions />` 会把长句自动折成最多两行并保持手机可读的字号；不要为了排成一行把字幕缩小
      （`readabilityWarnings` 会提示过小的字幕）。
@@ -54,6 +56,10 @@ Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐�
    `public/films/<filmId>/narration.wav`（保持 filmId 和相对路径），直接运行 `film:check` 验证输入指纹和音频 checksum，
    不再运行 `film:voice`。要在新 Workspace 编辑旁白并复用未改句子，还需迁移 `.axmorf/cache/voice/`，
    配置相同 provider、音色素材、生成参数与语速；不要把混合、停顿、母带处理后的 narration.wav 当作逐句缓存。
+   需要双色滚动字幕时，voice 后运行 `npm run film:captions -- --film <filmId>`，离线分析现有 narration.wav 的能量停顿，
+   把可选 clauses 写进 timing.json；不调用 TTS、不改音频、句级边界或指纹。以念法半角单位的比例位置做确定性最优顺序匹配：
+   多余停顿忽略，缺失边界在相邻已匹配停顿之间按比例补齐。各分句分别写 source；含补齐边界的分句为 proportional，
+   句子仍标 `estimated: "proportional"`。重新 voice 后再跑一次；旧 timing 不补也能按整句线性扫过。
 6. **先写节奏谱并生成配乐**：按实测句子锚定 `music.score`，先定 sections、揭示 hits、揭示前 breaks 和 ending。
    一部讲解片一个 BPM（96–116），hook 直接进鼓、第一小节就有重音，证据段中、揭示前收、drop 爆、结尾落。
    新片使用 `studio-v3`；显式写 `volume: 0.64`、`underSpeechVolume: 0.60`、`mixProfile: "voiceover"` 作为口播混音起点；实测讲述段底层比旁白低 8–10 LU。无旁白片去掉 voiceover profile。
@@ -90,7 +96,7 @@ Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐�
    - 用 `<FilmSoundEffects />` 播放本片生成计划；显式 cue 可用 `sfx: "plan:<id>"` 引用。
      场景轨和配方 resolver 的 `sfxCues` 提供 kind/时长建议，先转为本片计划，避免和计划重复播放；视觉组件不会自动发声。
    - 必须挂载 `<FilmSoundtrack />` 与 `<FilmCaptions />`（字幕放在最上层，均在场景轨之外）。
-     默认 `variant="box"`；纸面片使用 `variant="paper"`（偏白纸条、深灰字、两端胶带），style 仍可覆盖。
+     默认 `variant="box"`、`highlight="none"`；纸面片推荐 `variant="paper" highlight="karaoke"`（偏白纸条、深灰字、两端胶带），style 仍可覆盖。
      caption 或 paper 使用标点优先、保护数字/单词的显式断行；未写 caption 的旧 box 保留原排版以保持像素兼容。
      手和道具不能伸进实际字幕框外扩 24px 的字幕带；回应 `graphic-in-caption-band`，转场窗口也要核对，无字幕帧不检查。
    - 按段落拆成子组件或 `scenes/*.tsx`；所有文件留在本片目录内。

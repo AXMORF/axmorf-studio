@@ -18,7 +18,11 @@
 例如 `text: "这是八千四百一十五个H一百小时，乘每小时二点五美元。"`，
 `caption: "这是 8,415 个 H100 小时，乘每小时 $2.5。"`。只改 caption 不重做旁白，不改实测时序或 voice 指纹。
 默认 `variant="box"` 保持旧片像素；纸面片用 `<FilmCaptions variant="paper" />`，字保持水平、不 boil，style 可覆盖。
-caption/paper 使用标点优先的显式断行，不拆数字/单词，不为挤一行缩字；旧 box 没有 caption 时保留原排版。
+纸面风格推荐 `<FilmCaptions variant="paper" highlight="karaoke" />`；voice 后运行 `film:captions` 从现有音频补可选分句估时，不改 voice 指纹。
+caption 与 text 要保持相同分句标点（，。、；：？！）和分句数，才能逐分句对齐；精度为分句级、分句内线性估计，不是逐字对齐。
+停顿与比例位置用确定性 DP 顺序匹配，多余停顿忽略，缺失边界在相邻匹配停顿之间按比例补齐；各分句分别标 pause/proportional。
+含比例分句的句子标 estimated:proportional；旧 timing 或分句数不符按整句扫过，审片 `karaoke-clause-mismatch` 只提示。字只变色，不抖、不缩放。
+caption/paper/karaoke 使用标点优先的显式断行，不拆数字/单词，不为挤一行缩字；旧 box 没有 caption 时保留原排版。
 
 **手和道具不能伸进字幕带**：留出实际字幕框外扩 24px 的区域（审片 `graphics.frames[].captionRects` 可查框的位置）。
 回应 `graphic-in-caption-band` 的物件、帧号和框位置；转场窗口也检查并标记，没有字幕的帧不检查。

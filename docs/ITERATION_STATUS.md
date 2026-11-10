@@ -844,3 +844,11 @@ Project production 主链保持不变，只处理既有作品。
 `film:music` → `film:check` → `film:review`（联系表帧内容正确）→ `film:deliver`（29 秒，H.264 210 帧、AAC 双声道，
 配乐与重音音效实际混入）。同一次运行中 Edge TTS 对第二句返回 HTTP 429（外部阻塞，未重试），第一句的真实 TTS、
 归一化与缓存成功；带旁白的完整真实生产留待发布前验收。
+
+## 2026-11-10：可选 KTV 双色字幕
+
+FilmCaptions 新增 highlight="karaoke"（默认 none），用可选 clauses 分句估时连续扫色，两行依次推进，字不抖不缩放；box/paper 有各自高对比默认色，支持 sungColor/unsungColor。
+新增独立 film:captions 从已生成 narration.wav 离线计算 timing.json 的可选 clauses；保留音频、句边界和旁白指纹，未运行的旧片不变。
+10ms RMS / 6% 句峰 / 120ms 内部停顿与念法半角单位比例位置做确定性最优顺序匹配（DP）：多余停顿忽略，缺失边界在相邻已匹配停顿间按比例补齐。
+各分句分别标 pause/proportional；含比例分句的句子标 estimated:proportional，CLI 报告 mixed 与边界来源，避免丢弃部分可用停顿。
+精度为分句级估计、分句内线性；caption/text 分句数不符或旧 timing 没有 clauses 时整句扫过，karaoke-clause-mismatch 只提示。四份 Skill 与 creator 模板同步。
