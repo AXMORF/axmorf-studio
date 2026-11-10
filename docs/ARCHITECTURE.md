@@ -180,6 +180,13 @@ FFmpeg 失败/超时直接报告，不自动重试。上述 motion 字段是 `fi
 先备份再覆盖，并列在 `localChanges`。随后运行 `npm install`、`bootstrap`、`doctor`，任一步失败就恢复备份。
 旧 Project 链留下的目录只列在 `legacyProjectData`，不自动删除。
 
+共享资源独立使用 `.axmorf/shared-resources.json`（schemaVersion 1，路径 → `sha256:<hex>`），不混入模板托管删除列表。
+upgrade 在 install 前读取旧运行时 `dist/assets/workspace-seed/` 的实际字节哈希，优先于历史清单传给 bootstrap。
+当前字节匹配新版时确认，匹配旧哈希时原子替换，缺失时补写；不同于两者或无旧哈希的差异均报冲突。
+bootstrap 在写入前一次列出全部字节冲突，附先备份、删除冲突文件或替换为新版包字节再重跑，以及保留本地修改继续用旧版的指引。
+bootstrap 写入/确认资源后记录新版哈希；共享资源与清单一起备份回滚，新版新增资源失败时移除。
+资源及父目录拒绝符号链接，清单的路径键不用于枚举或授权备份路径。
+
 ## 6. 发布
 
 见[发布流程](guides/RELEASE.md)。CI 在 tag 上完成完整检查、真实渲染与全新 Workspace 冒烟后以 provenance 发布；

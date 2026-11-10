@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import {
   link,
   lstat,
@@ -6,6 +6,7 @@ import {
   open,
   readFile,
   readdir,
+  rename,
   unlink,
 } from "node:fs/promises";
 import { dirname, join, posix } from "node:path";
@@ -20,6 +21,21 @@ const WORKSPACE_DIRECTORIES = [
   "out",
   "deliveries",
 ] as const;
+
+const SHARED_RESOURCE_MANIFEST = ".axmorf/shared-resources.json";
+const sha256 = (bytes: Buffer) =>
+  `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
+
+class SharedResourceConflictError extends Error {
+  constructor(readonly paths: readonly string[]) {
+    super(
+      `Shared Workspace resource conflicts with package bytes:\n${paths.map((path) => `- ${path}`).join("\n")}\n` +
+        "The current bytes do not match the new package, and unchanged old package bytes cannot be verified. " +
+        "Back up your local changes first, then delete each conflicting file or replace it with the version from the new @axmorf/studio package, and rerun upgrade. " +
+        "If these are intentional local changes, keep the files and continue using the previous runtime version.",
+    );
+  }
+}
 
 const ensureDirectory = async (rootDir: string, relativePath: string) => {
   const assertManagedDirectory = (
@@ -88,10 +104,12 @@ const inspectTarget = async ({
   rootDir,
   relativePath,
   expected,
+  previousHash,
 }: {
   readonly rootDir: string;
   readonly relativePath: string;
   readonly expected: Buffer;
+  readonly previousHash?: string;
 }) => {
   const parent = dirname(relativePath).split(/[\\/]/u);
   let current = rootDir;
@@ -106,7 +124,7 @@ const inspectTarget = async ({
         );
       }
     } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === "ENOENT") return false;
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
       throw error;
     }
   }
@@ -119,39 +137,57 @@ const inspectTarget = async ({
       );
     }
     const currentBytes = await readFile(target);
-    if (!currentBytes.equals(expected)) {
-      throw new Error(
-        `Shared Workspace resource conflicts with package bytes: ${relativePath}.`,
-      );
+    if (
+      !currentBytes.equals(expected) &&
+      sha256(currentBytes) !== previousHash
+    ) {
+      throw new SharedResourceConflictError([relativePath]);
     }
-    return true;
+    return currentBytes;
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return false;
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
     throw error;
   }
 };
 
-const writeMissingResource = async ({
+const writeResource = async ({
   rootDir,
   relativePath,
   bytes,
+  previous,
 }: {
   readonly rootDir: string;
   readonly relativePath: string;
   readonly bytes: Buffer;
+  readonly previous: Buffer | null;
 }) => {
   const parent = dirname(relativePath).split(/[\\/]/u).join("/");
   if (parent !== ".") await ensureDirectory(rootDir, parent);
   const destination = join(rootDir, relativePath);
   const temporary = `${destination}.${process.pid}.${randomUUID()}.tmp`;
-  const handle = await open(temporary, "wx");
   try {
-    await handle.writeFile(bytes);
-    await handle.sync();
-  } finally {
-    await handle.close();
-  }
-  try {
+    const handle = await open(temporary, "wx");
+    try {
+      await handle.writeFile(bytes);
+      await handle.sync();
+    } finally {
+      await handle.close();
+    }
+    if (previous !== null) {
+      // Recheck parents and the exact inspected bytes before atomic replacement.
+      const current = await inspectTarget({
+        rootDir,
+        relativePath,
+        expected: previous,
+      });
+      if (current === null) {
+        throw new Error(
+          `Shared Workspace resource disappeared: ${relativePath}.`,
+        );
+      }
+      await rename(temporary, destination);
+      return;
+    }
     await link(temporary, destination);
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
@@ -174,6 +210,40 @@ const writeMissingResource = async ({
   }
 };
 
+const readSharedResourceManifest = async (rootDir: string) => {
+  const path = join(rootDir, SHARED_RESOURCE_MANIFEST);
+  await ensureDirectory(rootDir, ".axmorf");
+  let bytes: Buffer;
+  try {
+    const metadata = await lstat(path);
+    if (!metadata.isFile() || metadata.isSymbolicLink()) {
+      throw new Error(
+        `${SHARED_RESOURCE_MANIFEST} must be a regular non-symbolic file.`,
+      );
+    }
+    bytes = await readFile(path);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      return { bytes: null, files: {} as Record<string, string> };
+    }
+    throw error;
+  }
+  const manifest = JSON.parse(bytes.toString("utf8"));
+  if (
+    manifest?.schemaVersion !== 1 ||
+    manifest.files === null ||
+    typeof manifest.files !== "object" ||
+    Array.isArray(manifest.files) ||
+    Object.values(manifest.files).some(
+      (hash) =>
+        typeof hash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(hash),
+    )
+  ) {
+    throw new Error(`${SHARED_RESOURCE_MANIFEST} is not a supported manifest.`);
+  }
+  return { bytes, files: manifest.files as Record<string, string> };
+};
+
 export const bootstrapWorkspace = async ({
   rootDir,
   workspaceSeedRoot,
@@ -188,18 +258,54 @@ export const bootstrapWorkspace = async ({
   for (const relativePath of WORKSPACE_DIRECTORIES) {
     await ensureDirectory(rootDir, relativePath);
   }
-  const current = await Promise.all(
+  const previous = await readSharedResourceManifest(rootDir);
+  const inspected = await Promise.allSettled(
     seedFiles.map((file) =>
       inspectTarget({
         rootDir,
         relativePath: file.relativePath,
         expected: file.bytes,
+        previousHash: previous.files[file.relativePath],
       }),
     ),
   );
+  const conflicts = inspected.flatMap((result) =>
+    result.status === "rejected" &&
+    result.reason instanceof SharedResourceConflictError
+      ? result.reason.paths
+      : [],
+  );
+  if (conflicts.length > 0) throw new SharedResourceConflictError(conflicts);
+  const current = inspected.map((result) => {
+    if (result.status === "rejected") throw result.reason;
+    return result.value;
+  });
   for (const [index, file] of seedFiles.entries()) {
-    if (current[index]) continue;
-    await writeMissingResource({ rootDir, ...file });
+    if (current[index]?.equals(file.bytes)) continue;
+    await writeResource({ rootDir, ...file, previous: current[index] });
+  }
+  const manifestBytes = Buffer.from(
+    `${JSON.stringify(
+      {
+        schemaVersion: 1,
+        files: Object.fromEntries(
+          seedFiles.map(({ relativePath, bytes }) => [
+            relativePath,
+            sha256(bytes),
+          ]),
+        ),
+      },
+      null,
+      2,
+    )}\n`,
+  );
+  if (!previous.bytes?.equals(manifestBytes)) {
+    await writeResource({
+      rootDir,
+      relativePath: SHARED_RESOURCE_MANIFEST,
+      bytes: manifestBytes,
+      previous: previous.bytes,
+    });
   }
   return {
     status: "workspace-bootstrapped" as const,

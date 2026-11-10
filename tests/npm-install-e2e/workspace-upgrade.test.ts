@@ -7,11 +7,14 @@ import {
   readdir,
   rm,
   stat,
+  symlink,
   writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
+
+import { bootstrapWorkspace } from "../../packages/studio/src/bootstrap/workspace-bootstrap";
 
 import {
   MANAGED_FILES,
@@ -373,5 +376,322 @@ test("a directory that is not a Workspace is rejected", async () => {
     );
   } finally {
     await rm(root, { recursive: true, force: true });
+  }
+});
+
+const sharedResourcePath = "src/remotion/catalog/assets.manifest.json";
+const sharedManifestPath = ".axmorf/shared-resources.json";
+const installedSeedPath =
+  "node_modules/@axmorf/studio/dist/assets/workspace-seed";
+const resourceHash = (bytes: string | Buffer) =>
+  `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
+
+const writeResource = async (
+  root: string,
+  path: string,
+  bytes: string | Buffer,
+) => {
+  await mkdir(join(root, path, ".."), { recursive: true });
+  await writeFile(join(root, path), bytes);
+};
+
+/** Simulate npm replacing the runtime seed, then run the real bootstrap against it. */
+const resourceUpgradeRunner = (
+  root: string,
+  nextBytes: string | Buffer,
+  failAt?: string,
+) => {
+  const calls: string[] = [];
+  const runCommand = async (command: string, args: string[]) => {
+    const stage = command === "install" ? "install" : args.at(-1)!;
+    calls.push(stage);
+    if (stage === "install") {
+      await writeResource(
+        root,
+        `${installedSeedPath}/${sharedResourcePath}`,
+        nextBytes,
+      );
+      await writeResource(
+        root,
+        `${installedSeedPath}/public/assets/axmorf-shared/added.txt`,
+        "added\n",
+      );
+    } else if (stage === "bootstrap") {
+      await bootstrapWorkspace({
+        rootDir: root,
+        workspaceSeedRoot: join(root, installedSeedPath),
+      });
+    }
+    if (stage === failAt) throw new Error(`forced ${stage} failure`);
+  };
+  return { calls, runCommand };
+};
+
+test("upgrade from the rc.5 asset manifest to the current package preserves config and backs up old bytes", async () => {
+  const { parent, root } = await legacyWorkspace();
+  try {
+    // Exact fixture from v0.3.0-rc.5 (9529685), the production upgrade regression.
+    const previous = await readFile(
+      new URL("./fixtures/rc5-assets.manifest.json", import.meta.url),
+    );
+    assert.match(resourceHash(previous), /^sha256:c878e16b/u);
+    const next = await readFile(
+      "packages/studio/src/remotion/catalog/assets.manifest.json",
+    );
+    assert.notDeepEqual(previous, next);
+    await writeResource(root, sharedResourcePath, previous);
+    await writeResource(
+      root,
+      `${installedSeedPath}/${sharedResourcePath}`,
+      previous,
+    );
+    // A stale history entry must not override the installed package's actual old hash.
+    await writeResource(
+      root,
+      sharedManifestPath,
+      JSON.stringify({
+        schemaVersion: 1,
+        files: { [sharedResourcePath]: resourceHash("stale") },
+      }),
+    );
+    const beforeConfig = await readFile(
+      join(root, "private/producer.config.json"),
+    );
+    const { calls, runCommand } = resourceUpgradeRunner(root, next);
+    const result = await upgradeWorkspace(
+      { cwd: root, runtimePackage: "9.9.9", creatorVersion: "9.9.9" },
+      { runCommand, progress: () => {} },
+    );
+    assert.equal(result.status, "workspace-upgraded");
+    assert.deepEqual(calls, ["install", "bootstrap", "doctor"]);
+    assert.deepEqual(await readFile(join(root, sharedResourcePath)), next);
+    assert.deepEqual(
+      await readFile(join(root, result.backup!, sharedResourcePath)),
+      previous,
+    );
+    assert.deepEqual(
+      await readFile(join(root, "private/producer.config.json")),
+      beforeConfig,
+    );
+    const manifest = JSON.parse(
+      await readFile(join(root, sharedManifestPath), "utf8"),
+    );
+    assert.equal(manifest.files[sharedResourcePath], resourceHash(next));
+  } finally {
+    await rm(parent, { recursive: true, force: true });
+  }
+});
+
+test("upgrade can use recorded hashes when the old installed runtime is unavailable", async () => {
+  const { parent, root } = await legacyWorkspace();
+  try {
+    await writeResource(root, sharedResourcePath, "old package\n");
+    await writeResource(
+      root,
+      sharedManifestPath,
+      JSON.stringify({
+        schemaVersion: 1,
+        files: { [sharedResourcePath]: resourceHash("old package\n") },
+      }),
+    );
+    const { runCommand } = resourceUpgradeRunner(root, "new package\n");
+    const result = await upgradeWorkspace(
+      { cwd: root, runtimePackage: "9.9.9", creatorVersion: "9.9.9" },
+      { runCommand, progress: () => {} },
+    );
+    assert.equal(result.status, "workspace-upgraded");
+    assert.equal(
+      await readFile(join(root, sharedResourcePath), "utf8"),
+      "new package\n",
+    );
+  } finally {
+    await rm(parent, { recursive: true, force: true });
+  }
+});
+
+for (const scenario of [
+  "local edit",
+  "no old hash",
+  "old package lacks resource",
+  "manifest lacks resource",
+]) {
+  test(`upgrade preserves conflicting shared resources with ${scenario}`, async () => {
+    const { parent, root } = await legacyWorkspace();
+    try {
+      await writeResource(root, sharedResourcePath, "local bytes\n");
+      if (scenario === "local edit") {
+        await writeResource(
+          root,
+          `${installedSeedPath}/${sharedResourcePath}`,
+          "old package\n",
+        );
+      }
+      if (scenario === "old package lacks resource") {
+        await writeResource(
+          root,
+          `${installedSeedPath}/public/assets/axmorf-shared/unrelated.txt`,
+          "old unrelated resource\n",
+        );
+      }
+      if (scenario === "manifest lacks resource") {
+        await writeResource(
+          root,
+          sharedManifestPath,
+          JSON.stringify({ schemaVersion: 1, files: {} }),
+        );
+      }
+      const manifestBefore = await readFile(
+        join(root, sharedManifestPath),
+      ).catch(() => null);
+      const { calls, runCommand } = resourceUpgradeRunner(
+        root,
+        "new package\n",
+      );
+      const packageBefore = await readFile(join(root, "package.json"));
+      await assert.rejects(
+        upgradeWorkspace(
+          { cwd: root, runtimePackage: "9.9.9", creatorVersion: "9.9.9" },
+          { runCommand, progress: () => {} },
+        ),
+        (error: unknown) => {
+          assert.ok(error instanceof Error);
+          assert.match(error.message, /conflicts with package bytes/u);
+          assert.ok(error.message.includes(sharedResourcePath));
+          assert.match(error.message, /Back up your local changes first/u);
+          assert.match(error.message, /rerun upgrade/u);
+          assert.match(
+            error.message,
+            /continue using the previous runtime version/u,
+          );
+          return true;
+        },
+      );
+      assert.equal(
+        await readFile(join(root, sharedResourcePath), "utf8"),
+        "local bytes\n",
+      );
+      assert.deepEqual(
+        await readFile(join(root, "package.json")),
+        packageBefore,
+      );
+      assert.deepEqual(calls, ["install", "bootstrap", "install"]);
+      if (manifestBefore === null) {
+        await assert.rejects(stat(join(root, sharedManifestPath)), {
+          code: "ENOENT",
+        });
+      } else {
+        assert.deepEqual(
+          await readFile(join(root, sharedManifestPath)),
+          manifestBefore,
+        );
+      }
+    } finally {
+      await rm(parent, { recursive: true, force: true });
+    }
+  });
+}
+
+for (const failAt of ["bootstrap", "doctor"]) {
+  for (const recorded of [false, true]) {
+    test(`a failed ${failAt} rolls shared resources and ${recorded ? "existing" : "new"} manifest back`, async () => {
+      const { parent, root } = await legacyWorkspace();
+      try {
+        await writeResource(root, sharedResourcePath, "old package\n");
+        await writeResource(
+          root,
+          `${installedSeedPath}/${sharedResourcePath}`,
+          "old package\n",
+        );
+        const beforeManifest = JSON.stringify({
+          schemaVersion: 1,
+          files: { [sharedResourcePath]: resourceHash("old package\n") },
+        });
+        if (recorded)
+          await writeResource(root, sharedManifestPath, beforeManifest);
+        const beforePackage = await readFile(join(root, "package.json"));
+        const beforeLock = await readFile(join(root, "package-lock.json"));
+        const { runCommand } = resourceUpgradeRunner(
+          root,
+          "new package\n",
+          failAt,
+        );
+        await assert.rejects(
+          upgradeWorkspace(
+            { cwd: root, runtimePackage: "9.9.9", creatorVersion: "9.9.9" },
+            { runCommand, progress: () => {} },
+          ),
+          new RegExp(`forced ${failAt} failure`, "u"),
+        );
+        assert.equal(
+          await readFile(join(root, sharedResourcePath), "utf8"),
+          "old package\n",
+        );
+        assert.deepEqual(
+          await readFile(join(root, "package.json")),
+          beforePackage,
+        );
+        assert.deepEqual(
+          await readFile(join(root, "package-lock.json")),
+          beforeLock,
+        );
+        if (recorded) {
+          assert.equal(
+            await readFile(join(root, sharedManifestPath), "utf8"),
+            beforeManifest,
+          );
+        } else {
+          await assert.rejects(stat(join(root, sharedManifestPath)), {
+            code: "ENOENT",
+          });
+        }
+        await assert.rejects(
+          stat(join(root, "public/assets/axmorf-shared/added.txt")),
+          { code: "ENOENT" },
+        );
+        await assert.rejects(stat(join(root, ".project-operation.lock")), {
+          code: "ENOENT",
+        });
+      } finally {
+        await rm(parent, { recursive: true, force: true });
+      }
+    });
+  }
+}
+
+test("upgrade refuses shared-resource symlink parents without touching the external bytes", async () => {
+  const { parent, root } = await legacyWorkspace();
+  try {
+    await writeResource(
+      root,
+      `${installedSeedPath}/${sharedResourcePath}`,
+      "old package\n",
+    );
+    await mkdir(join(parent, "outside"));
+    await writeFile(
+      join(parent, "outside/assets.manifest.json"),
+      "old package\n",
+    );
+    await mkdir(join(root, "src/remotion"), { recursive: true });
+    await symlink(
+      join(parent, "outside"),
+      join(root, "src/remotion/catalog"),
+      "dir",
+    );
+    const packageBefore = await readFile(join(root, "package.json"));
+    const { runCommand } = resourceUpgradeRunner(root, "new package\n");
+    await assert.rejects(
+      upgradeWorkspace(
+        { cwd: root, runtimePackage: "9.9.9", creatorVersion: "9.9.9" },
+        { runCommand, progress: () => {} },
+      ),
+      /parent is unsafe/u,
+    );
+    assert.equal(
+      await readFile(join(parent, "outside/assets.manifest.json"), "utf8"),
+      "old package\n",
+    );
+    assert.deepEqual(await readFile(join(root, "package.json")), packageBefore);
+  } finally {
+    await rm(parent, { recursive: true, force: true });
   }
 });

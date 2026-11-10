@@ -17,6 +17,8 @@ const DEFAULT_TEMPLATE_ROOT = fileURLToPath(
 );
 
 export const MANAGED_MANIFEST_PATH = ".axmorf/managed.json";
+const SHARED_RESOURCE_MANIFEST = ".axmorf/shared-resources.json";
+const RUNTIME_SEED = `node_modules/${RUNTIME_PACKAGE_NAME}/dist/assets/workspace-seed`;
 const BACKUP_ROOT = ".axmorf/backups";
 const OPERATION_LOCK = ".project-operation.lock";
 const RECOVERY_LOCK = ".project-operation.recovery.lock";
@@ -103,6 +105,67 @@ const readOptional = async (filesystem, path) => {
     if (isNotFound(error)) return null;
     throw error;
   }
+};
+
+const assertSafeParents = async (filesystem, root, path) => {
+  let current = root;
+  for (const part of toPosix(dirname(path)).split("/")) {
+    if (part === ".") continue;
+    current = join(current, part);
+    try {
+      const status = await filesystem.lstat(current);
+      if (!status.isDirectory() || status.isSymbolicLink()) {
+        throw new Error(`Shared Workspace resource parent is unsafe: ${path}.`);
+      }
+    } catch (error) {
+      if (isNotFound(error)) return;
+      throw error;
+    }
+  }
+};
+
+/** Read package bytes before install replaces them; never infer ownership from Workspace bytes. */
+const installedSharedResourceHashes = async (filesystem, root) => {
+  await assertSafeParents(filesystem, root, `${RUNTIME_SEED}/marker`);
+  const seedRoot = join(root, RUNTIME_SEED);
+  let paths;
+  try {
+    paths = await listFiles(filesystem, seedRoot);
+  } catch (error) {
+    if (isNotFound(error)) return {};
+    throw error;
+  }
+  return Object.fromEntries(
+    await Promise.all(
+      paths.map(async (path) => [
+        path,
+        sha256(await filesystem.readFile(join(seedRoot, path))),
+      ]),
+    ),
+  );
+};
+
+const readSharedResourceHashes = async (filesystem, root) => {
+  await assertSafeParents(filesystem, root, SHARED_RESOURCE_MANIFEST);
+  const bytes = await readOptional(
+    filesystem,
+    join(root, SHARED_RESOURCE_MANIFEST),
+  );
+  if (bytes === null) return {};
+  const manifest = JSON.parse(bytes.toString("utf8"));
+  if (
+    manifest?.schemaVersion !== 1 ||
+    manifest.files === null ||
+    typeof manifest.files !== "object" ||
+    Array.isArray(manifest.files) ||
+    Object.values(manifest.files).some(
+      (hash) =>
+        typeof hash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(hash),
+    )
+  ) {
+    throw new Error(`${SHARED_RESOURCE_MANIFEST} is not a supported manifest.`);
+  }
+  return manifest.files;
 };
 
 const inMirroredDirectory = (path) =>
@@ -394,12 +457,30 @@ export const upgradeWorkspace = async (
   const backupRoot = join(root, BACKUP_ROOT, stamp);
   const backedUp = [];
   const created = [];
+  const sharedPaths = new Set();
   try {
+    const oldSharedHashes = install
+      ? await installedSharedResourceHashes(filesystem, root)
+      : {};
+    const previousSharedHashes = install
+      ? {
+          ...(await readSharedResourceHashes(filesystem, root)),
+          ...oldSharedHashes,
+        }
+      : {};
     const backup = async (path) => {
+      if (backedUp.includes(path) || created.includes(path)) return;
       const bytes = await readOptional(filesystem, join(root, path));
       if (bytes === null) return;
       await writeAtomic(filesystem, join(backupRoot, path), bytes);
       backedUp.push(path);
+    };
+    const backupSharedResource = async (path) => {
+      await assertSafeParents(filesystem, root, path);
+      await backup(path);
+      sharedPaths.add(path);
+      if (!backedUp.includes(path) && !created.includes(path))
+        created.push(path);
     };
     for (const path of [
       "package.json",
@@ -438,6 +519,24 @@ export const upgradeWorkspace = async (
       created.push(MANAGED_MANIFEST_PATH);
 
     if (install) {
+      await backupSharedResource(SHARED_RESOURCE_MANIFEST);
+      // Only package-enumerated paths are backed up; manifest keys never authorize traversal.
+      for (const path of Object.keys(oldSharedHashes))
+        await backupSharedResource(path);
+      await writeAtomic(
+        filesystem,
+        join(root, SHARED_RESOURCE_MANIFEST),
+        Buffer.from(
+          `${JSON.stringify(
+            {
+              schemaVersion: 1,
+              files: previousSharedHashes,
+            },
+            null,
+            2,
+          )}\n`,
+        ),
+      );
       // bootstrap needs the operation lock free; release it before handing over to the runtime.
       await filesystem.rm(lockPath);
       for (const [stage, command, args] of [
@@ -445,6 +544,15 @@ export const upgradeWorkspace = async (
         ["bootstrap", "run", ["--silent", "bootstrap"]],
         ["doctor", "run", ["--silent", "doctor"]],
       ]) {
+        if (stage === "bootstrap") {
+          // New releases may add resources: back them up too, or remove them on rollback.
+          const nextSharedHashes = await installedSharedResourceHashes(
+            filesystem,
+            root,
+          );
+          for (const path of Object.keys(nextSharedHashes))
+            await backupSharedResource(path);
+        }
         progress(`[axmorf] upgrade ${stage}: starting\n`);
         await runCommand(command, args, { cwd: root });
         progress(`[axmorf] upgrade ${stage}: complete\n`);
@@ -453,9 +561,17 @@ export const upgradeWorkspace = async (
   } catch (error) {
     progress("[axmorf] upgrade failed; restoring backed-up files\n");
     for (const path of created) {
+      if (sharedPaths.has(path)) {
+        await assertSafeParents(filesystem, root, path);
+        await readOptional(filesystem, join(root, path));
+      }
       await filesystem.rm(join(root, path), { force: true });
     }
     for (const path of backedUp) {
+      if (sharedPaths.has(path)) {
+        await assertSafeParents(filesystem, root, path);
+        await readOptional(filesystem, join(root, path));
+      }
       await writeAtomic(
         filesystem,
         join(root, path),
