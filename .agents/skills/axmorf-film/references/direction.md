@@ -31,7 +31,9 @@ caption/paper/karaoke 使用标点优先的显式断行，不拆数字/单词，
 
 ## 2. 工作顺序（不能倒过来）
 
-1. `film:voice`：旁白实测，拿到每句起止帧。
+1. `film:voice`：旁白实测，拿到每句起止帧。跨 Workspace 续做时，迁移 `.axmorf/cache/voice/` 并保持
+   provider 种类、模型、素材内容、生成参数、语速和文本一致即可复用新键的逐句 PCM；路径、连接配置不参与音频内容身份。
+   旧版缓存键不自动迁移；只保留整片 take 时，复制匹配的 film.json/timing.json/narration.wav 后用 `film:check`，不重跑 voice。
 2. **先写节奏谱**（`music.score`）：按章节把段落锚到句子上，定好揭示用的 `hits`、揭示前的 `breaks`、结尾 `ending`。
 3. 用默认 `studio-v3` 运行 `film:music`：拿到 `beatFrames`、`barFrames`、`sectionFrames`、`accentFrames` 和 `onsets`（kick/snare/clap/hat/bass/hits/sections 为帧数组，v3 另有 fills/breaks 区间和带强度的 accents）。
 4. **写 storyboard.md**：按小节写，不按句子写（格式见第 8 节）。

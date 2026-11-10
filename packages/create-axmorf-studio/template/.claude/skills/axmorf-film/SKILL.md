@@ -12,6 +12,9 @@ description: 用 AXMORF Studio 制作或修改讲解短视频。Agent 直接编�
 
 新片使用共享 Skill 的 studio-v3 与经校准音量；v2 和既有影片保持兼容。
 
+逐句旁白缓存按 provider/模型/素材内容哈希或 voiceId/生成参数/语速/文本复用，不含 Workspace 路径或连接配置；
+新键可跨 Workspace 迁移，旧键不自动转换，旧 timing 与交付不受影响。保留完整 take 的方法读共享正文第 5 步。
+
 L3 必须按 strength 分档；最强重音要有全片最大主体动作和镜头冲击，背景/非阅读主体不因口播全面减幅；阅读文字独立稳定。具体幅度与自检读共享 `references/direction.md`。
 
 最强重音之前必须有至少 6 帧可见预备，不能藏起配方过程；效果由内容语义决定，AxiomMorph 只是可选的通用文字形变，无须解释未使用原因。

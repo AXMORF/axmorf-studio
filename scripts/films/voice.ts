@@ -24,7 +24,10 @@ import {
   createExplicitPausePcm,
   measureCanonicalPcmWav,
 } from "../narration/domain/pcm-wav";
-import { computeChunkRequestFingerprint } from "../narration/domain/provider-input";
+import {
+  computeChunkRequestFingerprint,
+  computeProviderAudioFingerprint,
+} from "../narration/domain/provider-input";
 import { masterNarrationBytes } from "../narration/mastering";
 import { writeBinaryFileAtomic } from "../shared/atomic-file";
 import {
@@ -132,12 +135,15 @@ export const createFilmVoiceService = async ({
     narration,
   });
   const generate = createGenerator({ resolved });
+  const providerAudioFingerprint = computeProviderAudioFingerprint(
+    resolved.safeDescriptor,
+  );
   const cacheDir = join(rootDir, ".axmorf/cache/voice");
   return {
     speak: async ({ id, text }) => {
       const key = sha256(
         JSON.stringify({
-          provider: snapshot.providerAttemptFingerprint,
+          provider: providerAudioFingerprint,
           speechRate: snapshot.speechRate,
           text,
         }),

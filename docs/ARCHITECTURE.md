@@ -2,7 +2,7 @@
 
 > 文档类型：当前架构 authority
 >
-> 最后复核：2026-10-19（0.3.0）
+> 最后复核：2026-11-10（0.3.0-rc.6 本地准备）
 
 AXMORF Studio 由两个 npm 包和一个用户 Workspace 组成。Agent 直接编写每部片的 Remotion 源码；工具只负责
 旁白时序、原创配乐或已登记曲目、素材准入、审片帧、硬规则检查和经过复验的交付。
@@ -32,7 +32,7 @@ packages/studio/src/
   cli/                axmorf 命令路由：bootstrap、doctor、browser prepare、web、preview、dev、film
   web/                本地 Web 服务：静态资源、API 转发与交付媒体（只读 publish.json 记录的文件）
 scripts/
-  films/              film:new|voice|music|asset|review|check|deliver|list|delete 的实现；score/ 是配乐引擎
+  films/              film:new|voice|captions|music|sfx|asset|review|check|deliver|list|delete 的实现；score/ 是配乐引擎
   narration/          TTS provider adapter（Edge、Speech SDK、VoxCPM）、PCM 与响度处理
   config/             私有 producer config 读写与旁白执行快照
   scene-templates/    片头片尾模板音频投影
@@ -67,7 +67,10 @@ film:deliver → .axmorf/staging 中渲染正片（片头 + 正片 + 片尾）�
 key 由 providerAttemptFingerprint、speechRate 和文本计算。`timing.inputFingerprint` 只含 fps、timeline 和 narration，
 用于判断时序是否对应剧本，不证明当前 provider/音色相同；生成的 timing/narration 不作 TTS 缓存。
 复用完整 take 时连同匹配的 film.json、timing.json、narration.wav 一起迁移、保留 filmId/相对路径，用 film:check
-校验指纹与音频 checksum，跳过 film:voice；逐句续做还需迁移缓存并配置相同 provider/音色执行参数和语速。
+校验指纹与音频 checksum，跳过 film:voice；逐句续做还需迁移缓存并配置相同 provider/模型/音色素材内容、生成参数和语速。
+逐句缓存使用独立的音频内容指纹：VoxCPM 取素材内容哈希、克隆模式与生成参数，远端 provider 取 vendor/model/voiceId 等，
+均排除连接凭据、超时、显示名称和素材路径。providerAttemptFingerprint 继续记录含私有执行配置的请求身份，不再充当缓存身份。
+0.3.0-rc.6 不自动转换旧缓存键；仅影响重新 voice 时的命中率，不改变既有 timing、inputFingerprint 或已交付音频。
 缓存不是旁白来源认证机制，也不位于 private 目录。
 
 渲染期间不调用网络、Agent、Git 或目录扫描；Remotion Root 只读生成的静态注册表。`Film.tsx` 只看到正片帧，

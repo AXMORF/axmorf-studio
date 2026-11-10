@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { cp, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -109,9 +109,14 @@ test("film cache hits bypass Edge pacing, diagnostics and provider requests", as
     join(transferredRoot, ".axmorf/cache/voice"),
     { recursive: true },
   );
+  const transferredConfig = join(
+    transferredRoot,
+    "private/producer.config.json",
+  );
+  await cp(configPath, transferredConfig);
   const transferred = await createFilmVoiceService({
     rootDir: transferredRoot,
-    env: { RSP_PRODUCER_CONFIG: configPath },
+    env: { RSP_PRODUCER_CONFIG: transferredConfig },
     createGenerator: () => async () => {
       throw new Error("Migrated sentence cache must bypass TTS");
     },
@@ -147,3 +152,186 @@ test("film cache hits bypass Edge pacing, diagnostics and provider requests", as
     "Changing the voice must miss the cache even with identical text/timing inputs",
   );
 });
+
+for (const mode of ["controllable-clone", "high-fidelity-clone"] as const) {
+  test(`VoxCPM ${mode} cache survives Workspace and material path changes but tracks audio inputs`, async (context) => {
+    const rootDir = await mkdtemp(join(tmpdir(), "axmorf-voxcpm-cache-"));
+    const transferredRoot = await mkdtemp(
+      join(tmpdir(), "axmorf-voxcpm-move-"),
+    );
+    context.after(() => rm(rootDir, { recursive: true, force: true }));
+    context.after(() => rm(transferredRoot, { recursive: true, force: true }));
+    const configPath = join(rootDir, "private/producer.config.json");
+    const audioPath = "private/voxcpm/prompt.wav";
+    const textPath = "private/voxcpm/prompt.txt";
+    const source = encodeCanonicalPcmWav(Buffer.alloc(4_800 * 2));
+    await mkdir(join(rootDir, "private/voxcpm"), { recursive: true });
+    await writeFile(join(rootDir, audioPath), Uint8Array.from(source));
+    await writeFile(join(rootDir, textPath), "参考声音。");
+    const provider = validProducerConfig.tts.providers[0];
+    await writeProducerConfig({
+      configPath,
+      value: {
+        ...validProducerConfig,
+        tts: {
+          ...validProducerConfig.tts,
+          providers: [
+            {
+              ...provider,
+              voiceProfiles: [
+                {
+                  id: "my-voice",
+                  name: "Narrator",
+                  ...(mode === "high-fidelity-clone"
+                    ? {
+                        mode,
+                        promptAudioPath: audioPath,
+                        promptTextPath: textPath,
+                        promptTranscriptConfirmed: true,
+                      }
+                    : {
+                        mode,
+                        referenceAudioPath: audioPath,
+                        controlInstruction: "自然、清晰。",
+                      }),
+                },
+              ],
+            },
+          ],
+        },
+      },
+    });
+    let requests = 0;
+    const createService = (root: string, allowGeneration = false) =>
+      createFilmVoiceService({
+        rootDir: root,
+        env: {
+          RSP_PRODUCER_CONFIG: join(root, "private/producer.config.json"),
+        },
+        createGenerator: () => async () => {
+          if (!allowGeneration)
+            throw new Error("Migrated cache must bypass TTS");
+          requests += 1;
+          return source;
+        },
+      });
+    const sentence = { id: "s01", text: "跨目录缓存测试。" };
+    const first = await (await createService(rootDir, true)).speak(sentence);
+    assert.equal(requests, 1);
+    await cp(join(rootDir, "private"), join(transferredRoot, "private"), {
+      recursive: true,
+    });
+    await cp(join(rootDir, ".axmorf"), join(transferredRoot, ".axmorf"), {
+      recursive: true,
+    });
+    assert.deepEqual(
+      await (await createService(transferredRoot)).speak(sentence),
+      first,
+    );
+
+    // Renaming material files and transport/profile labels must not change audio identity.
+    const transferredConfigPath = join(
+      transferredRoot,
+      "private/producer.config.json",
+    );
+    const config = await readProducerConfig({
+      configPath: transferredConfigPath,
+    });
+    await cp(
+      join(transferredRoot, audioPath),
+      join(transferredRoot, "private/renamed.wav"),
+    );
+    await cp(
+      join(transferredRoot, textPath),
+      join(transferredRoot, "private/renamed.txt"),
+    );
+    await writeProducerConfig({
+      configPath: transferredConfigPath,
+      value: {
+        ...config,
+        tts: {
+          ...config.tts,
+          providers: config.tts.providers.map((entry) =>
+            entry.kind === "voxcpm"
+              ? {
+                  ...entry,
+                  connection: {
+                    ...entry.connection,
+                    baseUrl: "http://tts.example.invalid",
+                    timeoutMs: 30_000,
+                    token: "rotated-test-token",
+                  },
+                  voiceProfiles: entry.voiceProfiles.map((profile) =>
+                    profile.mode === "high-fidelity-clone"
+                      ? {
+                          ...profile,
+                          name: "Renamed",
+                          promptAudioPath: "private/renamed.wav",
+                          promptTextPath: "private/renamed.txt",
+                        }
+                      : {
+                          ...profile,
+                          name: "Renamed",
+                          referenceAudioPath: "private/renamed.wav",
+                        },
+                  ),
+                }
+              : entry,
+          ),
+        },
+      },
+    });
+    assert.deepEqual(
+      await (await createService(transferredRoot)).speak(sentence),
+      first,
+    );
+    assert.equal(requests, 1);
+
+    const changed = Buffer.from(source);
+    changed.writeInt16LE(1_000, 44);
+    await writeFile(
+      join(transferredRoot, "private/renamed.wav"),
+      Uint8Array.from(changed),
+    );
+    await assert.rejects(
+      (await createService(transferredRoot)).speak(sentence),
+      /must bypass TTS/u,
+    );
+    await writeFile(
+      join(transferredRoot, "private/renamed.wav"),
+      Uint8Array.from(source),
+    );
+    if (mode === "high-fidelity-clone") {
+      await writeFile(
+        join(transferredRoot, "private/renamed.txt"),
+        "不同的参考文本。",
+      );
+      await assert.rejects(
+        (await createService(transferredRoot)).speak(sentence),
+        /must bypass TTS/u,
+      );
+      await writeFile(
+        join(transferredRoot, "private/renamed.txt"),
+        "参考声音。",
+      );
+    }
+    const beforeRate = await readProducerConfig({
+      configPath: transferredConfigPath,
+    });
+    await writeProducerConfig({
+      configPath: transferredConfigPath,
+      value: {
+        ...beforeRate,
+        tts: {
+          ...beforeRate.tts,
+          speech: { ...beforeRate.tts.speech, rate: 1.2 },
+        },
+      },
+    });
+    await assert.rejects(
+      (await createService(transferredRoot)).speak(sentence),
+      /must bypass TTS/u,
+    );
+    assert.equal(requests, 1, "Misses are stopped before any provider call");
+  });
+}

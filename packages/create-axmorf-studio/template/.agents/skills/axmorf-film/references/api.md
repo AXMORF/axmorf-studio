@@ -6,6 +6,10 @@
 
 ## 本片时序
 
+逐句 voice 缓存与 timing 输入指纹分开：前者按 provider 种类、模型、素材内容哈希/voiceId、生成参数、语速及文本计算，
+不含 Workspace 绝对路径、连接配置或显示名称；同输入的新缓存可跨 Workspace 迁移。`0.3.0-rc.6` 不自动迁移旧键。
+timing.inputFingerprint 的算法不变，原 timing 和已交付旁白无需重新生成；保留完整 take 时仍用 `film:check`，跳过 voice。
+
 ```tsx
 const { spec, timing, music } = useFilm(); // film.json 与生成文件的原始数据
 const t = useFilmTiming();

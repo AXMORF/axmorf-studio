@@ -50,12 +50,15 @@ Workspace 只替你做不稳定的事：旁白与实测时序、确定性配乐�
      `bookends.sources`（标题 + 网址），会显示在片尾。
    - `film:new` 已写入 10 秒占位 `studio-v3` 谱；按本片内容重写 `music.score`，不要沿用占位收尾帧。无配乐的片设 `music: null`；实测旁白后先写节奏谱、生成配乐，再按小节写 storyboard（见 [导演手册](references/direction.md#2-工作顺序不能倒过来)）。
 5. **生成旁白**：`npm run film:voice -- --film <filmId>`。输出每句的起止帧，不提供逐字时间。短语从句首开始可用句子 id；句中关键词需人工/外部确认绝对帧，否则只称句级，不按字数均分推算。修改旁白文本后重新运行；
-   相同 provider/音色执行指纹、语速和文本的句子在 `.axmorf/cache/voice/` 命中时不会重复调用 TTS。
+   相同 provider 种类、模型、音色素材内容哈希（或远端 voiceId）、生成参数、语速和文本的句子在
+   `.axmorf/cache/voice/` 命中时不会重复调用 TTS；Workspace 绝对路径、连接凭据、超时和显示名称不进入缓存键。
    `generated/timing.json.inputFingerprint` 仅描述剧本/时序输入，不含 provider 或音色，不是 TTS 缓存键。
    跨 Workspace 要保留同一个 take：一起复制匹配的 `film.json`、`generated/timing.json` 与
    `public/films/<filmId>/narration.wav`（保持 filmId 和相对路径），直接运行 `film:check` 验证输入指纹和音频 checksum，
    不再运行 `film:voice`。要在新 Workspace 编辑旁白并复用未改句子，还需迁移 `.axmorf/cache/voice/`，
-   配置相同 provider、音色素材、生成参数与语速；不要把混合、停顿、母带处理后的 narration.wav 当作逐句缓存。
+   配置相同 provider、模型、音色素材内容、生成参数与语速；路径不同不影响新缓存命中，素材内容或 voiceId 改变会失效。
+   `0.3.0-rc.6` 起使用内容缓存键；旧版缓存键不自动迁移，首次生成可能未命中，但旧 timing、inputFingerprint 和交付不受影响。
+   只要保留原 take 就仍用 `film:check`、跳过 `film:voice`；不要把混合、停顿、母带处理后的 narration.wav 当作逐句缓存。
    需要双色滚动字幕时，voice 后运行 `npm run film:captions -- --film <filmId>`，离线分析现有 narration.wav 的能量停顿，
    把可选 clauses 写进 timing.json；不调用 TTS、不改音频、句级边界或指纹。以念法半角单位的比例位置做确定性最优顺序匹配：
    多余停顿忽略，缺失边界在相邻已匹配停顿之间按比例补齐。各分句分别写 source；含补齐边界的分句为 proportional，
